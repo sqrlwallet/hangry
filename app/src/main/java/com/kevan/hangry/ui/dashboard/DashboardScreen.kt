@@ -225,13 +225,11 @@ fun DashboardScreen(
                         DailyActivityRingsCard(
                             currentSteps = uiState.dailySummary?.steps ?: 0L,
                             stepGoal = uiState.dailyStepGoal,
-                            currentMinutes = uiState.todayActiveMinutes,
-                            minutesGoal = uiState.dailyActivityMinutesGoal,
                             currentCalories = uiState.todayActiveCalories,
                             caloriesGoal = uiState.dailyActiveCaloriesGoal,
                             isExpanded = uiState.isActivityExpanded,
                             onToggleExpand = { viewModel.toggleActivityExpanded() },
-                            onSaveGoals = { s, m, c -> viewModel.updateActivityGoals(s, m, c) }
+                            onSaveGoals = { s, c -> viewModel.updateActivityGoals(s, c) }
                         )
                     }
 
@@ -271,13 +269,6 @@ fun DashboardScreen(
                         )
                     }
 
-                    WidgetType.TRAINING_LOAD -> {
-                        TrainingLoadCard(
-                            uiState = uiState,
-                            onNavigateToTraining = onNavigateToTraining
-                        )
-                    }
-
                     WidgetType.HEART_METRICS -> {
                         HeartMetricsRow(
                             uiState = uiState,
@@ -310,7 +301,6 @@ fun DashboardScreen(
                             dailySummary = uiState.dailySummary,
                             stressResult = uiState.stressResult,
                             latestWeightKg = uiState.latestWeightKg,
-                            activeMinutes = uiState.todayActiveMinutes,
                             activeCalories = uiState.todayActiveCalories,
                             onRemoveWidget = { viewModel.removeWidget(widget.id) }
                         )
@@ -538,40 +528,6 @@ private fun SleepSummaryCard(
         }
         Text(
             text = sleepSubtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = tokens.textMuted
-        )
-    }
-}
-
-@Composable
-private fun TrainingLoadCard(
-    uiState: DashboardUiState,
-    onNavigateToTraining: () -> Unit
-) {
-    val tokens = LocalHangryTokens.current
-    HangryCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onNavigateToTraining() }
-    ) {
-        Text(
-            text = stringResource(R.string.training_load_title),
-            style = MaterialTheme.typography.titleSmall,
-            color = tokens.textSecondary
-        )
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-
-        val load = uiState.dailySummary?.dailyTrainingLoad ?: 0.0
-        Text(
-            text = String.format(Locale.US, "%.1f", load),
-            style = MaterialTheme.typography.headlineMedium,
-            color = tokens.chartColors.trainingLoad
-        )
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-        val count = uiState.dailySummary?.exerciseCount ?: 0
-        Text(
-            text = stringResource(R.string.training_load_workouts_count, count),
             style = MaterialTheme.typography.labelSmall,
             color = tokens.textMuted
         )

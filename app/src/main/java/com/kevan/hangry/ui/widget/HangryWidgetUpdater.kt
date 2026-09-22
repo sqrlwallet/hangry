@@ -83,11 +83,9 @@ object HangryWidgetUpdater {
 
             val stepsStr = summary?.steps?.let { String.format("%,d", it) } ?: "—"
             val caloriesStr = summary?.activeCalories?.let { "${it.roundToInt()}" } ?: "—"
-            val minutesStr = summary?.exerciseDurationMinutes?.let { "${it}m" } ?: "—"
 
             views.setTextViewText(R.id.tv_steps_value, stepsStr)
             views.setTextViewText(R.id.tv_calories_value, caloriesStr)
-            views.setTextViewText(R.id.tv_minutes_value, minutesStr)
 
             val clickIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -246,7 +244,6 @@ object HangryWidgetUpdater {
 
         val stepsStr = summary?.steps?.let { "${String.format("%,d", it)} steps" } ?: "— steps"
         val caloriesStr = summary?.activeCalories?.let { "${it.roundToInt()} kcal" } ?: "— kcal"
-        val minutesStr = summary?.exerciseDurationMinutes?.let { "${it}m activity" } ?: "— min"
 
         val durationMinutes = latestSleep?.durationMinutes ?: summary?.sleepDurationMinutes
         val sleepStr = if (durationMinutes != null && durationMinutes > 0) {
@@ -264,7 +261,6 @@ object HangryWidgetUpdater {
             views.setTextViewText(R.id.tv_overview_recovery_badge, recoveryBadgeStr)
             views.setTextViewText(R.id.tv_overview_steps, stepsStr)
             views.setTextViewText(R.id.tv_overview_calories, caloriesStr)
-            views.setTextViewText(R.id.tv_overview_minutes, minutesStr)
             views.setTextViewText(R.id.tv_overview_sleep, sleepStr)
 
             // Log meal button click

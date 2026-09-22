@@ -110,14 +110,14 @@ class DashboardWidgetSerializationTest {
                 displayStyle = WidgetDisplayStyle.RING
             ),
             DashboardWidget(
-                id = "custom_bp_1",
+                id = "custom_rhr_1",
                 type = WidgetType.CUSTOM_METRIC,
-                title = "Blood Pressure",
+                title = "Resting Heart Rate",
                 isVisible = true,
                 order = 2,
-                metricType = MetricType.BLOOD_PRESSURE,
-                targetGoal = 120.0,
-                unit = "mmHg",
+                metricType = MetricType.RHR,
+                targetGoal = 55.0,
+                unit = "bpm",
                 displayStyle = WidgetDisplayStyle.STAT_CARD
             )
         )
@@ -128,6 +128,6 @@ class DashboardWidgetSerializationTest {
         assertEquals(3, decoded.size)
         assertEquals(MetricType.VO2_MAX, decoded[0].metricType)
         assertEquals(MetricType.SPO2, decoded[1].metricType)
-        assertEquals(MetricType.BLOOD_PRESSURE, decoded[2].metricType)
+        assertEquals(MetricType.RHR, decoded[2].metricType)
     }
 }

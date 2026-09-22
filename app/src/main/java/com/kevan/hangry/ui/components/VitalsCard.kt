@@ -62,7 +62,7 @@ fun VitalsCard(
                 )
             }
 
-            // Row 1: SpO2 & VO2 Max
+            // SpO2 & VO2 Max
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
@@ -81,37 +81,6 @@ fun VitalsCard(
                     unit = if (summary?.vo2Max != null) "mL/kg/min" else null,
                     subtitle = if (summary?.vo2Max != null) "Cardio Fitness" else "Pending sync",
                     valueColor = if (summary?.vo2Max != null) tokens.scoreColors.primed else tokens.textMuted,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Row 2: Respiratory Rate & Blood Pressure
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-            ) {
-                VitalItem(
-                    label = "Respiration",
-                    value = summary?.respiratoryRate?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                    unit = if (summary?.respiratoryRate != null) "rpm" else null,
-                    subtitle = if (summary?.respiratoryRate != null) "Resting (12–20)" else "Pending sync",
-                    valueColor = if (summary?.respiratoryRate != null) tokens.textPrimary else tokens.textMuted,
-                    modifier = Modifier.weight(1f)
-                )
-
-                val hasBp = summary?.bloodPressureSystolic != null && summary?.bloodPressureDiastolic != null
-                val bpText = if (hasBp) {
-                    "${summary!!.bloodPressureSystolic!!.toInt()}/${summary.bloodPressureDiastolic!!.toInt()}"
-                } else {
-                    "—"
-                }
-
-                VitalItem(
-                    label = "Blood Pressure",
-                    value = bpText,
-                    unit = if (hasBp) "mmHg" else null,
-                    subtitle = if (hasBp) "Optimal (<120/80)" else "Pending sync",
-                    valueColor = if (hasBp) tokens.textPrimary else tokens.textMuted,
                     modifier = Modifier.weight(1f)
                 )
             }

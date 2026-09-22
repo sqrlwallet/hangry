@@ -111,6 +111,8 @@ class DefaultDashboardWidgetRepository(
         } else {
             list
         }
-        return mergedList.sortedBy { it.order }
+        return mergedList
+            .filterNot { it.id == "training_load" }
+            .sortedBy { it.order }
     }
 }

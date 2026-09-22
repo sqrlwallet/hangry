@@ -29,7 +29,6 @@ fun CustomMetricWidgetCard(
     latestWeightKg: Double?,
     onRemoveWidget: () -> Unit,
     modifier: Modifier = Modifier,
-    activeMinutes: Int = dailySummary?.exerciseDurationMinutes ?: 0,
     activeCalories: Double = dailySummary?.activeCalories ?: 0.0
 ) {
     val tokens = LocalHangryTokens.current
@@ -39,11 +38,6 @@ fun CustomMetricWidgetCard(
             dailySummary?.steps?.toDouble(),
             widget.unit ?: "steps",
             tokens.chartColors.steps
-        )
-        MetricType.ACTIVE_MINUTES -> Triple(
-            if (dailySummary != null || activeMinutes > 0) activeMinutes.toDouble() else null,
-            widget.unit ?: "min",
-            tokens.scoreColors.primed
         )
         MetricType.ACTIVE_CALORIES -> Triple(
             if (dailySummary != null || activeCalories > 0) activeCalories else null,
@@ -69,16 +63,6 @@ fun CustomMetricWidgetCard(
             dailySummary?.spo2Percentage,
             widget.unit ?: "%",
             tokens.scoreColors.primed
-        )
-        MetricType.RESPIRATORY_RATE -> Triple(
-            dailySummary?.respiratoryRate,
-            widget.unit ?: "rpm",
-            tokens.textPrimary
-        )
-        MetricType.BLOOD_PRESSURE -> Triple(
-            dailySummary?.bloodPressureSystolic,
-            widget.unit ?: "mmHg",
-            tokens.textPrimary
         )
         MetricType.SLEEP_DURATION -> Triple(
             dailySummary?.sleepDurationMinutes?.toDouble(),
@@ -121,8 +105,6 @@ fun CustomMetricWidgetCard(
 
     val formattedVal = when {
         currentValue == null -> "—"
-        widget.metricType == MetricType.BLOOD_PRESSURE && dailySummary?.bloodPressureSystolic != null && dailySummary.bloodPressureDiastolic != null ->
-            "${dailySummary.bloodPressureSystolic.toInt()}/${dailySummary.bloodPressureDiastolic.toInt()}"
         widget.metricType == MetricType.STEPS -> String.format(Locale.US, "%,d", currentValue.toLong())
         widget.metricType == MetricType.SLEEP_DURATION && (widget.unit == null || widget.unit == "min") -> {
             val totalMins = currentValue.roundToInt()

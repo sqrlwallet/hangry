@@ -56,7 +56,7 @@ class AiCoachContextBuilder(
             val curWeight = latestWeight?.weightKg?.let { "%.1f kg".format(java.util.Locale.US, it) } ?: "Not specified"
             val goalWeight = profile.weightGoalKg?.let { "%.1f kg".format(java.util.Locale.US, it) } ?: "None set"
             sb.appendLine("Sex: $sex | Age: $age | Height: $height | Current Weight: $curWeight | Goal Weight: $goalWeight")
-            sb.appendLine("Daily Targets: Steps: ${profile.dailyStepGoal} | Active Mins: ${profile.dailyActivityMinutesGoal}m | Active Cal: ${profile.dailyActiveCaloriesGoal} kcal | Sleep Target: ${profile.sleepDurationTargetMinutes / 60}h ${profile.sleepDurationTargetMinutes % 60}m")
+            sb.appendLine("Daily Targets: Steps: ${profile.dailyStepGoal} | Active Cal: ${profile.dailyActiveCaloriesGoal} kcal | Sleep Target: ${profile.sleepDurationTargetMinutes / 60}h ${profile.sleepDurationTargetMinutes % 60}m")
         } else {
             sb.appendLine("Profile defaults in use.")
         }
@@ -101,8 +101,7 @@ class AiCoachContextBuilder(
                 val titleStr = w.title?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
                 val dur = "${w.durationMinutes} mins"
                 val cal = w.activeCalories?.let { "%.0f kcal".format(java.util.Locale.US, it) } ?: "N/A kcal"
-                val load = w.estimatedTrainingLoad?.let { "Load: %.1f".format(java.util.Locale.US, it) } ?: ""
-                sb.appendLine("- $timeStr: ${w.exerciseType}$titleStr · $dur · $cal $load".trim())
+                sb.appendLine("- $timeStr: ${w.exerciseType}$titleStr · $dur · $cal".trim())
             }
         }
         sb.appendLine()

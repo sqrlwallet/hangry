@@ -42,10 +42,6 @@ private val Zone5Color = Color(0xFFE53935) // High Intensity Crimson (Peak VO2)
 
 private val TRAINING_INFO_SECTIONS = listOf(
     HangryInfoSection(
-        "Daily Training Load",
-        "Calculated estimate based on duration, exercise type, and heart rate."
-    ),
-    HangryInfoSection(
         "Heart Rate Zones",
         "5 zones from active recovery to peak effort, based on continuous heart-rate samples. " +
             "Today's zone mix is shown when available, falling back to a 7-day window otherwise."
@@ -89,9 +85,6 @@ fun TrainingScreen(
     }
     val isTodayData = todayZoneDistribution.totalCount > 0
 
-    val trainingAnalysis = uiState.trainingAnalysis
-    val dailyLoad = uiState.dailySummary?.dailyTrainingLoad ?: 0.0
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -120,66 +113,27 @@ fun TrainingScreen(
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             item {
-                // Hero Training Load Card
-                HangryCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Daily Training Load",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = tokens.textSecondary
-                        )
-                        Text(
-                            text = "ESTIMATED",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.chartColors.trainingLoad
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-
-                    Text(
-                        text = String.format(Locale.US, "%.1f", dailyLoad),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = tokens.chartColors.trainingLoad
-                    )
-
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-
-                    Text(
-                        text = trainingAnalysis?.supportiveNote
-                            ?: stringResource(R.string.training_load_estimate_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textPrimary
-                    )
-                }
-            }
-
-            item {
-                // Load Trends Grid
+                // Today's Training Summary Grid
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
                 ) {
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = "7-Day Average", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = "Workouts Today", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = String.format(Locale.US, "%.1f", trainingAnalysis?.sevenDayAverageLoad ?: dailyLoad),
+                            text = "${workouts.size}",
                             style = MaterialTheme.typography.headlineSmall,
                             color = tokens.textPrimary
                         )
                     }
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = "Workouts Today", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = "Active Burn Today", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "${trainingAnalysis?.workoutCount ?: 0}",
+                            text = "${uiState.todayActiveCalories.toInt()} kcal",
                             style = MaterialTheme.typography.headlineSmall,
-                            color = tokens.textPrimary
+                            color = tokens.chartColors.trainingLoad
                         )
                     }
                 }
@@ -461,18 +415,12 @@ private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
                 }
             }
 
-            val load = workout.estimatedTrainingLoad ?: (workout.durationMinutes * 1.2)
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = String.format(Locale.US, "%.1f load", load),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = tokens.chartColors.trainingLoad
-                )
                 if (workout.activeCalories != null) {
                     Text(
-                        text = "≈${workout.activeCalories.toInt()} kcal",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textMuted
+                        text = "${workout.activeCalories.toInt()} kcal",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = tokens.chartColors.trainingLoad
                     )
                 }
             }

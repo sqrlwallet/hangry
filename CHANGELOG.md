@@ -1,3 +1,14 @@
+## 🚀 What's New in Hangry v1.3.0
+
+### 🎯 Streamlined Daily Activity & Metrics
+- **Simplified Daily Activity Rings**: Refactored the concentric activity rings to focus exclusively on the two metrics that matter: **Calories Burned** and **Steps**. Removed minutes from the rings, legends, expanded metrics, and goal setting dialogs.
+- **Removed Training Load**: Deprecated and completely removed the cardiovascular Training Load metric from the dashboard, widget selections, and the training screen hero, refocusing training on today's workouts and cardio intensity zones.
+- **Removed Blood Pressure & Respiration**: Cleaned up Key Vitals and customizable dashboard widgets to remove blood pressure and respiration rate.
+- **Permissions Cleanup**: Removed unused `READ_BLOOD_PRESSURE` and `READ_RESPIRATORY_RATE` Health Connect permission requests from the app manifest and permission flows.
+- **Home Screen Widgets & Mockups Updated**: Updated Daily Activity and Daily Overview widgets to display only steps and active calories burned without minutes columns.
+
+---
+
 ## 🚀 What's New in Hangry v1.2.0
 
 ### 🤖 AI Coach with 7-Day Context & Personal Problem Journal

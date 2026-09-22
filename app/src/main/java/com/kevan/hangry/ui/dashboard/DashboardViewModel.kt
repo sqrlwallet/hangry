@@ -233,20 +233,18 @@ class DashboardViewModel(
         }
     }
 
-    fun updateActivityGoals(stepGoal: Long, minutesGoal: Int, caloriesGoal: Int) {
+    fun updateActivityGoals(stepGoal: Long, caloriesGoal: Int) {
         viewModelScope.launch {
             val currentProfile = userProfileRepository.getProfileSync() ?: UserProfileEntity()
             userProfileRepository.saveProfile(
                 currentProfile.copy(
                     dailyStepGoal = stepGoal,
-                    dailyActivityMinutesGoal = minutesGoal,
                     dailyActiveCaloriesGoal = caloriesGoal
                 )
             )
             _uiState.update {
                 it.copy(
                     dailyStepGoal = stepGoal,
-                    dailyActivityMinutesGoal = minutesGoal,
                     dailyActiveCaloriesGoal = caloriesGoal
                 )
             }

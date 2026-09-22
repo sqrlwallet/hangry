@@ -222,14 +222,11 @@ fun CreateCustomWidgetDialog(
 
     val defaultGoalSuggestions = mapOf(
         MetricType.STEPS to ("10000" to "steps"),
-        MetricType.ACTIVE_MINUTES to ("60" to "min"),
         MetricType.ACTIVE_CALORIES to ("600" to "kcal"),
         MetricType.RHR to ("55" to "bpm"),
         MetricType.HRV to ("65" to "ms"),
         MetricType.VO2_MAX to ("45" to "mL/kg/min"),
         MetricType.SPO2 to ("98" to "%"),
-        MetricType.RESPIRATORY_RATE to ("14" to "rpm"),
-        MetricType.BLOOD_PRESSURE to ("120" to "mmHg"),
         MetricType.SLEEP_DURATION to ("480" to "min"),
         MetricType.DAY_STRAIN to ("12" to "strain"),
         MetricType.STRESS to ("30" to "%"),

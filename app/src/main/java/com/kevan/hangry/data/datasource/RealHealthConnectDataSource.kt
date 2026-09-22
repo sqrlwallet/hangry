@@ -45,9 +45,7 @@ class RealHealthConnectDataSource(
             HealthPermission.getReadPermission(WeightRecord::class),
             HealthPermission.getReadPermission(HeightRecord::class),
             HealthPermission.getReadPermission(OxygenSaturationRecord::class),
-            HealthPermission.getReadPermission(RespiratoryRateRecord::class),
             HealthPermission.getReadPermission(Vo2MaxRecord::class),
-            HealthPermission.getReadPermission(BloodPressureRecord::class),
             HealthPermission.getReadPermission(SpeedRecord::class),
             HealthPermission.getReadPermission(ElevationGainedRecord::class),
             HealthPermission.getReadPermission(FloorsClimbedRecord::class),
@@ -81,9 +79,7 @@ class RealHealthConnectDataSource(
             ),
             "Vitals & Cardio Fitness" to setOf(
                 HealthPermission.getReadPermission(OxygenSaturationRecord::class),
-                HealthPermission.getReadPermission(Vo2MaxRecord::class),
-                HealthPermission.getReadPermission(RespiratoryRateRecord::class),
-                HealthPermission.getReadPermission(BloodPressureRecord::class)
+                HealthPermission.getReadPermission(Vo2MaxRecord::class)
             )
         )
     }
@@ -419,25 +415,11 @@ class RealHealthConnectDataSource(
     }
 
     override suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
-        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val records = readAllRecords(RespiratoryRateRecord::class, TimeRangeFilter.between(startInstant, endInstant))
-        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
-            .mapValues { (_, dayRecords) ->
-                dayRecords.map { it.rate }.average()
-            }
+        return emptyMap()
     }
 
     override suspend fun fetchBloodPressure(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Double>> {
-        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val records = readAllRecords(BloodPressureRecord::class, TimeRangeFilter.between(startInstant, endInstant))
-        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
-            .mapValues { (_, dayRecords) ->
-                val avgSystolic = dayRecords.map { it.systolic.inMillimetersOfMercury }.average()
-                val avgDiastolic = dayRecords.map { it.diastolic.inMillimetersOfMercury }.average()
-                Pair(avgSystolic, avgDiastolic)
-            }
+        return emptyMap()
     }
 
     override suspend fun writeNutritionRecord(entry: FoodLogEntity): Boolean {

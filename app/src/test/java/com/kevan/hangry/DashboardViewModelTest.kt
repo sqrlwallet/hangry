@@ -171,10 +171,9 @@ class DashboardViewModelTest {
         assertTrue(state.widgets.isNotEmpty())
 
         // Test activity goal updates
-        viewModel.updateActivityGoals(10000L, 75, 550)
+        viewModel.updateActivityGoals(10000L, 550)
         testScheduler.advanceUntilIdle()
         assertEquals(10000L, viewModel.uiState.value.dailyStepGoal)
-        assertEquals(75, viewModel.uiState.value.dailyActivityMinutesGoal)
         assertEquals(550, viewModel.uiState.value.dailyActiveCaloriesGoal)
 
         // Test widget toggle

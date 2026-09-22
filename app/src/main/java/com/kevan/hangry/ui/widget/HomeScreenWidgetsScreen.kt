@@ -301,7 +301,6 @@ private fun ActivityWidgetMockup() {
         ) {
             MetricColumn(icon = Icons.Default.DirectionsWalk, tint = Color(0xFF26A69A), value = "6,420", label = "Steps")
             MetricColumn(icon = Icons.Default.LocalFireDepartment, tint = Color(0xFFFF5722), value = "450", label = "Active kcal")
-            MetricColumn(icon = Icons.Default.Timer, tint = Color(0xFFFFB74D), value = "45m", label = "Minutes")
         }
     }
 }
@@ -431,8 +430,7 @@ private fun OverviewWidgetMockup() {
                     Text("450 kcal", color = Color(0xFFFF5722), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(2.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("45m activity", color = Color(0xFFFFB74D), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Row(modifier = Modifier.fillMaxWidth()) {
                     Text("Sleep: 7h 30m", color = Color(0xFF9575CD), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }

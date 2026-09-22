@@ -14,6 +14,10 @@ interface HealthConnectDataSource {
     suspend fun fetchStepsSummaries(start: LocalDate, end: LocalDate): List<StepsSummaryEntity>
     suspend fun fetchHeartRateSamples(start: Instant, end: Instant): List<HeartRateSampleEntity>
     suspend fun fetchWeightMeasurements(start: Instant, end: Instant): List<WeightMeasurementEntity>
+    suspend fun fetchVo2Max(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
+    suspend fun fetchOxygenSaturation(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
+    suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
+    suspend fun fetchBloodPressure(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Double>>
 
     /** Writes one AI-logged (or manually-logged) food entry to Health Connect. Returns false on any failure. */
     suspend fun writeNutritionRecord(entry: FoodLogEntity): Boolean

@@ -17,6 +17,7 @@ class DashboardWidgetSerializationTest {
         assertTrue(defaults.any { it.type == WidgetType.DAILY_ACTIVITY_RINGS })
         assertTrue(defaults.any { it.type == WidgetType.STRESS_MONITOR })
         assertTrue(defaults.any { it.type == WidgetType.SLEEP_STRAIN_RINGS })
+        assertTrue(defaults.any { it.type == WidgetType.VITALS_CARD })
     }
 
     @Test
@@ -81,5 +82,52 @@ class DashboardWidgetSerializationTest {
         assertTrue(merged.any { it.id == "custom_steps_1" })
         assertEquals(0, merged.first { it.id == "recovery_hero" }.order)
         assertEquals(1, merged.first { it.id == "custom_steps_1" }.order)
+    }
+
+    @Test
+    fun testSerializationAndDeserialization_vitalsMetrics() {
+        val vitalsWidgets = listOf(
+            DashboardWidget(
+                id = "custom_vo2_1",
+                type = WidgetType.CUSTOM_METRIC,
+                title = "Cardio VO2 Max",
+                isVisible = true,
+                order = 0,
+                metricType = MetricType.VO2_MAX,
+                targetGoal = 50.0,
+                unit = "mL/kg/min",
+                displayStyle = WidgetDisplayStyle.STAT_CARD
+            ),
+            DashboardWidget(
+                id = "custom_spo2_1",
+                type = WidgetType.CUSTOM_METRIC,
+                title = "Blood Oxygen",
+                isVisible = true,
+                order = 1,
+                metricType = MetricType.SPO2,
+                targetGoal = 98.0,
+                unit = "%",
+                displayStyle = WidgetDisplayStyle.RING
+            ),
+            DashboardWidget(
+                id = "custom_bp_1",
+                type = WidgetType.CUSTOM_METRIC,
+                title = "Blood Pressure",
+                isVisible = true,
+                order = 2,
+                metricType = MetricType.BLOOD_PRESSURE,
+                targetGoal = 120.0,
+                unit = "mmHg",
+                displayStyle = WidgetDisplayStyle.STAT_CARD
+            )
+        )
+
+        val encoded = json.encodeToString(vitalsWidgets)
+        val decoded = json.decodeFromString<List<DashboardWidget>>(encoded)
+
+        assertEquals(3, decoded.size)
+        assertEquals(MetricType.VO2_MAX, decoded[0].metricType)
+        assertEquals(MetricType.SPO2, decoded[1].metricType)
+        assertEquals(MetricType.BLOOD_PRESSURE, decoded[2].metricType)
     }
 }

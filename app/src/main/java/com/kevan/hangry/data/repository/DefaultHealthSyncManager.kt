@@ -140,6 +140,9 @@ class DefaultHealthSyncManager(
                 totalInserted += weightCount
                 totalSkipped += (weightRecords.size - weightCount)
 
+                // 8. Vitals & Cardio Fitness (SpO2, VO2 Max, Respiratory Rate, Blood Pressure)
+                emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Vitals)"))
+
                 // Update SyncStateEntity checkpoint
                 database.syncStateDao().insertOrReplace(
                     SyncStateEntity(
@@ -269,6 +272,27 @@ class DefaultHealthSyncManager(
             null
         }
 
+        val vo2MaxMap = try {
+            dataSource.fetchVo2Max(effectiveStart.minusDays(30), end)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+        val spo2Map = try {
+            dataSource.fetchOxygenSaturation(effectiveStart, end)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+        val respRateMap = try {
+            dataSource.fetchRespiratoryRate(effectiveStart, end)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+        val bpMap = try {
+            dataSource.fetchBloodPressure(effectiveStart, end)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+
         for (i in 0..daysBetween) {
             val date = effectiveStart.plusDays(i.toLong())
             val dayStart = date.atStartOfDay(zone).toInstant()
@@ -291,6 +315,22 @@ class DefaultHealthSyncManager(
             )
             val previousDate = date.minusDays(1)
             val prevDaySummary = database.dailyHealthSummaryDao().getSummaryForDateSync(previousDate)
+            val currentExistingSummary = database.dailyHealthSummaryDao().getSummaryForDateSync(date)
+
+            // VO2 Max is carried forward up to 30 days if not recorded on this specific day
+            val effectiveVo2 = vo2MaxMap[date]
+                ?: vo2MaxMap.entries
+                    .filter { !it.key.isAfter(date) && !it.key.isBefore(date.minusDays(30)) }
+                    .maxByOrNull { it.key }?.value
+                ?: currentExistingSummary?.vo2Max
+                ?: prevDaySummary?.vo2Max
+
+            val effectiveSpo2 = spo2Map[date] ?: currentExistingSummary?.spo2Percentage
+            val effectiveRespRate = respRateMap[date] ?: currentExistingSummary?.respiratoryRate
+            val bpReading = bpMap[date]
+            val effectiveBpSystolic = bpReading?.first ?: currentExistingSummary?.bloodPressureSystolic
+            val effectiveBpDiastolic = bpReading?.second ?: currentExistingSummary?.bloodPressureDiastolic
+
             val prevDayDebt = prevDaySummary?.sleepDurationMinutes?.let { max(0, 480 - it) } ?: 0
             val recentSummariesForStrain = database.dailyHealthSummaryDao()
                 .getSummariesBetweenList(date.minusDays(7), date.minusDays(1))
@@ -348,6 +388,11 @@ class DefaultHealthSyncManager(
                 restingHeartRate = effectiveRhr,
                 averageHeartRate = avgHeartRate,
                 hrvRmssd = hrv?.rmssd,
+                vo2Max = effectiveVo2,
+                spo2Percentage = effectiveSpo2,
+                respiratoryRate = effectiveRespRate,
+                bloodPressureSystolic = effectiveBpSystolic,
+                bloodPressureDiastolic = effectiveBpDiastolic,
                 dataCompletenessRatio = completeness,
                 dataQualityState = qualityState,
                 calculationVersion = 1,

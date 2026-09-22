@@ -60,6 +60,26 @@ fun CustomMetricWidgetCard(
             widget.unit ?: "ms",
             tokens.chartColors.hrv
         )
+        MetricType.VO2_MAX -> Triple(
+            dailySummary?.vo2Max,
+            widget.unit ?: "mL/kg/min",
+            tokens.scoreColors.primed
+        )
+        MetricType.SPO2 -> Triple(
+            dailySummary?.spo2Percentage,
+            widget.unit ?: "%",
+            tokens.scoreColors.primed
+        )
+        MetricType.RESPIRATORY_RATE -> Triple(
+            dailySummary?.respiratoryRate,
+            widget.unit ?: "rpm",
+            tokens.textPrimary
+        )
+        MetricType.BLOOD_PRESSURE -> Triple(
+            dailySummary?.bloodPressureSystolic,
+            widget.unit ?: "mmHg",
+            tokens.textPrimary
+        )
         MetricType.SLEEP_DURATION -> Triple(
             dailySummary?.sleepDurationMinutes?.toDouble(),
             widget.unit ?: "min",
@@ -101,6 +121,8 @@ fun CustomMetricWidgetCard(
 
     val formattedVal = when {
         currentValue == null -> "—"
+        widget.metricType == MetricType.BLOOD_PRESSURE && dailySummary?.bloodPressureSystolic != null && dailySummary.bloodPressureDiastolic != null ->
+            "${dailySummary.bloodPressureSystolic.toInt()}/${dailySummary.bloodPressureDiastolic.toInt()}"
         widget.metricType == MetricType.STEPS -> String.format(Locale.US, "%,d", currentValue.toLong())
         widget.metricType == MetricType.SLEEP_DURATION && (widget.unit == null || widget.unit == "min") -> {
             val totalMins = currentValue.roundToInt()

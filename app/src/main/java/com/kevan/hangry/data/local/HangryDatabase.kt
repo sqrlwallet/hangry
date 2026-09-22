@@ -31,7 +31,7 @@ import com.kevan.hangry.data.local.entity.*
         MealPlanEntity::class,
         PostureScanEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -144,6 +144,16 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN vo2Max REAL")
+                db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN spo2Percentage REAL")
+                db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN respiratoryRate REAL")
+                db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN bloodPressureSystolic REAL")
+                db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN bloodPressureDiastolic REAL")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -151,7 +161,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     HangryDatabase::class.java,
                     "hangry.db"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                 INSTANCE = instance

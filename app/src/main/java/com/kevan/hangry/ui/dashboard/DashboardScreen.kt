@@ -247,6 +247,10 @@ fun DashboardScreen(
                         )
                     }
 
+                    WidgetType.VITALS_CARD -> {
+                        VitalsCard(summary = uiState.dailySummary)
+                    }
+
                     WidgetType.AI_SHORTCUTS -> {
                         AiShortcutsRow(
                             onNavigateToNutrition = onNavigateToNutrition,

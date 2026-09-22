@@ -10,6 +10,7 @@ enum class WidgetType {
     STRESS_MONITOR,
     SLEEP_STRAIN_RINGS,
     HEART_METRICS,
+    VITALS_CARD,
     SLEEP_SUMMARY,
     TRAINING_LOAD,
     CALORIE_BURN,
@@ -24,6 +25,10 @@ enum class MetricType {
     ACTIVE_CALORIES,
     RHR,
     HRV,
+    VO2_MAX,
+    SPO2,
+    RESPIRATORY_RATE,
+    BLOOD_PRESSURE,
     SLEEP_DURATION,
     DAY_STRAIN,
     STRESS,
@@ -108,18 +113,25 @@ data class DashboardWidget(
                 order = 7
             ),
             DashboardWidget(
+                id = "vitals_card",
+                type = WidgetType.VITALS_CARD,
+                title = "Key Vitals",
+                isVisible = true,
+                order = 8
+            ),
+            DashboardWidget(
                 id = "ai_shortcuts",
                 type = WidgetType.AI_SHORTCUTS,
                 title = "Nutrition & Posture",
                 isVisible = true,
-                order = 8
+                order = 9
             ),
             DashboardWidget(
                 id = "calorie_burn",
                 type = WidgetType.CALORIE_BURN,
                 title = "Calorie Expenditure Breakdown",
                 isVisible = false, // disabled by default since DailyActivityRings shows active calories, user can enable
-                order = 9
+                order = 10
             )
         )
     }

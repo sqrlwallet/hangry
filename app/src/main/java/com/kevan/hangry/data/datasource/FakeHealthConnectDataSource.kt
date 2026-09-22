@@ -207,6 +207,58 @@ class FakeHealthConnectDataSource(
         )
     }
 
+    override suspend fun fetchVo2Max(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        val map = mutableMapOf<LocalDate, Double>()
+        val today = LocalDate.now(ZoneId.systemDefault())
+        for (i in 0 until daysOfData) {
+            val date = today.minusDays(i.toLong())
+            if (!date.isBefore(start) && !date.isAfter(end)) {
+                if (i % 3 == 0) {
+                    map[date] = 46.5 + ((i % 5) * 0.4)
+                }
+            }
+        }
+        return map
+    }
+
+    override suspend fun fetchOxygenSaturation(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        val map = mutableMapOf<LocalDate, Double>()
+        val today = LocalDate.now(ZoneId.systemDefault())
+        for (i in 0 until daysOfData) {
+            val date = today.minusDays(i.toLong())
+            if (!date.isBefore(start) && !date.isAfter(end)) {
+                map[date] = 97.5 + ((i * 3) % 20) * 0.1
+            }
+        }
+        return map
+    }
+
+    override suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        val map = mutableMapOf<LocalDate, Double>()
+        val today = LocalDate.now(ZoneId.systemDefault())
+        for (i in 0 until daysOfData) {
+            val date = today.minusDays(i.toLong())
+            if (!date.isBefore(start) && !date.isAfter(end)) {
+                map[date] = 14.2 + ((i * 7) % 15) * 0.1
+            }
+        }
+        return map
+    }
+
+    override suspend fun fetchBloodPressure(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Double>> {
+        val map = mutableMapOf<LocalDate, Pair<Double, Double>>()
+        val today = LocalDate.now(ZoneId.systemDefault())
+        for (i in 0 until daysOfData) {
+            val date = today.minusDays(i.toLong())
+            if (!date.isBefore(start) && !date.isAfter(end)) {
+                val sys = 118.0 + ((i * 2) % 6)
+                val dia = 76.0 + ((i * 3) % 5)
+                map[date] = Pair(sys, dia)
+            }
+        }
+        return map
+    }
+
     override suspend fun writeNutritionRecord(entry: FoodLogEntity): Boolean = true
 
     private fun sha256(input: String): String {

@@ -78,41 +78,41 @@ data class HangryCustomTokens(
 )
 
 val DarkScoreStateColors = ScoreStateColors(
-    primed = Color(0xFF4CAF50),              // Vibrant Emerald
-    primedContainer = Color(0xFF1B5E20),
-    balanced = Color(0xFFFFA726),            // Vitality Amber
-    balancedContainer = Color(0xFFE65100),
-    rebuild = Color(0xFFFF7043),             // Warm Coral
-    rebuildContainer = Color(0xFFBF360C),
-    buildingBaseline = Color(0xFF78909C),    // Slate Blue
-    buildingBaselineContainer = Color(0xFF263238)
+    primed = MintAccent,                     // Vitality Mint
+    primedContainer = Color(0xFF0B2925),
+    balanced = AmberAccent,                  // Soft Amber
+    balancedContainer = Color(0xFF332005),
+    rebuild = EmberAccent,                   // Warm Ember
+    rebuildContainer = Color(0xFF33140C),
+    buildingBaseline = Color(0xFF64748B),    // Muted Slate
+    buildingBaselineContainer = Color(0xFF1E293B)
 )
 
 val LightScoreStateColors = ScoreStateColors(
-    primed = Color(0xFF2E7D32),
-    primedContainer = Color(0xFFC8E6C9),
-    balanced = Color(0xFFF57C00),
-    balancedContainer = Color(0xFFFFE0B2),
-    rebuild = Color(0xFFD84315),
-    rebuildContainer = Color(0xFFFFCCBC),
-    buildingBaseline = Color(0xFF455A64),
-    buildingBaselineContainer = Color(0xFFCFD8DC)
+    primed = Color(0xFF0D9488),
+    primedContainer = Color(0xFFCCFBF1),
+    balanced = Color(0xFFD97706),
+    balancedContainer = Color(0xFFFEF3C7),
+    rebuild = Color(0xFFEA580C),
+    rebuildContainer = Color(0xFFFFEDD5),
+    buildingBaseline = Color(0xFF475569),
+    buildingBaselineContainer = Color(0xFFF1F5F9)
 )
 
 val DarkChartMetricColors = ChartMetricColors(
-    sleep = Color(0xFF9FA8DA),
-    hrv = Color(0xFFF48FB1),
-    restingHeartRate = Color(0xFFEF5350),
-    trainingLoad = Color(0xFFFFB74D),
-    steps = Color(0xFF4DB6AC)
+    sleep = Color(0xFF94A3B8),               // Clean Slate
+    hrv = MintAccent,                        // Vitality Mint
+    restingHeartRate = Color(0xFFF1F5F9),    // Crisp Silver
+    trainingLoad = EmberAccent,              // Warm Ember
+    steps = MintAccent                       // Vitality Mint
 )
 
 val LightChartMetricColors = ChartMetricColors(
-    sleep = Color(0xFF5C6BC0),
-    hrv = Color(0xFFE91E63),
-    restingHeartRate = Color(0xFFD32F2F),
-    trainingLoad = Color(0xFFF57C00),
-    steps = Color(0xFF00897B)
+    sleep = Color(0xFF475569),
+    hrv = Color(0xFF0D9488),
+    restingHeartRate = Color(0xFF0F172A),
+    trainingLoad = Color(0xFFEA580C),
+    steps = Color(0xFF0D9488)
 )
 
 val LocalHangryTokens = staticCompositionLocalOf {

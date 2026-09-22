@@ -51,7 +51,7 @@ fun DailyActivityRingsCard(
     var showGoalDialog by remember { mutableStateOf(false) }
 
     val calorieColor = tokens.chartColors.trainingLoad
-    val minutesColor = tokens.scoreColors.primed
+    val minutesColor = tokens.scoreColors.balanced
     val stepsColor = tokens.chartColors.steps
 
     val safeCalories = currentCalories.coerceAtLeast(0.0)

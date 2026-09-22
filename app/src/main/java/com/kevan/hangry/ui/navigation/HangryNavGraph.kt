@@ -107,6 +107,17 @@ fun HangryNavGraph(
         )
     )
 
+    val nutritionViewModel: NutritionViewModel = viewModel(
+        factory = NutritionViewModel.provideFactory(
+            context = postureContext,
+            foodLogRepository = appContainer.foodLogRepository,
+            mealPlanRepository = appContainer.mealPlanRepository,
+            foodAnalyzer = appContainer.foodAnalyzer,
+            healthConnectDataSource = appContainer.healthConnectDataSource,
+            userProfileRepository = appContainer.userProfileRepository
+        )
+    )
+
     NavHost(
         navController = navController,
         startDestination = finalStart,
@@ -179,6 +190,7 @@ fun HangryNavGraph(
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 viewModel = dashboardViewModel,
+                nutritionViewModel = nutritionViewModel,
                 onNavigateToRecoveryDetails = {
                     navController.navigate(Screen.RecoveryDetails.route)
                 },
@@ -305,19 +317,8 @@ fun HangryNavGraph(
             )
         }
 
-        // Nutrition (AI calorie tracker - opt-in, see Settings > AI Features)
+        // Nutrition
         composable(Screen.Nutrition.route) {
-            val context = LocalContext.current
-            val nutritionViewModel: NutritionViewModel = viewModel(
-                factory = NutritionViewModel.provideFactory(
-                    context = context,
-                    foodLogRepository = appContainer.foodLogRepository,
-                    mealPlanRepository = appContainer.mealPlanRepository,
-                    foodAnalyzer = appContainer.foodAnalyzer,
-                    healthConnectDataSource = appContainer.healthConnectDataSource,
-                    userProfileRepository = appContainer.userProfileRepository
-                )
-            )
             NutritionScreen(
                 viewModel = nutritionViewModel,
                 dashboardViewModel = dashboardViewModel,

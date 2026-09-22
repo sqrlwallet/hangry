@@ -61,9 +61,16 @@ fun NutritionScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showDescribeDialog by remember { mutableStateOf(false) }
+    var showQuickLogSheet by remember { mutableStateOf(false) }
+    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     val photoLauncher = rememberPhotoCaptureLauncher { uri: Uri ->
-        viewModel.analyzePhoto(uri, note = null)
+        if (uiState.aiFeaturesEnabled) {
+            viewModel.analyzePhoto(uri, note = null)
+        } else {
+            selectedPhotoUri = uri
+            showQuickLogSheet = true
+        }
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -110,22 +117,6 @@ fun NutritionScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        if (!uiState.aiFeaturesEnabled) {
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(HangryTokens.Spacing.m),
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-            ) {
-                HangryPendingNotice(message = "Enable AI Features in Settings to log food by photo or description.")
-                HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {
-                    Text("Go to AI Settings", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                }
-            }
-            return@Scaffold
-        }
-
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
@@ -133,6 +124,36 @@ fun NutritionScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            if (!uiState.aiFeaturesEnabled) {
+                item {
+                    HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "AI Auto-Estimation is Off",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = tokens.textPrimary
+                                )
+                                Text(
+                                    text = "You can log meals quickly below. Tap here to configure AI in Settings for auto-detection from photos.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = tokens.textMuted
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = tokens.textMuted
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 HangryCard {
                     Row(
@@ -168,19 +189,31 @@ fun NutritionScreen(
                         modifier = Modifier.weight(1f)
                     )
                     LogActionButton(
+                        icon = Icons.Default.Add,
+                        label = "Quick Log",
+                        enabled = !uiState.isAnalyzing,
+                        onClick = {
+                            selectedPhotoUri = null
+                            showQuickLogSheet = true
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    LogActionButton(
                         icon = Icons.Default.Image,
-                        label = "Choose Photo",
+                        label = "Gallery",
                         enabled = !uiState.isAnalyzing,
                         onClick = { photoLauncher.pickFromGallery() },
                         modifier = Modifier.weight(1f)
                     )
-                    LogActionButton(
-                        icon = Icons.Default.Edit,
-                        label = "Describe",
-                        enabled = !uiState.isAnalyzing,
-                        onClick = { showDescribeDialog = true },
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (uiState.aiFeaturesEnabled) {
+                        LogActionButton(
+                            icon = Icons.Default.Edit,
+                            label = "Describe",
+                            enabled = !uiState.isAnalyzing,
+                            onClick = { showDescribeDialog = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -260,6 +293,25 @@ fun NutritionScreen(
                 viewModel.deleteEntry(entry)
                 viewModel.cancelEdit()
             }
+        )
+    }
+
+    if (showQuickLogSheet) {
+        QuickMealLogSheet(
+            initialPhotoUri = selectedPhotoUri,
+            aiEnabled = uiState.aiFeaturesEnabled,
+            mealPlans = uiState.mealPlans,
+            onDismiss = {
+                showQuickLogSheet = false
+                selectedPhotoUri = null
+            },
+            onLogMeal = { name, calories, uri, p, c, f ->
+                viewModel.quickLogMeal(name, calories, uri, p, c, f)
+            },
+            onEstimateWithAi = if (uiState.aiFeaturesEnabled) {
+                { uri, note -> viewModel.estimateFood(uri, note) }
+            } else null,
+            onLogMealPlan = { plan -> viewModel.logFromMealPlan(plan) }
         )
     }
 }

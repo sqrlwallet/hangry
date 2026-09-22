@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.dashboard
 
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,29 +10,30 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.calculation.HangryStrainCalculator
 import com.kevan.hangry.domain.model.DashboardWidget
 import com.kevan.hangry.domain.model.WidgetType
 import com.kevan.hangry.ui.components.*
+import com.kevan.hangry.ui.nutrition.NutritionViewModel
+import com.kevan.hangry.ui.nutrition.QuickMealLogSheet
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
+    nutritionViewModel: NutritionViewModel? = null,
     onNavigateToRecoveryDetails: () -> Unit,
     onNavigateToSleep: () -> Unit,
     onNavigateToTraining: () -> Unit,
@@ -43,8 +45,17 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val nutritionUiState = nutritionViewModel?.uiState?.collectAsState()?.value
     val tokens = LocalHangryTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var showQuickLogSheet by remember { mutableStateOf(false) }
+    var capturedMealPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    val photoLauncher = rememberPhotoCaptureLauncher { uri ->
+        capturedMealPhotoUri = uri
+        showQuickLogSheet = true
+    }
 
     LaunchedEffect(uiState.errorMessage) {
         val message = uiState.errorMessage
@@ -52,6 +63,15 @@ fun DashboardScreen(
             snackbarHostState.showSnackbar(message)
             viewModel.clearError()
         }
+    }
+
+    LaunchedEffect(nutritionUiState?.lastSavedEntry) {
+        val saved = nutritionUiState?.lastSavedEntry ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = "Logged: ${saved.foodName} · ${saved.calories} kcal",
+            duration = SnackbarDuration.Short
+        )
+        nutritionViewModel?.clearLastSaved()
     }
 
     Scaffold(
@@ -150,6 +170,20 @@ fun DashboardScreen(
                             isExpanded = uiState.isActivityExpanded,
                             onToggleExpand = { viewModel.toggleActivityExpanded() },
                             onSaveGoals = { s, m, c -> viewModel.updateActivityGoals(s, m, c) }
+                        )
+                    }
+
+                    WidgetType.LOG_MEAL -> {
+                        LogMealWidgetCard(
+                            totalCaloriesToday = nutritionUiState?.totalCaloriesToday ?: 0,
+                            calorieGoal = uiState.calorieGoal?.dailyCalorieTarget,
+                            recentEntries = nutritionUiState?.todayEntries ?: emptyList(),
+                            onTakePhoto = { photoLauncher.takePhoto() },
+                            onQuickAdd = {
+                                capturedMealPhotoUri = null
+                                showQuickLogSheet = true
+                            },
+                            onOpenNutrition = onNavigateToNutrition
                         )
                     }
 
@@ -257,6 +291,25 @@ fun DashboardScreen(
         }
     }
 
+    if (showQuickLogSheet && nutritionViewModel != null) {
+        QuickMealLogSheet(
+            initialPhotoUri = capturedMealPhotoUri,
+            aiEnabled = nutritionUiState?.aiFeaturesEnabled ?: false,
+            mealPlans = nutritionUiState?.mealPlans ?: emptyList(),
+            onDismiss = {
+                showQuickLogSheet = false
+                capturedMealPhotoUri = null
+            },
+            onLogMeal = { name, calories, uri, p, c, f ->
+                nutritionViewModel.quickLogMeal(name, calories, uri, p, c, f)
+            },
+            onEstimateWithAi = if (nutritionUiState?.aiFeaturesEnabled == true) {
+                { uri, note -> nutritionViewModel.estimateFood(uri, note) }
+            } else null,
+            onLogMealPlan = { plan -> nutritionViewModel.logFromMealPlan(plan) }
+        )
+    }
+
     if (uiState.showCustomizeSheet) {
         CustomizeDashboardSheet(
             widgets = (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets()).sortedBy { it.order },
@@ -281,12 +334,13 @@ private fun SleepStrainRingsRow(
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         HangryCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onNavigateToSleep() }
+                .clickable { onNavigateToSleep() },
+            contentPadding = 12.dp
         ) {
             val quality = uiState.sleepAnalysis?.sleepQualityScore ?: 70
             val sleepScoreColor = when {
@@ -299,8 +353,8 @@ private fun SleepStrainRingsRow(
                 HangryRingGauge(
                     progress = if (isPending) 0f else (quality / 100f).coerceIn(0f, 1f),
                     color = sleepScoreColor,
-                    modifier = Modifier.size(64.dp),
-                    strokeWidth = 6.dp
+                    modifier = Modifier.size(52.dp),
+                    strokeWidth = 5.dp
                 ) {
                     Text(
                         text = if (isPending) "--" else "$quality",
@@ -308,17 +362,21 @@ private fun SleepStrainRingsRow(
                         color = sleepScoreColor
                     )
                 }
-                Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
-                Column {
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = "Sleep Score",
                         style = MaterialTheme.typography.titleSmall,
-                        color = tokens.textPrimary
+                        color = tokens.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (isPending) "Pending" else "Quality, not just duration",
+                        text = if (isPending) "Pending" else "Quality",
                         style = MaterialTheme.typography.labelSmall,
-                        color = tokens.textMuted
+                        color = tokens.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -327,7 +385,8 @@ private fun SleepStrainRingsRow(
         HangryCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onNavigateToTraining() }
+                .clickable { onNavigateToTraining() },
+            contentPadding = 12.dp
         ) {
             val strain = (uiState.dailySummary?.dayStrain ?: 0.0).coerceIn(0.0, HangryStrainCalculator.MAX_STRAIN)
             val strainColor = if (isPending) tokens.textMuted else tokens.chartColors.trainingLoad
@@ -335,8 +394,8 @@ private fun SleepStrainRingsRow(
                 HangryRingGauge(
                     progress = if (isPending) 0f else (strain / HangryStrainCalculator.MAX_STRAIN).toFloat(),
                     color = strainColor,
-                    modifier = Modifier.size(64.dp),
-                    strokeWidth = 6.dp
+                    modifier = Modifier.size(52.dp),
+                    strokeWidth = 5.dp
                 ) {
                     Text(
                         text = if (isPending) "--" else String.format(Locale.US, "%.1f", strain),
@@ -344,23 +403,27 @@ private fun SleepStrainRingsRow(
                         color = strainColor
                     )
                 }
-                Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
-                Column {
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = "Strain",
                         style = MaterialTheme.typography.titleSmall,
-                        color = tokens.textPrimary
+                        color = tokens.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     val recommendation = uiState.strainRecommendation
                     val targetText = when {
                         isPending -> "Pending"
-                        recommendation != null -> String.format(Locale.US, "Target %.1f–%.1f", recommendation.targetLow, recommendation.targetHigh)
-                        else -> "Calibrating target"
+                        recommendation != null -> String.format(Locale.US, "%.1f–%.1f", recommendation.targetLow, recommendation.targetHigh)
+                        else -> "Calibrating"
                     }
                     Text(
                         text = targetText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = tokens.textMuted
+                        color = tokens.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -455,19 +518,22 @@ private fun HeartMetricsRow(
     val tokens = LocalHangryTokens.current
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         HangryCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onNavigateToHeartMetrics() }
+                .clickable { onNavigateToHeartMetrics() },
+            contentPadding = 12.dp
         ) {
             Text(
                 text = stringResource(R.string.resting_hr_label),
                 style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary
+                color = tokens.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             val rhr = uiState.dailySummary?.restingHeartRate
             val rhrText = if (rhr != null) "${rhr.toInt()} bpm" else "—"
             Text(
@@ -480,14 +546,17 @@ private fun HeartMetricsRow(
         HangryCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onNavigateToHeartMetrics() }
+                .clickable { onNavigateToHeartMetrics() },
+            contentPadding = 12.dp
         ) {
             Text(
                 text = stringResource(R.string.hrv_rmssd_label),
                 style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary
+                color = tokens.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             val hrv = uiState.dailySummary?.hrvRmssd
             val hrvText = if (hrv != null) "${hrv.toInt()} ms" else "—"
             Text(
@@ -507,15 +576,22 @@ private fun AiShortcutsRow(
     val tokens = LocalHangryTokens.current
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         HangryCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onNavigateToNutrition() }
+                .clickable { onNavigateToNutrition() },
+            contentPadding = 12.dp
         ) {
-            Text(text = "Nutrition", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+            Text(
+                text = "Nutrition",
+                style = MaterialTheme.typography.titleSmall,
+                color = tokens.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             Text(
                 text = "Log food",
                 style = MaterialTheme.typography.headlineSmall,
@@ -525,10 +601,17 @@ private fun AiShortcutsRow(
         HangryCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onNavigateToPosture() }
+                .clickable { onNavigateToPosture() },
+            contentPadding = 12.dp
         ) {
-            Text(text = "Posture", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+            Text(
+                text = "Posture",
+                style = MaterialTheme.typography.titleSmall,
+                color = tokens.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             Text(
                 text = "Check posture",
                 style = MaterialTheme.typography.headlineSmall,

@@ -101,6 +101,56 @@ class NutritionViewModel(
         }
     }
 
+    fun quickLogMeal(
+        foodName: String,
+        calories: Int,
+        photoUri: Uri? = null,
+        proteinG: Double = 0.0,
+        carbsG: Double = 0.0,
+        fatG: Double = 0.0
+    ) {
+        val safeName = foodName.ifBlank { "Meal" }
+        val safeCalories = calories.coerceAtLeast(0)
+        viewModelScope.launch {
+            val permanentPhotoPath = photoUri?.let { movePhotoToPermanentStorage(it) }
+            val entry = FoodLogEntity(
+                date = today,
+                timestamp = Instant.now(),
+                source = if (photoUri != null) FoodLogSource.PHOTO else FoodLogSource.MANUAL,
+                foodName = safeName,
+                calories = safeCalories,
+                proteinG = proteinG,
+                carbsG = carbsG,
+                fatG = fatG,
+                photoPath = permanentPhotoPath
+            )
+            val id = foodLogRepository.insert(entry)
+            val saved = entry.copy(id = id)
+            val synced = healthConnectDataSource.writeNutritionRecord(entry)
+            if (synced) foodLogRepository.markSyncedToHealthConnect(id)
+            if (photoUri != null) {
+                context.clearCapturedImageCache()
+            }
+            _uiState.update {
+                it.copy(
+                    isAnalyzing = false,
+                    lastSavedEntry = saved
+                )
+            }
+        }
+    }
+
+    suspend fun estimateFood(photoUri: Uri?, note: String?): Result<FoodAnalysisResult> {
+        val base64 = photoUri?.let { context.readImageAsBase64Jpeg(it) }
+        return if (base64 != null) {
+            foodAnalyzer.analyzePhoto(base64, note)
+        } else if (!note.isNullOrBlank()) {
+            foodAnalyzer.analyzeDescription(note)
+        } else {
+            Result.failure(IllegalArgumentException("Provide a photo or description to analyze."))
+        }
+    }
+
     private suspend fun autoSave(analysis: FoodAnalysisResult, source: String, photoUri: Uri?) {
         val permanentPhotoPath = photoUri?.let { movePhotoToPermanentStorage(it) }
         val entry = FoodLogEntity(

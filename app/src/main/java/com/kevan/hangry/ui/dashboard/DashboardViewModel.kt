@@ -204,6 +204,7 @@ class DashboardViewModel(
                         todayActiveCalories = activeCalories,
                         widgets = widgets,
                         latestWeightKg = latestWeight?.weightKg,
+                        aiFeaturesEnabled = profile?.aiFeaturesEnabled ?: false,
                         isPendingSleepData = !sleepRecordedForToday
                     )
                 }

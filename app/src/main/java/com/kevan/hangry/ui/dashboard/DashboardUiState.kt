@@ -36,6 +36,7 @@ data class DashboardUiState(
     val lastSyncFormatted: String? = null,
     val isOfflineMode: Boolean = false,
     val errorMessage: String? = null,
+    val aiFeaturesEnabled: Boolean = false,
     // True from midnight until today's sleep is recorded (synced or logged manually) - while
     // true, Strain/Recovery/Sleep Score are withheld from the UI and shown as "Pending" instead
     // of a zero or a stale carried-over value.

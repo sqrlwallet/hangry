@@ -2,6 +2,7 @@ package com.kevan.hangry.di
 
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
+import com.kevan.hangry.data.ai.OpenRouterAiCoachService
 import com.kevan.hangry.data.ai.OpenRouterClient
 import com.kevan.hangry.data.ai.OpenRouterFoodAnalyzer
 import com.kevan.hangry.data.ai.OpenRouterPostureAnalyzer
@@ -10,6 +11,8 @@ import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
 import com.kevan.hangry.data.local.HangryDatabase
 import com.kevan.hangry.data.repository.*
 import com.kevan.hangry.data.security.SecureKeyStore
+import com.kevan.hangry.domain.ai.AiCoachContextBuilder
+import com.kevan.hangry.domain.ai.AiCoachService
 import com.kevan.hangry.domain.ai.FoodAnalyzer
 import com.kevan.hangry.domain.ai.PostureAnalyzer
 import com.kevan.hangry.domain.calculation.*
@@ -37,7 +40,7 @@ interface AppContainer {
     val userProfileRepository: UserProfileRepository
     val localExportManager: LocalExportManager
 
-    // AI features (opt-in): OpenRouter-backed calorie & posture analysis
+    // AI features (opt-in): OpenRouter-backed calorie & posture analysis + AI Coach
     val secureKeyStore: SecureKeyStore
     val openRouterClient: OpenRouterClient
     val foodAnalyzer: FoodAnalyzer
@@ -45,6 +48,8 @@ interface AppContainer {
     val foodLogRepository: FoodLogRepository
     val mealPlanRepository: MealPlanRepository
     val postureScanRepository: PostureScanRepository
+    val aiCoachService: AiCoachService
+    val coachRepository: CoachRepository
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -165,5 +170,36 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val postureScanRepository: PostureScanRepository by lazy {
         DefaultPostureScanRepository(database.postureScanDao())
+    }
+
+    private val aiCoachContextBuilder: AiCoachContextBuilder by lazy {
+        AiCoachContextBuilder(
+            userProfileRepository = userProfileRepository,
+            weightDao = database.weightDao(),
+            dailyHealthSummaryDao = database.dailyHealthSummaryDao(),
+            recoveryScoreDao = database.recoveryScoreDao(),
+            exerciseSessionDao = database.exerciseSessionDao(),
+            sleepSessionDao = database.sleepSessionDao(),
+            foodLogDao = database.foodLogDao(),
+            postureScanDao = database.postureScanDao(),
+            coachJournalDao = database.coachJournalDao()
+        )
+    }
+
+    override val aiCoachService: AiCoachService by lazy {
+        OpenRouterAiCoachService(
+            client = openRouterClient,
+            keyStore = secureKeyStore,
+            userProfileRepository = userProfileRepository,
+            contextBuilder = aiCoachContextBuilder
+        )
+    }
+
+    override val coachRepository: CoachRepository by lazy {
+        DefaultCoachRepository(
+            coachJournalDao = database.coachJournalDao(),
+            coachMessageDao = database.coachMessageDao(),
+            aiCoachService = aiCoachService
+        )
     }
 }

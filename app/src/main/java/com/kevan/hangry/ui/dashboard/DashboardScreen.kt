@@ -45,6 +45,7 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToNutrition: () -> Unit,
     onNavigateToPosture: () -> Unit,
+    onNavigateToAiCoach: () -> Unit = {},
     autoOpenQuickLog: Boolean = false,
     onAutoOpenQuickLogHandled: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -148,24 +149,52 @@ fun DashboardScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { photoLauncher.takePhoto() },
-                containerColor = EmberAccent,
-                contentColor = Color.White,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Log Meal"
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Log Meal",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val isAiAvailable = uiState.aiFeaturesEnabled || (nutritionUiState?.aiFeaturesEnabled == true)
+                if (isAiAvailable) {
+                    ExtendedFloatingActionButton(
+                        onClick = onNavigateToAiCoach,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = tokens.textPrimary,
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "AI Coach",
+                                tint = EmberAccent
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = "AI Coach",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     )
                 }
-            )
+
+                ExtendedFloatingActionButton(
+                    onClick = { photoLauncher.takePhoto() },
+                    containerColor = EmberAccent,
+                    contentColor = Color.White,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Log Meal"
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Log Meal",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -262,6 +291,7 @@ fun DashboardScreen(
 
                     WidgetType.AI_SHORTCUTS -> {
                         AiShortcutsRow(
+                            onNavigateToAiCoach = onNavigateToAiCoach,
                             onNavigateToNutrition = onNavigateToNutrition,
                             onNavigateToPosture = onNavigateToPosture
                         )
@@ -608,6 +638,7 @@ private fun HeartMetricsRow(
 
 @Composable
 private fun AiShortcutsRow(
+    onNavigateToAiCoach: () -> Unit,
     onNavigateToNutrition: () -> Unit,
     onNavigateToPosture: () -> Unit
 ) {
@@ -616,6 +647,28 @@ private fun AiShortcutsRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        HangryCard(
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onNavigateToAiCoach() },
+            contentPadding = 12.dp
+        ) {
+            Text(
+                text = "AI Coach",
+                style = MaterialTheme.typography.titleSmall,
+                color = tokens.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
+            Text(
+                text = "Ask coach",
+                style = MaterialTheme.typography.titleMedium,
+                color = EmberAccent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         HangryCard(
             modifier = Modifier
                 .weight(1f)
@@ -632,8 +685,10 @@ private fun AiShortcutsRow(
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             Text(
                 text = "Log food",
-                style = MaterialTheme.typography.headlineSmall,
-                color = tokens.chartColors.trainingLoad
+                style = MaterialTheme.typography.titleMedium,
+                color = tokens.chartColors.trainingLoad,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
         HangryCard(
@@ -652,8 +707,10 @@ private fun AiShortcutsRow(
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             Text(
                 text = "Check posture",
-                style = MaterialTheme.typography.headlineSmall,
-                color = tokens.chartColors.hrv
+                style = MaterialTheme.typography.titleMedium,
+                color = tokens.chartColors.hrv,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

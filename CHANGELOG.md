@@ -1,3 +1,14 @@
+## 🚀 What's New in Hangry v1.2.0
+
+### 🤖 AI Coach with 7-Day Context & Personal Problem Journal
+- **Personalized Coaching**: Interactive AI Coach powered by `openai/gpt-5.6-luna` that answers health, training, nutrition, and recovery questions with deep awareness of your past 7 days of data (sleep, strain, workouts, nutrition & macros, posture, and weight).
+- **Automatic Problem & Memory Journaling**: When you share personal problems, injuries, symptoms, food sensitivities, or habits in chat, the AI Coach automatically extracts and saves them to a persistent personal journal. These memories are remembered and incorporated into future coaching sessions across days.
+- **Floating AI Coach Button**: Floating access button on the main dashboard directly above the Log Meal button (active when AI is enabled).
+- **Personal Journal & Memories Sheet**: Inspect, manage, manually add, or delete coaching memories at any time via a dedicated bottom sheet.
+- **Robust Multi-Turn History**: Chat conversations and saved memories are persisted locally in Room (v9 migration) with full offline security.
+
+---
+
 ## 🚀 What's New in Hangry v1.1.0
 
 ### 🧩 Home Screen Widgets

@@ -92,7 +92,7 @@ fun AiFeaturesSection(
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Off by default. Sends food/posture photos to OpenRouter using your own key.",
+                    text = "Off by default. Powers AI Coach, food logging, and posture analysis using OpenRouter with your own key.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )

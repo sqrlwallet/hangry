@@ -29,9 +29,11 @@ import com.kevan.hangry.data.local.entity.*
         DataSourceEntity::class,
         FoodLogEntity::class,
         MealPlanEntity::class,
-        PostureScanEntity::class
+        PostureScanEntity::class,
+        CoachJournalEntity::class,
+        CoachMessageEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -54,6 +56,8 @@ abstract class HangryDatabase : RoomDatabase() {
     abstract fun foodLogDao(): FoodLogDao
     abstract fun mealPlanDao(): MealPlanDao
     abstract fun postureScanDao(): PostureScanDao
+    abstract fun coachJournalDao(): CoachJournalDao
+    abstract fun coachMessageDao(): CoachMessageDao
 
     companion object {
         @Volatile
@@ -180,6 +184,38 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS coach_journal_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        date INTEGER NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        category TEXT NOT NULL,
+                        summary TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        sourceMessage TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_coach_journal_entries_date ON coach_journal_entries(date)")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS coach_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        role TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        journalEntrySummary TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_coach_messages_timestamp ON coach_messages(timestamp)")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -187,7 +223,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     HangryDatabase::class.java,
                     "hangry.db"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                 INSTANCE = instance

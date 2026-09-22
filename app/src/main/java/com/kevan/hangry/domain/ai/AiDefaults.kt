@@ -2,6 +2,7 @@ package com.kevan.hangry.domain.ai
 
 object AiDefaults {
     const val DEFAULT_MODEL = "google/gemini-2.5-flash"
+    const val COACH_MODEL = "openai/gpt-5.6-luna"
 }
 
 /** Strips a ```json ... ``` (or bare ```) fence a model commonly wraps its JSON answer in. */

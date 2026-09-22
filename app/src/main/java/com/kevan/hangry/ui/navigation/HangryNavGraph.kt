@@ -17,6 +17,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.di.AppContainer
+import com.kevan.hangry.ui.coach.AiCoachScreen
+import com.kevan.hangry.ui.coach.AiCoachViewModel
 import com.kevan.hangry.ui.dashboard.DashboardScreen
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.heart.HeartMetricsScreen
@@ -64,6 +66,7 @@ sealed class Screen(val route: String) {
     data object PostureScanDetail : Screen("posture_scan_detail/{scanId}") {
         fun createRoute(scanId: Long) = "posture_scan_detail/$scanId"
     }
+    data object AiCoach : Screen("ai_coach")
     data object HomeScreenWidgets : Screen("home_screen_widgets")
 }
 
@@ -121,6 +124,14 @@ fun HangryNavGraph(
             foodAnalyzer = appContainer.foodAnalyzer,
             healthConnectDataSource = appContainer.healthConnectDataSource,
             userProfileRepository = appContainer.userProfileRepository
+        )
+    )
+
+    val aiCoachViewModel: AiCoachViewModel = viewModel(
+        factory = AiCoachViewModel.provideFactory(
+            coachRepository = appContainer.coachRepository,
+            userProfileRepository = appContainer.userProfileRepository,
+            secureKeyStore = appContainer.secureKeyStore
         )
     )
 
@@ -219,6 +230,9 @@ fun HangryNavGraph(
                 },
                 onNavigateToPosture = {
                     navController.navigate(Screen.Posture.route)
+                },
+                onNavigateToAiCoach = {
+                    navController.navigate(Screen.AiCoach.route)
                 },
                 autoOpenQuickLog = quickLogTrigger,
                 onAutoOpenQuickLogHandled = onQuickLogTriggerHandled
@@ -378,6 +392,15 @@ fun HangryNavGraph(
                 scanId = scanId,
                 postureScanRepository = appContainer.postureScanRepository,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // AI Coach
+        composable(Screen.AiCoach.route) {
+            AiCoachScreen(
+                viewModel = aiCoachViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
 

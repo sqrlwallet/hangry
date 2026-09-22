@@ -35,10 +35,15 @@ private data class ChatCompletionResponse(
     data class Message(val content: String? = null)
 }
 
+data class OpenRouterMessage(
+    val role: String,
+    val content: String
+)
+
 /**
  * Thin client for OpenRouter's OpenAI-compatible chat completions endpoint - the only endpoint
- * this app calls. Every call is initiated by an explicit user action (tapping Analyze); nothing
- * here runs automatically or in the background.
+ * this app calls. Every call is initiated by an explicit user action (tapping Analyze or sending a coach prompt);
+ * nothing here runs automatically or in the background.
  */
 class OpenRouterClient {
 
@@ -61,41 +66,66 @@ class OpenRouterClient {
         userText: String,
         imagesBase64: List<String> = emptyList()
     ): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            val requestBody = buildJsonObject {
-                put("model", model)
-                putJsonArray("messages") {
-                    addJsonObject {
-                        put("role", "system")
-                        put("content", systemPrompt)
-                    }
-                    addJsonObject {
-                        put("role", "user")
-                        putJsonArray("content") {
+        val requestBody = buildJsonObject {
+            put("model", model)
+            putJsonArray("messages") {
+                addJsonObject {
+                    put("role", "system")
+                    put("content", systemPrompt)
+                }
+                addJsonObject {
+                    put("role", "user")
+                    putJsonArray("content") {
+                        addJsonObject {
+                            put("type", "text")
+                            put("text", userText)
+                        }
+                        imagesBase64.forEach { base64 ->
                             addJsonObject {
-                                put("type", "text")
-                                put("text", userText)
-                            }
-                            imagesBase64.forEach { base64 ->
-                                addJsonObject {
-                                    put("type", "image_url")
-                                    putJsonObject("image_url") {
-                                        put("url", "data:image/jpeg;base64,$base64")
-                                    }
+                                put("type", "image_url")
+                                putJsonObject("image_url") {
+                                    put("url", "data:image/jpeg;base64,$base64")
                                 }
                             }
                         }
                     }
                 }
             }
+        }
+        executeRequest(apiKey, requestBody.toString())
+    }
 
+    /**
+     * Multi-turn chat completion for conversational features (e.g. AI Coach).
+     */
+    suspend fun chatCompletionMessages(
+        apiKey: String,
+        model: String,
+        messages: List<OpenRouterMessage>
+    ): Result<String> = withContext(Dispatchers.IO) {
+        val requestBody = buildJsonObject {
+            put("model", model)
+            putJsonArray("messages") {
+                messages.forEach { msg ->
+                    addJsonObject {
+                        put("role", msg.role)
+                        put("content", msg.content)
+                    }
+                }
+            }
+        }
+        executeRequest(apiKey, requestBody.toString())
+    }
+
+    private fun executeRequest(apiKey: String, requestBodyJson: String): Result<String> {
+        return runCatching {
             val request = Request.Builder()
                 .url("https://openrouter.ai/api/v1/chat/completions")
                 .header("Authorization", "Bearer $apiKey")
                 .header("Content-Type", "application/json")
                 .header("HTTP-Referer", "https://github.com/hangry-app")
                 .header("X-Title", "Hangry")
-                .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
+                .post(requestBodyJson.toRequestBody("application/json".toMediaType()))
                 .build()
 
             val response = try {

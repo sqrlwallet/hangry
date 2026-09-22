@@ -21,6 +21,9 @@ interface PostureScanDao {
     @Query("SELECT * FROM posture_scans ORDER BY date DESC, timestamp DESC LIMIT 1")
     fun getLatest(): Flow<PostureScanEntity?>
 
+    @Query("SELECT * FROM posture_scans ORDER BY date DESC, timestamp DESC LIMIT 1")
+    suspend fun getLatestSync(): PostureScanEntity?
+
     @Query("SELECT * FROM posture_scans WHERE id = :id")
     suspend fun getById(id: Long): PostureScanEntity?
 

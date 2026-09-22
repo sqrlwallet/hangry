@@ -104,9 +104,13 @@ class PostureViewModel(
                         _uiState.update {
                             it.copy(
                                 isAnalyzing = false,
-                                errorMessage = "Photo${if (result.invalidPhotoIndices.size > 1) "s" else ""} " +
-                                    "${result.invalidPhotoIndices.map { i -> i + 1 }} need${if (result.invalidPhotoIndices.size == 1) "s" else ""} " +
-                                    "a retake$reasonSuffix"
+                                errorMessage = if (result.invalidPhotoIndices.isNotEmpty()) {
+                                    "Photo${if (result.invalidPhotoIndices.size > 1) "s" else ""} " +
+                                        "${result.invalidPhotoIndices.map { i -> i + 1 }} need${if (result.invalidPhotoIndices.size == 1) "s" else ""} " +
+                                        "a retake$reasonSuffix"
+                                } else {
+                                    result.rejectionReason ?: "Could not complete posture analysis. Please try again with clear photos."
+                                }
                             )
                         }
                     }

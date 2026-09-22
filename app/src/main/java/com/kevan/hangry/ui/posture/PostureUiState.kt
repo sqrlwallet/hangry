@@ -14,5 +14,5 @@ data class PostureUiState(
     val errorMessage: String? = null
 )
 
-const val MIN_POSTURE_PHOTOS = 3
+const val MIN_POSTURE_PHOTOS = 1
 const val MAX_POSTURE_PHOTOS = 5

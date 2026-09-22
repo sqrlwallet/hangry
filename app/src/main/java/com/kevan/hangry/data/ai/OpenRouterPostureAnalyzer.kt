@@ -10,15 +10,33 @@ import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-private const val SYSTEM_PROMPT = """You are a posture assessment assistant inside a personal fitness app. The user submits 3-5 photos of themselves, shirtless and wearing shorts, standing naturally, for a standing-posture analysis.
+private const val SYSTEM_PROMPT = """You are an expert biomechanics, physical therapy, and postural assessment specialist. The user submits 1 to 5 photos (which may show front, side, back, or three-quarter views, standing or sitting) for posture evaluation.
 
-First, validate EACH photo in the order given (0-indexed): it must clearly show a person's body, shirtless with the bare torso visible, wearing shorts or similar, standing, and clear/well-lit enough to assess posture. If ANY photo fails this check, respond with ONLY this JSON and nothing else:
-{"valid": false, "invalidPhotoIndices": [0-based indices that failed], "reason": "short explanation of what's wrong"}
+GUARDRAILS & VALIDATION:
+1. Normal clothing (t-shirts, tank tops, gym clothes, sports bras, shorts, pants, leggings, casual wear) is completely acceptable and expected. Assess posture through the body's natural silhouette, alignment of head/neck, shoulders, spine curvature, pelvis, and limbs.
+2. Do NOT reject photos for wearing clothes, ordinary indoor lighting, or informal poses.
+3. Only return "valid": false if NO person is visible in any of the photos (e.g. an accidental picture of a blank wall, floor, pet, car, or completely dark image). If at least one photo shows a person, perform the analysis and return "valid": true.
 
-If ALL photos pass validation, analyze standing posture across the full set: head position, shoulder alignment/rounding, spinal curvature, pelvic tilt, and any visible asymmetry. Respond with ONLY this JSON and nothing else:
-{"valid": true, "score": integer 0-100 (100 = ideal posture), "findings": [short strings, each one specific observed issue or strength], "exercises": [{"name": string, "description": string, "targetArea": string, "sets": integer, "reps": string}, 3 to 6 corrective exercises tailored to the findings]}
+ANALYSIS GUIDELINES:
+- Score (0-100):
+  * 90-100: Near-ideal posture with excellent vertical alignment and balance.
+  * 75-89: Good posture with minor everyday muscular imbalances (e.g., mild forward head or slight shoulder rounding).
+  * 55-74: Moderate postural deviations (e.g., noticeable forward head carriage, rounded shoulders/thoracic kyphosis, anterior pelvic tilt, uneven shoulder height).
+  * Below 55: Significant postural imbalances or asymmetrical compensatory patterns.
+- Findings: Provide 2 to 5 concise, constructive, actionable observations on cranio-cervical alignment, shoulder and scapular position, thoracic/lumbar spine curves, pelvic tilt, or left/right symmetry.
+- Exercises: Provide 3 to 5 targeted, highly effective corrective exercises or stretches tailored specifically to the findings:
+  * name: Standard exercise name (e.g., "Chin Tucks", "Doorway Chest Stretch", "Prone Y-T-W Raises", "Glute Bridges with Pelvic Tilt", "Thoracic Spine Foam Rolling", "Deadbugs").
+  * description: Clear, practical form cues and coaching instructions on how to perform it safely.
+  * targetArea: Muscle group or joint focus (e.g., "Deep Neck Flexors", "Chest & Anterior Deltoids", "Rhomboids & Lower Trapezius", "Core & Hip Flexors").
+  * sets: Integer (e.g. 2 or 3).
+  * reps: Prescription string (e.g. "10-12 reps", "30-second hold", "8 reps each side").
 
-Never include markdown fences or commentary outside the JSON object."""
+OUTPUT FORMAT:
+Respond with ONLY a single JSON object. No markdown code fences, no commentary:
+{"valid": true, "score": 82, "findings": ["...", "..."], "exercises": [{"name": "...", "description": "...", "targetArea": "...", "sets": 3, "reps": "..."}]}
+
+If and only if no person is visible in the photos:
+{"valid": false, "invalidPhotoIndices": [0], "reason": "No person detected in the photos"}"""
 
 @Serializable
 private data class PostureResponseJson(
@@ -51,7 +69,11 @@ class OpenRouterPostureAnalyzer(
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
         val model = userProfileRepository.getProfileSync()?.preferredAiModel?.takeIf { it.isNotBlank() }
             ?: AiDefaults.DEFAULT_MODEL
-        val userText = "Here are ${imagesBase64.size} posture photos, indexed 0 to ${imagesBase64.size - 1} in the order given."
+        val userText = if (imagesBase64.size == 1) {
+            "Here is 1 posture photo for evaluation."
+        } else {
+            "Here are ${imagesBase64.size} posture photos, indexed 0 to ${imagesBase64.size - 1} in the order given, for evaluation."
+        }
 
         return client.chatCompletion(apiKey, model, SYSTEM_PROMPT, userText, imagesBase64).mapCatching { raw ->
             val parsed = json.decodeFromString(PostureResponseJson.serializer(), extractJsonPayload(raw))

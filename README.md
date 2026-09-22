@@ -4,7 +4,7 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-green.svg)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room-2.7.2-orange.svg)](https://developer.android.com/training/data-storage/room)
 [![Health Connect](https://img.shields.io/badge/Health%20Connect-1.1.0-red.svg)](https://developer.android.com/health-and-fitness/guides/health-connect)
-[![Tests](https://img.shields.io/badge/Tests-62%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-65%20Passed-brightgreen.svg)]()
 
 **Hangry** is a local-first Android wellness and fitness app inspired by the recovery-tracking category. It connects to health data (via Android Health Connect), stores records locally in Room, normalizes daily summaries, calculates personalized recovery and training metrics, and presents actionable daily insights through a supportive, human, and non-judgmental Jetpack Compose interface.
 

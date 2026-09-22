@@ -28,7 +28,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 private val POSTURE_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "How it works",
-        "Submit 3-5 standing photos (shirtless, shorts) - the AI checks each one is usable, then scores head, shoulder, spine, and pelvis alignment."
+        "Submit 1–5 photos (front, side, or back) standing or sitting naturally. Athletic or casual clothing is fine. The AI evaluates posture alignment and suggests corrective exercises."
     ),
     HangryInfoSection(
         "Your photos",

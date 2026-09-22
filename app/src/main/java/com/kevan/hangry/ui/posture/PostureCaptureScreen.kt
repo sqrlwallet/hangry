@@ -91,7 +91,7 @@ fun PostureCaptureScreen(
         ) {
             HangryCard {
                 Text(
-                    text = "Take $MIN_POSTURE_PHOTOS-$MAX_POSTURE_PHOTOS photos: shirtless, shorts, standing naturally, good lighting. We'll score and save automatically once analyzed.",
+                    text = "Take 1–$MAX_POSTURE_PHOTOS photos (side, front, or back) standing naturally. Athletic or casual clothing is fine. We'll analyze your alignment and save results automatically.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = tokens.textPrimary
                 )
@@ -152,10 +152,14 @@ fun PostureCaptureScreen(
             } else {
                 Button(
                     onClick = { viewModel.analyze() },
-                    enabled = uiState.capturedPhotos.size >= MIN_POSTURE_PHOTOS,
+                    enabled = uiState.capturedPhotos.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Analyze Posture (${uiState.capturedPhotos.size}/$MIN_POSTURE_PHOTOS minimum)")
+                    val count = uiState.capturedPhotos.size
+                    Text(
+                        if (count == 0) "Add at least 1 photo to analyze"
+                        else "Analyze Posture ($count photo${if (count > 1) "s" else ""})"
+                    )
                 }
             }
         }

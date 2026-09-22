@@ -7,6 +7,12 @@
 - **Personal Journal & Memories Sheet**: Inspect, manage, manually add, or delete coaching memories at any time via a dedicated bottom sheet.
 - **Robust Multi-Turn History**: Chat conversations and saved memories are persisted locally in Room (v9 migration) with full offline security.
 
+### 🧘 Relaxed Posture Guardrails & Improved AI Prompts
+- **Relaxed Posture Guardrails**: Removed strict shirtless/shorts restrictions. Users can now perform posture checks wearing normal athletic or casual clothing (t-shirts, shorts, leggings, etc.).
+- **Flexible Photo Count**: Reduced minimum photos from 3 to 1 (supporting 1–5 photos from any angle: side, front, or back).
+- **Expert Biomechanics Assessment**: Redesigned posture prompt for calibrated scoring, constructive observations (cranio-cervical, scapular, pelvic, spinal curves), and targeted corrective exercises with clear form cues.
+- **Smarter Food & Nutrition Estimation**: Enhanced food prompt with visual portion recognition, hidden cooking fats/oil accounting, calorie consistency, and informative portion breakdown notes.
+
 ---
 
 ## 🚀 What's New in Hangry v1.1.0

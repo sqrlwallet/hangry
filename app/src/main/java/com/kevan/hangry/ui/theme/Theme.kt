@@ -65,6 +65,7 @@ fun HangryTheme(
         HangryCustomTokens(
             scoreColors = DarkScoreStateColors,
             chartColors = DarkChartMetricColors,
+            macroColors = DarkMacroNutrientColors,
             cardBackground = SurfaceDark,
             cardBorder = OutlineDark,
             textPrimary = Color(0xFFF1F5F9),
@@ -75,6 +76,7 @@ fun HangryTheme(
         HangryCustomTokens(
             scoreColors = LightScoreStateColors,
             chartColors = LightChartMetricColors,
+            macroColors = LightMacroNutrientColors,
             cardBackground = SurfaceLight,
             cardBorder = OutlineLight,
             textPrimary = Color(0xFF0F172A),

@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
@@ -45,9 +47,10 @@ fun DailyActivityRingsCard(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
     var showGoalDialog by remember { mutableStateOf(false) }
 
-    val calorieColor = tokens.chartColors.trainingLoad
+    val calorieColor = tokens.chartColors.activeCalories
     val stepsColor = tokens.chartColors.steps
 
     val safeCalories = currentCalories.coerceAtLeast(0.0)
@@ -56,13 +59,27 @@ fun DailyActivityRingsCard(
     val calorieProgress = (safeCalories / caloriesGoal.coerceAtLeast(1)).toFloat().coerceIn(0f, 1f)
     val stepsProgress = (safeSteps.toFloat() / stepGoal.coerceAtLeast(1)).coerceIn(0f, 1f)
 
+    val animatedCalorieProgress by animateFloatAsState(
+        targetValue = calorieProgress,
+        animationSpec = tween(durationMillis = 800),
+        label = "calorie_progress"
+    )
+    val animatedStepsProgress by animateFloatAsState(
+        targetValue = stepsProgress,
+        animationSpec = tween(durationMillis = 800),
+        label = "steps_progress"
+    )
+
     val caloriePercentage = ((safeCalories / caloriesGoal.coerceAtLeast(1)) * 100).roundToInt()
     val stepsPercentage = ((safeSteps.toDouble() / stepGoal.coerceAtLeast(1)) * 100).roundToInt()
 
     HangryCard(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onToggleExpand() }
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onToggleExpand()
+            }
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -334,6 +351,7 @@ fun EditActivityGoalsDialog(
     onDismiss: () -> Unit,
     onSave: (stepGoal: Long, caloriesGoal: Int) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     var stepText by remember { mutableStateOf(initialStepGoal.toString()) }
     var caloriesText by remember { mutableStateOf(initialCaloriesGoal.toString()) }
 
@@ -372,6 +390,7 @@ fun EditActivityGoalsDialog(
         confirmButton = {
             TextButton(
                 onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     val s = (stepText.toLongOrNull() ?: 6000L).coerceAtLeast(100L)
                     val c = (caloriesText.toIntOrNull() ?: 500).coerceAtLeast(50)
                     onSave(s, c)

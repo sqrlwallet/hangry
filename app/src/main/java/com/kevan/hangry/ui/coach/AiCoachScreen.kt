@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.coach
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,14 +10,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
@@ -25,7 +30,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kevan.hangry.data.local.entity.CoachJournalEntity
@@ -39,11 +56,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val QUICK_STARTERS = listOf(
-    "How was my recovery this week?",
-    "Analyze my calorie and protein balance",
-    "Should I train hard or rest today?",
-    "I have poor sleep when I eat late",
-    "My lower back feels tight today"
+    "⚡ What is my training readiness today?",
+    "🥗 Analyze my calorie and protein balance",
+    "💤 How did my sleep affect my recovery?",
+    "🧘 What stretches match my posture scan?",
+    "📝 I have tight hamstrings and lower back"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,9 +72,12 @@ fun AiCoachScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
 
     var inputText by remember { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
@@ -76,6 +96,7 @@ fun AiCoachScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -217,6 +238,7 @@ fun AiCoachScreen(
                     // Empty welcome screen
                     EmptyConversationView(
                         onSelectStarter = { starter ->
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             inputText = starter
                             viewModel.sendMessage(starter)
                             inputText = ""
@@ -232,7 +254,19 @@ fun AiCoachScreen(
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
                         items(uiState.messages, key = { it.id }) { message ->
-                            CoachMessageItem(message = message)
+                            CoachMessageItem(
+                                message = message,
+                                onCopy = { text ->
+                                    clipboardManager.setText(AnnotatedString(text))
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Copied to clipboard",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            )
                         }
 
                         if (uiState.isLoading) {
@@ -255,6 +289,7 @@ fun AiCoachScreen(
                     items(QUICK_STARTERS) { starter ->
                         SuggestionChip(
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.sendMessage(starter)
                             },
                             label = {
@@ -283,7 +318,40 @@ fun AiCoachScreen(
                         placeholder = {
                             Text("Ask coach or share a problem...", style = MaterialTheme.typography.bodyMedium)
                         },
-                        modifier = Modifier.weight(1f),
+                        trailingIcon = if (inputText.isNotEmpty()) {
+                            {
+                                IconButton(
+                                    onClick = {
+                                        inputText = ""
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear input",
+                                        tint = tokens.textMuted,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        } else null,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Send
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (inputText.isNotBlank() && !uiState.isLoading) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    val textToSend = inputText
+                                    inputText = ""
+                                    viewModel.sendMessage(textToSend)
+                                }
+                            }
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .semantics { contentDescription = "Message input for Hangry AI Coach" },
                         shape = RoundedCornerShape(24.dp),
                         maxLines = 4,
                         enabled = !uiState.isLoading
@@ -291,6 +359,7 @@ fun AiCoachScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             val textToSend = inputText
                             inputText = ""
                             viewModel.sendMessage(textToSend)
@@ -306,7 +375,7 @@ fun AiCoachScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
+                            contentDescription = if (uiState.isLoading) "Coach is thinking" else "Send message",
                             tint = if (inputText.isNotBlank() && !uiState.isLoading) Color.White else tokens.textSecondary
                         )
                     }
@@ -441,21 +510,40 @@ private fun EmptyConversationView(
         Text(
             text = "Meet your AI Coach",
             style = MaterialTheme.typography.headlineSmall,
-            color = tokens.textPrimary
+            color = tokens.textPrimary,
+            fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Surface(
+            color = EmberAccent.copy(alpha = 0.12f),
+            shape = RoundedCornerShape(100.dp)
+        ) {
+            Text(
+                text = "⚡ 7-Day Biometrics & Memories Active",
+                style = MaterialTheme.typography.labelMedium,
+                color = EmberAccent,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
         Text(
-            text = "I have your last 7 days of sleep, recovery, workouts, and nutrition in mind. Share any health problems, food intolerances, or injuries, and I will remember them in your journal!",
+            text = "I continuously synthesize your sleep, recovery, workouts, nutrition, posture, and personal health journal. Ask me anything or share a new ache, goal, or problem.",
             style = MaterialTheme.typography.bodyMedium,
             color = tokens.textSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            lineHeight = 22.sp,
             modifier = Modifier.padding(horizontal = HangryTokens.Spacing.m)
         )
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
 
         Text(
-            text = "Suggested Questions:",
+            text = "Quick Insights:",
             style = MaterialTheme.typography.titleSmall,
             color = tokens.textPrimary,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.align(Alignment.Start)
         )
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
@@ -465,28 +553,186 @@ private fun EmptyConversationView(
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
                     .clickable { onSelectStarter(starter) },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.outlinedCardColors(containerColor = tokens.cardBackground)
             ) {
-                Text(
-                    text = starter,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tokens.textPrimary,
-                    modifier = Modifier.padding(12.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = starter,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = tokens.textPrimary,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = tokens.textMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun CoachMessageItem(message: CoachMessageEntity) {
+private fun PulsingDotsIndicator(
+    modifier: Modifier = Modifier,
+    dotColor: Color = EmberAccent,
+    dotSize: Dp = 6.dp
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulsing_dots")
+
+    val alpha1 by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot1"
+    )
+    val alpha2 by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, delayMillis = 150, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot2"
+    )
+    val alpha3 by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, delayMillis = 300, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot3"
+    )
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(dotColor.copy(alpha = alpha1))
+        )
+        Box(
+            modifier = Modifier
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(dotColor.copy(alpha = alpha2))
+        )
+        Box(
+            modifier = Modifier
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(dotColor.copy(alpha = alpha3))
+        )
+    }
+}
+
+@Composable
+private fun FormattedMessageText(
+    text: String,
+    isUser: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val tokens = LocalHangryTokens.current
+    val baseColor = if (isUser) Color.White else tokens.textPrimary
+
+    val annotatedString = remember(text, isUser) {
+        // Pre-clean: convert raw asterisk or dash bullets to clean unicode bullets
+        val preCleaned = text
+            .replace(Regex("""(?m)^\s*[\*\-]\s+"""), "• ")
+            .replace(Regex("""\n[\*\-]\s+"""), "\n• ")
+
+        buildAnnotatedString {
+            val boldRegex = Regex("""\*\*(.*?)\*\*""")
+            var currentIndex = 0
+            val matches = boldRegex.findAll(preCleaned)
+
+            for (match in matches) {
+                if (match.range.first > currentIndex) {
+                    val rawPart = preCleaned.substring(currentIndex, match.range.first)
+                    // Strip any stray asterisks from non-bold parts
+                    append(rawPart.replace("*", ""))
+                }
+                val boldContent = match.groupValues[1].replace("*", "")
+                withStyle(
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = if (isUser) Color.White else tokens.chartColors.activeCalories
+                    )
+                ) {
+                    append(boldContent)
+                }
+                currentIndex = match.range.last + 1
+            }
+            if (currentIndex < preCleaned.length) {
+                val remaining = preCleaned.substring(currentIndex)
+                append(remaining.replace("*", ""))
+            }
+        }
+    }
+
+    Text(
+        text = annotatedString,
+        style = MaterialTheme.typography.bodyMedium,
+        color = baseColor,
+        lineHeight = 22.sp,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun CoachMessageItem(
+    message: CoachMessageEntity,
+    onCopy: (String) -> Unit
+) {
     val tokens = LocalHangryTokens.current
     val isUser = message.role == "user"
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
+        if (!isUser) {
+            Row(
+                modifier = Modifier
+                    .padding(start = 6.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = EmberAccent,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Hangry Coach",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = EmberAccent,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
         Surface(
             color = if (isUser) EmberAccent else MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(
@@ -495,15 +741,34 @@ private fun CoachMessageItem(message: CoachMessageEntity) {
                 bottomStart = if (isUser) 16.dp else 4.dp,
                 bottomEnd = if (isUser) 4.dp else 16.dp
             ),
-            modifier = Modifier.widthIn(max = 320.dp)
+            modifier = Modifier.widthIn(max = 330.dp)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                FormattedMessageText(
                     text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUser) Color.White else tokens.textPrimary,
-                    lineHeight = 20.sp
+                    isUser = isUser
                 )
+
+                if (!isUser) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { onCopy(message.content.replace("*", "")) },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy text",
+                                tint = tokens.textMuted,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -513,7 +778,7 @@ private fun CoachMessageItem(message: CoachMessageEntity) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.widthIn(max = 320.dp)
+                modifier = Modifier.widthIn(max = 330.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -550,20 +815,16 @@ private fun CoachLoadingBubble() {
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.widthIn(max = 300.dp)
+            modifier = Modifier.widthIn(max = 320.dp)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = EmberAccent
-                )
+                PulsingDotsIndicator(dotColor = EmberAccent, dotSize = 7.dp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "AI Coach is reviewing your data...",
+                    text = "Analyzing your 7-day health trends…",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )

@@ -27,8 +27,30 @@ import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+
+private enum class MealBucket(val title: String) {
+    BREAKFAST("Breakfast"),
+    LUNCH("Lunch"),
+    DINNER("Dinner"),
+    SNACKS("Snacks")
+}
+
+private fun getMealBucket(timestamp: Instant, zone: ZoneId = ZoneId.systemDefault()): MealBucket {
+    val hour = timestamp.atZone(zone).hour
+    return when (hour) {
+        in 4..10 -> MealBucket.BREAKFAST
+        in 11..15 -> MealBucket.LUNCH
+        in 16..20 -> MealBucket.DINNER
+        else -> MealBucket.SNACKS
+    }
+}
 
 private val NUTRITION_INFO_SECTIONS = listOf(
     HangryInfoSection(
@@ -56,9 +78,18 @@ fun NutritionScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
     val uiState by viewModel.uiState.collectAsState()
     val dashboardState by dashboardViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val calorieTarget = dashboardState.calorieGoal?.dailyCalorieTarget ?: 2000
+    val totalProtein = uiState.todayEntries.sumOf { it.proteinG }
+    val totalCarbs = uiState.todayEntries.sumOf { it.carbsG }
+    val totalFat = uiState.todayEntries.sumOf { it.fatG }
+    val proteinGoal = (calorieTarget * 0.25 / 4.0).coerceAtLeast(50.0)
+    val carbsGoal = (calorieTarget * 0.50 / 4.0).coerceAtLeast(100.0)
+    val fatGoal = (calorieTarget * 0.25 / 9.0).coerceAtLeast(30.0)
 
     var showDescribeDialog by remember { mutableStateOf(false) }
     var showQuickLogSheet by remember { mutableStateOf(false) }
@@ -155,25 +186,16 @@ fun NutritionScreen(
             }
 
             item {
-                HangryCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "Calories Today", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
-                        val target = dashboardState.calorieGoal?.dailyCalorieTarget
-                        if (target != null) {
-                            Text(text = "Goal: $target kcal", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                    Text(
-                        text = "${uiState.totalCaloriesToday} kcal",
-                        style = MaterialTheme.typography.displayMedium,
-                        color = tokens.chartColors.trainingLoad
-                    )
-                }
+                MacroProgressBar(
+                    totalCalories = uiState.totalCaloriesToday,
+                    targetCalories = calorieTarget,
+                    proteinG = totalProtein,
+                    proteinGoalG = proteinGoal,
+                    carbsG = totalCarbs,
+                    carbsGoalG = carbsGoal,
+                    fatG = totalFat,
+                    fatGoalG = fatGoal
+                )
             }
 
             item {
@@ -217,6 +239,58 @@ fun NutritionScreen(
                 }
             }
 
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Quick Add",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.textSecondary,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
+                    ) {
+                        item {
+                            SuggestionChip(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.quickLogMeal("Snack (100 kcal)", 100, null, 3.0, 15.0, 3.0)
+                                },
+                                label = { Text("+100 kcal Snack") }
+                            )
+                        }
+                        item {
+                            SuggestionChip(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.quickLogMeal("Quick Meal (250 kcal)", 250, null, 15.0, 30.0, 8.0)
+                                },
+                                label = { Text("+250 kcal Meal") }
+                            )
+                        }
+                        item {
+                            SuggestionChip(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.quickLogMeal("Full Meal (500 kcal)", 500, null, 30.0, 55.0, 18.0)
+                                },
+                                label = { Text("+500 kcal Meal") }
+                            )
+                        }
+                        item {
+                            SuggestionChip(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.quickLogMeal("Water (500 ml)", 0, null, 0.0, 0.0, 0.0)
+                                },
+                                label = { Text("+500ml Water") }
+                            )
+                        }
+                    }
+                }
+            }
+
             if (uiState.isAnalyzing) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -254,19 +328,61 @@ fun NutritionScreen(
                 item {
                     HangryCard {
                         Text(
-                            text = "No food logged yet today.",
+                            text = "No food logged yet today. Use the buttons above or quick-add chips to record your first meal.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textSecondary
                         )
                     }
                 }
             } else {
-                items(uiState.todayEntries, key = { it.id }) { entry ->
-                    FoodLogRow(
-                        entry = entry,
-                        onClick = { viewModel.startEdit(entry) },
-                        onDelete = { viewModel.deleteEntry(entry) }
-                    )
+                val groupedEntries = run {
+                    val zone = ZoneId.systemDefault()
+                    val map = linkedMapOf<MealBucket, MutableList<FoodLogEntity>>()
+                    for (bucket in MealBucket.entries) {
+                        map[bucket] = mutableListOf()
+                    }
+                    for (entry in uiState.todayEntries) {
+                        val bucket = getMealBucket(entry.timestamp, zone)
+                        map[bucket]?.add(entry)
+                    }
+                    map.filter { it.value.isNotEmpty() }
+                }
+
+                groupedEntries.forEach { (bucket, bucketEntries) ->
+                    item(key = "header_${bucket.name}") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = HangryTokens.Spacing.xs),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = bucket.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = tokens.textSecondary
+                            )
+                            Text(
+                                text = "${bucketEntries.sumOf { it.calories }} kcal",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = tokens.chartColors.activeCalories
+                            )
+                        }
+                    }
+
+                    items(bucketEntries, key = { it.id }) { entry ->
+                        FoodLogRow(
+                            entry = entry,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.startEdit(entry)
+                            },
+                            onDelete = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.deleteEntry(entry)
+                            }
+                        )
+                    }
                 }
             }
 
@@ -329,7 +445,7 @@ private fun LogActionButton(
         modifier = modifier.clickable(enabled = enabled, onClick = onClick)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Icon(imageVector = icon, contentDescription = null, tint = if (enabled) tokens.chartColors.trainingLoad else tokens.textMuted)
+            Icon(imageVector = icon, contentDescription = null, tint = if (enabled) tokens.chartColors.activeCalories else tokens.textMuted)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = label, style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
         }

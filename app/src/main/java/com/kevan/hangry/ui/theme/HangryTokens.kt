@@ -63,13 +63,24 @@ data class ChartMetricColors(
     val hrv: Color,
     val restingHeartRate: Color,
     val trainingLoad: Color,
-    val steps: Color
+    val steps: Color,
+    val activeCalories: Color = trainingLoad
+)
+
+@Immutable
+data class MacroNutrientColors(
+    val protein: Color,
+    val carbs: Color,
+    val fat: Color,
+    val calories: Color,
+    val water: Color
 )
 
 @Immutable
 data class HangryCustomTokens(
     val scoreColors: ScoreStateColors,
     val chartColors: ChartMetricColors,
+    val macroColors: MacroNutrientColors,
     val cardBackground: Color,
     val cardBorder: Color,
     val textPrimary: Color,
@@ -115,10 +126,27 @@ val LightChartMetricColors = ChartMetricColors(
     steps = Color(0xFF0D9488)
 )
 
+val DarkMacroNutrientColors = MacroNutrientColors(
+    protein = Color(0xFF818CF8),             // Soft Indigo
+    carbs = Color(0xFF34D399),               // Emerald Green
+    fat = AmberAccent,                       // Soft Amber
+    calories = EmberAccent,                  // Warm Ember
+    water = Color(0xFF38BDF8)                // Sky Blue
+)
+
+val LightMacroNutrientColors = MacroNutrientColors(
+    protein = Color(0xFF4F46E5),             // Deep Indigo
+    carbs = Color(0xFF059669),               // Forest Green
+    fat = Color(0xFFD97706),                 // Rich Amber
+    calories = Color(0xFFEA580C),            // Deep Ember
+    water = Color(0xFF0284C7)                // Ocean Blue
+)
+
 val LocalHangryTokens = staticCompositionLocalOf {
     HangryCustomTokens(
         scoreColors = DarkScoreStateColors,
         chartColors = DarkChartMetricColors,
+        macroColors = DarkMacroNutrientColors,
         cardBackground = Color(0xFF1E1E24),
         cardBorder = Color(0xFF2C2C35),
         textPrimary = Color(0xFFF1F5F9),

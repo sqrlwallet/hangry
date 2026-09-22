@@ -7,7 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.kevan.hangry.ui.navigation.BottomNavDestination
+import com.kevan.hangry.ui.navigation.HangryBottomNavBar
 import com.kevan.hangry.ui.navigation.HangryNavGraph
 import com.kevan.hangry.ui.navigation.Screen
 import com.kevan.hangry.ui.theme.HangryTheme
@@ -39,13 +45,28 @@ class MainActivity : ComponentActivity() {
             HangryTheme {
                 val navController = rememberNavController()
                 activeNavController = navController
-                HangryNavGraph(
-                    navController = navController,
-                    appContainer = appContainer,
-                    startDestination = startDestination,
-                    quickLogTrigger = quickLogTrigger,
-                    onQuickLogTriggerHandled = { quickLogTrigger = false }
-                )
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+
+                Scaffold(
+                    bottomBar = {
+                        if (currentRoute in BottomNavDestination.routeSet) {
+                            HangryBottomNavBar(
+                                currentRoute = currentRoute,
+                                navController = navController
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    HangryNavGraph(
+                        navController = navController,
+                        appContainer = appContainer,
+                        modifier = Modifier.padding(innerPadding),
+                        startDestination = startDestination,
+                        quickLogTrigger = quickLogTrigger,
+                        onQuickLogTriggerHandled = { quickLogTrigger = false }
+                    )
+                }
             }
         }
     }

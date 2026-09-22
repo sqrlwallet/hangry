@@ -1,5 +1,8 @@
 package com.kevan.hangry.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -138,7 +141,11 @@ fun HangryNavGraph(
     NavHost(
         navController = navController,
         startDestination = finalStart,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = { fadeIn(animationSpec = tween(220)) },
+        exitTransition = { fadeOut(animationSpec = tween(220)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(220)) },
+        popExitTransition = { fadeOut(animationSpec = tween(220)) }
     ) {
         // Onboarding Flow
         composable(Screen.Welcome.route) {

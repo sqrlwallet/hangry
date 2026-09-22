@@ -112,12 +112,6 @@ fun DashboardScreen(
                             contentDescription = "Customize Dashboard"
                         )
                     }
-                    IconButton(onClick = onNavigateToTrends) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                            contentDescription = "Trends"
-                        )
-                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -149,52 +143,28 @@ fun DashboardScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val isAiAvailable = uiState.aiFeaturesEnabled || (nutritionUiState?.aiFeaturesEnabled == true)
-                if (isAiAvailable) {
-                    ExtendedFloatingActionButton(
-                        onClick = onNavigateToAiCoach,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = tokens.textPrimary,
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "AI Coach",
-                                tint = EmberAccent
-                            )
-                        },
-                        text = {
-                            Text(
-                                text = "AI Coach",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+            val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+            ExtendedFloatingActionButton(
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    photoLauncher.takePhoto()
+                },
+                containerColor = EmberAccent,
+                contentColor = Color.White,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Log Meal"
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Log Meal",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-
-                ExtendedFloatingActionButton(
-                    onClick = { photoLauncher.takePhoto() },
-                    containerColor = EmberAccent,
-                    contentColor = Color.White,
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Log Meal"
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "Log Meal",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                )
-            }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->

@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -493,9 +495,11 @@ private fun EmptyConversationView(
     onSelectStarter: (String) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(HangryTokens.Spacing.l),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -540,7 +544,7 @@ private fun EmptyConversationView(
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
 
         Text(
-            text = "Quick Insights:",
+            text = "Quick Starters:",
             style = MaterialTheme.typography.titleSmall,
             color = tokens.textPrimary,
             fontWeight = FontWeight.SemiBold,
@@ -548,18 +552,19 @@ private fun EmptyConversationView(
         )
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
         QUICK_STARTERS.forEach { starter ->
-            OutlinedCard(
+            HangryCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clickable { onSelectStarter(starter) },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = tokens.cardBackground)
+                    .padding(vertical = 3.dp)
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSelectStarter(starter)
+                    },
+                cornerRadius = 14.dp,
+                contentPadding = 14.dp
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

@@ -9,7 +9,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -27,7 +30,15 @@ fun HangryCard(
         colors = CardDefaults.cardColors(
             containerColor = tokens.cardBackground
         ),
-        border = BorderStroke(Dp.Hairline, tokens.cardBorder),
+        border = BorderStroke(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.12f),
+                    Color.White.copy(alpha = 0.03f)
+                )
+            )
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = HangryTokens.Elevations.card)
     ) {
         Column(

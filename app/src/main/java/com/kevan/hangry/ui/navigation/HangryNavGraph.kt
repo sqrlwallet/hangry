@@ -378,7 +378,8 @@ fun HangryNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onStartNewScan = { navController.navigate(Screen.PostureCapture.route) },
                 onOpenScan = { scanId -> navController.navigate(Screen.PostureScanDetail.createRoute(scanId)) },
-                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToAiCoach = { navController.navigate(Screen.AiCoach.route) }
             )
         }
 

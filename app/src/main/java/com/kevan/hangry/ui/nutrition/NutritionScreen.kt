@@ -16,11 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryPendingNotice
@@ -151,8 +154,9 @@ fun NutritionScreen(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                .padding(top = innerPadding.calculateTopPadding())
+                .padding(horizontal = HangryTokens.Spacing.m),
+            contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             if (!uiState.aiFeaturesEnabled) {
@@ -326,12 +330,71 @@ fun NutritionScreen(
 
             if (uiState.todayEntries.isEmpty()) {
                 item {
-                    HangryCard {
+                    HangryCard(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Fueling & Recovery Strategy",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = tokens.textPrimary
+                            )
+                            Surface(
+                                color = tokens.chartColors.activeCalories.copy(alpha = 0.14f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "$calorieTarget kcal Target",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = tokens.chartColors.activeCalories,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Text(
-                            text = "No food logged yet today. Use the buttons above or quick-add chips to record your first meal.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary
+                            text = "Tracking your daily meals provides the energy and macronutrient data needed to calibrate training volume with metabolic recovery. Prioritize lean protein and hydration to optimize your recovery baseline.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textSecondary,
+                            lineHeight = 18.sp
                         )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { photoLauncher.takePhoto() },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Snap Photo", style = MaterialTheme.typography.labelMedium)
+                            }
+                            Button(
+                                onClick = {
+                                    selectedPhotoUri = null
+                                    showQuickLogSheet = true
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = EmberAccent)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Quick Log", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
                     }
                 }
             } else {

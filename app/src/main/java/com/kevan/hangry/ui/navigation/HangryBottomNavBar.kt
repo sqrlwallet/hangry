@@ -1,11 +1,21 @@
 package com.kevan.hangry.ui.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
@@ -19,16 +29,29 @@ import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.kevan.hangry.ui.theme.EmberAccent
@@ -81,64 +104,187 @@ sealed class BottomNavDestination(
     }
 }
 
+/**
+ * Luxury Floating Dock Bottom Navigation Bar.
+ *
+ * Designed with a floating capsule geometry, frosted obsidian glass aesthetic,
+ * luminous hairline chamfer gradient border, and tactile spring interactions.
+ * Automatically clears system navigation bar insets and smoothly hides on keyboard entry.
+ */
 @Composable
 fun HangryBottomNavBar(
     currentRoute: String?,
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
-    val isVisible = currentRoute in BottomNavDestination.routeSet
+    val density = LocalDensity.current
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
+    val isVisible = currentRoute in BottomNavDestination.routeSet && !isImeVisible
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        enter = slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = spring(dampingRatio = 0.85f, stiffness = 380f)
+        ) + fadeIn(tween(220)),
+        exit = slideOutVertically(
+            targetOffsetY = { it },
+            animationSpec = tween(180)
+        ) + fadeOut(tween(180))
     ) {
-        NavigationBar(
-            modifier = modifier.height(64.dp),
-            containerColor = tokens.cardBackground,
-            tonalElevation = 4.dp
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 18.dp, end = 18.dp, bottom = 10.dp, top = 2.dp),
+            contentAlignment = Alignment.Center
         ) {
-            BottomNavDestination.entries.forEach { destination ->
-                val selected = currentRoute == destination.route
-
-                NavigationBarItem(
-                    selected = selected,
-                    onClick = {
-                        if (!selected) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = if (selected) destination.selectedIcon else destination.unselectedIcon,
-                            contentDescription = destination.label
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = Color(0xF214151B), // Deep translucent obsidian glass
+                tonalElevation = 8.dp,
+                shadowElevation = 18.dp,
+                border = BorderStroke(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.20f), // Luminous top edge highlight
+                            Color.White.copy(alpha = 0.04f)  // Subtle bottom ambient fade
                         )
-                    },
-                    label = {
-                        Text(
-                            text = destination.label,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = EmberAccent,
-                        selectedTextColor = EmberAccent,
-                        indicatorColor = EmberAccent.copy(alpha = 0.15f),
-                        unselectedIconColor = tokens.textMuted,
-                        unselectedTextColor = tokens.textMuted
                     )
-                )
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BottomNavDestination.entries.forEach { destination ->
+                        val selected = currentRoute == destination.route
+
+                        FloatingNavItem(
+                            destination = destination,
+                            selected = selected,
+                            onClick = {
+                                if (!selected) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    navController.navigate(destination.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.FloatingNavItem(
+    destination: BottomNavDestination,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val animatedScale by animateFloatAsState(
+        targetValue = if (selected) 1.06f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 400f),
+        label = "nav_scale_${destination.label}"
+    )
+
+    val animatedPillAlpha by animateFloatAsState(
+        targetValue = if (selected) 1.0f else 0.0f,
+        animationSpec = tween(durationMillis = 200),
+        label = "nav_pill_alpha_${destination.label}"
+    )
+
+    val iconTint by animateColorAsState(
+        targetValue = if (selected) EmberAccent else Color(0xFF8E8E98),
+        animationSpec = tween(durationMillis = 200),
+        label = "nav_icon_tint_${destination.label}"
+    )
+
+    val textColor by animateColorAsState(
+        targetValue = if (selected) EmberAccent else Color(0xFF8E8E98),
+        animationSpec = tween(durationMillis = 200),
+        label = "nav_text_tint_${destination.label}"
+    )
+
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .semantics {
+                role = Role.Tab
+                this.selected = selected
+                contentDescription = destination.label
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        // Active indicator: glowing ember gradient capsule
+        if (animatedPillAlpha > 0.01f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .fillMaxHeight(0.86f)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                EmberAccent.copy(alpha = 0.20f * animatedPillAlpha),
+                                EmberAccent.copy(alpha = 0.08f * animatedPillAlpha)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = EmberAccent.copy(alpha = 0.32f * animatedPillAlpha),
+                        shape = RoundedCornerShape(18.dp)
+                    )
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .graphicsLayer(scaleX = animatedScale, scaleY = animatedScale)
+                .padding(vertical = 2.dp)
+        ) {
+            Icon(
+                imageVector = if (selected) destination.selectedIcon else destination.unselectedIcon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(23.dp)
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = destination.label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.5.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    letterSpacing = 0.2.sp
+                ),
+                color = textColor,
+                maxLines = 1
+            )
         }
     }
 }

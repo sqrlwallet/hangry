@@ -1,10 +1,13 @@
 package com.kevan.hangry.ui.dashboard
 
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -13,12 +16,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.calculation.HangryStrainCalculator
 import com.kevan.hangry.domain.model.DashboardWidget
@@ -143,37 +150,64 @@ fun DashboardScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
-            val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-            ExtendedFloatingActionButton(
+            val haptic = LocalHapticFeedback.current
+            Surface(
                 onClick = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     photoLauncher.takePhoto()
                 },
-                containerColor = EmberAccent,
-                contentColor = Color.White,
-                icon = {
+                shape = RoundedCornerShape(26.dp),
+                color = Color.Transparent,
+                shadowElevation = 14.dp,
+                border = BorderStroke(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.08f)
+                        )
+                    )
+                ),
+                modifier = Modifier
+                    .height(48.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            listOf(Color(0xFFFF5722), Color(0xFFFF7043))
+                        ),
+                        shape = RoundedCornerShape(26.dp)
+                    )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Log Meal"
+                        contentDescription = "Log Meal",
+                        tint = Color.White,
+                        modifier = Modifier.size(19.dp)
                     )
-                },
-                text = {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Log Meal",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.2.sp
+                        ),
+                        color = Color.White
                     )
                 }
-            )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(top = innerPadding.calculateTopPadding())
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                .padding(horizontal = HangryTokens.Spacing.m)
+                .padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             // Modular Widget Engine: Render active widgets ordered by user preference
@@ -278,19 +312,49 @@ fun DashboardScreen(
                 }
             }
 
+            // Daily Coach Briefing & Recovery Overview
+            DailyCoachBriefingCard(
+                uiState = uiState,
+                onNavigateToAiCoach = onNavigateToAiCoach,
+                onNavigateToNutrition = onNavigateToNutrition
+            )
+
             // Customize Dashboard Quick Button
-            OutlinedButton(
+            Surface(
                 onClick = { viewModel.setCustomizeSheetVisible(true) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
+                shape = RoundedCornerShape(16.dp),
+                color = tokens.cardBackground,
+                border = BorderStroke(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.10f),
+                            Color.White.copy(alpha = 0.03f)
+                        )
+                    )
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Default.DashboardCustomize,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Customize Dashboard Widgets")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DashboardCustomize,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = tokens.textSecondary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Customize Dashboard Widgets",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = tokens.textSecondary
+                    )
+                }
             }
 
             // Sync status footer
@@ -314,8 +378,8 @@ fun DashboardScreen(
                 )
             }
 
-            // Bottom clearance for floating action button
-            Spacer(modifier = Modifier.height(80.dp))
+            // Bottom clearance
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 
@@ -715,3 +779,131 @@ private fun CalorieComponentLabel(label: String, value: Double?, labelColor: and
         )
     }
 }
+
+@Composable
+private fun DailyCoachBriefingCard(
+    uiState: DashboardUiState,
+    onNavigateToAiCoach: () -> Unit,
+    onNavigateToNutrition: () -> Unit
+) {
+    val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
+
+    val quality = uiState.sleepAnalysis?.sleepQualityScore ?: 70
+    val isPending = uiState.isPendingSleepData
+
+    val headline: String
+    val recommendation: String
+
+    when {
+        isPending -> {
+            headline = "Awaiting Sleep Data"
+            recommendation = "Log or sync last night's sleep to calculate your recovery readiness, strain capacity, and personalized advice."
+        }
+        quality >= 80 -> {
+            headline = "Primed for Peak Output"
+            recommendation = "Sleep quality was high ($quality%). Autonomic nervous system is restored. You have capacity for high-strain training or demanding workouts today."
+        }
+        quality in 50..79 -> {
+            headline = "Balanced Daily Capacity"
+            recommendation = "Moderate sleep recovery ($quality%). A steady training session, zone 2 cardio, or maintenance routine will keep momentum without overload."
+        }
+        else -> {
+            headline = "Rebuild & Restore Focus"
+            recommendation = "Sleep recovery is in the rebuild zone ($quality%). Prioritize active recovery, hydration, mobility, and early wind-down tonight."
+        }
+    }
+
+    HangryCard(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = EmberAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Daily Coach Briefing",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = tokens.textPrimary
+                )
+            }
+            Surface(
+                color = EmberAccent.copy(alpha = 0.14f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = if (isPending) "Calibrating" else if (quality >= 80) "Optimal" else if (quality in 50..79) "Balanced" else "Rebuild",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = EmberAccent,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = headline,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = tokens.textPrimary
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = recommendation,
+            style = MaterialTheme.typography.bodySmall,
+            color = tokens.textSecondary,
+            lineHeight = 18.sp
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SuggestionChip(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onNavigateToAiCoach()
+                },
+                label = { Text("Ask Coach", style = MaterialTheme.typography.labelSmall) },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = EmberAccent
+                    )
+                }
+            )
+            SuggestionChip(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onNavigateToNutrition()
+                },
+                label = { Text("Log Food", style = MaterialTheme.typography.labelSmall) },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = tokens.chartColors.activeCalories
+                    )
+                }
+            )
+        }
+    }
+}
+

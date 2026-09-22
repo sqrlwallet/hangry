@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,8 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kevan.hangry.data.local.dao.WeightDao
 import com.kevan.hangry.domain.repository.DailySummaryRepository
 import com.kevan.hangry.ui.components.HangryCard
@@ -101,8 +104,9 @@ fun TrendsScreen(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                .padding(top = innerPadding.calculateTopPadding())
+                .padding(horizontal = HangryTokens.Spacing.m),
+            contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             // Timeframe Segmented Switcher
@@ -424,11 +428,46 @@ fun TrendsScreen(
 
             if (scores.isEmpty()) {
                 item {
-                    HangryCard {
+                    HangryCard(
+                        cornerRadius = HangryTokens.CornerRadii.large,
+                        contentPadding = HangryTokens.Spacing.m
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(tokens.chartColors.hrv.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                    contentDescription = null,
+                                    tint = tokens.chartColors.hrv,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Calibrating Physiological Baselines",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = tokens.textPrimary
+                                )
+                                Text(
+                                    text = "Sync Health Connect daily to chart trends",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = tokens.textMuted
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
                         Text(
-                            text = "No data in this range yet.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary
+                            text = "Hangry builds a rolling baseline of your Resting Heart Rate, HRV RMSSD, and Sleep architecture. As your wearable syncs each morning, multi-day trajectory trends will appear automatically here.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textSecondary,
+                            lineHeight = 18.sp
                         )
                     }
                 }

@@ -1,20 +1,38 @@
 package com.kevan.hangry.ui.posture
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AccessibilityNew
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.PostureScanEntity
 import com.kevan.hangry.ui.components.HangryCard
@@ -22,8 +40,10 @@ import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.components.HangryRingGauge
+import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.MintAccent
 
 private val POSTURE_INFO_SECTIONS = listOf(
     HangryInfoSection(
@@ -44,9 +64,11 @@ fun PostureScreen(
     onStartNewScan: () -> Unit,
     onOpenScan: (Long) -> Unit,
     onNavigateToAiSettings: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToAiCoach: (() -> Unit)? = null
 ) {
     val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -68,7 +90,10 @@ fun PostureScreen(
     ) { innerPadding ->
         if (!uiState.aiFeaturesEnabled) {
             Column(
-                modifier = modifier.fillMaxSize().padding(innerPadding).padding(HangryTokens.Spacing.m),
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(HangryTokens.Spacing.m),
                 verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
                 HangryPendingNotice(message = "Enable AI Features in Settings to run a posture check.")
@@ -82,57 +107,508 @@ fun PostureScreen(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                .padding(top = innerPadding.calculateTopPadding())
+                .padding(horizontal = HangryTokens.Spacing.m),
+            contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            // Latest Posture Score Hero
             item {
-                HangryCard(cornerRadius = HangryTokens.CornerRadii.large, contentPadding = HangryTokens.Spacing.l) {
-                    Text(text = "Latest Posture Score", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-                    val latest = uiState.latestScan
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        HangryRingGauge(
-                            progress = (latest?.score ?: 0) / 100f,
-                            color = tokens.chartColors.hrv,
-                            modifier = Modifier.size(104.dp),
-                            strokeWidth = 10.dp
+                val latest = uiState.latestScan
+                val score = latest?.score
+                val scoreColor = when {
+                    score == null -> tokens.chartColors.hrv
+                    score >= 80 -> MintAccent
+                    score >= 60 -> EmberAccent
+                    else -> Color(0xFFFF5252)
+                }
+                val statusText = when {
+                    score == null -> "Baseline Pending"
+                    score >= 80 -> "Optimal Alignment"
+                    score >= 60 -> "Mild Imbalance Detected"
+                    else -> "Correction Recommended"
+                }
+
+                HangryCard(
+                    cornerRadius = HangryTokens.CornerRadii.large,
+                    contentPadding = HangryTokens.Spacing.l
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Biomechanical Score",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = tokens.textPrimary
+                        )
+                        Surface(
+                            color = scoreColor.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = latest?.score?.toString() ?: "--",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = tokens.chartColors.hrv
+                                text = statusText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scoreColor,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }
                     }
+
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-                    Button(onClick = onStartNewScan, modifier = Modifier.fillMaxWidth()) {
-                        Text("New Posture Check")
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HangryRingGauge(
+                            progress = ((score ?: 0) / 100f).coerceIn(0f, 1f),
+                            color = scoreColor,
+                            modifier = Modifier.size(100.dp),
+                            strokeWidth = 9.dp
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = score?.toString() ?: "--",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scoreColor
+                                )
+                                Text(
+                                    text = "/ 100",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = tokens.textMuted
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(HangryTokens.Spacing.l))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            if (latest != null) {
+                                Text(
+                                    text = "Latest Assessment",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = tokens.textMuted
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = latest.date.toString(),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = tokens.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Front and lateral kinetic chain verified via computer vision.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = tokens.textSecondary,
+                                    lineHeight = 16.sp
+                                )
+                            } else {
+                                Text(
+                                    text = "No Scans Logged",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = tokens.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Take 1-5 photos to analyze head, shoulder, and pelvic alignment.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = tokens.textSecondary,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
+
+                    // Luxury Action Capsule
+                    Surface(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onStartNewScan()
+                        },
+                        shape = RoundedCornerShape(26.dp),
+                        color = Color.Transparent,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
+                            )
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    listOf(Color(0xFFFF5722), Color(0xFFFF7043))
+                                ),
+                                shape = RoundedCornerShape(26.dp)
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(19.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (latest != null) "New Posture Check" else "Start First Posture Scan",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.2.sp
+                                ),
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
 
+            // Biomechanical Alignment Zones Card
             item {
-                Text(text = "History", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                HangryCard(
+                    cornerRadius = HangryTokens.CornerRadii.large,
+                    contentPadding = HangryTokens.Spacing.m
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Kinetic Alignment Focus",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = tokens.textPrimary
+                        )
+                        Icon(
+                            imageVector = Icons.Default.AccessibilityNew,
+                            contentDescription = null,
+                            tint = EmberAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+
+                    AlignmentZoneRow(
+                        title = "Cervical Spine & Head",
+                        subtitle = "Forward head angle & suboccipital compression",
+                        status = "Craniovertebral Axis",
+                        color = MintAccent
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AlignmentZoneRow(
+                        title = "Thoracic & Scapulae",
+                        subtitle = "Rounded shoulder posture & upper-crossed pattern",
+                        status = "Acromial Balance",
+                        color = EmberAccent
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AlignmentZoneRow(
+                        title = "Lumbopelvic Rhythm",
+                        subtitle = "Anterior/posterior pelvic tilt & spinal neutrality",
+                        status = "Pelvic Neutral",
+                        color = tokens.chartColors.sleep
+                    )
+                }
+            }
+
+            // Daily 3-Minute Reset Protocol
+            item {
+                HangryCard(
+                    cornerRadius = HangryTokens.CornerRadii.large,
+                    contentPadding = HangryTokens.Spacing.m
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Spa,
+                                contentDescription = null,
+                                tint = MintAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "3-Min Daily Posture Reset",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = tokens.textPrimary
+                            )
+                        }
+                        Surface(
+                            color = MintAccent.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(100.dp)
+                        ) {
+                            Text(
+                                text = "Daily Habit",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MintAccent,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+
+                    Text(
+                        text = "Quick restorative drills to counteract desk slouching and decompress the spine:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = tokens.textSecondary
+                    )
+
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+
+                    PostureDrillItem(
+                        step = "1",
+                        name = "Chin Tucks",
+                        reps = "3 sets · 10 reps",
+                        benefit = "Retracts cervical spine & eases neck strain"
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PostureDrillItem(
+                        step = "2",
+                        name = "Scapular Wall Slides",
+                        reps = "2 sets · 12 reps",
+                        benefit = "Activates lower trapezius & opens chest"
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PostureDrillItem(
+                        step = "3",
+                        name = "Glute Bridge & Hip Opener",
+                        reps = "2 sets · 15 reps",
+                        benefit = "Restores neutral pelvic alignment"
+                    )
+
+                    if (onNavigateToAiCoach != null) {
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+                        Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onNavigateToAiCoach()
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, tokens.cardBorder),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = EmberAccent,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Ask AI Coach for personalized mobility drills",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = tokens.textPrimary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = tokens.textMuted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // History Section Header
+            item {
+                Text(
+                    text = "Scan History",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tokens.textPrimary,
+                    modifier = Modifier.padding(top = HangryTokens.Spacing.xs)
+                )
             }
 
             if (uiState.scans.isEmpty()) {
                 item {
                     HangryCard {
-                        Text(
-                            text = "No posture checks yet.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(EmberAccent.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FitnessCenter,
+                                    contentDescription = null,
+                                    tint = EmberAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "No Scans Recorded Yet",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = tokens.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Your before-and-after posture timeline will be tracked here privately on your device.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = tokens.textSecondary
+                                )
+                            }
+                        }
                     }
                 }
             } else {
                 items(uiState.scans, key = { it.id }) { scan ->
-                    PostureScanRow(scan = scan, onClick = { onOpenScan(scan.id) }, onDelete = { viewModel.deleteScan(scan) })
+                    PostureScanRow(
+                        scan = scan,
+                        onClick = { onOpenScan(scan.id) },
+                        onDelete = { viewModel.deleteScan(scan) }
+                    )
                 }
             }
+        }
+    }
+}
 
-            item { Spacer(modifier = Modifier.height(HangryTokens.Spacing.m)) }
+@Composable
+private fun AlignmentZoneRow(
+    title: String,
+    subtitle: String,
+    status: String,
+    color: Color
+) {
+    val tokens = LocalHangryTokens.current
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tokens.textPrimary
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tokens.textMuted
+                )
+            }
+            Surface(
+                color = color.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = color,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PostureDrillItem(
+    step: String,
+    name: String,
+    reps: String,
+    benefit: String
+) {
+    val tokens = LocalHangryTokens.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(tokens.cardBorder.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = step,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = tokens.textPrimary
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tokens.textPrimary
+                )
+                Text(
+                    text = reps,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = EmberAccent,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Text(
+                text = benefit,
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textSecondary
+            )
         }
     }
 }
@@ -140,17 +616,57 @@ fun PostureScreen(
 @Composable
 private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelete: () -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
+    val haptic = LocalHapticFeedback.current
+    val score = scan.score
+    val scoreColor = when {
+        score >= 80 -> MintAccent
+        score >= 60 -> EmberAccent
+        else -> Color(0xFFFF5252)
+    }
+
+    HangryCard(
+        modifier = Modifier.clickable {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        }
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = scan.date.toString(), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                Text(text = "Score ${scan.score}", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = scoreColor.copy(alpha = 0.14f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = "$score",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = scoreColor,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = scan.date.toString(),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = tokens.textPrimary
+                    )
+                    Text(
+                        text = if (score >= 80) "Optimal Alignment" else if (score >= 60) "Minor Imbalance" else "Correction Needed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textMuted
+                    )
+                }
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDelete()
+            }) {
                 Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Delete", tint = tokens.textMuted)
             }
         }

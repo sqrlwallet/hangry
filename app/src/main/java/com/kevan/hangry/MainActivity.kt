@@ -50,12 +50,10 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     bottomBar = {
-                        if (currentRoute in BottomNavDestination.routeSet) {
-                            HangryBottomNavBar(
-                                currentRoute = currentRoute,
-                                navController = navController
-                            )
-                        }
+                        HangryBottomNavBar(
+                            currentRoute = currentRoute,
+                            navController = navController
+                        )
                     }
                 ) { innerPadding ->
                     HangryNavGraph(

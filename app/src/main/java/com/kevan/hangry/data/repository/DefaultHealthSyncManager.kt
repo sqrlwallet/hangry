@@ -363,8 +363,27 @@ class DefaultHealthSyncManager(
             val hrv = database.hrvDao().getForDate(date)
             val steps = database.stepsDao().getForDate(date)
 
-            // Derive Resting Heart Rate fallback from continuous HR if wearable didn't generate an explicit RHR record
-            val effectiveRhr = rhr?.restingBpm
+            // Resting heart rate is defined as the lowest recorded heart rate while NOT
+            // sleeping, over this day's 24-hour window - not the wearable's own RHR record
+            // (which can be computed differently, e.g. from sleeping HR) and not a rolling
+            // average. sleepSessions covers dayStart-6h..dayEnd so it also excludes the tail
+            // of a sleep session that started the previous evening.
+            val awakeMinRhr = heartRateSamplesToday
+                .asSequence()
+                .filter { sample -> sample.bpm >= 35 }
+                .filter { sample ->
+                    sleepSessions.none { session ->
+                        !sample.timestamp.isBefore(session.startTime) && sample.timestamp.isBefore(session.endTime)
+                    }
+                }
+                .minOfOrNull { it.bpm }
+
+            // Once a resting heart rate has been computed for this date, it is locked for the
+            // rest of the day: re-syncing later (more samples arrive, a nap gets logged, etc.)
+            // must not change the number a user already saw.
+            val effectiveRhr = currentExistingSummary?.restingHeartRate
+                ?: awakeMinRhr
+                ?: rhr?.restingBpm
                 ?: (primarySleep?.let { database.heartRateDao().getAverageBpmBetween(it.startTime, it.endTime) })
                 ?: database.heartRateDao().getRestingBpmEstimateBetween(dayStart, dayEnd)
                 ?: database.heartRateDao().getMinBpmBetween(dayStart, dayEnd)

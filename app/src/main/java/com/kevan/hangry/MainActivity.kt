@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
@@ -49,6 +50,11 @@ class MainActivity : ComponentActivity() {
                 val currentRoute = navBackStackEntry?.destination?.route
 
                 Scaffold(
+                    // Every screen hosts its own Scaffold/TopAppBar (or, on Dashboard, a
+                    // statusBarsPadding()'d header) which already applies the status/nav bar
+                    // insets itself. Leaving the default here would apply them a second time,
+                    // producing a large dead gap above each screen's content.
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
                     bottomBar = {
                         HangryBottomNavBar(
                             currentRoute = currentRoute,

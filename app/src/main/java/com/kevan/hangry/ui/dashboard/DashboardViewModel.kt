@@ -149,10 +149,9 @@ class DashboardViewModel(
                     recentDailyStrain = recentSummaries.mapNotNull { it.dayStrain }
                 )
 
-                // Exercise-specific calories aren't exposed per-workout by Health Connect on this
-                // data path, so they're estimated (~6 kcal/min) when a source doesn't report them.
-                val exerciseCalories = todaysWorkouts.sumOf { it.activeCalories ?: (it.durationMinutes * 6.0) }
-                val effectiveActiveCalories = summary?.activeCalories ?: if (exerciseCalories > 0) exerciseCalories else null
+                // Exercise calories from real Health Connect recorded workouts
+                val exerciseCalories = todaysWorkouts.mapNotNull { it.activeCalories }.sum()
+                val effectiveActiveCalories = summary?.activeCalories ?: if (exerciseCalories > 0.0) exerciseCalories else null
                 val activeMinutes = max(summary?.exerciseDurationMinutes ?: 0, todaysWorkouts.sumOf { it.durationMinutes })
                 val activeCalories = effectiveActiveCalories ?: 0.0
 

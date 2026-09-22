@@ -15,10 +15,10 @@ class HangryTrainingLoadCalculator : TrainingLoadCalculator {
             else -> 1.0
         }
         val durationScore = session.durationMinutes.toDouble()
-        val calorieBonus = if (session.activeCalories != null && session.activeCalories > 0) {
+        val calorieBonus = if (session.activeCalories != null && session.activeCalories > 0.0) {
             (session.activeCalories / 100.0)
         } else {
-            (session.durationMinutes * 6.0) / 100.0 // Estimated moderate burn
+            0.0
         }
         return (durationScore * 0.8 + calorieBonus * 5.0) * multiplier
     }

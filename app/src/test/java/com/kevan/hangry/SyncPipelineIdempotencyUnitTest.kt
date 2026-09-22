@@ -1,6 +1,5 @@
 package com.kevan.hangry
 
-import com.kevan.hangry.data.datasource.FakeHealthConnectDataSource
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.domain.calculation.DayMetrics
 import com.kevan.hangry.domain.calculation.HangryRecoveryCalculator
@@ -15,11 +14,18 @@ class SyncPipelineIdempotencyUnitTest {
 
     @Test
     fun testSyncDeduplication_repeatedSyncDoesNotCreateDuplicateFingerprints() = runBlocking {
-        val dataSource = FakeHealthConnectDataSource(daysOfData = 14)
         val start = LocalDate.now(ZoneOffset.UTC).minusDays(14).atStartOfDay().toInstant(ZoneOffset.UTC)
-        val end = Instant.now()
-
-        val run1Records = dataSource.fetchSleepSessions(start, end)
+        val run1Records = (0 until 14).map { i ->
+            val s = start.plusSeconds(i * 86400L)
+            SleepSessionEntity(
+                sourceRecordId = "sleep-$i",
+                sourcePackageName = "com.google.android.apps.healthdata",
+                recordFingerprint = "fingerprint-$i",
+                startTime = s,
+                endTime = s.plusSeconds(28800),
+                durationMinutes = 480
+            )
+        }
         val localDatabaseSim = mutableMapOf<String, SleepSessionEntity>()
 
         // First sync run: insert records
@@ -39,7 +45,7 @@ class SyncPipelineIdempotencyUnitTest {
         assertEquals(run1Records.size, localDatabaseSim.size)
 
         // Second sync run with identical query
-        val run2Records = dataSource.fetchSleepSessions(start, end)
+        val run2Records = run1Records
         var run2Inserted = 0
         var run2Skipped = 0
         run2Records.forEach { record ->

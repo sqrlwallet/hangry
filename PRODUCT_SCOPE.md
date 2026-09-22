@@ -40,9 +40,9 @@ To preserve trust and comply with health data stewardship best practices, Hangry
 
 | Feature Area | Phase 1 (Local Foundation) | Phase 2 (Health Connect Integration) | Phase 3 (Historical Import & Sync) | Phase 4 (Advanced Calculations) | Phase 5 (Release Hardening) |
 |---|---|---|---|---|---|
-| **Health Connect Client** | Fake Mock Source | API status, permission education & requests | Bounded historical sync & checkpoints | Incremental sync & change tokens | Production permission declarations |
+| **Health Connect Client** | Direct Health Connect Source | API status, permission education & requests | Bounded historical sync & checkpoints | Incremental sync & change tokens | Production permission declarations |
 | **Local Database (Room)** | Complete 14-entity schema & DAOs | Live data persistence | Batch imports, deduplication | Rolling baseline storage | Migration verification & wipe tests |
-| **Recovery Engine** | Deterministic 0-100 score on mock data | Real baseline calculations | Multi-day trend baselines (7d/28d) | Factor contribution attribution | Versioned algorithm release |
+| **Recovery Engine** | Deterministic 0-100 score engine | Real baseline calculations | Multi-day trend baselines (7d/28d) | Factor contribution attribution | Versioned algorithm release |
 | **Sleep Tracking** | Session duration, consistency | Health Connect sleep sessions | Historical sleep debt & averages | Trend analysis | Manual sleep adjustments |
 | **Training Load** | Duration & intensity estimates | Exercise session records | Multi-workout aggregation | Load vs recovery balancing | Heart rate zone refinement |
 | **Heart Metrics** | Resting HR & HRV RMSSD | Source-provided HRV RMSSD | Multi-source conflict handling | Outlier detection | Data quality tagging |

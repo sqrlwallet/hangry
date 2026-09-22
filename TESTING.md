@@ -18,7 +18,6 @@ Hangry follows a test-driven approach to health data processing:
 | `HangryTrainingLoadCalculatorTest` | Unit Test | Rest days, intensity weights (Running vs. Walking), multi-workout aggregation, acute-to-chronic load ratio. |
 | `SyncPipelineIdempotencyUnitTest` | Unit Test | Repeated sync deduplication via SHA-256 fingerprints, post-deletion recalculation integrity. |
 | `LocalExportManagerTest` | Unit Test | JSON and CSV export structure, metric formatting, zero PII leakage. |
-| `FakeHealthConnectDataSourceTest` | Unit Test | 14-day deterministic trace generation, fingerprint consistency, edge cases (missing HRV, short sleep). |
 | `DashboardViewModelTest` | Unit Test | Initial loading state, StateFlow emissions from combined repositories, manual `syncNow()` trigger. |
 | `HangryDatabaseInstrumentedTest` | Instrumented Test | In-memory Room database creation, unique constraint conflict rejection, date queries, complete deletion. |
 

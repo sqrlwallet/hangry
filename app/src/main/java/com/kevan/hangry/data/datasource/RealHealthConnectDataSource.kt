@@ -197,12 +197,39 @@ class RealHealthConnectDataSource(
     }
 
     override suspend fun fetchExerciseSessions(start: Instant, end: Instant): List<ExerciseSessionEntity> {
-        val records = readAllRecords(ExerciseSessionRecord::class, TimeRangeFilter.between(start, end))
+        val filter = TimeRangeFilter.between(start, end)
+        val records = readAllRecords(ExerciseSessionRecord::class, filter)
+        val activeCalRecords = try {
+            readAllRecords(ActiveCaloriesBurnedRecord::class, filter)
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val totalCalRecords = try {
+            readAllRecords(TotalCaloriesBurnedRecord::class, filter)
+        } catch (_: Exception) {
+            emptyList()
+        }
+
         return records.map { record ->
             val durationMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
             val pkg = record.metadata.dataOrigin.packageName
             val recordId = record.metadata.id
             val fingerprint = sha256("EXERCISE|$pkg|$recordId|${record.startTime.toEpochMilli()}")
+
+            val matchingActiveCals = activeCalRecords.filter {
+                !it.startTime.isBefore(record.startTime) && !it.endTime.isAfter(record.endTime)
+            }
+            val activeCalories = if (matchingActiveCals.isNotEmpty()) {
+                matchingActiveCals.sumOf { it.energy.inKilocalories }
+            } else null
+
+            val matchingTotalCals = totalCalRecords.filter {
+                !it.startTime.isBefore(record.startTime) && !it.endTime.isAfter(record.endTime)
+            }
+            val totalCalories = if (matchingTotalCals.isNotEmpty()) {
+                matchingTotalCals.sumOf { it.energy.inKilocalories }
+            } else null
+
             ExerciseSessionEntity(
                 sourceRecordId = recordId,
                 sourcePackageName = pkg,
@@ -212,8 +239,8 @@ class RealHealthConnectDataSource(
                 startTime = record.startTime,
                 endTime = record.endTime,
                 durationMinutes = durationMinutes,
-                activeCalories = null,
-                totalCalories = null,
+                activeCalories = activeCalories,
+                totalCalories = totalCalories,
                 estimatedTrainingLoad = null,
                 dataQualityState = "VALID"
             )
@@ -289,21 +316,21 @@ class RealHealthConnectDataSource(
             val totalDistanceMeters = if (dateDistances.isNotEmpty()) {
                 dateDistances.sumOf { it.distance.inMeters }
             } else {
-                totalSteps * 0.75
+                null
             }
 
             val dateCalories = activeCalByDate[date] ?: emptyList()
             val totalActiveCal = if (dateCalories.isNotEmpty()) {
                 dateCalories.sumOf { it.energy.inKilocalories }
             } else {
-                totalSteps * 0.04
+                null
             }
 
             val pkg = dateSteps.firstOrNull()?.metadata?.dataOrigin?.packageName
                 ?: dateDistances.firstOrNull()?.metadata?.dataOrigin?.packageName
                 ?: dateCalories.firstOrNull()?.metadata?.dataOrigin?.packageName
                 ?: "com.google.android.health"
-            val fingerprint = sha256("STEPS|$pkg|${date.toEpochDay()}|$totalSteps|${totalDistanceMeters.toInt()}")
+            val fingerprint = sha256("STEPS|$pkg|${date.toEpochDay()}|$totalSteps|${totalDistanceMeters?.toInt() ?: 0}")
 
             StepsSummaryEntity(
                 sourceRecordId = "steps-$date",

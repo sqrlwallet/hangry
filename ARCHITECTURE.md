@@ -54,8 +54,7 @@ Hangry employs a strict **Local-First Layered Architecture** with unidirectional
 - **Responsibility**: Interfaces with `androidx.health.connect:connect-client`. Checks API availability, queries records in bounded time windows, and catches platform exceptions.
 - **Contract**: Defined by `HealthConnectDataSource`.
 - **Implementations**:
-  - `RealHealthConnectDataSource`: Bounded, paginated queries against the system Health Connect provider.
-  - `FakeHealthConnectDataSource`: Deterministic mock data provider for development and testing without physical device requirements.
+  - `RealHealthConnectDataSource`: Direct bounded queries against the system Health Connect provider. Hangry enforces a strict 100% real data policy—synthetic/mock data providers and fabricated metric fallbacks are strictly prohibited; when data is unrecorded, the app displays pending indicators ("—") per Rule 2 integrity.
 - **Rule**: Encapsulates all Health Connect SDK record types and classes. Never leaks raw Health Connect objects to repositories or UI.
 
 ### 2.2 Sync & Normalization Layer

@@ -8,9 +8,9 @@
   - Hangry Recovery (0–100 score, rolling baseline, confidence, dynamic re-weighting).
   - Sleep Calculator (duration, debt, consistency, baseline ratio).
   - Training Load Calculator (intensity multipliers, multi-workout aggregation).
-- [x] Create `FakeHealthConnectDataSource` providing realistic 14-day traces and edge cases.
+- [x] Enforce 100% real Health Connect data (removed all fake data sources and synthetic fallbacks; display pending states for unrecorded metrics).
 - [x] Build Jetpack Compose Dashboard with hero score card, metric cards, sync status, and theme preview.
-- [x] Build comprehensive automated test suite (22 unit tests passing, instrumented test suite compiling).
+- [x] Build comprehensive automated test suite.
 
 ---
 

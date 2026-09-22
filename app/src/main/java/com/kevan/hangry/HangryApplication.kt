@@ -14,7 +14,7 @@ class HangryApplication : Application() {
         container = DefaultAppContainer(this)
         // Activates the documented 6-hour periodic sync (SYNC_DESIGN.md §4); enqueueUniquePeriodicWork
         // with KEEP is idempotent, so this is safe to call on every process start, including before
-        // onboarding completes (an unauthorized/fake source sync is simply a harmless no-op).
+        // onboarding completes (an unauthorized sync is simply a harmless no-op).
         HealthSyncWorker.schedule(this)
     }
 }

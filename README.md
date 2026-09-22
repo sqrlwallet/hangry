@@ -4,7 +4,7 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-green.svg)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room-2.7.2-orange.svg)](https://developer.android.com/training/data-storage/room)
 [![Health Connect](https://img.shields.io/badge/Health%20Connect-1.1.0-red.svg)](https://developer.android.com/health-and-fitness/guides/health-connect)
-[![Tests](https://img.shields.io/badge/Tests-31%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-62%20Passed-brightgreen.svg)]()
 
 **Hangry** is a local-first Android wellness and fitness app inspired by the recovery-tracking category. It connects to health data (via Android Health Connect), stores records locally in Room, normalizes daily summaries, calculates personalized recovery and training metrics, and presents actionable daily insights through a supportive, human, and non-judgmental Jetpack Compose interface.
 
@@ -16,9 +16,9 @@ Hangry contains **no backend servers, no cloud databases, no user accounts, no a
 
 Download and install the APK directly on your Android phone (Android 9.0+ / API 28+):
 
-[![Download APK](https://img.shields.io/badge/Download-Hangry%20v1.1.0%20APK-brightgreen?style=for-the-badge&logo=android)](https://github.com/sqrlwallet/hangry/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-Hangry%20v1.2.0%20APK-brightgreen?style=for-the-badge&logo=android)](https://github.com/sqrlwallet/hangry/releases/latest)
 
-1. Download [**`hangry-v1.1.0.apk`**](https://github.com/sqrlwallet/hangry/releases/latest) from the Releases page.
+1. Download [**`hangry-v1.2.0.apk`**](https://github.com/sqrlwallet/hangry/releases/latest) from the Releases page.
 2. Tap the file in your downloads folder on your device to install (allow "Install from Unknown Sources" if prompted).
 3. Open **Hangry** - onboarding walks you through connecting Health Connect and requests every permission it needs in one step. 100% private, zero-fake wellness tracking!
 

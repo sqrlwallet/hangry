@@ -14,6 +14,7 @@ interface HealthConnectDataSource {
     suspend fun fetchStepsSummaries(start: LocalDate, end: LocalDate): List<StepsSummaryEntity>
     suspend fun fetchHeartRateSamples(start: Instant, end: Instant): List<HeartRateSampleEntity>
     suspend fun fetchWeightMeasurements(start: Instant, end: Instant): List<WeightMeasurementEntity>
+    suspend fun fetchHeightMeasurements(start: Instant, end: Instant): List<HeightMeasurementEntity>
     suspend fun fetchVo2Max(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
     suspend fun fetchOxygenSaturation(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
     suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double>

@@ -30,6 +30,13 @@ interface StepsDao {
     @Query("SELECT MIN(recordDate) FROM steps_summaries")
     suspend fun getEarliestDate(): LocalDate?
 
+    // The fingerprint embeds the running daily total (see RealHealthConnectDataSource), so a
+    // re-sync of a day whose count has since grown - "today" especially - produces a *new* row
+    // instead of updating the old one. Clearing the target range before inserting keeps exactly
+    // one row per date instead of the table accumulating a stale duplicate on every sync.
+    @Query("DELETE FROM steps_summaries WHERE recordDate >= :start AND recordDate <= :end")
+    suspend fun deleteBetween(start: LocalDate, end: LocalDate)
+
     @Query("DELETE FROM steps_summaries")
     suspend fun deleteAll()
 }

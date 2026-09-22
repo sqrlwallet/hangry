@@ -11,7 +11,6 @@ class HangryNavigationTest {
     fun screenRoutes_areUniqueAndCorrect() {
         val allScreens = listOf(
             Screen.Welcome,
-            Screen.HealthConnectExplanation,
             Screen.PermissionSetup,
             Screen.HistoricalSyncSetup,
             Screen.SyncProgress,
@@ -23,14 +22,14 @@ class HangryNavigationTest {
             Screen.Trends,
             Screen.DataSources,
             Screen.Settings,
-            Screen.ThemePreview,
-            Screen.PrivacyPolicy
+            Screen.PrivacyPolicy,
+            Screen.HomeScreenWidgets
         )
 
         val routeSet = allScreens.map { it.route }.toSet()
         // Ensure every screen route is unique
         assertEquals(allScreens.size, routeSet.size)
-        assertEquals(15, allScreens.size)
+        assertEquals(14, allScreens.size)
 
         // Verify dynamic route builder
         val dynamicRoute = Screen.SyncProgress.createRoute(60)

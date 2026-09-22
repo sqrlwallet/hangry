@@ -381,6 +381,23 @@ class RealHealthConnectDataSource(
         }
     }
 
+    override suspend fun fetchHeightMeasurements(start: Instant, end: Instant): List<HeightMeasurementEntity> {
+        val records = readAllRecords(HeightRecord::class, TimeRangeFilter.between(start, end))
+        return records.map { record ->
+            val pkg = record.metadata.dataOrigin.packageName
+            val recordId = record.metadata.id
+            val fingerprint = sha256("HEIGHT|$pkg|$recordId|${record.time.toEpochMilli()}")
+            HeightMeasurementEntity(
+                sourceRecordId = recordId,
+                sourcePackageName = pkg,
+                recordFingerprint = fingerprint,
+                timestamp = record.time,
+                heightCm = record.height.inMeters * 100.0,
+                dataQualityState = "VALID"
+            )
+        }
+    }
+
     override suspend fun fetchVo2Max(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
         val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
         val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()

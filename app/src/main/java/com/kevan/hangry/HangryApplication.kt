@@ -16,5 +16,6 @@ class HangryApplication : Application() {
         // with KEEP is idempotent, so this is safe to call on every process start, including before
         // onboarding completes (an unauthorized sync is simply a harmless no-op).
         HealthSyncWorker.schedule(this)
+        com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(this)
     }
 }

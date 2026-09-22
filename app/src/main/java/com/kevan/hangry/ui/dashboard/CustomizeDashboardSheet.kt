@@ -32,6 +32,7 @@ fun CustomizeDashboardSheet(
     onAddCustomWidget: (widget: DashboardWidget) -> Unit,
     onRemoveWidget: (widgetId: String) -> Unit,
     onResetDefaults: () -> Unit,
+    onNavigateToHomeScreenWidgets: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
@@ -82,6 +83,20 @@ fun CustomizeDashboardSheet(
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Create Custom Widget")
+            }
+
+            if (onNavigateToHomeScreenWidgets != null) {
+                OutlinedButton(
+                    onClick = {
+                        onDismiss()
+                        onNavigateToHomeScreenWidgets()
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = HangryTokens.Spacing.s)
+                ) {
+                    Icon(Icons.Default.Widgets, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Phone Home Screen Widgets")
+                }
             }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))

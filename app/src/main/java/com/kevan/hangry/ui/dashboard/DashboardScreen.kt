@@ -45,6 +45,8 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToNutrition: () -> Unit,
     onNavigateToPosture: () -> Unit,
+    autoOpenQuickLog: Boolean = false,
+    onAutoOpenQuickLogHandled: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -58,6 +60,13 @@ fun DashboardScreen(
     val photoLauncher = rememberPhotoCaptureLauncher { uri ->
         capturedMealPhotoUri = uri
         showQuickLogSheet = true
+    }
+
+    LaunchedEffect(autoOpenQuickLog) {
+        if (autoOpenQuickLog) {
+            showQuickLogSheet = true
+            onAutoOpenQuickLogHandled()
+        }
     }
 
     LaunchedEffect(uiState.errorMessage) {

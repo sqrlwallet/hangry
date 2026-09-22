@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.LocalFirstBanner
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -60,36 +61,7 @@ fun PrivacyPolicyScreen(
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             // Header summary banner
-            Surface(
-                color = tokens.scoreColors.primed.copy(alpha = 0.12f),
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(HangryTokens.Spacing.m),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = tokens.scoreColors.primed,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "100% Local-First Architecture",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = tokens.scoreColors.primed
-                        )
-                        Text(
-                            text = "Your health data never leaves your device. No cloud. No accounts. No telemetry.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textPrimary
-                        )
-                    }
-                }
-            }
+            LocalFirstBanner()
 
             // Zero-Cloud Commitment
             Text(

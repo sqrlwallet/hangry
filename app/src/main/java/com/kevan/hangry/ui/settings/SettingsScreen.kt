@@ -1,6 +1,7 @@
 package com.kevan.hangry.ui.settings
 
-import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,12 +23,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.ai.OpenRouterClient
+import com.kevan.hangry.data.local.dao.HeightDao
 import com.kevan.hangry.data.local.dao.WeightDao
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
-import com.kevan.hangry.domain.repository.JournalRepository
 import com.kevan.hangry.domain.repository.LocalExportManager
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.UserProfileRepository
@@ -36,6 +37,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,9 +45,9 @@ import java.time.ZoneOffset
 fun SettingsScreen(
     syncManager: HealthSyncManager,
     exportManager: LocalExportManager,
-    journalRepository: JournalRepository,
     userProfileRepository: UserProfileRepository,
     weightDao: WeightDao,
+    heightDao: HeightDao,
     calorieCalculator: CalorieCalculator,
     secureKeyStore: SecureKeyStore,
     openRouterClient: OpenRouterClient,
@@ -53,7 +55,7 @@ fun SettingsScreen(
     onNavigateToHistoricalSync: () -> Unit,
     onNavigateToDataSources: () -> Unit,
     onNavigateToPrivacyPolicy: () -> Unit = {},
-    onNavigateToThemePreview: () -> Unit = {},
+    onNavigateToHomeScreenWidgets: () -> Unit = {},
     onResetToWelcome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -63,12 +65,9 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showDeleteHealthDialog by remember { mutableStateOf(false) }
-    var showDeleteJournalDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
-    var showDisclaimerDialog by remember { mutableStateOf(false) }
     var showEditGoalsDialog by remember { mutableStateOf(false) }
     var isDeletingHealth by remember { mutableStateOf(false) }
-    var isDeletingJournal by remember { mutableStateOf(false) }
     var isResetting by remember { mutableStateOf(false) }
     // Shared across Sync Now / Recalculate Baselines / Export - these all hit the same local
     // DB and Health Connect client, so running two at once serves no purpose and previously
@@ -77,6 +76,37 @@ fun SettingsScreen(
 
     val profile by userProfileRepository.getProfile().collectAsState(initial = null)
     val latestWeight by weightDao.getLatestWeight().collectAsState(initial = null)
+    val latestHeight by heightDao.getLatestHeight().collectAsState(initial = null)
+    // Health Connect (e.g. a smart scale) is the freshest source when present; the manually
+    // entered profile value is only a fallback for people without a synced height reading.
+    val effectiveHeightCm = latestHeight?.heightCm ?: profile?.heightCm
+
+    val jsonExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                isBusy = true
+                val json = exportManager.exportDataAsJson()
+                context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                isBusy = false
+                snackbarHostState.showSnackbar("JSON export saved.")
+            }
+        }
+    }
+    val csvExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                isBusy = true
+                val csv = exportManager.exportDataAsCsv()
+                context.contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray()) }
+                isBusy = false
+                snackbarHostState.showSnackbar("CSV export saved.")
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -134,10 +164,10 @@ fun SettingsScreen(
             Text(text = "Goals & Body Metrics", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
             HangryCard {
                 val currentProfile = profile
-                val hasBodyMetrics = currentProfile?.age != null && currentProfile.heightCm != null && currentProfile.biologicalSex != null
+                val hasBodyMetrics = currentProfile?.age != null && effectiveHeightCm != null && currentProfile.biologicalSex != null
                 val bmrPreview = if (hasBodyMetrics && latestWeight != null) {
                     val sex = runCatching { BiologicalSex.valueOf(currentProfile!!.biologicalSex!!) }.getOrNull()
-                    sex?.let { calorieCalculator.calculateBmr(latestWeight!!.weightKg, currentProfile!!.heightCm!!, currentProfile.age!!, it) }
+                    sex?.let { calorieCalculator.calculateBmr(latestWeight!!.weightKg, effectiveHeightCm!!, currentProfile!!.age!!, it) }
                 } else {
                     null
                 }
@@ -149,8 +179,12 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Height", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                        Text(text = "${currentProfile?.heightCm?.toInt()} cm", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                        Text(
+                            text = if (latestHeight != null) "Height (synced)" else "Height",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tokens.textSecondary
+                        )
+                        Text(text = "${effectiveHeightCm?.toInt()} cm", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                     }
                     if (bmrPreview != null) {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -235,10 +269,10 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 SettingsActionRow(
-                    icon = Icons.Default.Palette,
-                    title = "Theme Preview",
-                    subtitle = "Preview app colors & components",
-                    onClick = onNavigateToThemePreview
+                    icon = Icons.Default.Widgets,
+                    title = "Home Screen Widgets",
+                    subtitle = "Pin Steps, Calories, Sleep, Recovery & Quick Log widgets",
+                    onClick = onNavigateToHomeScreenWidgets
                 )
             }
 
@@ -257,59 +291,32 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.FileDownload,
                     title = "Export Data as JSON",
-                    subtitle = "Share raw normalized daily summaries and recovery scores",
+                    subtitle = "Save raw normalized daily summaries and recovery scores to a file",
                     enabled = !isBusy,
                     onClick = {
-                        isBusy = true
-                        coroutineScope.launch {
-                            val json = exportManager.exportDataAsJson()
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, json)
-                                type = "application/json"
-                            }
-                            context.startActivity(Intent.createChooser(sendIntent, "Export Hangry Health Data"))
-                            isBusy = false
-                        }
+                        jsonExportLauncher.launch("hangry_export_${LocalDate.now()}.json")
                     }
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.TableChart,
                     title = "Export Data as CSV",
-                    subtitle = "Tabular export for spreadsheet analysis",
+                    subtitle = "Save a tabular file for spreadsheet analysis",
                     enabled = !isBusy,
                     onClick = {
-                        isBusy = true
-                        coroutineScope.launch {
-                            val csv = exportManager.exportDataAsCsv()
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, csv)
-                                type = "text/csv"
-                            }
-                            context.startActivity(Intent.createChooser(sendIntent, "Export Hangry CSV Data"))
-                            isBusy = false
-                        }
+                        csvExportLauncher.launch("hangry_export_${LocalDate.now()}.csv")
                     }
                 )
             }
 
-            // Privacy & Disclaimers
-            Text(text = "Privacy & Legal Disclosures", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+            // Privacy & Legal - kept to a single link rather than duplicating the wellness/
+            // non-medical notice here too; that disclosure already lives on the same screen.
             HangryCard {
                 SettingsActionRow(
                     icon = Icons.Default.Lock,
-                    title = "Privacy & Data Protection Center",
-                    subtitle = "Review our strict zero-cloud architecture & Health Connect audit",
+                    title = "Privacy & Legal",
+                    subtitle = "Zero-cloud architecture, Health Connect audit & wellness notice",
                     onClick = onNavigateToPrivacyPolicy
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-                SettingsActionRow(
-                    icon = Icons.Default.HealthAndSafety,
-                    title = "Wellness & Non-Medical Notice",
-                    subtitle = "Understand the non-diagnostic nature of Hangry",
-                    onClick = { showDisclaimerDialog = true }
                 )
             }
 
@@ -322,14 +329,6 @@ fun SettingsScreen(
                     subtitle = "Permanently removes all imported sessions and derived scores",
                     titleColor = tokens.scoreColors.rebuild,
                     onClick = { showDeleteHealthDialog = true }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-                SettingsActionRow(
-                    icon = Icons.Default.DeleteOutline,
-                    title = "Delete Journal Data",
-                    subtitle = "Clear subjective energy and soreness logs",
-                    titleColor = tokens.scoreColors.rebuild,
-                    onClick = { showDeleteJournalDialog = true }
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 SettingsActionRow(
@@ -379,46 +378,12 @@ fun SettingsScreen(
         )
     }
 
-    // Delete Journal Data Confirmation Dialog
-    if (showDeleteJournalDialog) {
-        AlertDialog(
-            onDismissRequest = { if (!isDeletingJournal) showDeleteJournalDialog = false },
-            title = { Text("Delete Journal Logs") },
-            text = { Text("Are you sure you want to delete all subjective journal entries? This cannot be undone.") },
-            confirmButton = {
-                Button(
-                    enabled = !isDeletingJournal,
-                    onClick = {
-                        isDeletingJournal = true
-                        coroutineScope.launch {
-                            journalRepository.deleteAll()
-                            isDeletingJournal = false
-                            showDeleteJournalDialog = false
-                            snackbarHostState.showSnackbar("All journal logs deleted.")
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = tokens.scoreColors.rebuild)
-                ) {
-                    Text("Delete Journal")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    enabled = !isDeletingJournal,
-                    onClick = { showDeleteJournalDialog = false }
-                ) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
     // Reset Application Confirmation Dialog
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { if (!isResetting) showResetDialog = false },
             title = { Text("Reset Application") },
-            text = { Text("This permanently deletes all health and journal data and restarts onboarding from scratch. This cannot be undone.") },
+            text = { Text("This permanently deletes all health data and restarts onboarding from scratch. This cannot be undone.") },
             confirmButton = {
                 Button(
                     enabled = !isResetting,
@@ -426,7 +391,6 @@ fun SettingsScreen(
                         isResetting = true
                         coroutineScope.launch {
                             syncManager.clearAllData()
-                            journalRepository.deleteAll()
                             onResetToWelcome()
                         }
                     },
@@ -461,19 +425,6 @@ fun SettingsScreen(
         )
     }
 
-    // Disclaimer Dialog
-    if (showDisclaimerDialog) {
-        AlertDialog(
-            onDismissRequest = { showDisclaimerDialog = false },
-            title = { Text(stringResource(R.string.wellness_disclaimer_title)) },
-            text = { Text(stringResource(R.string.wellness_disclaimer_body)) },
-            confirmButton = {
-                TextButton(onClick = { showDisclaimerDialog = false }) {
-                    Text("Understood")
-                }
-            }
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -536,6 +487,11 @@ private fun EditGoalsDialog(
                     label = { Text("Height (cm)") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Used only as a fallback - a height synced from Health Connect always takes priority.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tokens.textMuted
                 )
 
                 HorizontalDivider(color = tokens.cardBorder)

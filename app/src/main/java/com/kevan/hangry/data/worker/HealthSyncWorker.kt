@@ -20,6 +20,7 @@ class HealthSyncWorker(
             if (progress?.status == com.kevan.hangry.domain.model.SyncStatus.FAILED) {
                 Result.retry()
             } else {
+                com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(applicationContext)
                 Result.success()
             }
         } catch (_: Exception) {

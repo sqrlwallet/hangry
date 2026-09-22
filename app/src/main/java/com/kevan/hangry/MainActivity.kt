@@ -15,11 +15,16 @@ import com.kevan.hangry.ui.theme.HangryTheme
 class MainActivity : ComponentActivity() {
 
     private var activeNavController: NavHostController? = null
+    private var quickLogTrigger by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val appContainer = (application as HangryApplication).container
+
+        if (intent?.action == "com.kevan.hangry.ACTION_QUICK_LOG_MEAL" || intent?.getStringExtra("action") == "quick_log_meal") {
+            quickLogTrigger = true
+        }
 
         val initialDestination = getDestinationFromIntent(intent)
         val startDestination = initialDestination ?: kotlinx.coroutines.runBlocking {
@@ -37,7 +42,9 @@ class MainActivity : ComponentActivity() {
                 HangryNavGraph(
                     navController = navController,
                     appContainer = appContainer,
-                    startDestination = startDestination
+                    startDestination = startDestination,
+                    quickLogTrigger = quickLogTrigger,
+                    onQuickLogTriggerHandled = { quickLogTrigger = false }
                 )
             }
         }
@@ -46,6 +53,9 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent?.action == "com.kevan.hangry.ACTION_QUICK_LOG_MEAL" || intent?.getStringExtra("action") == "quick_log_meal") {
+            quickLogTrigger = true
+        }
         val destination = getDestinationFromIntent(intent)
         if (destination != null) {
             activeNavController?.navigate(destination)

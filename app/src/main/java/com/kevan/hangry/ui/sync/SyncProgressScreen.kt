@@ -15,6 +15,7 @@ import com.kevan.hangry.domain.model.SyncProgress
 import com.kevan.hangry.domain.model.SyncStatus
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.onboarding.OnboardingStepIndicator
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -23,6 +24,7 @@ fun SyncProgressScreen(
     rangeDays: Int,
     syncManager: HealthSyncManager,
     onComplete: () -> Unit,
+    showStepIndicator: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
@@ -45,6 +47,11 @@ fun SyncProgressScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.xl))
+
+        if (showStepIndicator) {
+            OnboardingStepIndicator(currentStep = 3, totalSteps = 3)
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
+        }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

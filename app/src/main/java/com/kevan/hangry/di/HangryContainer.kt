@@ -35,7 +35,6 @@ interface AppContainer {
     val dailySummaryRepository: DailySummaryRepository
     val healthSyncManager: HealthSyncManager
     val userProfileRepository: UserProfileRepository
-    val journalRepository: JournalRepository
     val localExportManager: LocalExportManager
 
     // AI features (opt-in): OpenRouter-backed calorie & posture analysis
@@ -134,10 +133,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val userProfileRepository: UserProfileRepository by lazy {
         DefaultUserProfileRepository(database.userProfileDao())
-    }
-
-    override val journalRepository: JournalRepository by lazy {
-        DefaultJournalRepository(database.journalDao())
     }
 
     override val localExportManager: LocalExportManager by lazy {

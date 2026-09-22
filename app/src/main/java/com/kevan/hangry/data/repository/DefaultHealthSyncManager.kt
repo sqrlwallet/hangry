@@ -117,6 +117,10 @@ class DefaultHealthSyncManager(
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Steps)"))
                 val stepsRecords = dataSource.fetchStepsSummaries(chunkStart, chunkEnd)
                 totalRead += stepsRecords.size
+                // Each row is a re-aggregated running total for its date (see fetchStepsSummaries),
+                // so re-syncing a day whose total has since changed must replace its row rather
+                // than accumulate a new one alongside it - clear the range first for a clean upsert.
+                database.stepsDao().deleteBetween(chunkStart, chunkEnd)
                 val stepsInserted = database.stepsDao().insertOrIgnore(stepsRecords)
                 val stepsCount = stepsInserted.count { it != -1L }
                 totalInserted += stepsCount
@@ -131,7 +135,7 @@ class DefaultHealthSyncManager(
                 totalInserted += hrCount
                 totalSkipped += (hrRecords.size - hrCount)
 
-                // 7. Weight Measurements
+                // 7. Weight & Height Measurements
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Weight)"))
                 val weightRecords = dataSource.fetchWeightMeasurements(chunkStartInstant, chunkEndInstant)
                 totalRead += weightRecords.size
@@ -139,6 +143,13 @@ class DefaultHealthSyncManager(
                 val weightCount = weightInserted.count { it != -1L }
                 totalInserted += weightCount
                 totalSkipped += (weightRecords.size - weightCount)
+
+                val heightRecords = dataSource.fetchHeightMeasurements(chunkStartInstant, chunkEndInstant)
+                totalRead += heightRecords.size
+                val heightInserted = database.heightDao().insertOrIgnore(heightRecords)
+                val heightCount = heightInserted.count { it != -1L }
+                totalInserted += heightCount
+                totalSkipped += (heightRecords.size - heightCount)
 
                 // 8. Vitals & Cardio Fitness (SpO2, VO2 Max, Respiratory Rate, Blood Pressure)
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Vitals)"))
@@ -243,7 +254,7 @@ class DefaultHealthSyncManager(
         database.weightDao().deleteAll()
         database.dailyHealthSummaryDao().deleteAll()
         database.recoveryScoreDao().deleteAll()
-        database.journalDao().deleteAll()
+        database.heightDao().deleteAll()
         database.syncStateDao().deleteAll()
     }
 
@@ -261,13 +272,16 @@ class DefaultHealthSyncManager(
         // §8) rather than reconstructing point-in-time weight/age per historical day.
         val profile = database.userProfileDao().getProfileSync()
         val latestWeightKg = database.weightDao().getLatestWeightSync()?.weightKg
-        val bmr = if (profile?.age != null && profile.heightCm != null && profile.biologicalSex != null && latestWeightKg != null) {
+        // Health Connect (e.g. a smart scale synced via a watch/phone app) is the freshest
+        // source when available - the manually-entered profile value is only a fallback.
+        val effectiveHeightCm = database.heightDao().getLatestHeightSync()?.heightCm ?: profile?.heightCm
+        val bmr = if (profile?.age != null && effectiveHeightCm != null && profile.biologicalSex != null && latestWeightKg != null) {
             val sex = try {
                 BiologicalSex.valueOf(profile.biologicalSex)
             } catch (_: IllegalArgumentException) {
                 null
             }
-            sex?.let { calorieCalculator.calculateBmr(latestWeightKg, profile.heightCm, profile.age, it) }
+            sex?.let { calorieCalculator.calculateBmr(latestWeightKg, effectiveHeightCm, profile.age, it) }
         } else {
             null
         }

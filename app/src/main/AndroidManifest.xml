@@ -97,6 +97,67 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Home Screen AppWidgets -->
+        <receiver
+            android:name=".ui.widget.ActivityWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Activity">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_activity" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.QuickLogWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Log Meal">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_quick_log" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.SleepWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Sleep">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_sleep" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.RecoveryWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Recovery">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_recovery" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.OverviewWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Overview">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_overview" />
+        </receiver>
     </application>
 
 </manifest>

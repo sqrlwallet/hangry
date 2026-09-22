@@ -21,9 +21,9 @@ import com.kevan.hangry.data.local.entity.*
         HrvMeasurementEntity::class,
         StepsSummaryEntity::class,
         WeightMeasurementEntity::class,
+        HeightMeasurementEntity::class,
         DailyHealthSummaryEntity::class,
         RecoveryScoreEntity::class,
-        JournalEntryEntity::class,
         SyncStateEntity::class,
         CalculationMetadataEntity::class,
         DataSourceEntity::class,
@@ -31,7 +31,7 @@ import com.kevan.hangry.data.local.entity.*
         MealPlanEntity::class,
         PostureScanEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -45,9 +45,9 @@ abstract class HangryDatabase : RoomDatabase() {
     abstract fun hrvDao(): HrvDao
     abstract fun stepsDao(): StepsDao
     abstract fun weightDao(): WeightDao
+    abstract fun heightDao(): HeightDao
     abstract fun dailyHealthSummaryDao(): DailyHealthSummaryDao
     abstract fun recoveryScoreDao(): RecoveryScoreDao
-    abstract fun journalDao(): JournalDao
     abstract fun syncStateDao(): SyncStateDao
     abstract fun calculationMetadataDao(): CalculationMetadataDao
     abstract fun dataSourceDao(): DataSourceDao
@@ -154,6 +154,32 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Journal (subjective energy/soreness logging) was removed as a feature.
+                db.execSQL("DROP TABLE IF EXISTS journal_entries")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS height_measurements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        sourceRecordId TEXT,
+                        sourcePackageName TEXT,
+                        recordFingerprint TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        heightCm REAL NOT NULL,
+                        dataQualityState TEXT NOT NULL,
+                        importTimestamp INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_height_measurements_recordFingerprint ON height_measurements(recordFingerprint)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_height_measurements_timestamp ON height_measurements(timestamp)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_height_measurements_sourceRecordId ON height_measurements(sourceRecordId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_height_measurements_sourcePackageName ON height_measurements(sourcePackageName)")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -161,7 +187,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     HangryDatabase::class.java,
                     "hangry.db"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                 INSTANCE = instance

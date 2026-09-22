@@ -4,6 +4,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -83,15 +85,26 @@ fun WelcomeScreen(
         }
 
         Surface(
-            color = tokens.scoreColors.buildingBaselineContainer,
+            color = tokens.scoreColors.primed.copy(alpha = 0.12f),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text(
-                text = "🔒 100% Local-First & Private",
-                style = MaterialTheme.typography.labelLarge,
-                color = tokens.scoreColors.buildingBaseline,
-                modifier = Modifier.padding(HangryTokens.Spacing.m)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = tokens.scoreColors.primed,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "100% Local-First & Private",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = tokens.scoreColors.primed
+                )
+            }
         }
 
         Button(

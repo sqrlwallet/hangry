@@ -63,12 +63,16 @@ fun TrainingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val tokens = LocalHangryTokens.current
-    val workouts by workoutRepository.getAllSessions().collectAsState(initial = emptyList())
 
     val zone = ZoneId.systemDefault()
     val today = LocalDate.now(zone)
     val dayStart = today.atStartOfDay(zone).toInstant()
     val dayEnd = today.plusDays(1).atStartOfDay(zone).toInstant()
+
+    // Scoped to today - this screen's "Workouts Today" stat already reports today's count,
+    // so the list below it showing every workout ever logged (unrelated to "today") was
+    // misleadingly presented as if it were the same thing.
+    val workouts by workoutRepository.getSessionsBetween(dayStart, dayEnd).collectAsState(initial = emptyList())
 
     // Collect today's zone distribution, falling back to 7-day trailing if today has no samples
     val todayZoneDistribution by heartRateRepository.getZoneDistribution(dayStart, dayEnd)
@@ -350,7 +354,7 @@ fun TrainingScreen(
 
             item {
                 Text(
-                    text = "Recent Workouts",
+                    text = "Today's Workouts",
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary,
                     modifier = Modifier.padding(top = HangryTokens.Spacing.s)

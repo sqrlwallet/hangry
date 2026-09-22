@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,10 +27,18 @@ import com.kevan.hangry.R
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.LocalFirstBanner
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
 
+/**
+ * The single "why we need this + grant it now" onboarding screen. Used to be two screens (an
+ * explanation, then a separate permission-request screen); merging them removes a full tap-
+ * through step, and the Health Connect permission dialog now launches automatically the moment
+ * this screen determines Health Connect is available, instead of waiting for the user to find
+ * and tap a button - they can still retry manually if they dismiss the system dialog.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionSetupScreen(
@@ -43,6 +54,7 @@ fun PermissionSetupScreen(
     var isAvailable by remember { mutableStateOf(false) }
     var hasFullPermissions by remember { mutableStateOf(false) }
     var permissionRequested by remember { mutableStateOf(false) }
+    var autoRequestTriggered by remember { mutableStateOf(false) }
     var categoryStatus by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
 
     val updateRequired = providerStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
@@ -67,10 +79,19 @@ fun PermissionSetupScreen(
         }
     }
 
+    // Pop the system permission dialog the moment we know Health Connect can accept it, so
+    // granting access is the very first thing the user is asked to do here - no button hunt.
+    LaunchedEffect(isAvailable) {
+        if (isAvailable && !hasFullPermissions && !autoRequestTriggered) {
+            autoRequestTriggered = true
+            requestPermissionsLauncher.launch(RealHealthConnectDataSource.PERMISSIONS)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Permission Setup") },
+                title = { Text("Connect Health Data") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
@@ -89,7 +110,7 @@ fun PermissionSetupScreen(
                 ) {
                     Text(
                         text = when {
-                            hasFullPermissions -> "Proceed to Historical Sync"
+                            hasFullPermissions -> "Continue"
                             !isAvailable -> "Continue Without Health Connect"
                             else -> "Continue with Available Permissions"
                         },
@@ -108,17 +129,43 @@ fun PermissionSetupScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            OnboardingStepIndicator(currentStep = 1, totalSteps = 3)
+
             Text(
-                text = "Authorize Health Connect",
+                text = "Connect Your Health Data",
                 style = MaterialTheme.typography.headlineMedium,
                 color = tokens.textPrimary
             )
 
             Text(
-                text = "Hangry requests read-only access to synchronize your recorded activity and vitals into local storage.",
+                text = "Hangry reads your sleep, heart rate, and activity from Health Connect to " +
+                    "calculate recovery, strain, and training load - entirely on your device.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = tokens.textSecondary
             )
+
+            HangryCard {
+                Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
+                    OnboardingFeatureRow(
+                        icon = Icons.Default.Bedtime,
+                        tint = tokens.chartColors.sleep,
+                        title = "Sleep Sessions",
+                        subtitle = "Duration & consistency → sleep debt"
+                    )
+                    OnboardingFeatureRow(
+                        icon = Icons.Default.Favorite,
+                        tint = tokens.chartColors.hrv,
+                        title = "Heart Rate & HRV",
+                        subtitle = "Autonomic balance vs. your baseline"
+                    )
+                    OnboardingFeatureRow(
+                        icon = Icons.AutoMirrored.Filled.DirectionsRun,
+                        tint = tokens.chartColors.trainingLoad,
+                        title = "Workouts & Daily Steps",
+                        subtitle = "Daily strain vs. recovery readiness"
+                    )
+                }
+            }
 
             if (updateRequired) {
                 Surface(
@@ -185,7 +232,7 @@ fun PermissionSetupScreen(
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(containerColor = tokens.scoreColors.primed)
                 ) {
-                    Text("Grant Health Connect Permissions")
+                    Text(if (hasFullPermissions) "All Permissions Granted" else "Grant Health Connect Permissions")
                 }
             }
 
@@ -213,6 +260,8 @@ fun PermissionSetupScreen(
                     color = tokens.scoreColors.balanced
                 )
             }
+
+            LocalFirstBanner()
         }
     }
 }

@@ -6,12 +6,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.onboarding.OnboardingStepIndicator
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -20,6 +22,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 fun HistoricalSyncSetupScreen(
     onStartSync: (days: Int) -> Unit,
     onNavigateBack: () -> Unit,
+    showStepIndicator: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
@@ -75,6 +78,10 @@ fun HistoricalSyncSetupScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            if (showStepIndicator) {
+                OnboardingStepIndicator(currentStep = 2, totalSteps = 3)
+            }
+
             Text(
                 text = "Choose Historical Range",
                 style = MaterialTheme.typography.headlineMedium,
@@ -127,12 +134,23 @@ fun HistoricalSyncSetupScreen(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "💡 Safe Memory Batching: Hangry processes historical records in 14-day bounded batches with duplicate suppression. You can cancel or re-sync at any time.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textPrimary,
-                    modifier = Modifier.padding(HangryTokens.Spacing.m)
-                )
+                Row(
+                    modifier = Modifier.padding(HangryTokens.Spacing.m),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = tokens.scoreColors.buildingBaseline,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Safe Memory Batching: Hangry processes historical records in 14-day bounded batches with duplicate suppression. You can cancel or re-sync at any time.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = tokens.textPrimary
+                    )
+                }
             }
         }
     }

@@ -23,7 +23,6 @@ import com.kevan.hangry.ui.heart.HeartMetricsScreen
 import com.kevan.hangry.ui.nutrition.MealPlanScreen
 import com.kevan.hangry.ui.nutrition.NutritionScreen
 import com.kevan.hangry.ui.nutrition.NutritionViewModel
-import com.kevan.hangry.ui.onboarding.HealthConnectExplanationScreen
 import com.kevan.hangry.ui.onboarding.PermissionSetupScreen
 import com.kevan.hangry.ui.onboarding.WelcomeScreen
 import com.kevan.hangry.ui.posture.PostureCaptureScreen
@@ -37,14 +36,13 @@ import com.kevan.hangry.ui.sleep.SleepScreen
 import com.kevan.hangry.ui.privacy.PrivacyPolicyScreen
 import com.kevan.hangry.ui.sync.HistoricalSyncSetupScreen
 import com.kevan.hangry.ui.sync.SyncProgressScreen
-import com.kevan.hangry.ui.theme_preview.ThemePreviewScreen
 import com.kevan.hangry.ui.training.TrainingScreen
 import com.kevan.hangry.ui.trends.TrendsScreen
+import com.kevan.hangry.ui.widget.HomeScreenWidgetsScreen
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
     data object Welcome : Screen("welcome")
-    data object HealthConnectExplanation : Screen("health_connect_explanation")
     data object PermissionSetup : Screen("permission_setup")
     data object HistoricalSyncSetup : Screen("historical_sync_setup")
     data object SyncProgress : Screen("sync_progress/{rangeDays}") {
@@ -58,7 +56,6 @@ sealed class Screen(val route: String) {
     data object Trends : Screen("trends")
     data object DataSources : Screen("data_sources")
     data object Settings : Screen("settings")
-    data object ThemePreview : Screen("theme_preview")
     data object PrivacyPolicy : Screen("privacy_policy")
     data object Nutrition : Screen("nutrition")
     data object MealPlan : Screen("meal_plan")
@@ -67,6 +64,7 @@ sealed class Screen(val route: String) {
     data object PostureScanDetail : Screen("posture_scan_detail/{scanId}") {
         fun createRoute(scanId: Long) = "posture_scan_detail/$scanId"
     }
+    data object HomeScreenWidgets : Screen("home_screen_widgets")
 }
 
 @Composable
@@ -74,10 +72,19 @@ fun HangryNavGraph(
     navController: NavHostController,
     appContainer: AppContainer,
     modifier: Modifier = Modifier,
-    startDestination: String = Screen.Dashboard.route
+    startDestination: String = Screen.Dashboard.route,
+    quickLogTrigger: Boolean = false,
+    onQuickLogTriggerHandled: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     val finalStart = startDestination
+
+    // HistoricalSyncSetup/SyncProgress are shared between first-run onboarding and a later
+    // "Historical Sync Range" re-trigger from Settings - the step indicator (Step 2/3 of 3)
+    // only makes sense in the former. Set true the moment Welcome's "Get Started" is tapped
+    // (the only entry point into this flow, whether fresh install or a Reset Application
+    // re-entry), false for good the moment onboarding actually completes.
+    var onboardingInProgress by remember { mutableStateOf(false) }
 
     val dashboardViewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.provideFactory(
@@ -92,7 +99,6 @@ fun HangryNavGraph(
             strainCalculator = appContainer.strainCalculator,
             calorieCalculator = appContainer.calorieCalculator,
             stressCalculator = appContainer.stressCalculator,
-            journalRepository = appContainer.journalRepository,
             dashboardWidgetRepository = appContainer.dashboardWidgetRepository
         )
     )
@@ -127,14 +133,10 @@ fun HangryNavGraph(
         composable(Screen.Welcome.route) {
             WelcomeScreen(
                 onGetStarted = {
-                    navController.navigate(Screen.HealthConnectExplanation.route)
-                }
-            )
-        }
-
-        composable(Screen.HealthConnectExplanation.route) {
-            HealthConnectExplanationScreen(
-                onContinue = {
+                    // Welcome only ever appears as onboarding's first step - a fresh install,
+                    // or "Reset Application" re-entering it mid-session - so this is always the
+                    // correct moment to (re)assert that the step indicator should show.
+                    onboardingInProgress = true
                     navController.navigate(Screen.PermissionSetup.route)
                 }
             )
@@ -157,7 +159,8 @@ fun HangryNavGraph(
                 },
                 onNavigateBack = {
                     navController.popBackStack()
-                }
+                },
+                showStepIndicator = onboardingInProgress
             )
         }
 
@@ -178,11 +181,13 @@ fun HangryNavGraph(
                     coroutineScope.launch {
                         val existing = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
                         appContainer.userProfileRepository.saveProfile(existing.copy(onboardingCompleted = true))
+                        onboardingInProgress = false
                         navController.navigate(Screen.Dashboard.route) {
                             popUpTo(0) { inclusive = true }
                         }
                     }
-                }
+                },
+                showStepIndicator = onboardingInProgress
             )
         }
 
@@ -214,7 +219,9 @@ fun HangryNavGraph(
                 },
                 onNavigateToPosture = {
                     navController.navigate(Screen.Posture.route)
-                }
+                },
+                autoOpenQuickLog = quickLogTrigger,
+                onAutoOpenQuickLogHandled = onQuickLogTriggerHandled
             )
         }
 
@@ -284,9 +291,9 @@ fun HangryNavGraph(
             SettingsScreen(
                 syncManager = appContainer.healthSyncManager,
                 exportManager = appContainer.localExportManager,
-                journalRepository = appContainer.journalRepository,
                 userProfileRepository = appContainer.userProfileRepository,
                 weightDao = appContainer.database.weightDao(),
+                heightDao = appContainer.database.heightDao(),
                 calorieCalculator = appContainer.calorieCalculator,
                 secureKeyStore = appContainer.secureKeyStore,
                 openRouterClient = appContainer.openRouterClient,
@@ -302,8 +309,8 @@ fun HangryNavGraph(
                 onNavigateToPrivacyPolicy = {
                     navController.navigate(Screen.PrivacyPolicy.route)
                 },
-                onNavigateToThemePreview = {
-                    navController.navigate(Screen.ThemePreview.route)
+                onNavigateToHomeScreenWidgets = {
+                    navController.navigate(Screen.HomeScreenWidgets.route)
                 },
                 onResetToWelcome = {
                     coroutineScope.launch {
@@ -313,6 +320,14 @@ fun HangryNavGraph(
                             popUpTo(0) { inclusive = true }
                         }
                     }
+                }
+            )
+        }
+
+        composable(Screen.HomeScreenWidgets.route) {
+            HomeScreenWidgetsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -363,15 +378,6 @@ fun HangryNavGraph(
                 scanId = scanId,
                 postureScanRepository = appContainer.postureScanRepository,
                 onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        // Theme Preview
-        composable(Screen.ThemePreview.route) {
-            ThemePreviewScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
             )
         }
 

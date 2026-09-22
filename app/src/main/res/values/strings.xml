@@ -89,4 +89,11 @@
     <string name="delete_all_data_confirmation">This will permanently delete all imported health records, recovery scores, and summaries from this device. This action cannot be undone.</string>
     <string name="delete_all_data_confirm_action">Delete everything</string>
     <string name="cancel">Cancel</string>
+
+    <!-- AppWidgets -->
+    <string name="widget_activity_description">Glance at your daily steps, active calories, and activity minutes.</string>
+    <string name="widget_quick_log_description">One-tap shortcut to snap and log meals instantly.</string>
+    <string name="widget_sleep_description">Track your latest sleep duration, quality score, and debt.</string>
+    <string name="widget_recovery_description">Check your daily autonomic recovery score and readiness band.</string>
+    <string name="widget_overview_description">Comprehensive daily overview with recovery, activity, sleep, and quick-log.</string>
 </resources>

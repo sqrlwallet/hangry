@@ -123,21 +123,6 @@ class DashboardViewModelTest {
             override suspend fun deleteAll() {}
         }
 
-        var savedJournalEntry: JournalEntryEntity? = null
-        val journalRepo = object : JournalRepository {
-            override fun getEntryForDate(date: LocalDate): Flow<JournalEntryEntity?> = flowOf(savedJournalEntry)
-            override fun getAllEntries(): Flow<List<JournalEntryEntity>> = flowOf(emptyList())
-            override suspend fun saveEntry(entry: JournalEntryEntity) {
-                savedJournalEntry = entry
-            }
-            override suspend fun deleteForDate(date: LocalDate) {
-                if (savedJournalEntry?.date == date) savedJournalEntry = null
-            }
-            override suspend fun deleteAll() {
-                savedJournalEntry = null
-            }
-        }
-
         val widgetFlow = MutableStateFlow(DashboardWidget.createDefaultWidgets())
         val widgetRepo = object : DashboardWidgetRepository {
             override fun getWidgets(): Flow<List<DashboardWidget>> = widgetFlow
@@ -171,7 +156,6 @@ class DashboardViewModelTest {
             strainCalculator = HangryStrainCalculator(trainingLoadCalculator),
             calorieCalculator = HangryCalorieCalculator(),
             stressCalculator = HangryStressCalculator(),
-            journalRepository = journalRepo,
             dashboardWidgetRepository = widgetRepo
         )
 

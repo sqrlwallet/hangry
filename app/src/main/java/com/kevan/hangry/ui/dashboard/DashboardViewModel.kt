@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.kevan.hangry.data.local.dao.WeightDao
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
-import com.kevan.hangry.data.local.entity.JournalEntryEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
@@ -40,7 +39,6 @@ class DashboardViewModel(
     private val strainCalculator: StrainCalculator,
     private val calorieCalculator: CalorieCalculator,
     private val stressCalculator: StressCalculator,
-    private val journalRepository: JournalRepository,
     private val dashboardWidgetRepository: DashboardWidgetRepository
 ) : ViewModel() {
 
@@ -70,7 +68,6 @@ class DashboardViewModel(
     private data class SecondarySources(
         val profile: UserProfileEntity?,
         val latestWeight: WeightMeasurementEntity?,
-        val journalEntry: JournalEntryEntity?,
         val widgets: List<DashboardWidget>
     )
 
@@ -92,15 +89,14 @@ class DashboardViewModel(
             val secondaryFlow = combine(
                 userProfileRepository.getProfile(),
                 weightDao.getLatestWeight(),
-                journalRepository.getEntryForDate(selectedDate),
                 dashboardWidgetRepository.getWidgets()
-            ) { profile, latestWeight, journalEntry, widgets ->
-                SecondarySources(profile, latestWeight, journalEntry, widgets)
+            ) { profile, latestWeight, widgets ->
+                SecondarySources(profile, latestWeight, widgets)
             }
 
             combine(coreFlow, secondaryFlow) { core, secondary ->
                 val (summary, score, sleepSessions, allWorkouts, recentSummaries) = core
-                val (profile, latestWeight, journalEntry, widgets) = secondary
+                val (profile, latestWeight, widgets) = secondary
 
                 // Sorted newest-first: the most recent session is "current", the rest is real
                 // baseline history (fixes the previous bug of always passing an empty history).
@@ -354,7 +350,6 @@ class DashboardViewModel(
             strainCalculator: StrainCalculator,
             calorieCalculator: CalorieCalculator,
             stressCalculator: StressCalculator,
-            journalRepository: JournalRepository,
             dashboardWidgetRepository: DashboardWidgetRepository
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -371,7 +366,6 @@ class DashboardViewModel(
                     strainCalculator = strainCalculator,
                     calorieCalculator = calorieCalculator,
                     stressCalculator = stressCalculator,
-                    journalRepository = journalRepository,
                     dashboardWidgetRepository = dashboardWidgetRepository
                 ) as T
             }

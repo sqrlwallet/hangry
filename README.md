@@ -12,6 +12,16 @@ Hangry contains **no backend servers, no cloud databases, no user accounts, no a
 
 ---
 
+## 📲 Download & Install
+
+Download and install the APK directly on your Android phone (Android 9.0+ / API 28+):
+
+[![Download APK](https://img.shields.io/badge/Download-Hangry%20v1.0.0%20APK-brightgreen?style=for-the-badge&logo=android)](https://github.com/sqrlwallet/hangry/releases/latest)
+
+1. Download [**`hangry-v1.0.0.apk`**](https://github.com/sqrlwallet/hangry/releases/latest) from the Releases page.
+2. Tap the file in your downloads folder on your device to install (allow "Install from Unknown Sources" if prompted).
+3. Open **Hangry**, grant Health Connect permissions, and enjoy 100% private, zero-fake wellness tracking!
+
 ## 📚 Complete Project Documentation
 
 | Document | Description |

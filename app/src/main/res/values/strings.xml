@@ -1,0 +1,92 @@
+<resources>
+    <string name="app_name">Hangry</string>
+    <string name="welcome_headline">Welcome to Hangry</string>
+    <string name="product_promise">Understand your body, manage energy, and make better daily decisions without the noise.</string>
+
+    <!-- Navigation & Titles -->
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_theme_preview">Theme Preview</string>
+    <string name="title_recovery_details">Recovery Details</string>
+    <string name="title_sleep">Sleep Insights</string>
+    <string name="title_training">Training &amp; Strain</string>
+    <string name="title_nutrition">Nutrition</string>
+    <string name="title_meal_plan">Meal Plan</string>
+    <string name="title_posture">Posture</string>
+    <string name="title_heart_metrics">Heart &amp; HRV</string>
+
+    <!-- Recovery States & Hero -->
+    <string name="recovery_score_label">Recovery</string>
+    <string name="recovery_status_primed">Primed</string>
+    <string name="recovery_status_balanced">Balanced</string>
+    <string name="recovery_status_rebuild">Rebuild</string>
+    <string name="recovery_status_building_baseline">Your baseline is still building</string>
+    <string name="recovery_advice_primed">Your physiological markers are elevated above baseline. You are primed for high effort today.</string>
+    <string name="recovery_advice_balanced">Steady energy today. Well-suited for consistent training and daily activity.</string>
+    <string name="recovery_advice_rebuild">Take it easier today. Focus on restorative rest, good nutrition, and recovery.</string>
+    <string name="recovery_advice_building_baseline">We need a few more days of consistent data to establish your personal physiological baseline.</string>
+
+    <!-- Confidence Levels -->
+    <string name="confidence_high">High confidence</string>
+    <string name="confidence_medium">Medium confidence</string>
+    <string name="confidence_low">Calibrating</string>
+
+    <!-- Sleep Strings -->
+    <string name="sleep_summary_title">Sleep</string>
+    <string name="sleep_target_label">Target: %1$d hours</string>
+    <string name="sleep_shorter_than_usual">Your sleep was shorter than your usual pattern.</string>
+    <string name="sleep_aligned_with_pattern">Your sleep aligned well with your typical baseline.</string>
+    <string name="sleep_longer_than_usual">Solid sleep duration supported your recovery today.</string>
+    <string name="sleep_debt_label">Sleep debt: %1$d min</string>
+    <string name="sleep_consistency_label">Consistency: %1$d%%</string>
+
+    <!-- Training Load Strings -->
+    <string name="training_load_title">Training Load</string>
+    <string name="training_load_label">Daily Load</string>
+    <string name="training_load_workouts_count">%1$d workouts</string>
+    <string name="training_load_rest_day">Rest day — restorative recovery</string>
+    <string name="training_load_estimate_note">Calculated estimate based on duration, exercise type, and heart rate.</string>
+
+    <!-- Heart & HRV Strings -->
+    <string name="heart_metrics_title">Heart &amp; HRV</string>
+    <string name="resting_hr_label">Resting HR</string>
+    <string name="hrv_rmssd_label">HRV RMSSD</string>
+    <string name="bpm_unit">%1$d bpm</string>
+    <string name="ms_unit">%1$d ms</string>
+    <string name="rhr_elevated_note">Resting heart rate was slightly elevated compared to your baseline.</string>
+    <string name="rhr_optimal_note">Resting heart rate remained steady near your baseline.</string>
+    <string name="hrv_elevated_note">HRV is trending above your personal baseline.</string>
+    <string name="hrv_lower_note">HRV is trending below your rolling baseline.</string>
+
+    <!-- Steps & Activity -->
+    <string name="activity_title">Steps &amp; Movement</string>
+    <string name="steps_count_format">%,d steps</string>
+    <string name="distance_km_format">%.1f km</string>
+
+    <!-- Sync & Data States -->
+    <string name="sync_now">Sync now</string>
+    <string name="sync_in_progress">Syncing health data…</string>
+    <string name="sync_success">Last synced: %1$s</string>
+    <string name="sync_issue">We could not sync this data yet — we will try again soon.</string>
+    <string name="sync_historical_prompt">Importing your historical health records…</string>
+    <string name="offline_mode_active">Offline mode — viewing saved local data</string>
+    <string name="data_source_label">Source: %1$s</string>
+    <string name="insufficient_data">Insufficient data</string>
+    <string name="not_available">Not available</string>
+
+    <!-- Permissions -->
+    <string name="permission_education_title">Connect Health Data</string>
+    <string name="permission_education_body">Reads sleep, activity, heart rate, and HRV from Health Connect to build your recovery baseline - entirely on your device.</string>
+    <string name="permission_denied_banner">Some health permissions are paused. Your recovery calculations will use available data.</string>
+
+    <!-- Privacy & Wellness Disclosures -->
+    <string name="privacy_title">Local-First Privacy Guarantee</string>
+    <string name="privacy_body">Hangry is 100% local-first. We do not operate backend servers, cloud databases, user tracking, advertising SDKs, or remote analytics. Your health information never leaves your phone.</string>
+    <string name="wellness_disclaimer_title">Wellness &amp; Fitness Notice</string>
+    <string name="wellness_disclaimer_body">Hangry is a personal wellness insights application, not a medical device. It does not provide medical diagnoses, treatment advice, or clinically validated scores. Consult a medical professional for health concerns.</string>
+
+    <!-- Data Management -->
+    <string name="delete_all_data_title">Delete All Health Data</string>
+    <string name="delete_all_data_confirmation">This will permanently delete all imported health records, recovery scores, and summaries from this device. This action cannot be undone.</string>
+    <string name="delete_all_data_confirm_action">Delete everything</string>
+    <string name="cancel">Cancel</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Temp capture target for the system camera app before a food/posture photo is either
+         discarded or moved into permanent private storage. -->
+    <cache-path name="captured_images" path="captured_images/" />
+</paths>

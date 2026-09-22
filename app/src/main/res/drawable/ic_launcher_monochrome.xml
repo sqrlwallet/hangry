@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed/monochrome icon layer (Android 13+). The OS tints every opaque pixel to a single
+  color regardless of the fill value here, so the pulse cutout from the color foreground
+  can't survive as a same-color stroke trick - this is intentionally the flame silhouette
+  alone, matching standard practice for monochrome adaptive icon layers.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,24.8
+            C69.4,40.2 75.5,54 75.5,64.8
+            C75.5,77.1 66.3,84.8 54,84.8
+            C41.7,84.8 32.5,77.1 32.5,64.8
+            C32.5,52.5 40.2,43.2 47.8,34
+            C46.3,41.7 47.8,47.8 52.5,47.8
+            C57.1,47.8 57.1,38.6 54,24.8
+            Z" />
+</vector>

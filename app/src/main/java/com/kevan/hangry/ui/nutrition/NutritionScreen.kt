@@ -1,0 +1,402 @@
+package com.kevan.hangry.ui.nutrition
+
+import android.net.Uri
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.kevan.hangry.R
+import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoIconButton
+import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryPendingNotice
+import com.kevan.hangry.ui.dashboard.DashboardViewModel
+import com.kevan.hangry.ui.theme.HangryTokens
+import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.util.rememberPhotoCaptureLauncher
+import java.io.File
+
+private val NUTRITION_INFO_SECTIONS = listOf(
+    HangryInfoSection(
+        "How it works",
+        "Take or choose a food photo, or describe a meal in text - the AI estimates calories and macros and logs it immediately. Got it wrong? Tap the entry to fix it."
+    ),
+    HangryInfoSection(
+        "Meal Plan",
+        "Save your usual meals once, then log them instantly without calling the AI each time."
+    ),
+    HangryInfoSection(
+        "Health Connect",
+        "Entries are written to Health Connect as nutrition records alongside the local daily log."
+    )
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NutritionScreen(
+    viewModel: NutritionViewModel,
+    dashboardViewModel: DashboardViewModel,
+    onNavigateBack: () -> Unit,
+    onNavigateToMealPlan: () -> Unit,
+    onNavigateToAiSettings: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tokens = LocalHangryTokens.current
+    val uiState by viewModel.uiState.collectAsState()
+    val dashboardState by dashboardViewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    var showDescribeDialog by remember { mutableStateOf(false) }
+
+    val photoLauncher = rememberPhotoCaptureLauncher { uri: Uri ->
+        viewModel.analyzePhoto(uri, note = null)
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearError()
+        }
+    }
+
+    // Auto-save confirmation: brief, dismissible, with a one-tap correction path instead of a
+    // blocking review dialog on every single entry.
+    LaunchedEffect(uiState.lastSavedEntry) {
+        val saved = uiState.lastSavedEntry ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = "Logged: ${saved.foodName} · ${saved.calories} kcal",
+            actionLabel = "Edit",
+            duration = SnackbarDuration.Short
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            viewModel.startEdit(saved)
+        } else {
+            viewModel.clearLastSaved()
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.title_nutrition)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    HangryInfoIconButton(title = "About Nutrition", sections = NUTRITION_INFO_SECTIONS)
+                    IconButton(onClick = onNavigateToMealPlan) {
+                        Icon(imageVector = Icons.Default.RestaurantMenu, contentDescription = "Meal Plan")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        if (!uiState.aiFeaturesEnabled) {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(HangryTokens.Spacing.m),
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            ) {
+                HangryPendingNotice(message = "Enable AI Features in Settings to log food by photo or description.")
+                HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {
+                    Text("Go to AI Settings", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                }
+            }
+            return@Scaffold
+        }
+
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+        ) {
+            item {
+                HangryCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Calories Today", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
+                        val target = dashboardState.calorieGoal?.dailyCalorieTarget
+                        if (target != null) {
+                            Text(text = "Goal: $target kcal", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                    Text(
+                        text = "${uiState.totalCaloriesToday} kcal",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = tokens.chartColors.trainingLoad
+                    )
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
+                ) {
+                    LogActionButton(
+                        icon = Icons.Default.CameraAlt,
+                        label = "Take Photo",
+                        enabled = !uiState.isAnalyzing,
+                        onClick = { photoLauncher.takePhoto() },
+                        modifier = Modifier.weight(1f)
+                    )
+                    LogActionButton(
+                        icon = Icons.Default.Image,
+                        label = "Choose Photo",
+                        enabled = !uiState.isAnalyzing,
+                        onClick = { photoLauncher.pickFromGallery() },
+                        modifier = Modifier.weight(1f)
+                    )
+                    LogActionButton(
+                        icon = Icons.Default.Edit,
+                        label = "Describe",
+                        enabled = !uiState.isAnalyzing,
+                        onClick = { showDescribeDialog = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            if (uiState.isAnalyzing) {
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
+                        Text("Analyzing and logging…", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                    }
+                }
+            }
+
+            if (uiState.mealPlans.isNotEmpty()) {
+                item {
+                    Text(text = "Meal Plan", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
+                    ) {
+                        uiState.mealPlans.take(4).forEach { plan ->
+                            AssistChip(
+                                onClick = { viewModel.logFromMealPlan(plan) },
+                                label = { Text(plan.name) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(text = "Today's Log", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            }
+
+            if (uiState.todayEntries.isEmpty()) {
+                item {
+                    HangryCard {
+                        Text(
+                            text = "No food logged yet today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tokens.textSecondary
+                        )
+                    }
+                }
+            } else {
+                items(uiState.todayEntries, key = { it.id }) { entry ->
+                    FoodLogRow(
+                        entry = entry,
+                        onClick = { viewModel.startEdit(entry) },
+                        onDelete = { viewModel.deleteEntry(entry) }
+                    )
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(HangryTokens.Spacing.m)) }
+        }
+    }
+
+    if (showDescribeDialog) {
+        DescribeFoodDialog(
+            onDismiss = { showDescribeDialog = false },
+            onAnalyze = { text ->
+                showDescribeDialog = false
+                viewModel.analyzeDescription(text)
+            }
+        )
+    }
+
+    uiState.editingEntry?.let { entry ->
+        EditFoodEntryDialog(
+            entry = entry,
+            onDismiss = viewModel::cancelEdit,
+            onSave = viewModel::saveEdit,
+            onDelete = {
+                viewModel.deleteEntry(entry)
+                viewModel.cancelEdit()
+            }
+        )
+    }
+}
+
+@Composable
+private fun LogActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tokens = LocalHangryTokens.current
+    HangryCard(
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Icon(imageVector = icon, contentDescription = null, tint = if (enabled) tokens.chartColors.trainingLoad else tokens.textMuted)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = label, style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
+        }
+    }
+}
+
+@Composable
+private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -> Unit) {
+    val tokens = LocalHangryTokens.current
+    HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (entry.photoPath != null && File(entry.photoPath).exists()) {
+                AsyncImage(
+                    model = entry.photoPath,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = entry.foodName, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(
+                    text = "${entry.calories} kcal · P${entry.proteinG.toInt()} C${entry.carbsG.toInt()} F${entry.fatG.toInt()}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tokens.textMuted
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Delete", tint = tokens.textMuted)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DescribeFoodDialog(onDismiss: () -> Unit, onAnalyze: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Describe Your Meal") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                placeholder = { Text("e.g. Grilled chicken sandwich with fries") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(enabled = text.isNotBlank(), onClick = { onAnalyze(text) }) { Text("Log It") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+/** Correction dialog for an already-saved entry - reached via the auto-save snackbar's Edit action or tapping a log row. */
+@Composable
+private fun EditFoodEntryDialog(
+    entry: FoodLogEntity,
+    onDismiss: () -> Unit,
+    onSave: (FoodLogEntity) -> Unit,
+    onDelete: () -> Unit
+) {
+    var foodName by remember { mutableStateOf(entry.foodName) }
+    var calories by remember { mutableStateOf(entry.calories.toString()) }
+    var protein by remember { mutableStateOf(entry.proteinG.toInt().toString()) }
+    var carbs by remember { mutableStateOf(entry.carbsG.toInt().toString()) }
+    var fat by remember { mutableStateOf(entry.fatG.toInt().toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Entry") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (entry.photoPath != null && File(entry.photoPath).exists()) {
+                    AsyncImage(
+                        model = entry.photoPath,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                }
+                OutlinedTextField(value = foodName, onValueChange = { foodName = it }, label = { Text("Food") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories") }, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("Protein g") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Carbs g") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("Fat g") }, modifier = Modifier.weight(1f))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(
+                        entry.copy(
+                            foodName = foodName,
+                            calories = calories.toIntOrNull() ?: entry.calories,
+                            proteinG = protein.toDoubleOrNull() ?: entry.proteinG,
+                            carbsG = carbs.toDoubleOrNull() ?: entry.carbsG,
+                            fatG = fat.toDoubleOrNull() ?: entry.fatG
+                        )
+                    )
+                }
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onDelete) { Text("Delete") }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        }
+    )
+}

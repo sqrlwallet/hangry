@@ -1,0 +1,85 @@
+package com.kevan.hangry
+
+import com.kevan.hangry.domain.model.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.junit.Assert.*
+import org.junit.Test
+
+class DashboardWidgetSerializationTest {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    @Test
+    fun testDefaultWidgets_containExpectedDefaults() {
+        val defaults = DashboardWidget.createDefaultWidgets()
+        assertTrue(defaults.any { it.type == WidgetType.RECOVERY_HERO })
+        assertTrue(defaults.any { it.type == WidgetType.DAILY_ACTIVITY_RINGS })
+        assertTrue(defaults.any { it.type == WidgetType.STRESS_MONITOR })
+        assertTrue(defaults.any { it.type == WidgetType.SLEEP_STRAIN_RINGS })
+    }
+
+    @Test
+    fun testSerializationAndDeserialization_customWidget() {
+        val original = DashboardWidget(
+            id = "custom_steps_1",
+            type = WidgetType.CUSTOM_METRIC,
+            title = "My Daily Steps",
+            isVisible = true,
+            order = 3,
+            metricType = MetricType.STEPS,
+            targetGoal = 12000.0,
+            unit = "steps",
+            displayStyle = WidgetDisplayStyle.RING
+        )
+
+        val encoded = json.encodeToString(listOf(original))
+        val decoded = json.decodeFromString<List<DashboardWidget>>(encoded)
+
+        assertEquals(1, decoded.size)
+        val item = decoded[0]
+        assertEquals("custom_steps_1", item.id)
+        assertEquals(WidgetType.CUSTOM_METRIC, item.type)
+        assertEquals("My Daily Steps", item.title)
+        assertTrue(item.isVisible)
+        assertEquals(3, item.order)
+        assertEquals(MetricType.STEPS, item.metricType)
+        assertEquals(12000.0, item.targetGoal!!, 0.01)
+        assertEquals("steps", item.unit)
+        assertEquals(WidgetDisplayStyle.RING, item.displayStyle)
+    }
+
+    @Test
+    fun testMergeMissingDefaults_preservesCustomListAndAppendsNewWidgets() {
+        val existingSavedList = listOf(
+            DashboardWidget(
+                id = "recovery_hero",
+                type = WidgetType.RECOVERY_HERO,
+                title = "Hangry Recovery",
+                isVisible = true,
+                order = 0
+            ),
+            DashboardWidget(
+                id = "custom_steps_1",
+                type = WidgetType.CUSTOM_METRIC,
+                title = "Custom Steps",
+                isVisible = true,
+                order = 1
+            )
+        )
+
+        val defaultWidgets = DashboardWidget.createDefaultWidgets()
+        val existingIds = existingSavedList.map { it.id }.toSet()
+        val missingDefaults = defaultWidgets.filterNot { it.id in existingIds }
+
+        val merged = existingSavedList + missingDefaults.mapIndexed { idx, w ->
+            w.copy(order = existingSavedList.size + idx)
+        }
+
+        assertTrue(merged.any { it.id == "daily_activity_rings" })
+        assertTrue(merged.any { it.id == "stress_monitor" })
+        assertTrue(merged.any { it.id == "custom_steps_1" })
+        assertEquals(0, merged.first { it.id == "recovery_hero" }.order)
+        assertEquals(1, merged.first { it.id == "custom_steps_1" }.order)
+    }
+}

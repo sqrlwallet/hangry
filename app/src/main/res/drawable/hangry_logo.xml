@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- In-app logo mark: same minimal flame + pulse silhouette as the launcher icon foreground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF7043"
+        android:pathData="M54,24.8
+            C69.4,40.2 75.5,54 75.5,64.8
+            C75.5,77.1 66.3,84.8 54,84.8
+            C41.7,84.8 32.5,77.1 32.5,64.8
+            C32.5,52.5 40.2,43.2 47.8,34
+            C46.3,41.7 47.8,47.8 52.5,47.8
+            C57.1,47.8 57.1,38.6 54,24.8
+            Z" />
+    <path
+        android:strokeColor="#101014"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M38.6,64.8 L47.8,64.8 L50.9,57.1 L57.1,72.5 L60.2,64.8 L69.4,64.8" />
+</vector>

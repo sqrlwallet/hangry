@@ -143,6 +143,15 @@ class DashboardViewModelTest {
             }
         }
 
+        val bodyFatRepo = object : BodyFatRepository {
+            override fun getLatestScan(): kotlinx.coroutines.flow.Flow<BodyFatScanEntity?> = flowOf(null)
+            override suspend fun getLatestScanSync(): BodyFatScanEntity? = null
+            override fun getAllScans(): kotlinx.coroutines.flow.Flow<List<BodyFatScanEntity>> = flowOf(emptyList())
+            override fun getScansBetween(startDate: java.time.LocalDate, endDate: java.time.LocalDate): kotlinx.coroutines.flow.Flow<List<BodyFatScanEntity>> = flowOf(emptyList())
+            override suspend fun saveScan(scan: BodyFatScanEntity): Long = -1L
+            override suspend fun deleteScan(id: Long) {}
+        }
+
         val trainingLoadCalculator = HangryTrainingLoadCalculator()
         val viewModel = DashboardViewModel(
             dailySummaryRepository = dailySummaryRepo,
@@ -156,7 +165,8 @@ class DashboardViewModelTest {
             strainCalculator = HangryStrainCalculator(trainingLoadCalculator),
             calorieCalculator = HangryCalorieCalculator(),
             stressCalculator = HangryStressCalculator(),
-            dashboardWidgetRepository = widgetRepo
+            dashboardWidgetRepository = widgetRepo,
+            bodyFatRepository = bodyFatRepo
         )
 
         testScheduler.advanceUntilIdle()

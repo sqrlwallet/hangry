@@ -496,6 +496,15 @@ fun HangryNavGraph(
                 onOpenSupplements = { navController.navigate(Screen.Supplements.route) },
                 onOpenBreathing = { navController.navigate(Screen.Breathing.createRoute()) },
                 onOpenWidgets = { navController.navigate(Screen.HomeScreenWidgets.route) },
+                onCustomizeToday = {
+                    // Open Today with its customize sheet already up.
+                    dashboardViewModel.setCustomizeSheetVisible(true)
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onOpenSettings = { navController.navigate(Screen.Settings.route) }
             )
         }

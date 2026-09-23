@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -50,6 +51,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -103,6 +105,26 @@ sealed class BottomNavDestination(
     }
 }
 
+/** Height of the floating dock itself, plus its top and bottom margins. */
+private val DOCK_HEIGHT = 68.dp
+private val DOCK_MARGINS = 12.dp
+
+/**
+ * How much room the floating dock covers at the bottom of the screen right now: the dock plus
+ * the system navigation bar on tab screens, zero where the dock is hidden (other screens, or
+ * while the keyboard is up). Tab screens pad their scrolling content by this much so the last
+ * item can scroll clear of the dock, while everything else shows through behind it.
+ */
+val LocalDockInset = compositionLocalOf { 0.dp }
+
+@Composable
+fun rememberDockInset(currentRoute: String?): Dp {
+    val density = LocalDensity.current
+    val imeVisible = WindowInsets.ime.getBottom(density) > 0
+    val navBar = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
+    return if (currentRoute in BottomNavDestination.routeSet && !imeVisible) DOCK_HEIGHT + DOCK_MARGINS + navBar else 0.dp
+}
+
 /**
  * Luxury Floating Dock Bottom Navigation Bar.
  *
@@ -123,6 +145,7 @@ fun HangryBottomNavBar(
 
     AnimatedVisibility(
         visible = isVisible,
+        modifier = modifier,
         enter = slideInVertically(
             initialOffsetY = { it },
             animationSpec = spring(dampingRatio = 0.85f, stiffness = 380f)
@@ -133,7 +156,7 @@ fun HangryBottomNavBar(
         ) + fadeOut(tween(180))
     ) {
         Box(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(start = 18.dp, end = 18.dp, bottom = 10.dp, top = 2.dp),
@@ -155,7 +178,7 @@ fun HangryBottomNavBar(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(68.dp)
+                    .height(DOCK_HEIGHT)
             ) {
                 Row(
                     modifier = Modifier

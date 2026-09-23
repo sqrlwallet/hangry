@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.dashboard
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +33,7 @@ import com.kevan.hangry.ui.breathing.BreathingExercisesCard
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.ui.healthrecords.HealthRecordsCard
 import com.kevan.hangry.domain.model.SupplementsSnapshot
+import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.supplements.SupplementsDashboardCard
 import com.kevan.hangry.domain.calculation.HangryStrainCalculator
 import com.kevan.hangry.domain.model.DashboardWidget
@@ -77,6 +80,7 @@ fun DashboardScreen(
     val nutritionUiState = nutritionViewModel?.uiState?.collectAsState()?.value
     val tokens = LocalHangryTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val dockInset = LocalDockInset.current
 
     val isAnalyzingMeal = nutritionUiState?.isAnalyzing == true
 
@@ -120,51 +124,7 @@ fun DashboardScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
-                    .statusBarsPadding()
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { viewModel.setCustomizeSheetVisible(true) }) {
-                    Icon(
-                        imageVector = Icons.Default.DashboardCustomize,
-                        contentDescription = "Customize Dashboard",
-                        tint = tokens.textSecondary
-                    )
-                }
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = tokens.textSecondary
-                    )
-                }
-                IconButton(
-                    onClick = { viewModel.syncNow() },
-                    enabled = !uiState.isSyncing
-                ) {
-                    if (uiState.isSyncing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = tokens.scoreColors.primed
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.sync_now),
-                            tint = tokens.textSecondary
-                        )
-                    }
-                }
-            }
-        },
+        snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = dockInset)) },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
             val haptic = LocalHapticFeedback.current
@@ -187,6 +147,8 @@ fun DashboardScreen(
                     )
                 ),
                 modifier = Modifier
+                    // Sit just above the floating tab bar.
+                    .padding(bottom = dockInset)
                     .height(48.dp)
                     .background(
                         brush = Brush.horizontalGradient(
@@ -226,14 +188,33 @@ fun DashboardScreen(
             }
         },
         containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+    ) { _ ->
+        // Pull down to sync with Health Connect - replaces the old refresh button.
+        val pullState = rememberPullToRefreshState()
+        PullToRefreshBox(
+            isRefreshing = uiState.isSyncing,
+            onRefresh = { viewModel.syncNow() },
+            state = pullState,
+            modifier = modifier.fillMaxSize(),
+            indicator = {
+                DashPullIndicator(
+                    state = pullState,
+                    isRefreshing = uiState.isSyncing,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                )
+            }
+        ) {
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .padding(horizontal = HangryTokens.Spacing.m)
-                .padding(bottom = 12.dp),
+                .padding(top = HangryTokens.Spacing.s)
+                // Room for the Log Meal button and the floating tab bar below the last card.
+                .padding(bottom = dockInset + 72.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             // Date Navigator Bar: navigate between days, inspect past data, or pick a date
@@ -336,44 +317,6 @@ fun DashboardScreen(
                 }
             }
 
-            // Customize Dashboard Quick Button
-            Surface(
-                onClick = { viewModel.setCustomizeSheetVisible(true) },
-                shape = RoundedCornerShape(16.dp),
-                color = tokens.cardBackground,
-                border = BorderStroke(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            tokens.edgeHighlight,
-                            tokens.edgeHighlight.copy(alpha = tokens.edgeHighlight.alpha * 0.4f)
-                        )
-                    )
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DashboardCustomize,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = tokens.textSecondary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Customize Dashboard Widgets",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = tokens.textSecondary
-                    )
-                }
-            }
-
             // Sync status footer
             Row(
                 modifier = Modifier
@@ -395,8 +338,7 @@ fun DashboardScreen(
                 )
             }
 
-            // Bottom clearance
-            Spacer(modifier = Modifier.height(8.dp))
+        }
         }
     }
 

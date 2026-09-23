@@ -7,15 +7,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kevan.hangry.ui.navigation.BottomNavDestination
 import com.kevan.hangry.ui.navigation.HangryBottomNavBar
 import com.kevan.hangry.ui.navigation.HangryNavGraph
+import com.kevan.hangry.ui.navigation.LocalDockInset
+import com.kevan.hangry.ui.navigation.rememberDockInset
 import com.kevan.hangry.ui.navigation.Screen
 import com.kevan.hangry.ui.theme.HangryTheme
 
@@ -63,27 +65,25 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
-                Scaffold(
-                    // Every screen hosts its own Scaffold/TopAppBar (or, on Dashboard, a
-                    // statusBarsPadding()'d header) which already applies the status/nav bar
-                    // insets itself. Leaving the default here would apply them a second time,
-                    // producing a large dead gap above each screen's content.
-                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                    bottomBar = {
+                // The dock floats over the screens instead of sitting on its own strip, so
+                // content shows through behind it; tab screens pad by LocalDockInset so their
+                // last item can still scroll clear of it.
+                CompositionLocalProvider(LocalDockInset provides rememberDockInset(currentRoute)) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        HangryNavGraph(
+                            navController = navController,
+                            appContainer = appContainer,
+                            modifier = Modifier.fillMaxSize(),
+                            startDestination = startDestination,
+                            quickLogTrigger = quickLogTrigger,
+                            onQuickLogTriggerHandled = { quickLogTrigger = false }
+                        )
                         HangryBottomNavBar(
                             currentRoute = currentRoute,
-                            navController = navController
+                            navController = navController,
+                            modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
-                ) { innerPadding ->
-                    HangryNavGraph(
-                        navController = navController,
-                        appContainer = appContainer,
-                        modifier = Modifier.padding(innerPadding),
-                        startDestination = startDestination,
-                        quickLogTrigger = quickLogTrigger,
-                        onQuickLogTriggerHandled = { quickLogTrigger = false }
-                    )
                 }
             }
         }

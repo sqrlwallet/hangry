@@ -1,3 +1,12 @@
+## 🚀 What's New in Hangry v1.15.1
+
+### ✨ More Room on Today
+- **Pull down to sync**: the refresh, settings and customize icons are gone from the top of Today, and Dash spins while it syncs.
+- **Floating tab bar**: content now scrolls behind the tab bar instead of stopping above a blank strip.
+- **More tab** now also holds Customize Today and Settings & Privacy.
+
+---
+
 ## 🚀 What's New in Hangry v1.15.0
 
 ### 🏋️ Workouts, Properly Imported

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.DashboardCustomize
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.MonitorWeight
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.settings.SettingsActionRow
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -38,6 +40,7 @@ fun MoreScreen(
     onOpenSupplements: () -> Unit,
     onOpenBreathing: () -> Unit,
     onOpenWidgets: () -> Unit,
+    onCustomizeToday: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,6 +57,7 @@ fun MoreScreen(
             MoreItem(Icons.Default.Air, "Breathing", "Guided breathing with Dash", onOpenBreathing)
         ),
         "App" to listOf(
+            MoreItem(Icons.Default.DashboardCustomize, "Customize Today", "Choose and reorder the cards on Today", onCustomizeToday),
             MoreItem(Icons.Default.Widgets, "Home Screen Widgets", "Pin widgets to your home screen", onOpenWidgets),
             MoreItem(Icons.Default.Settings, "Settings & Privacy", "Goals, sync, AI and your data", onOpenSettings)
         )
@@ -72,7 +76,7 @@ fun MoreScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(top = innerPadding.calculateTopPadding())
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
@@ -91,7 +95,8 @@ fun MoreScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xl))
+            // Clear of the floating tab bar.
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.m + LocalDockInset.current))
         }
     }
 }

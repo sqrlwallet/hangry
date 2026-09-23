@@ -50,6 +50,7 @@ import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.CoachMessageEntity
 import com.kevan.hangry.domain.model.CoachAction
 import com.kevan.hangry.domain.model.CoachActionStatus
+import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
 import android.content.Intent
 import android.speech.RecognizerIntent
@@ -226,10 +227,15 @@ fun AiCoachScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
+        // The message box has to sit above the floating tab bar (hidden while typing).
+        val dockInset = LocalDockInset.current
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = maxOf(innerPadding.calculateBottomPadding(), dockInset)
+                )
         ) {
             // Check AI configuration
             if (!uiState.isAiConfigured) {

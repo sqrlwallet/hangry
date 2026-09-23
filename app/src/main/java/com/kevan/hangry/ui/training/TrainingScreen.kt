@@ -29,6 +29,7 @@ import com.kevan.hangry.ui.components.WorkoutFormat
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
+import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
@@ -102,8 +103,10 @@ fun TrainingScreen(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                .padding(top = innerPadding.calculateTopPadding())
+                .padding(horizontal = HangryTokens.Spacing.m),
+            // Clear of the floating tab bar, which the list scrolls behind.
+            contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = HangryTokens.Spacing.m + LocalDockInset.current),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             item {

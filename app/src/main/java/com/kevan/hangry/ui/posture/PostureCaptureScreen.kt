@@ -24,6 +24,7 @@ import com.kevan.hangry.data.local.entity.exercises
 import com.kevan.hangry.data.local.entity.findings
 import com.kevan.hangry.data.local.entity.photoPaths
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
@@ -94,11 +95,18 @@ fun PostureCaptureScreen(
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             HangryCard {
-                Text(
-                    text = "Take 1–$MAX_POSTURE_PHOTOS photos (side, front, or back) standing naturally. Athletic or casual clothing is fine. We'll analyze your alignment and save results automatically.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tokens.textPrimary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Add 1–$MAX_POSTURE_PHOTOS photos, standing naturally",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = tokens.textPrimary,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    HangryInfoTip(
+                        title = "Photo tips",
+                        body = "Take 1–$MAX_POSTURE_PHOTOS photos (side, front, or back) standing naturally. Athletic or casual clothing is fine. We'll analyze your alignment and save results automatically."
+                    )
+                }
             }
 
             Row(
@@ -211,7 +219,7 @@ private fun PostureResultContent(
                 Text(text = "Findings", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                 findings.forEach {
-                    Text("• $it", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                    Text("• $it", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                 }
             }
         }

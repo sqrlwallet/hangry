@@ -127,10 +127,7 @@ fun WelcomeScreen(
                 // Welcome Headline
                 Text(
                     text = stringResource(R.string.welcome_headline),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = 28.sp
-                    ),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = Color.White.copy(alpha = 0.95f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 8.dp)
@@ -139,9 +136,7 @@ fun WelcomeScreen(
                 // Value Promise
                 Text(
                     text = stringResource(R.string.product_promise),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        lineHeight = 22.sp
-                    ),
+                    style = MaterialTheme.typography.bodyLarge,
                     color = Color.White.copy(alpha = 0.70f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 16.dp)

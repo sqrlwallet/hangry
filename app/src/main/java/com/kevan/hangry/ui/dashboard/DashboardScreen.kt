@@ -766,11 +766,18 @@ private fun CalorieBurnCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Calories Burned",
-                style = MaterialTheme.typography.titleMedium,
-                color = tokens.textPrimary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Calories Burned",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = tokens.textPrimary
+                )
+                HangryInfoTip(
+                    title = "Calories Burned",
+                    body = (burn?.supportiveNote ?: "Set up your profile in Settings to estimate calorie burn.") +
+                        "\n\nBMR is your resting metabolism, NEAT is everyday movement, and Exercise is logged workouts."
+                )
+            }
             val goal = uiState.calorieGoal
             if (goal?.dailyCalorieTarget != null) {
                 Text(
@@ -802,11 +809,13 @@ private fun CalorieBurnCard(
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
         }
 
-        Text(
-            text = burn?.supportiveNote ?: "Set up your profile in Settings to estimate calorie burn.",
-            style = MaterialTheme.typography.bodySmall,
-            color = tokens.textSecondary
-        )
+        if (burn?.bmrCalories == null) {
+            Text(
+                text = "Add your profile in Settings to estimate.",
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textSecondary
+            )
+        }
     }
 }
 
@@ -840,23 +849,28 @@ private fun DailyCoachBriefingCard(
 
     val headline: String
     val recommendation: String
+    val recommendationDetail: String
 
     when {
         isPending -> {
             headline = "Awaiting Sleep Data"
-            recommendation = "Log or sync last night's sleep to calculate your recovery readiness, strain capacity, and personalized advice."
+            recommendation = "Log or sync last night's sleep to get today's advice."
+            recommendationDetail = "Log or sync last night's sleep to calculate your recovery readiness, strain capacity, and personalized advice."
         }
         quality >= 80 -> {
             headline = "Primed for Peak Output"
-            recommendation = "Sleep quality was high ($quality%). Autonomic nervous system is restored. You have capacity for high-strain training or demanding workouts today."
+            recommendation = "Sleep quality $quality%. Ready for high-strain training."
+            recommendationDetail = "Sleep quality was high ($quality%). Autonomic nervous system is restored. You have capacity for high-strain training or demanding workouts today."
         }
         quality in 50..79 -> {
             headline = "Balanced Daily Capacity"
-            recommendation = "Moderate sleep recovery ($quality%). A steady training session, zone 2 cardio, or maintenance routine will keep momentum without overload."
+            recommendation = "Sleep quality $quality%. Keep training steady, like zone 2."
+            recommendationDetail = "Moderate sleep recovery ($quality%). A steady training session, zone 2 cardio, or maintenance routine will keep momentum without overload."
         }
         else -> {
             headline = "Rebuild & Restore Focus"
-            recommendation = "Sleep recovery is in the rebuild zone ($quality%). Prioritize active recovery, hydration, mobility, and early wind-down tonight."
+            recommendation = "Sleep quality $quality%. Focus on active recovery today."
+            recommendationDetail = "Sleep recovery is in the rebuild zone ($quality%). Prioritize active recovery, hydration, mobility, and early wind-down tonight."
         }
     }
 
@@ -881,6 +895,7 @@ private fun DailyCoachBriefingCard(
                     style = MaterialTheme.typography.titleSmall,
                     color = tokens.textPrimary
                 )
+                HangryInfoTip(title = headline, body = recommendationDetail)
             }
             Surface(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
@@ -908,9 +923,8 @@ private fun DailyCoachBriefingCard(
 
         Text(
             text = recommendation,
-            style = MaterialTheme.typography.bodySmall,
-            color = tokens.textSecondary,
-            lineHeight = 18.sp
+            style = MaterialTheme.typography.bodyMedium,
+            color = tokens.textSecondary
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -1046,7 +1060,7 @@ private fun BodyFatCompositionWidget(
             )
         } else {
             Text(
-                text = "No scan yet — tap to run your first body fat assessment.",
+                text = "No scan yet.",
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )

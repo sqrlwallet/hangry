@@ -361,7 +361,7 @@ fun EditActivityGoalsDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Personalize your daily targets. Progress resets every day at midnight.",
+                    text = "Progress resets every day at midnight.",
                     style = MaterialTheme.typography.bodySmall,
                     color = LocalHangryTokens.current.textSecondary
                 )

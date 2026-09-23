@@ -45,14 +45,20 @@ fun LocalFirstBanner(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "100% Local-First",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = tokens.scoreColors.primed
+                    )
+                    HangryInfoTip(
+                        title = "100% Local-First Architecture",
+                        body = "Your health data never leaves your device. No cloud. No accounts. No telemetry."
+                    )
+                }
                 Text(
-                    text = "100% Local-First Architecture",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = tokens.scoreColors.primed
-                )
-                Text(
-                    text = "Your health data never leaves your device. No cloud. No accounts. No telemetry.",
+                    text = "Your data never leaves this device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textPrimary
                 )

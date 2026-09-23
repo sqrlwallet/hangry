@@ -8,6 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,16 +37,21 @@ data class HangryInfoSection(val heading: String, val body: String)
 fun HangryInfoIconButton(
     title: String,
     sections: List<HangryInfoSection>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val tokens = LocalHangryTokens.current
 
-    IconButton(onClick = { showDialog = true }, modifier = modifier) {
+    IconButton(
+        onClick = { showDialog = true },
+        modifier = if (compact) modifier.size(32.dp) else modifier
+    ) {
         Icon(
-            imageVector = Icons.Default.Info,
+            imageVector = if (compact) Icons.Outlined.Info else Icons.Default.Info,
             contentDescription = "About $title",
-            tint = tokens.textMuted
+            tint = tokens.textMuted,
+            modifier = if (compact) Modifier.size(18.dp) else Modifier
         )
     }
 
@@ -59,15 +66,17 @@ fun HangryInfoIconButton(
                 ) {
                     sections.forEach { section ->
                         Column {
-                            Text(
-                                text = section.heading,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = tokens.textPrimary
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            if (section.heading.isNotBlank()) {
+                                Text(
+                                    text = section.heading,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = tokens.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                            }
                             Text(
                                 text = section.body,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.textSecondary
                             )
                         }
@@ -81,4 +90,22 @@ fun HangryInfoIconButton(
             }
         )
     }
+}
+
+/**
+ * Compact (i) that sits inline after a label or card title and opens [body] in a dialog. The
+ * go-to way to keep explanations out of the main layout: show a short label, tuck the rest here.
+ */
+@Composable
+fun HangryInfoTip(
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier
+) {
+    HangryInfoIconButton(
+        title = title,
+        sections = listOf(HangryInfoSection(heading = "", body = body)),
+        modifier = modifier,
+        compact = true
+    )
 }

@@ -19,6 +19,7 @@ import com.kevan.hangry.domain.model.DashboardWidget
 import com.kevan.hangry.domain.model.MetricType
 import com.kevan.hangry.domain.model.WidgetDisplayStyle
 import com.kevan.hangry.domain.model.WidgetType
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.UUID
@@ -53,11 +54,17 @@ fun CustomizeDashboardSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Customize Home",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = tokens.textPrimary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Customize Home",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = tokens.textPrimary
+                    )
+                    HangryInfoTip(
+                        title = "Customize Home",
+                        body = "Show, hide, or reorder cards on your home screen. You can also create custom widgets with specific metrics."
+                    )
+                }
                 Row {
                     TextButton(onClick = onResetDefaults) {
                         Text("Reset Defaults", color = tokens.scoreColors.rebuild)
@@ -68,12 +75,7 @@ fun CustomizeDashboardSheet(
                 }
             }
 
-            Text(
-                text = "Show, hide, or reorder cards on your home screen. You can also create custom widgets with specific metrics.",
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary,
-                modifier = Modifier.padding(bottom = HangryTokens.Spacing.m)
-            )
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
             Button(
                 onClick = { showCreateDialog = true },

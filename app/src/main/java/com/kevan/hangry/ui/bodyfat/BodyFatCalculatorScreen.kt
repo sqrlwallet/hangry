@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.BodyFatCategory
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
@@ -101,19 +102,17 @@ fun BodyFatCalculatorScreen(
                         tint = tokens.chartColors.trainingLoad,
                         modifier = Modifier.size(32.dp)
                     )
-                    Column {
-                        Text(
-                            text = "Dual-Engine Body Composition",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = tokens.textPrimary
-                        )
-                        Text(
-                            text = "Combine U.S. Navy tape measurements with AI multimodal vision for accurate body fat and lean mass tracking.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary
-                        )
-                    }
+                    Text(
+                        text = "Dual-Engine Body Composition",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = tokens.textPrimary,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    HangryInfoTip(
+                        title = "Body Composition",
+                        body = "Combine U.S. Navy tape measurements with AI multimodal vision for accurate body fat and lean mass tracking."
+                    )
                 }
             }
 
@@ -163,17 +162,18 @@ fun BodyFatCalculatorScreen(
                 HorizontalDivider(color = tokens.cardBorder)
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = "Tape Circumferences (cm)",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = tokens.textSecondary
-                )
-                Text(
-                    text = "Measure at narrowest point for waist and neck; widest point for hips and chest.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Tape Circumferences (cm)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.textSecondary
+                    )
+                    HangryInfoTip(
+                        title = "How to measure",
+                        body = "Measure at narrowest point for waist and neck; widest point for hips and chest."
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -246,7 +246,13 @@ fun BodyFatCalculatorScreen(
             }
 
             // 2. Dedicated Calculation from Personal Biometric History
-            Text(text = "2. Personal Biometric History Estimate", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "2. Health History Estimate", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                HangryInfoTip(
+                    title = "Health History Estimate",
+                    body = "Calculated automatically from your recorded height, weight history, age, and sex using the clinical Deurenberg body composition model. No measuring tape or photos required."
+                )
+            }
             HangryCard {
                 val hist = uiState.historyResult
                 if (hist != null) {
@@ -295,13 +301,6 @@ fun BodyFatCalculatorScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Calculated automatically from your recorded height, weight history, age, and sex using the clinical Deurenberg body composition model. No measuring tape or photos required.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textMuted
-                    )
-
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = { viewModel.saveAssessment(useAiResult = false, useHistoryResult = true) },
@@ -310,7 +309,7 @@ fun BodyFatCalculatorScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save History Estimate to Profile")
+                        Text("Save History Estimate")
                     }
                 } else {
                     val missing = buildList {
@@ -320,7 +319,7 @@ fun BodyFatCalculatorScreen(
                         if (uiState.biologicalSex == null) add("Sex")
                     }
                     Text(
-                        text = "Enter ${missing.joinToString(", ")} above to estimate body fat percentage from your recorded biometrics.",
+                        text = "Enter ${missing.joinToString(", ")} above to estimate.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textSecondary
                     )
@@ -328,7 +327,13 @@ fun BodyFatCalculatorScreen(
             }
 
             // 3. U.S. Navy Standard Calculation
-            Text(text = "3. U.S. Navy Standard Calculation (Tape Circumferences)", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "3. U.S. Navy Tape Method", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                HangryInfoTip(
+                    title = "U.S. Navy Method",
+                    body = "U.S. Navy standard calculation from your tape circumferences (neck, waist, and hips for women) plus height."
+                )
+            }
             HangryCard {
                 val alg = uiState.algorithmicResult
                 if (alg != null) {
@@ -385,7 +390,7 @@ fun BodyFatCalculatorScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save Navy Estimate to Profile")
+                        Text("Save Navy Estimate")
                     }
                 } else {
                     val missing = buildList {
@@ -397,9 +402,9 @@ fun BodyFatCalculatorScreen(
                     }
                     Text(
                         text = if (missing.isNotEmpty()) {
-                            "Enter ${missing.joinToString(", ")} above to compute the U.S. Navy body fat standard."
+                            "Enter ${missing.joinToString(", ")} above to calculate."
                         } else {
-                            "Ensure waist measurement exceeds neck circumference to calculate."
+                            "Waist must exceed neck to calculate."
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textSecondary
@@ -408,11 +413,17 @@ fun BodyFatCalculatorScreen(
             }
 
             // 4. AI Multimodal Vision Analysis
-            Text(text = "4. AI Multimodal Vision Analysis", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "4. AI Photo Analysis", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                HangryInfoTip(
+                    title = "AI Photo Analysis",
+                    body = "Upload or capture 1 to 3 physique photos (front, side, or back). Wear fitted gym clothes, shorts, or swimwear for optimal visual evaluation."
+                )
+            }
             HangryCard {
                 Text(
-                    text = "Upload or capture 1 to 3 physique photos (front, side, or back). Wear fitted gym clothes, shorts, or swimwear for optimal visual evaluation.",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "Add 1–3 physique photos",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = tokens.textSecondary
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -503,7 +514,7 @@ fun BodyFatCalculatorScreen(
                                     color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = "Multimodal physique analysis requires opting into AI features and providing an API key.",
+                                    text = "Needed for AI photo analysis",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textSecondary
                                 )
@@ -524,11 +535,11 @@ fun BodyFatCalculatorScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Analyzing Physique & Cross-Referencing...")
+                            Text("Analyzing physique…")
                         } else {
                             Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Analyze with AI Vision (${uiState.photos.size}/3 Photos)")
+                            Text("Analyze with AI (${uiState.photos.size}/3 photos)")
                         }
                     }
                 }
@@ -608,7 +619,7 @@ fun BodyFatCalculatorScreen(
 
                             if (ai.healthInsights.isNotEmpty()) {
                                 Text(
-                                    text = "Recomposition & Health Insights",
+                                    text = "Health Insights",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.textPrimary
@@ -638,7 +649,7 @@ fun BodyFatCalculatorScreen(
                             ) {
                                 Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Save AI Composition Scan to Profile")
+                                Text("Save AI Scan")
                             }
                         }
                     }

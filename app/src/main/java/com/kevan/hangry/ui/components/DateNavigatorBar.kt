@@ -23,7 +23,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.Instant
@@ -116,8 +115,7 @@ fun DateNavigatorBar(
                     Text(
                         text = formattedDateText,
                         style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = if (!isToday) FontWeight.SemiBold else FontWeight.Medium,
-                            fontSize = 13.5.sp
+                            fontWeight = if (!isToday) FontWeight.SemiBold else FontWeight.Medium
                         ),
                         color = if (!isToday) MaterialTheme.colorScheme.primary else tokens.textPrimary
                     )
@@ -201,16 +199,13 @@ fun DateNavigatorBar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Viewing past records for ${selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"))}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        text = "Viewing ${selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))}",
+                        style = MaterialTheme.typography.labelMedium,
                         color = tokens.scoreColors.balanced
                     )
                     Text(
                         text = "Reset",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        ),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = tokens.scoreColors.balanced,
                         modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

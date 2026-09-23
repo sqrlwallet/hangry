@@ -24,7 +24,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
@@ -133,7 +132,7 @@ fun HangryInteractiveTrendChart(
                                 }
                                 Text(
                                     text = deltaText,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = if (deltaFromAvg >= 0) tokens.scoreColors.primed else tokens.scoreColors.rebuild
                                 )
                             }
@@ -147,10 +146,7 @@ fun HangryInteractiveTrendChart(
                             ) {
                                 Text(
                                     text = "Tap to inspect day",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = color,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
@@ -186,7 +182,7 @@ fun HangryInteractiveTrendChart(
                     }
                     Text(
                         text = "Touch to scrub",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted.copy(alpha = 0.6f)
                     )
                 }
@@ -382,19 +378,19 @@ fun HangryInteractiveTrendChart(
 
             Text(
                 text = startDate?.format(DateTimeFormatter.ofPattern("MMM d")) ?: "",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
             if (points.size >= 7 && midDate != null) {
                 Text(
                     text = midDate.format(DateTimeFormatter.ofPattern("MMM d")),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
             }
             Text(
                 text = endDate?.format(DateTimeFormatter.ofPattern("MMM d")) ?: "",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
         }

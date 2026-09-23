@@ -119,7 +119,7 @@ fun SyncProgressScreen(
                             color = androidx.compose.ui.graphics.Color.White
                         )
                         Text(
-                            text = "Your historical baselines and summaries have been computed.",
+                            text = "Your baselines are ready.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f),
                             textAlign = TextAlign.Center

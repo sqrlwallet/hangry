@@ -18,7 +18,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
@@ -26,6 +25,7 @@ import com.kevan.hangry.ui.components.DateNavigatorBar
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -175,13 +175,19 @@ fun NutritionScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "AI Auto-Estimation is Off",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = tokens.textPrimary
+                                    )
+                                    HangryInfoTip(
+                                        title = "AI Auto-Estimation",
+                                        body = "You can log meals quickly below. Tap here to configure AI in Settings for auto-detection from photos."
+                                    )
+                                }
                                 Text(
-                                    text = "AI Auto-Estimation is Off",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = tokens.textPrimary
-                                )
-                                Text(
-                                    text = "You can log meals quickly below. Tap here to configure AI in Settings for auto-detection from photos.",
+                                    text = "Tap to set up in Settings",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textMuted
                                 )
@@ -345,12 +351,21 @@ fun NutritionScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Fueling & Recovery Strategy",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = tokens.textPrimary
-                            )
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Nothing logged yet",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = tokens.textPrimary
+                                )
+                                HangryInfoTip(
+                                    title = "Fueling & Recovery",
+                                    body = "Tracking your daily meals provides the energy and macronutrient data needed to calibrate training volume with metabolic recovery. Prioritize lean protein and hydration to optimize your recovery baseline."
+                                )
+                            }
                             Surface(
                                 color = tokens.chartColors.activeCalories.copy(alpha = 0.14f),
                                 shape = RoundedCornerShape(12.dp)
@@ -363,15 +378,6 @@ fun NutritionScreen(
                                 )
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "Tracking your daily meals provides the energy and macronutrient data needed to calibrate training volume with metabolic recovery. Prioritize lean protein and hydration to optimize your recovery baseline.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary,
-                            lineHeight = 18.sp
-                        )
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -563,7 +569,7 @@ private fun DescribeFoodDialog(onDismiss: () -> Unit, onAnalyze: (String) -> Uni
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                placeholder = { Text("e.g. Grilled chicken sandwich with fries") },
+                placeholder = { Text("e.g. Chicken sandwich & fries") },
                 modifier = Modifier.fillMaxWidth()
             )
         },

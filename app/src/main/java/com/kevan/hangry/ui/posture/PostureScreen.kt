@@ -32,17 +32,23 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.PostureScanEntity
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.components.HangryRingGauge
 import com.kevan.hangry.ui.theme.CtaGradient
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+
+private val ALIGNMENT_ZONE_SECTIONS = listOf(
+    HangryInfoSection("Cervical Spine & Head", "Forward head angle & suboccipital compression"),
+    HangryInfoSection("Thoracic & Scapulae", "Rounded shoulder posture & upper-crossed pattern"),
+    HangryInfoSection("Lumbopelvic Rhythm", "Anterior/posterior pelvic tilt & spinal neutrality")
+)
 
 private val POSTURE_INFO_SECTIONS = listOf(
     HangryInfoSection(
@@ -137,12 +143,18 @@ fun PostureScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Biomechanical Score",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = tokens.textPrimary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Biomechanical Score",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = tokens.textPrimary
+                            )
+                            HangryInfoTip(
+                                title = "Biomechanical Score",
+                                body = "Take 1-5 photos to analyze head, shoulder, and pelvic alignment. Front and lateral kinetic chain verified via computer vision."
+                            )
+                        }
                         Surface(
                             color = scoreColor.copy(alpha = 0.14f),
                             shape = RoundedCornerShape(12.dp)
@@ -200,13 +212,6 @@ fun PostureScreen(
                                     fontWeight = FontWeight.Medium,
                                     color = tokens.textPrimary
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Front and lateral kinetic chain verified via computer vision.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.textSecondary,
-                                    lineHeight = 16.sp
-                                )
                             } else {
                                 Text(
                                     text = "No Scans Logged",
@@ -216,10 +221,9 @@ fun PostureScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Take 1-5 photos to analyze head, shoulder, and pelvic alignment.",
+                                    text = "Take 1–5 photos to get a score.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.textSecondary,
-                                    lineHeight = 16.sp
+                                    color = tokens.textSecondary
                                 )
                             }
                         }
@@ -265,10 +269,8 @@ fun PostureScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (latest != null) "New Posture Check" else "Start First Posture Scan",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.2.sp
-                                ),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
                                 color = Color.White
                             )
                         }
@@ -287,12 +289,19 @@ fun PostureScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Kinetic Alignment Focus",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = tokens.textPrimary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Kinetic Alignment Focus",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = tokens.textPrimary
+                            )
+                            HangryInfoIconButton(
+                                title = "Alignment Zones",
+                                sections = ALIGNMENT_ZONE_SECTIONS,
+                                compact = true
+                            )
+                        }
                         Icon(
                             imageVector = Icons.Default.AccessibilityNew,
                             contentDescription = null,
@@ -305,21 +314,18 @@ fun PostureScreen(
 
                     AlignmentZoneRow(
                         title = "Cervical Spine & Head",
-                        subtitle = "Forward head angle & suboccipital compression",
                         status = "Craniovertebral Axis",
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     AlignmentZoneRow(
                         title = "Thoracic & Scapulae",
-                        subtitle = "Rounded shoulder posture & upper-crossed pattern",
                         status = "Acromial Balance",
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     AlignmentZoneRow(
                         title = "Lumbopelvic Rhythm",
-                        subtitle = "Anterior/posterior pelvic tilt & spinal neutrality",
                         status = "Pelvic Neutral",
                         color = tokens.chartColors.sleep
                     )
@@ -346,10 +352,14 @@ fun PostureScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "3-Min Daily Posture Reset",
+                                text = "3-Min Posture Reset",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = tokens.textPrimary
+                            )
+                            HangryInfoTip(
+                                title = "Posture Reset",
+                                body = "Quick restorative drills to counteract desk slouching and decompress the spine."
                             )
                         }
                         Surface(
@@ -365,14 +375,6 @@ fun PostureScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-
-                    Text(
-                        text = "Quick restorative drills to counteract desk slouching and decompress the spine:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
-                    )
 
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
 
@@ -425,7 +427,7 @@ fun PostureScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Ask AI Coach for personalized mobility drills",
+                                        text = "Ask AI Coach for personal drills",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = tokens.textPrimary,
                                         fontWeight = FontWeight.Medium
@@ -479,18 +481,18 @@ fun PostureScreen(
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "No Scans Recorded Yet",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = tokens.textPrimary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Your before-and-after posture timeline will be tracked here privately on your device.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.textSecondary
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "No Scans Recorded Yet",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = tokens.textPrimary
+                                    )
+                                    HangryInfoTip(
+                                        title = "Scan History",
+                                        body = "Your before-and-after posture timeline will be tracked here privately on your device."
+                                    )
+                                }
                             }
                         }
                     }
@@ -511,7 +513,6 @@ fun PostureScreen(
 @Composable
 private fun AlignmentZoneRow(
     title: String,
-    subtitle: String,
     status: String,
     color: Color
 ) {
@@ -528,19 +529,13 @@ private fun AlignmentZoneRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = tokens.textPrimary
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = tokens.textPrimary,
+                modifier = Modifier.weight(1f)
+            )
             Surface(
                 color = color.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(8.dp)

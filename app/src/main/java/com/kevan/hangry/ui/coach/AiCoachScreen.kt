@@ -44,10 +44,10 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.CoachMessageEntity
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
@@ -55,11 +55,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val QUICK_STARTERS = listOf(
-    "⚡ What is my training readiness today?",
-    "🥗 Analyze my calorie and protein balance",
-    "💤 How did my sleep affect my recovery?",
-    "🧘 What stretches match my posture scan?",
-    "📝 I have tight hamstrings and lower back"
+    "⚡ Am I ready to train today?",
+    "🥗 How's my calorie & protein balance?",
+    "💤 How did sleep affect my recovery?",
+    "🧘 Stretches for my posture scan?",
+    "📝 Tight hamstrings & lower back"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -173,15 +173,20 @@ fun AiCoachScreen(
                     .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.xs)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(start = 12.dp, end = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     DashAvatar(size = 18.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Context loaded: Last 7 days of sleep, strain, workouts & journal",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tokens.textSecondary
+                        text = "Last 7 days loaded",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.textSecondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    HangryInfoTip(
+                        title = "Coach context",
+                        body = "Context loaded: Last 7 days of sleep, strain, workouts & journal"
                     )
                 }
             }
@@ -282,7 +287,7 @@ fun AiCoachScreen(
                                 viewModel.sendMessage(starter)
                             },
                             label = {
-                                Text(starter, style = MaterialTheme.typography.labelSmall)
+                                Text(starter, style = MaterialTheme.typography.labelMedium)
                             }
                         )
                     }
@@ -405,7 +410,7 @@ fun AiCoachScreen(
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
             title = { Text("Clear Chat History?") },
-            text = { Text("This will clear the conversation messages. Your saved journal entries and memories will be kept.") },
+            text = { Text("Messages will be cleared. Journal & memories are kept.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -444,16 +449,24 @@ private fun AiNotConfiguredBanner(
         ) {
             DashAvatar(size = 56.dp)
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-            Text(
-                text = "Set up $MASCOT_NAME",
-                style = MaterialTheme.typography.titleLarge,
-                color = tokens.textPrimary
-            )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-            val message = when {
+            val detail = when {
                 !aiEnabled -> "AI features are disabled in Settings. Enable AI Features to give $MASCOT_NAME access to your 7-day health, nutrition, and journal memory."
                 !hasApiKey -> "An OpenRouter API key is required to use AI features. Add your API key in Settings."
                 else -> "$MASCOT_NAME is currently not configured."
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Set up $MASCOT_NAME",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = tokens.textPrimary
+                )
+                HangryInfoTip(title = "Set up $MASCOT_NAME", body = detail)
+            }
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+            val message = when {
+                !aiEnabled -> "Turn on AI Features in Settings."
+                !hasApiKey -> "Add your OpenRouter key in Settings."
+                else -> "$MASCOT_NAME isn't configured yet."
             }
             Text(
                 text = message,
@@ -510,14 +523,18 @@ private fun EmptyConversationView(
         }
 
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-        Text(
-            text = "I continuously synthesize your sleep, recovery, workouts, nutrition, posture, and personal health journal. Ask me anything or share a new ache, goal, or problem.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = tokens.textSecondary,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            lineHeight = 22.sp,
-            modifier = Modifier.padding(horizontal = HangryTokens.Spacing.m)
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Ask me anything about your health.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = tokens.textSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            HangryInfoTip(
+                title = "About $MASCOT_NAME",
+                body = "I continuously synthesize your sleep, recovery, workouts, nutrition, posture, and personal health journal. Ask me anything or share a new ache, goal, or problem."
+            )
+        }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
 
         Text(
@@ -674,7 +691,6 @@ private fun FormattedMessageText(
         text = annotatedString,
         style = MaterialTheme.typography.bodyMedium,
         color = baseColor,
-        lineHeight = 22.sp,
         modifier = modifier
     )
 }
@@ -830,12 +846,15 @@ private fun CoachJournalBottomSheet(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text("Personal Journal & Memories", style = MaterialTheme.typography.titleLarge)
+            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Problems, injuries, and details remembered by $MASCOT_NAME",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textSecondary
+                    "Journal & Memories",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                HangryInfoTip(
+                    title = "Personal Journal & Memories",
+                    body = "Problems, injuries, and details remembered by $MASCOT_NAME. Tell $MASCOT_NAME about any problems, symptoms, or food reactions in chat, and they will be remembered here."
                 )
             }
             IconButton(onClick = onAddEntry) {
@@ -853,7 +872,7 @@ private fun CoachJournalBottomSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No journal memories yet. Tell $MASCOT_NAME about any problems, symptoms, or food reactions in chat, and they will be remembered here!",
+                    text = "No memories yet. Mention an issue in chat.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = tokens.textSecondary,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -987,7 +1006,7 @@ private fun AddJournalEntryDialog(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text("Details") },
-                    placeholder = { Text("e.g. Experienced sharp pain in right knee during heavy sets.") },
+                    placeholder = { Text("e.g. Sharp right-knee pain on heavy sets") },
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )

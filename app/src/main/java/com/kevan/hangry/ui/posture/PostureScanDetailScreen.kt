@@ -101,7 +101,7 @@ fun PostureScanDetailScreen(
                     Text(text = "Findings", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                     findings.forEach {
-                        Text("• $it", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                        Text("• $it", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                     }
                 }
             }

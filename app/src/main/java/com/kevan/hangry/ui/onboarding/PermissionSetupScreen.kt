@@ -28,6 +28,7 @@ import com.kevan.hangry.R
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.LocalFirstBanner
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -168,15 +169,22 @@ fun PermissionSetupScreen(
             ) {
                 OnboardingStepIndicator(currentStep = 1, totalSteps = 3)
 
-            Text(
-                text = "Connect Your Health Data",
-                style = MaterialTheme.typography.headlineMedium,
-                color = tokens.textPrimary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Connect Your Health Data",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = tokens.textPrimary,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                HangryInfoTip(
+                    title = "Why Health Connect?",
+                    body = "Hangry reads your sleep, heart rate, and activity from Health Connect to " +
+                        "calculate recovery, strain, and training load - entirely on your device."
+                )
+            }
 
             Text(
-                text = "Hangry reads your sleep, heart rate, and activity from Health Connect to " +
-                    "calculate recovery, strain, and training load - entirely on your device.",
+                text = "Read-only, processed on this device.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = tokens.textSecondary
             )
@@ -221,9 +229,14 @@ fun PermissionSetupScreen(
                                 tint = tokens.scoreColors.balanced
                             )
                             Text(
-                                text = "Health Connect needs an update before Hangry can connect to it.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = tokens.textPrimary
+                                text = "Health Connect needs an update.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = tokens.textPrimary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            HangryInfoTip(
+                                title = "Update Health Connect",
+                                body = "Health Connect needs an update before Hangry can connect to it."
                             )
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
@@ -249,9 +262,14 @@ fun PermissionSetupScreen(
                                 tint = tokens.scoreColors.buildingBaseline
                             )
                             Text(
-                                text = "Health Connect isn't installed on this device. Hangry has no data to show until it's installed and connected.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = tokens.textPrimary
+                                text = "Health Connect isn't installed.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = tokens.textPrimary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            HangryInfoTip(
+                                title = "Health Connect",
+                                body = "Health Connect isn't installed on this device. Hangry has no data to show until it's installed and connected."
                             )
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))

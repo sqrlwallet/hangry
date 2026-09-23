@@ -45,6 +45,7 @@ import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.CtaGradient
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -181,7 +182,10 @@ private fun SessionSetup(
         StatTile(value = "$minutesThisWeek", label = "min last 7 days", modifier = Modifier.weight(1f))
     }
 
-    Text("Pattern", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Pattern", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+        HangryInfoTip(title = setup.pattern.title, body = setup.pattern.description)
+    }
     BreathingPattern.entries.chunked(2).forEach { row ->
         Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)) {
             row.forEach { pattern ->
@@ -194,11 +198,6 @@ private fun SessionSetup(
             }
         }
     }
-    Text(
-        text = setup.pattern.description,
-        style = MaterialTheme.typography.bodySmall,
-        color = tokens.textSecondary
-    )
 
     Text("Duration", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
     Row(
@@ -235,12 +234,12 @@ private fun SessionSetup(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 Text("Audio cues", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                Text(
-                    "Rising tone: breathe in · falling tone: breathe out · soft ping: hold",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textSecondary
+                HangryInfoTip(
+                    title = "Audio cues",
+                    body = "Rising tone: breathe in · falling tone: breathe out · soft ping: hold. " +
+                        "You can lock your screen - the audio cues keep playing."
                 )
             }
             Switch(checked = setup.soundEnabled, onCheckedChange = onToggleSound)
@@ -523,7 +522,7 @@ private fun ActiveSession(
     }
 
     Text(
-        text = "You can lock your screen - the audio cues keep playing.",
+        text = "Safe to lock your screen",
         style = MaterialTheme.typography.bodySmall,
         color = tokens.textMuted,
         modifier = Modifier.fillMaxWidth(),
@@ -593,7 +592,7 @@ private fun SessionSummary(
                     state.saved == false -> "Saving…"
                     synced -> "Saved and logged to Health Connect."
                     healthConnect == HealthConnectLogStatus.NEEDS_PERMISSION ->
-                        "Saved on this device. Allow Health Connect access to log it there too."
+                        "Saved on this device only."
                     else -> "Saved on this device."
                 },
                 style = MaterialTheme.typography.bodyMedium,

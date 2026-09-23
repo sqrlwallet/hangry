@@ -17,6 +17,7 @@ import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.domain.repository.MealPlanRepository
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
@@ -57,11 +58,18 @@ fun MealPlanScreen(
                 modifier = modifier.fillMaxSize().padding(innerPadding).padding(HangryTokens.Spacing.m)
             ) {
                 HangryCard {
-                    Text(
-                        text = "No saved meals yet. Add one to quick-log it without the AI each time.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textSecondary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "No saved meals yet.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tokens.textSecondary,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        HangryInfoTip(
+                            title = "Meal Plan",
+                            body = "No saved meals yet. Add one to quick-log it without the AI each time."
+                        )
+                    }
                 }
             }
         } else {

@@ -123,8 +123,8 @@ fun QuickMealLogSheet(
             if (mealPlans.isNotEmpty() && onLogMealPlan != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Quick Presets from Meal Plan",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "From your Meal Plan",
+                        style = MaterialTheme.typography.labelMedium,
                         color = tokens.textMuted
                     )
                     Row(
@@ -277,7 +277,7 @@ fun QuickMealLogSheet(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(if (showMacros) "Hide optional macros" else "Add macros (protein, carbs, fat)")
+                Text(if (showMacros) "Hide optional macros" else "Add macros (optional)")
             }
 
             AnimatedVisibility(visible = showMacros) {

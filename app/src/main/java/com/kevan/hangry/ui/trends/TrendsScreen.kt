@@ -29,7 +29,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kevan.hangry.data.local.dao.WeightDao
 import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
@@ -42,6 +41,7 @@ import com.kevan.hangry.domain.repository.FoodLogRepository
 import com.kevan.hangry.domain.repository.WorkoutRepository
 import com.kevan.hangry.ui.components.DayDetailSheet
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryInteractiveTrendChart
 import com.kevan.hangry.ui.components.TrendPoint
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -650,7 +650,7 @@ fun TrendsScreen(
                                 )
                             }
                             Text(
-                                text = "Track more scans over time to see your trend.",
+                                text = "More scans will reveal a trend",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.textMuted
                             )
@@ -752,11 +752,17 @@ fun TrendsScreen(
                             color = tokens.textSecondary
                         )
                     } else {
-                        Text(
-                            text = "No food logged in this timeframe. Log meals using the camera or text prompt to track macro trends.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "No food logged in this range",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = tokens.textSecondary
+                            )
+                            HangryInfoTip(
+                                title = "Nutrition & Macro Trends",
+                                body = "No food logged in this timeframe. Log meals using the camera or text prompt to track macro trends."
+                            )
+                        }
                     }
                 }
             }
@@ -822,17 +828,20 @@ fun TrendsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = "Daily Biometric History",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = tokens.textPrimary
+                            color = tokens.textPrimary,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        Text(
-                            text = "Tap any day to inspect full telemetry or open in dashboard",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.textMuted
+                        HangryInfoTip(
+                            title = "Daily Biometric History",
+                            body = "Tap any day to inspect full telemetry or open in dashboard."
                         )
                     }
 
@@ -931,7 +940,7 @@ fun TrendsScreen(
                                     color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = "Sync Health Connect daily to build rolling baseline records.",
+                                    text = "Sync daily to build your history",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = tokens.textMuted
                                 )
@@ -982,10 +991,7 @@ fun TrendsScreen(
                                         ) {
                                             Text(
                                                 text = "TODAY",
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                ),
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                                 color = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
@@ -1190,13 +1196,13 @@ private fun HighlightPill(
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = color
             )

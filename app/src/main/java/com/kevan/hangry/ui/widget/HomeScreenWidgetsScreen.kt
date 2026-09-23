@@ -24,8 +24,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -78,18 +78,19 @@ fun HomeScreenWidgetsScreen(
             // Header Intro
             HangryCard {
                 Column(modifier = Modifier.padding(HangryTokens.Spacing.m)) {
-                    Text(
-                        text = "Glanceable Health on Your Phone",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = tokens.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Add widgets directly to your Android home screen. Stay on top of your steps, calories, sleep, recovery, and snap meal photos with one tap.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textSecondary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Glanceable Health on Your Phone",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = tokens.textPrimary,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        HangryInfoTip(
+                            title = "Home Screen Widgets",
+                            body = "Add widgets directly to your Android home screen. Stay on top of your steps, calories, sleep, recovery, and snap meal photos with one tap."
+                        )
+                    }
                 }
             }
 
@@ -147,30 +148,20 @@ fun HomeScreenWidgetsScreen(
             HangryCard {
                 Column(modifier = Modifier.padding(HangryTokens.Spacing.m)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "How to add from your home screen",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = tokens.textPrimary
+                            text = "Add from your home screen",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = tokens.textPrimary,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "1. Press and hold any empty area on your phone's home screen.\n" +
+                        HangryInfoTip(
+                            title = "How to add from your home screen",
+                            body = "1. Press and hold any empty area on your phone's home screen.\n" +
                                 "2. Tap 'Widgets' in the pop-up menu.\n" +
                                 "3. Scroll down and locate 'Hangry'.\n" +
-                                "4. Touch and drag your preferred widget onto your screen.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary,
-                        lineHeight = 20.sp
-                    )
+                                "4. Touch and drag your preferred widget onto your screen."
+                        )
+                    }
                 }
             }
         }
@@ -211,7 +202,10 @@ private fun WidgetPreviewCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
@@ -230,6 +224,7 @@ private fun WidgetPreviewCard(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+                    HangryInfoTip(title = title, body = description)
                 }
 
                 Button(
@@ -248,16 +243,9 @@ private fun WidgetPreviewCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Pin to Home", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Pin to Home", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
-            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -287,9 +275,9 @@ private fun ActivityWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF7E1D), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("DAILY ACTIVITY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text("DAILY ACTIVITY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
-            Text("Today", fontSize = 11.sp, color = Color(0xFF948D98))
+            Text("Today", style = MaterialTheme.typography.labelSmall, color = Color(0xFF948D98))
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -317,7 +305,7 @@ private fun QuickLogWidgetMockup() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFF9F4F2), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Log Meal", color = Color(0xFFF9F4F2), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("Log Meal", color = Color(0xFFF9F4F2), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
         }
     }
 }
@@ -333,19 +321,19 @@ private fun SleepWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Bedtime, null, tint = Color(0xFF00A4FF), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("SLEEP", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text("SLEEP", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(
                 color = Color(0xFF2F2C33),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("96 Quality", color = Color(0xFF00A4FF), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Text("96 Quality", color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-        Text("7h 30m", color = Color(0xFFF9F4F2), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text("94% of sleep need met", color = Color(0xFFB5AEB8), fontSize = 12.sp)
+        Text("7h 30m", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("94% of sleep need met", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -360,19 +348,19 @@ private fun RecoveryWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Favorite, null, tint = Color(0xFF01A652), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("RECOVERY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text("RECOVERY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(
                 color = Color(0xFF2F2C33),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("PRIMED", color = Color(0xFF01A652), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Text("PRIMED", color = Color(0xFF01A652), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-        Text("82%", color = Color(0xFFF9F4F2), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text("Physiological markers elevated above baseline", color = Color(0xFFB5AEB8), fontSize = 12.sp)
+        Text("82%", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("Physiological markers elevated above baseline", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -384,7 +372,7 @@ private fun OverviewWidgetMockup() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("HANGRY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF9F4F2))
+            Text("HANGRY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFF9F4F2))
             Surface(
                 color = Color(0xFF0C6FF9),
                 shape = RoundedCornerShape(10.dp)
@@ -395,7 +383,7 @@ private fun OverviewWidgetMockup() {
                 ) {
                     Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFF9F4F2), modifier = Modifier.size(12.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Log Meal", color = Color(0xFFF9F4F2), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("Log Meal", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -407,9 +395,9 @@ private fun OverviewWidgetMockup() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("RECOVERY", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
-                Text("82%", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF9F4F2))
-                Text("PRIMED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF01A652))
+                Text("RECOVERY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text("82%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFFF9F4F2))
+                Text("PRIMED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF01A652))
             }
 
             Box(
@@ -425,12 +413,12 @@ private fun OverviewWidgetMockup() {
                     .padding(start = 10.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("6,420 steps", color = Color(0xFF6AA8FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("450 kcal", color = Color(0xFFFF7E1D), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("6,420 steps", color = Color(0xFF6AA8FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text("450 kcal", color = Color(0xFFFF7E1D), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text("Sleep: 7h 30m", color = Color(0xFF00A4FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Sleep: 7h 30m", color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -447,7 +435,7 @@ private fun MetricColumn(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.height(2.dp))
-        Text(value, color = Color(0xFFF9F4F2), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        Text(label, color = Color(0xFFB5AEB8), fontSize = 10.sp)
+        Text(value, color = Color(0xFFF9F4F2), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(label, color = Color(0xFFB5AEB8), style = MaterialTheme.typography.labelSmall)
     }
 }

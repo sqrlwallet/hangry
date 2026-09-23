@@ -51,7 +51,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -277,9 +276,7 @@ private fun RowScope.FloatingNavItem(
             Text(
                 text = destination.label,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.5.sp,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    letterSpacing = 0.2.sp
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold
                 ),
                 color = textColor,
                 maxLines = 1

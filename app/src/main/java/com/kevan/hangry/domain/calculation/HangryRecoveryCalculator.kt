@@ -85,14 +85,14 @@ class HangryRecoveryCalculator : RecoveryCalculator {
         val consistency = currentDayMetrics.sleepConsistencyPercentage ?: 80
         val loadScore: Double = clampScore((consistency * 0.7) + 15.0)
 
-        // Dynamic re-weighting based on available components (NEVER substitute missing data with zero)
+        // Dynamic re-weighting based on available components (NEVER substitute missing data with zero).
+        // HRV is the exception: when it isn't available it counts as a good day (config.assumedHrvScore).
+        // result.hrvScore stays null so the UI still shows HRV as not reported.
         var totalWeight = 0.0
         var weightedSum = 0.0
 
-        if (hrvScore != null) {
-            weightedSum += hrvScore * config.hrvWeight
-            totalWeight += config.hrvWeight
-        }
+        weightedSum += (hrvScore ?: config.assumedHrvScore) * config.hrvWeight
+        totalWeight += config.hrvWeight
         if (rhrScore != null) {
             weightedSum += rhrScore * config.rhrWeight
             totalWeight += config.rhrWeight

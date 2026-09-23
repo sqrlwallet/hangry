@@ -25,7 +25,8 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 @Composable
 fun HangryPendingNotice(
     message: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    details: String? = null
 ) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = modifier.fillMaxWidth()) {
@@ -37,12 +38,17 @@ fun HangryPendingNotice(
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
-            Column {
-                Text(
-                    text = "Pending",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = tokens.textPrimary
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Pending",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = tokens.textPrimary
+                    )
+                    if (details != null) {
+                        HangryInfoTip(title = "Pending", body = details)
+                    }
+                }
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodySmall,

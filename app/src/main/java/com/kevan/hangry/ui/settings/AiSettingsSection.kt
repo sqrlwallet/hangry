@@ -40,6 +40,7 @@ import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiDefaults
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.CoroutineScope
@@ -90,10 +91,13 @@ fun AiFeaturesSection(
                         style = MaterialTheme.typography.titleSmall,
                         color = tokens.textPrimary
                     )
+                    HangryInfoTip(
+                        title = "AI Features",
+                        body = "Off by default. Powers AI Coach, food logging, and posture analysis using OpenRouter with your own key."
+                    )
                 }
-                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Off by default. Powers AI Coach, food logging, and posture analysis using OpenRouter with your own key.",
+                    text = "Uses your own OpenRouter key",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -166,6 +170,8 @@ fun AiFeaturesSection(
 
     if (showModelDialog) {
         ModelDialog(
+            title = "AI Model",
+            description = "Used for food & posture photos",
             currentModel = profile?.preferredAiModel?.takeIf { it.isNotBlank() } ?: AiDefaults.DEFAULT_MODEL,
             onDismiss = { showModelDialog = false },
             onSave = { newModel ->
@@ -180,6 +186,8 @@ fun AiFeaturesSection(
 
     if (showCoachModelDialog) {
         ModelDialog(
+            title = "AI Coach Model",
+            description = "Used by the AI Coach chat",
             currentModel = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
             onDismiss = { showCoachModelDialog = false },
             onSave = { newModel ->
@@ -235,7 +243,7 @@ private fun ApiKeyDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Get a key at openrouter.ai - it's yours, Hangry never stores it anywhere but this device.",
+                    text = "Get a key at openrouter.ai. Stored only on this device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -294,20 +302,26 @@ private fun ApiKeyDialog(
 }
 
 @Composable
-private fun ModelDialog(currentModel: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+private fun ModelDialog(
+    title: String,
+    description: String,
+    currentModel: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
     val tokens = LocalHangryTokens.current
     var modelInput by remember { mutableStateOf(currentModel) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("AI Model") },
+        title = { Text(title) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "The OpenRouter model slug used for food and posture photo analysis.",
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )

@@ -66,7 +66,7 @@ class HangryRecoveryCalculatorTest {
         assertTrue("Score must be between 0 and 100", result.score!! in 0..100)
         assertEquals(ScoreConfidence.HIGH, result.confidence)
         assertTrue(result.positiveContributors.isNotEmpty())
-        assertEquals(1, result.algorithmVersion)
+        assertEquals(2, result.algorithmVersion)
     }
 
     @Test
@@ -86,8 +86,35 @@ class HangryRecoveryCalculatorTest {
 
         assertNotNull("Score should still be computed from remaining metrics", result.score)
         assertTrue(result.score!! in 0..100)
-        assertNull("Missing HRV must not be substituted with zero", result.hrvScore)
+        assertNull("Missing HRV must not be reported as a measured component", result.hrvScore)
         assertNotEquals("Missing HRV must reduce confidence", ScoreConfidence.HIGH, result.confidence)
+    }
+
+    @Test
+    fun testMissingHrv_isTreatedAsGood() {
+        val history = (1..7).map { offset ->
+            DayMetrics(
+                date = today.minusDays(offset.toLong()),
+                sleepDurationMinutes = 480,
+                restingHeartRate = 58.0,
+                hrvRmssd = null
+            )
+        }
+        val atBaselineHrv = history.map { it.copy(hrvRmssd = 65.0) }
+
+        val withoutHrv = calculator.calculateRecovery(
+            today, DayMetrics(today, 480, 58.0, null), history
+        )
+        val baselineHrv = calculator.calculateRecovery(
+            today, DayMetrics(today, 480, 58.0, 65.0), atBaselineHrv
+        )
+
+        assertNotNull(withoutHrv.score)
+        assertNull(withoutHrv.hrvScore)
+        assertTrue(
+            "Missing HRV should score better than an at-baseline HRV reading",
+            withoutHrv.score!! > baselineHrv.score!!
+        )
     }
 
     @Test

@@ -22,6 +22,7 @@ import com.kevan.hangry.domain.repository.SleepRepository
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -29,6 +30,36 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+
+private val SLEEP_COACH_SECTIONS = listOf(
+    HangryInfoSection(
+        "Tonight's Sleep Need",
+        "Personal baseline plus carryover for recent debt and yesterday's strain."
+    ),
+    HangryInfoSection(
+        "Suggested Bedtime",
+        "Estimated from your recent wake-time pattern - adjust as your schedule needs."
+    )
+)
+
+private val SLEEP_STAGE_SECTIONS = listOf(
+    HangryInfoSection(
+        "Deep Sleep",
+        "Cellular repair, growth hormone release & physical recovery."
+    ),
+    HangryInfoSection(
+        "REM Sleep",
+        "Cognitive processing, memory consolidation & mental recovery."
+    ),
+    HangryInfoSection(
+        "Light Sleep",
+        "Baseline physiological maintenance & body recovery."
+    ),
+    HangryInfoSection(
+        "Awake / Restless",
+        "Micro-arousals and wake episodes."
+    )
+)
 
 private val SLEEP_INFO_SECTIONS = listOf(
     HangryInfoSection(
@@ -113,7 +144,8 @@ fun SleepScreen(
         ) {
             if (uiState.isPendingSleepData) {
                 HangryPendingNotice(
-                    message = "Log last night's sleep to see your sleep score, architecture, and coaching insights for today."
+                    message = "Log last night's sleep to see today's insights.",
+                    details = "Log last night's sleep to see your sleep score, architecture, and coaching insights for today."
                 )
             } else {
                 // Main Sleep Duration Card
@@ -188,11 +220,14 @@ fun SleepScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Sleep Coach",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = tokens.textPrimary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Sleep Coach",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = tokens.textPrimary
+                            )
+                            HangryInfoIconButton(title = "Sleep Coach", sections = SLEEP_COACH_SECTIONS, compact = true)
+                        }
                         val quality = analysis?.sleepQualityScore ?: 70
                         val qualityColor = when {
                             quality >= 85 -> tokens.scoreColors.primed
@@ -216,7 +251,7 @@ fun SleepScreen(
                     val need = analysis?.sleepNeedMinutes ?: 480
                     val performance = analysis?.sleepPerformancePercentage ?: 100
                     Text(
-                        text = "Tonight's sleep need: ${need / 60}h ${need % 60}m ($performance% reached last night)",
+                        text = "Tonight's need: ${need / 60}h ${need % 60}m · $performance% met last night",
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary
                     )
@@ -227,7 +262,7 @@ fun SleepScreen(
                         HorizontalDivider(color = tokens.cardBorder)
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = "Suggested bedtime tonight: ${bedtime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"))}",
+                            text = "Suggested bedtime: ${bedtime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"))}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.chartColors.sleep
                         )
@@ -248,11 +283,14 @@ fun SleepScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Sleep Architecture",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = tokens.textPrimary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Sleep Architecture",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = tokens.textPrimary
+                            )
+                            HangryInfoIconButton(title = "Sleep Stages", sections = SLEEP_STAGE_SECTIONS, compact = true)
+                        }
                         Surface(
                             color = tokens.scoreColors.primed.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(12.dp)
@@ -387,14 +425,17 @@ fun SleepScreen(
 
         AlertDialog(
             onDismissRequest = { if (!isSaving) showManualDialog = false },
-            title = { Text("Log Sleep Manually") },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Log Sleep Manually")
+                    HangryInfoTip(
+                        title = "Manual sleep",
+                        body = "Manually entered sleep is clearly marked as manual data and factored into daily summaries."
+                    )
+                }
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Manually entered sleep is clearly marked as manual data and factored into daily summaries.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
-                    )
                     OutlinedTextField(
                         value = hoursInput,
                         onValueChange = { hoursInput = it },

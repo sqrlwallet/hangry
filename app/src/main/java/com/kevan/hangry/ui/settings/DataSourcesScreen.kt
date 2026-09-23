@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.local.entity.SyncStateEntity
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -52,14 +53,19 @@ fun DataSourcesScreen(
         ) {
             item {
                 HangryCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Connected Providers",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tokens.textPrimary
+                        )
+                        HangryInfoTip(
+                            title = "Connected Providers",
+                            body = "Google Health Connect aggregates readings from your active wearables and fitness tracking applications."
+                        )
+                    }
                     Text(
-                        text = "Connected Providers",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = tokens.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-                    Text(
-                        text = "Google Health Connect aggregates readings from your active wearables and fitness tracking applications.",
+                        text = "Google Health Connect",
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
@@ -79,7 +85,7 @@ fun DataSourcesScreen(
                 item {
                     HangryCard {
                         Text(
-                            text = "No sync records yet. Tap 'Sync Now' on the dashboard to pull records.",
+                            text = "No sync records yet. Sync from the dashboard.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textSecondary
                         )

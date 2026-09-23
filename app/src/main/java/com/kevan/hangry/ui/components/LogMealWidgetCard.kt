@@ -62,6 +62,10 @@ fun LogMealWidgetCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = tokens.textPrimary
                     )
+                    HangryInfoTip(
+                        title = "Nutrition & Meals",
+                        body = "Snap your food to log calories instantly or enter details quickly."
+                    )
                 }
 
                 Surface(
@@ -85,12 +89,6 @@ fun LogMealWidgetCard(
                     )
                 }
             }
-
-            Text(
-                text = "Snap your food to log calories instantly or enter details quickly.",
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
-            )
 
             // Primary Action Row: Camera (1-tap photo) & Quick Add
             Row(

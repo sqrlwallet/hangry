@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.data.local.entity.FoodLogEntity
@@ -442,7 +441,7 @@ fun DayDetailSheet(
                                     },
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
-                                    Text("Open in Nutrition", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+                                    Text("Open in Nutrition", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }

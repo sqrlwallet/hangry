@@ -55,6 +55,10 @@ fun StressCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = tokens.textPrimary
                     )
+                    HangryInfoTip(
+                        title = "Autonomic Stress",
+                        body = stressResult.supportiveAdvice
+                    )
                 }
 
                 Surface(
@@ -97,12 +101,6 @@ fun StressCard(
                         text = stressResult.summaryText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.xxs))
-                    Text(
-                        text = stressResult.supportiveAdvice,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
                     )
                 }
             }

@@ -120,7 +120,7 @@ class PostureViewModel(
                                         "${result.invalidPhotoIndices.map { i -> i + 1 }} need${if (result.invalidPhotoIndices.size == 1) "s" else ""} " +
                                         "a retake$reasonSuffix"
                                 } else {
-                                    result.rejectionReason ?: "Could not complete posture analysis. Please try again with clear photos."
+                                    result.rejectionReason ?: "Analysis failed. Try again with clearer photos."
                                 }
                             )
                         }
@@ -130,7 +130,7 @@ class PostureViewModel(
                     _uiState.update {
                         it.copy(
                             isAnalyzing = false,
-                            errorMessage = (e as? OpenRouterException)?.message ?: "Something went wrong analyzing those photos. Try again."
+                            errorMessage = (e as? OpenRouterException)?.message ?: "Couldn't analyze those photos. Try again."
                         )
                     }
                 }

@@ -22,12 +22,15 @@ data class DayMetrics(
 )
 
 data class RecoveryConfig(
-    val algorithmVersion: Int = 1,
+    val algorithmVersion: Int = 2,
     val minDaysForBaseline: Int = 3,
     val optimalBaselineDays: Int = 7,
     val hrvWeight: Double = 0.35,
     val rhrWeight: Double = 0.25,
     val sleepWeight: Double = 0.25,
     val loadWeight: Double = 0.15,
-    val defaultTargetSleepMinutes: Int = 480 // 8 hours
+    val defaultTargetSleepMinutes: Int = 480, // 8 hours
+    // Many wearables never report HRV to Health Connect. Rather than letting RHR and sleep carry
+    // the whole score, a missing HRV reading is treated as a good (above-baseline) day.
+    val assumedHrvScore: Double = 75.0
 )

@@ -36,6 +36,9 @@ import com.kevan.hangry.domain.repository.StorageBreakdown
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoIconButton
+import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
@@ -164,7 +167,7 @@ fun SettingsScreen(
                             color = tokens.textPrimary
                         )
                         Text(
-                            text = "100% Local-First • Zero Cloud • Private Health Tracking",
+                            text = "Local-first & private",
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -243,7 +246,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 } else if (!hasBodyMetrics) {
                     Text(
-                        text = "Add your body metrics to estimate calorie burn and body composition.",
+                        text = "Add body metrics to estimate burn",
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
@@ -253,14 +256,16 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.Edit,
                     title = "Edit Goals & Body Metrics",
-                    subtitle = "Age, sex, height, current & goal weight, circumferences",
+                    subtitle = "Age, height, weight & goals",
+                    info = "Age, sex, height, current & goal weight, circumferences",
                     onClick = { showEditGoalsDialog = true }
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.AccessibilityNew,
                     title = "AI Body Fat & Composition",
-                    subtitle = "Calculate body fat % via photos & tape circumferences",
+                    subtitle = "Photos & tape measurements",
+                    info = "Calculate body fat % via photos & tape circumferences",
                     onClick = onNavigateToBodyFatCalculator
                 )
             }
@@ -271,7 +276,7 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.Refresh,
                     title = "Sync Now",
-                    subtitle = "Fetch latest readings from Health Connect",
+                    subtitle = "Pull latest from Health Connect",
                     enabled = !isBusy,
                     onClick = {
                         isBusy = true
@@ -286,14 +291,16 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.History,
                     title = "Historical Sync Range",
-                    subtitle = "Re-import all available Health Connect records",
+                    subtitle = "Re-import past records",
+                    info = "Re-import all available Health Connect records",
                     onClick = onNavigateToHistoricalSync
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.Calculate,
                     title = "Recalculate Physiological Baselines",
-                    subtitle = "Recompute daily summaries & recovery scores for all local data",
+                    subtitle = "Recompute scores from local data",
+                    info = "Recompute daily summaries & recovery scores for all local data",
                     enabled = !isBusy,
                     onClick = {
                         isBusy = true
@@ -308,14 +315,15 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.Sensors,
                     title = "Data Sources & Checkpoints",
-                    subtitle = "View connected apps and import status",
+                    subtitle = "Connected apps & import status",
                     onClick = onNavigateToDataSources
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.Widgets,
                     title = "Home Screen Widgets",
-                    subtitle = "Pin Steps, Calories, Sleep, Recovery & Quick Log widgets",
+                    subtitle = "Pin widgets to your home screen",
+                    info = "Pin Steps, Calories, Sleep, Recovery & Quick Log widgets",
                     onClick = onNavigateToHomeScreenWidgets
                 )
             }
@@ -335,7 +343,8 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.FileDownload,
                     title = "Export Data as JSON",
-                    subtitle = "Save raw normalized daily summaries and recovery scores to a file",
+                    subtitle = "Daily summaries & scores",
+                    info = "Save raw normalized daily summaries and recovery scores to a file",
                     enabled = !isBusy,
                     onClick = {
                         jsonExportLauncher.launch("hangry_export_${LocalDate.now()}.json")
@@ -345,7 +354,7 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.TableChart,
                     title = "Export Data as CSV",
-                    subtitle = "Save a tabular file for spreadsheet analysis",
+                    subtitle = "For spreadsheet analysis",
                     enabled = !isBusy,
                     onClick = {
                         csvExportLauncher.launch("hangry_export_${LocalDate.now()}.csv")
@@ -359,7 +368,8 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.Lock,
                     title = "Privacy & Legal",
-                    subtitle = "Zero-cloud architecture, Health Connect audit & wellness notice",
+                    subtitle = "Privacy policy & wellness notice",
+                    info = "Zero-cloud architecture, Health Connect audit & wellness notice",
                     onClick = onNavigateToPrivacyPolicy
                 )
             }
@@ -418,7 +428,8 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.Speed,
                     title = if (isOptimizingDb) "Optimizing Database..." else "Optimize & Compact Database",
-                    subtitle = "Runs WAL checkpoint, reclaims freed disk pages & updates query stats",
+                    subtitle = "Reclaim space & speed up queries",
+                    info = "Runs WAL checkpoint, reclaims freed disk pages & updates query stats",
                     enabled = !isBusy && !isOptimizingDb,
                     onClick = {
                         coroutineScope.launch {
@@ -434,7 +445,8 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.CleaningServices,
                     title = if (isCleaningOrphans) "Cleaning Orphaned Files..." else "Clean Orphaned Assets & Cache",
-                    subtitle = "Removes unreferenced food/posture images and temporary cache files",
+                    subtitle = "Remove unused images & cache",
+                    info = "Removes unreferenced food/posture images and temporary cache files",
                     enabled = !isBusy && !isCleaningOrphans,
                     onClick = {
                         coroutineScope.launch {
@@ -460,7 +472,8 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.DeleteForever,
                     title = "Delete All Health Data",
-                    subtitle = "Permanently removes all imported sessions and derived scores",
+                    subtitle = "Removes sessions & scores",
+                    info = "Permanently removes all imported sessions and derived scores",
                     titleColor = tokens.scoreColors.rebuild,
                     onClick = { showDeleteHealthDialog = true }
                 )
@@ -598,14 +611,40 @@ private fun EditGoalsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Goals & Body Metrics") },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Goals & Body Metrics", modifier = Modifier.weight(1f, fill = false))
+                HangryInfoIconButton(
+                    title = "Goals & Body Metrics",
+                    sections = listOf(
+                        HangryInfoSection(
+                            "Privacy",
+                            "Used only on-device to estimate resting calorie burn, body composition, and personalized goals. Never shared."
+                        ),
+                        HangryInfoSection(
+                            "Biological sex",
+                            "Used for Mifflin-St Jeor resting metabolism & U.S. Navy body fat formulas."
+                        ),
+                        HangryInfoSection(
+                            "Height",
+                            "Used only as a fallback - a height synced from Health Connect always takes priority."
+                        ),
+                        HangryInfoSection(
+                            "Current weight",
+                            "Saving records your current weight immediately for daily calorie targets and trend tracking."
+                        )
+                    ),
+                    compact = true
+                )
+            }
+        },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Used only on-device to estimate resting calorie burn, body composition, and personalized goals. Never shared.",
+                    text = "On-device only. Never shared.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -629,23 +668,14 @@ private fun EditGoalsDialog(
                         )
                     }
                 }
-                Text(
-                    text = "Used for Mifflin-St Jeor resting metabolism & U.S. Navy body fat formulas.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
 
                 OutlinedTextField(
                     value = heightInput,
                     onValueChange = { heightInput = it.filter { c -> c.isDigit() } },
                     label = { Text("Height (cm)") },
+                    supportingText = { Text("Synced height takes priority") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = "Used only as a fallback - a height synced from Health Connect always takes priority.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
                 )
 
                 HorizontalDivider(color = tokens.cardBorder)
@@ -656,11 +686,6 @@ private fun EditGoalsDialog(
                     label = { Text("Current Weight (kg)") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = "Saving records your current weight immediately for daily calorie targets and trend tracking.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
                 )
 
                 OutlinedTextField(
@@ -680,16 +705,18 @@ private fun EditGoalsDialog(
 
                 HorizontalDivider(color = tokens.cardBorder)
 
-                Text(
-                    text = "Body Circumferences (Optional)",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = tokens.textPrimary
-                )
-                Text(
-                    text = "Tape circumferences enable the algorithmic U.S. Navy body fat calculator and enhance AI vision accuracy.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Body Circumferences (Optional)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = tokens.textPrimary,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    HangryInfoTip(
+                        title = "Body Circumferences",
+                        body = "Tape circumferences enable the algorithmic U.S. Navy body fat calculator and enhance AI vision accuracy."
+                    )
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -791,6 +818,7 @@ internal fun SettingsActionRow(
     subtitle: String,
     titleColor: androidx.compose.ui.graphics.Color? = null,
     enabled: Boolean = true,
+    info: String? = null,
     onClick: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
@@ -816,11 +844,16 @@ internal fun SettingsActionRow(
                 style = MaterialTheme.typography.titleSmall,
                 color = titleColor ?: tokens.textPrimary
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
-            )
+            if (subtitle.isNotBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.textSecondary
+                )
+            }
+        }
+        if (info != null) {
+            HangryInfoTip(title = title, body = info)
         }
     }
 }

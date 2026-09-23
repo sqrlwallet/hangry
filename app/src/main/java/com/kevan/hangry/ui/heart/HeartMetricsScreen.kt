@@ -22,6 +22,7 @@ import com.kevan.hangry.domain.repository.HRVRepository
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -202,10 +203,15 @@ fun HeartMetricsScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
+                            HangryInfoTip(
+                                title = "No HRV Data Yet",
+                                body = "No RMSSD records from Health Connect yet - not every connected app reports this metric.\n\n" +
+                                    "Continuous and resting heart rate can come through even when HRV doesn't - it depends on whether a connected app reports RMSSD to Health Connect. Oura, Whoop, Garmin, and Polar commonly do; Samsung Health currently does not."
+                            )
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = "No RMSSD records from Health Connect yet - not every connected app reports this metric.",
+                            text = "Not every app reports HRV.",
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -221,11 +227,22 @@ fun HeartMetricsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "HRV Optimal Baseline Band",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = tokens.textPrimary
-                        )
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "HRV Baseline Band",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = tokens.textPrimary
+                            )
+                            HangryInfoTip(
+                                title = "HRV Optimal Baseline Band",
+                                body = "Your personal normal range: the mean of your recent HRV readings ± one standard deviation. " +
+                                    "Below the band suggests sympathetic nervous system dominance from recent training strain, stress, or incomplete sleep recovery. " +
+                                    "Above it indicates high parasympathetic activity - strong recovery capacity or deep rest."
+                            )
+                        }
 
                         val statusBadgeText: String
                         val statusBadgeColor: androidx.compose.ui.graphics.Color
@@ -323,7 +340,7 @@ fun HeartMetricsScreen(
                         currentHrv == null -> "Wear your device during sleep to capture HRV."
                         currentHrv < hrvLowerBand -> "Below your typical baseline."
                         currentHrv > hrvUpperBand -> "Elevated above your baseline."
-                        else -> "Within your normal range - balanced and ready for training."
+                        else -> "Within your normal range - ready for training."
                     }
 
                     Text(
@@ -338,11 +355,17 @@ fun HeartMetricsScreen(
             if (currentRhr != null && hasRhrBaseline) {
                 item {
                     HangryCard {
-                        Text(
-                            text = "Cardiovascular Recovery Dynamics",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = tokens.textPrimary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Cardiovascular Recovery",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = tokens.textPrimary
+                            )
+                            HangryInfoTip(
+                                title = "Cardiovascular Recovery Dynamics",
+                                body = "A lower resting pulse indicates strong cardiovascular restoration. Mild elevations often reflect training fatigue, dehydration, or late meals."
+                            )
+                        }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
                         val rhrDelta = currentRhr - rhrMean

@@ -26,7 +26,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 private val RECOVERY_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "Heart Rate Variability — 35% weight",
-        "Reflects parasympathetic autonomic tone. Higher HRV relative to your 7-day rolling baseline indicates systemic readiness."
+        "Reflects parasympathetic autonomic tone. Higher HRV relative to your 7-day rolling baseline indicates systemic readiness. If your device doesn't report HRV, it counts as a good day."
     ),
     HangryInfoSection(
         "Resting Heart Rate — 25% weight",
@@ -91,7 +91,8 @@ fun RecoveryDetailsScreen(
 
             if (isPending) {
                 HangryPendingNotice(
-                    message = "Recovery is calculated once today's sleep is recorded. Log it manually from the Sleep screen, or sync after waking."
+                    message = "Waiting for today's sleep.",
+                    details = "Recovery is calculated once today's sleep is recorded. Log it manually from the Sleep screen, or sync after waking."
                 )
                 return@Column
             }
@@ -105,7 +106,8 @@ fun RecoveryDetailsScreen(
             RecoveryComponentRow(
                 label = "Heart Rate Variability",
                 valueColor = tokens.chartColors.hrv,
-                score = scoreEntity?.hrvComponentScore
+                score = scoreEntity?.hrvComponentScore,
+                missingLabel = "Not reported · counted as good"
             )
             RecoveryComponentRow(
                 label = "Resting Heart Rate",
@@ -130,7 +132,8 @@ fun RecoveryDetailsScreen(
 private fun RecoveryComponentRow(
     label: String,
     valueColor: androidx.compose.ui.graphics.Color,
-    score: Double?
+    score: Double?,
+    missingLabel: String = "Calibrating"
 ) {
     val tokens = LocalHangryTokens.current
     HangryCard {
@@ -145,9 +148,9 @@ private fun RecoveryComponentRow(
                 color = valueColor
             )
             Text(
-                text = score?.let { "${it.toInt()}%" } ?: "Calibrating",
-                style = MaterialTheme.typography.titleMedium,
-                color = tokens.textPrimary
+                text = score?.let { "${it.toInt()}%" } ?: missingLabel,
+                style = if (score != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium,
+                color = if (score != null) tokens.textPrimary else tokens.textSecondary
             )
         }
     }

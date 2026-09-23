@@ -8,7 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
+import com.kevan.hangry.ui.components.HangryInfoIconButton
+import com.kevan.hangry.ui.components.HangryInfoSection
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -147,16 +148,37 @@ fun HistoricalSyncSetupScreen(
                     OnboardingStepIndicator(currentStep = 2, totalSteps = 3)
                 }
 
-                Text(
-                    text = "Choose Historical Range",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    ),
-                    color = androidx.compose.ui.graphics.Color.White
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Choose Historical Range",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        ),
+                        color = androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    HangryInfoIconButton(
+                        title = "Historical Import",
+                        sections = listOf(
+                            HangryInfoSection(
+                                "Why import history",
+                                "Importing your past health records allows Hangry to calculate your personalized 7-day and 28-day baselines immediately upon launch."
+                            ),
+                            HangryInfoSection(
+                                "All available data",
+                                "Imports your entire Health Connect history without date cutoffs."
+                            ),
+                            HangryInfoSection(
+                                "Safe Memory Batching",
+                                "Hangry processes historical records in 14-day bounded batches with duplicate suppression. You can cancel or re-sync at any time."
+                            )
+                        ),
+                        compact = true
+                    )
+                }
 
                 Text(
-                    text = "Importing your past health records allows Hangry to calculate your personalized 7-day and 28-day baselines immediately upon launch.",
+                    text = "More history, better baselines.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f)
                 )
@@ -189,7 +211,7 @@ fun HistoricalSyncSetupScreen(
                                 )
                                 if (days == -1) {
                                     Text(
-                                        text = "Imports your entire Health Connect history without date cutoffs.",
+                                        text = "No date cutoff",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = tokens.scoreColors.primed
                                     )
@@ -199,31 +221,6 @@ fun HistoricalSyncSetupScreen(
                         if (index < ranges.size - 1) {
                             HorizontalDivider(color = tokens.cardBorder)
                         }
-                    }
-                }
-
-                Surface(
-                    color = tokens.scoreColors.buildingBaselineContainer.copy(alpha = 0.5f),
-                    shape = MaterialTheme.shapes.medium,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(HangryTokens.Spacing.m),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = tokens.scoreColors.buildingBaseline,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Safe Memory Batching: Hangry processes historical records in 14-day bounded batches with duplicate suppression. You can cancel or re-sync at any time.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textPrimary
-                        )
                     }
                 }
             }

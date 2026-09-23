@@ -8,7 +8,7 @@
     <string name="title_theme_preview">Theme Preview</string>
     <string name="title_recovery_details">Recovery Details</string>
     <string name="title_sleep">Sleep Insights</string>
-    <string name="title_training">Training &amp; Strain</string>
+    <string name="title_training">Workouts</string>
     <string name="title_nutrition">Nutrition</string>
     <string name="title_meal_plan">Meal Plan</string>
     <string name="title_posture">Posture</string>
@@ -91,10 +91,17 @@
     <string name="cancel">Cancel</string>
 
     <!-- AppWidgets -->
-    <string name="widget_activity_description">Glance at your daily steps, active calories, and activity minutes.</string>
+    <string name="widget_activity_description">Today\'s steps and active calories.</string>
     <string name="widget_quick_log_description">One-tap shortcut to snap and log meals instantly.</string>
-    <string name="widget_sleep_description">Track your latest sleep duration, quality score, and debt.</string>
-    <string name="widget_recovery_description">Check your daily autonomic recovery score and readiness band.</string>
+    <string name="widget_sleep_description">Last night\'s sleep, when you slept, and how steady your sleep schedule is.</string>
+    <string name="widget_recovery_description">Today\'s recovery score and what it means for training.</string>
     <string name="widget_supplements_description">Your next supplement dose and how many you\'ve taken today.</string>
     <string name="widget_overview_description">Comprehensive daily overview with recovery, activity, sleep, and quick-log.</string>
+    <string name="widget_breathe_description">Minutes breathed today and this week. Tap to start a session with Dash.</string>
+    <string name="widget_heart_description">Resting heart rate and HRV against your 4-week normal.</string>
+    <string name="widget_markers_description">Your latest blood pressure and blood sugar with their status.</string>
+    <string name="widget_goals_description">Progress toward your weight and health marker goals.</string>
+    <string name="widget_weight_description">Latest weight, 30-day change, and a trend line.</string>
+    <string name="widget_posture_description">Your last posture score and a shortcut to a new check.</string>
+    <string name="widget_cycle_description">Cycle day and when your next period is predicted.</string>
 </resources>

@@ -1,3 +1,91 @@
+## 🚀 What's New in Hangry v1.15.0
+
+### 🏋️ Workouts, Properly Imported
+- **Every Health Connect workout type**: weightlifting, elliptical, rowing, tennis, hiking and ~55 more now show by name instead of "Other".
+- **Workout details**: distance, pace (or speed for rides, per 100 m for swims), average and max heart rate, elevation, power, strength sets and reps with the exercises done, laps and notes.
+- **History fixed too**: workouts saved before this version are re-read from Health Connect once, then training load and strain are recalculated.
+- **Training load** now rates each workout by its family of exercise and uses its full calories.
+
+### 🔥 Active Calories & Active Time
+- **Workouts count in full**: every calorie burned during a workout, not just the extra above resting, and every minute of it.
+- **Every step counts**: 150 steps adds one active minute, and each step's full cost is included.
+- **Daily Activity** shows the new active calories and a new Active Time row, with an editable Active Time goal.
+- **Maintenance calories** use the same rules, and the day's total burn no longer counts resting calories twice.
+
+### 🧩 Seven New Widgets
+- Breathe (one tap starts a session), Heart, Health Markers, Goals, Weight Trend, Posture Check and Cycle.
+- **Hide values on widgets** switch for privacy; widgets refresh whenever you leave the app.
+
+### ✨ Polish
+- Settings & Privacy is shorter: sections are collapsed until you need them.
+- Peach app icon background.
+- The Sleep widget no longer shows a made-up score; it shows when you slept and, with enough history, how steady your schedule is.
+- Ask Dash's welcome screen uses the new waving Dash.
+
+---
+
+## 🚀 What's New in Hangry v1.14.0
+- Illustrated pose guides for posture and body fat photos; the AI knows each view.
+- Dash breathes along in the breathing exercise, with six expressions across the app, illustrated empty states and onboarding art.
+- Floating Zs, heartbeat glow, confetti and tap-to-hop animations.
+
+---
+
+## 🚀 What's New in Hangry v1.13.0
+- Supplements: snap a bottle to add it, overlap and dose checks, reminders and a widget.
+- Ask Dash accepts photos, can fill things in for you after you confirm, and streams replies.
+- Allergen alerts on logged meals; blood pressure and blood sugar shared back to Health Connect.
+
+---
+
+## 🚀 What's New in Hangry v1.12.0
+- Health records and goals (blood pressure, labs, allergies, conditions, cycle, pregnancy).
+- Body metrics (BMI, FFMI, waist-to-height and more) and an energy balance estimate.
+- Ask Dash and camera-first meal logging.
+
+---
+
+## 🚀 What's New in Hangry v1.11.0
+- Nunito typography, decluttered copy with info tips, the Dash app icon, and recovery that still works without HRV.
+
+---
+
+## 🚀 What's New in Hangry v1.10.0
+- Meet Dash the fox, the AI coach's mascot, plus guided breathing exercises.
+
+---
+
+## 🚀 What's New in Hangry v1.9.0
+- Warm cream rebrand with contrast-checked light and dark themes.
+
+---
+
+## 🚀 What's New in Hangry v1.8.0
+- Body fat dashboard widget, body fat trend chart, coach model selector and a multi-photo picker.
+
+---
+
+## 🚀 What's New in Hangry v1.7.0 – v1.7.1
+- AI body fat calculator, interactive trend history and faster local storage.
+- Fixed a startup crash (v1.7.1).
+
+---
+
+## 🚀 What's New in Hangry v1.6.0
+- Removed the double status-bar gap on Today and locked the day's resting heart rate once shown.
+
+---
+
+## 🚀 What's New in Hangry v1.5.0
+- Floating bottom dock and more usable screen space across the app.
+
+---
+
+## 🚀 What's New in Hangry v1.4.0
+- Modernized UI with bottom navigation, macro tracking and AI Coach polish.
+
+---
+
 ## 🚀 What's New in Hangry v1.3.0
 
 ### 🎯 Streamlined Daily Activity & Metrics

@@ -16,5 +16,7 @@ app/build/
 .claude/
 .kotlin/
 
-
-
+# Release signing - never commit the upload key or its passwords
+keystore.properties
+*.jks
+*.keystore

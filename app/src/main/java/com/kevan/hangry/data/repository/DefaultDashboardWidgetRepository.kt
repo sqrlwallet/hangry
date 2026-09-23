@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.kevan.hangry.domain.model.DashboardWidget
+import com.kevan.hangry.domain.model.WidgetType
 import com.kevan.hangry.domain.repository.DashboardWidgetRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -112,7 +113,8 @@ class DefaultDashboardWidgetRepository(
             list
         }
         return mergedList
-            .filterNot { it.id == "training_load" }
-            .sortedBy { it.order }
+            .filterNot { it.id == "training_load" || it.type in DashboardWidget.RETIRED_TYPES }
+            // The overview card is the top of Today, always shown first.
+            .sortedWith(compareBy({ it.type != WidgetType.RECOVERY_HERO }, { it.order }))
     }
 }

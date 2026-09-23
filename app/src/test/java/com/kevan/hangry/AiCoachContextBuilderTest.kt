@@ -41,6 +41,7 @@ class AiCoachContextBuilderTest {
         override fun getAllSummaries(): Flow<List<DailyHealthSummaryEntity>> = flowOf(summaries)
         override suspend fun getSummariesBetweenList(start: LocalDate, end: LocalDate): List<DailyHealthSummaryEntity> = summaries
         override fun getLatestSummary(): Flow<DailyHealthSummaryEntity?> = flowOf(null)
+        override suspend fun getLatestSummarySync(): DailyHealthSummaryEntity? = null
         override suspend fun getOldestSummary(): DailyHealthSummaryEntity? = null
         override suspend fun getCount(): Int = summaries.size
         override suspend fun deleteForDate(date: LocalDate) {}
@@ -63,7 +64,15 @@ class AiCoachContextBuilderTest {
 
     private class FakeExerciseSessionDao(var workouts: List<ExerciseSessionEntity> = emptyList()) : ExerciseSessionDao {
         override suspend fun insertOrIgnore(sessions: List<ExerciseSessionEntity>): List<Long> = emptyList()
-        override suspend fun backfillSteps(fingerprint: String, steps: Long) {}
+        override suspend fun updateDetails(
+            fingerprint: String, exerciseType: String, title: String?, notes: String?,
+            activeCalories: Double?, totalCalories: Double?, steps: Long?,
+            distanceMeters: Double?, elevationGainMeters: Double?, avgPowerWatts: Double?,
+            setCount: Int?, repCount: Int?, segmentSummary: String?, lapCount: Int?, detailVersion: Int
+        ) {}
+        override suspend fun updateHeartRate(fingerprint: String, avg: Double?, max: Double?) {}
+        override suspend fun markDetailVersion(version: Int) {}
+        override suspend fun getOldestStartNeedingDetails(version: Int): Instant? = null
         override fun getSessionsBetween(start: Instant, end: Instant): Flow<List<ExerciseSessionEntity>> = flowOf(workouts)
         override suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<ExerciseSessionEntity> = workouts
         override fun getAllSessions(): Flow<List<ExerciseSessionEntity>> = flowOf(workouts)

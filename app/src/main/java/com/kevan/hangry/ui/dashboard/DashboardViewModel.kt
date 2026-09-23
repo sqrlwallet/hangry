@@ -11,6 +11,7 @@ import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
+import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.SleepCalculator
 import com.kevan.hangry.domain.calculation.StrainCalculator
@@ -184,16 +185,20 @@ class DashboardViewModel(
                     recentDailyStrain = recentSummaries.mapNotNull { it.dayStrain }
                 )
 
-                // Exercise calories from real Health Connect recorded workouts
-                val exerciseCalories = todaysWorkouts.mapNotNull { it.activeCalories }.sum()
+                // Workouts count in full - every calorie burned during them, not just the extra.
+                // The stored summary adds every step on top (see ActiveActivityCalculator); before
+                // today's first sync lands, fall back to the workouts alone.
+                val exerciseCalories = todaysWorkouts.sumOf { ActiveActivityCalculator.workoutCalories(it, summary?.bmrCalories) ?: 0.0 }
                 val effectiveActiveCalories = summary?.activeCalories ?: if (exerciseCalories > 0.0) exerciseCalories else null
-                val activeMinutes = max(summary?.exerciseDurationMinutes ?: 0, todaysWorkouts.sumOf { it.durationMinutes })
+                val activeMinutes = summary?.activeMinutes
+                    ?: max(summary?.exerciseDurationMinutes ?: 0, todaysWorkouts.sumOf { it.durationMinutes })
                 val activeCalories = effectiveActiveCalories ?: 0.0
 
                 val calorieBurn = calorieCalculator.calculateDailyBurn(
                     bmr = summary?.bmrCalories,
                     totalActiveCalories = effectiveActiveCalories,
-                    exerciseCalories = exerciseCalories
+                    exerciseCalories = exerciseCalories,
+                    activeMinutes = activeMinutes
                 )
                 // Built from the last 7 full days of steps and workouts rather than today's still
                 // accumulating burn, so the target doesn't swing through the day. With no goal
@@ -298,19 +303,22 @@ class DashboardViewModel(
         _selectedDate.value = LocalDate.now(zone)
     }
 
-    fun updateActivityGoals(stepGoal: Long, caloriesGoal: Int) {
+    fun updateActivityGoals(stepGoal: Long, caloriesGoal: Int, activeMinutesGoal: Int? = null) {
         viewModelScope.launch {
             val currentProfile = userProfileRepository.getProfileSync() ?: UserProfileEntity()
+            val minutesGoal = activeMinutesGoal ?: currentProfile.dailyActivityMinutesGoal
             userProfileRepository.saveProfile(
                 currentProfile.copy(
                     dailyStepGoal = stepGoal,
-                    dailyActiveCaloriesGoal = caloriesGoal
+                    dailyActiveCaloriesGoal = caloriesGoal,
+                    dailyActivityMinutesGoal = minutesGoal
                 )
             )
             _uiState.update {
                 it.copy(
                     dailyStepGoal = stepGoal,
-                    dailyActiveCaloriesGoal = caloriesGoal
+                    dailyActiveCaloriesGoal = caloriesGoal,
+                    dailyActivityMinutesGoal = minutesGoal
                 )
             }
         }

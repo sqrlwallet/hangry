@@ -14,10 +14,12 @@ class DashboardWidgetSerializationTest {
     fun testDefaultWidgets_containExpectedDefaults() {
         val defaults = DashboardWidget.createDefaultWidgets()
         assertTrue(defaults.any { it.type == WidgetType.RECOVERY_HERO })
-        assertTrue(defaults.any { it.type == WidgetType.DAILY_ACTIVITY_RINGS })
         assertTrue(defaults.any { it.type == WidgetType.STRESS_MONITOR })
-        assertTrue(defaults.any { it.type == WidgetType.SLEEP_STRAIN_RINGS })
         assertTrue(defaults.any { it.type == WidgetType.VITALS_CARD })
+        // Recovery, sleep, strain and activity share the overview card; Ask Dash, Nutrition and
+        // Log Meal live in the tab bar and button - none of those cards come back by default.
+        assertTrue(defaults.none { it.type in DashboardWidget.RETIRED_TYPES })
+        assertEquals(WidgetType.RECOVERY_HERO, defaults.minBy { it.order }.type)
     }
 
     @Test
@@ -77,7 +79,7 @@ class DashboardWidgetSerializationTest {
             w.copy(order = existingSavedList.size + idx)
         }
 
-        assertTrue(merged.any { it.id == "daily_activity_rings" })
+        assertTrue(merged.any { it.id == "heart_metrics" })
         assertTrue(merged.any { it.id == "stress_monitor" })
         assertTrue(merged.any { it.id == "custom_steps_1" })
         assertEquals(0, merged.first { it.id == "recovery_hero" }.order)

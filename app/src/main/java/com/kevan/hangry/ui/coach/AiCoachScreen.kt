@@ -636,7 +636,7 @@ private fun EmptyConversationView(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        DashHero(size = 168.dp)
+        DashExpression(mood = DashMood.WAVE, size = 168.dp)
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
         Text(
             text = "Hi, I'm $MASCOT_NAME!",

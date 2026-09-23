@@ -14,8 +14,35 @@ interface ExerciseSessionDao {
     suspend fun insertOrIgnore(sessions: List<ExerciseSessionEntity>): List<Long>
 
     /** Fills in workout steps on sessions imported before steps were tracked (insertOrIgnore skips them). */
-    @Query("UPDATE exercise_sessions SET steps = :steps WHERE recordFingerprint = :fingerprint AND steps IS NULL")
-    suspend fun backfillSteps(fingerprint: String, steps: Long)
+    /** Brings an already-saved workout up to date with everything the current import reads. */
+    @Query(
+        """UPDATE exercise_sessions SET exerciseType = :exerciseType, title = :title, notes = :notes,
+        activeCalories = :activeCalories, totalCalories = :totalCalories, steps = :steps,
+        distanceMeters = :distanceMeters, elevationGainMeters = :elevationGainMeters, avgPowerWatts = :avgPowerWatts,
+        setCount = :setCount, repCount = :repCount, segmentSummary = :segmentSummary, lapCount = :lapCount,
+        detailVersion = :detailVersion WHERE recordFingerprint = :fingerprint"""
+    )
+    suspend fun updateDetails(
+        fingerprint: String, exerciseType: String, title: String?, notes: String?,
+        activeCalories: Double?, totalCalories: Double?, steps: Long?,
+        distanceMeters: Double?, elevationGainMeters: Double?, avgPowerWatts: Double?,
+        setCount: Int?, repCount: Int?, segmentSummary: String?, lapCount: Int?, detailVersion: Int
+    )
+
+    suspend fun updateDetails(s: ExerciseSessionEntity) = updateDetails(
+        s.recordFingerprint, s.exerciseType, s.title, s.notes, s.activeCalories, s.totalCalories, s.steps,
+        s.distanceMeters, s.elevationGainMeters, s.avgPowerWatts, s.setCount, s.repCount, s.segmentSummary,
+        s.lapCount, s.detailVersion
+    )
+
+    @Query("UPDATE exercise_sessions SET avgHeartRate = :avg, maxHeartRate = :max WHERE recordFingerprint = :fingerprint")
+    suspend fun updateHeartRate(fingerprint: String, avg: Double?, max: Double?)
+
+    @Query("UPDATE exercise_sessions SET detailVersion = :version WHERE detailVersion < :version")
+    suspend fun markDetailVersion(version: Int)
+
+    @Query("SELECT MIN(startTime) FROM exercise_sessions WHERE detailVersion < :version")
+    suspend fun getOldestStartNeedingDetails(version: Int): Instant?
 
     // Attributed by startTime alone - a session that starts before `end` but runs past it
     // (e.g. crosses midnight) still belongs to the day it started, instead of being excluded

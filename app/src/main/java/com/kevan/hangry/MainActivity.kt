@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         // Detail screens opened from a notification/widget sit on top of Today, so Back lands
         // somewhere sensible instead of closing the app.
         val requested = getDestinationFromIntent(intent)
-        val deepLinkOnTop = requested?.takeIf { it in STACKED_DEEP_LINKS }
+        val deepLinkOnTop = requested?.takeIf { route -> STACKED_DEEP_LINKS.any { route.substringBefore('?') == it } }
         val initialDestination = requested?.takeIf { deepLinkOnTop == null }
         val startDestination = initialDestination ?: runCatching {
             kotlinx.coroutines.runBlocking {
@@ -89,6 +89,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        // Leaving the app is when home screen widgets come into view, so bring them up to date
+        // with anything logged in this visit (breathing, readings, weigh-ins, posture checks).
+        com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(this)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -102,7 +109,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private companion object {
-        val STACKED_DEEP_LINKS = setOf(Screen.Supplements.route)
+        /** Base routes (before any `?args`) that open on top of Today instead of replacing it. */
+        val STACKED_DEEP_LINKS = setOf(
+            Screen.Supplements.route,
+            "breathing",
+            Screen.HeartMetrics.route,
+            Screen.HealthRecords.route,
+            Screen.Trends.route,
+            Screen.Posture.route,
+            Screen.PostureCapture.route
+        )
     }
 
     private fun getDestinationFromIntent(intent: Intent?): String? {

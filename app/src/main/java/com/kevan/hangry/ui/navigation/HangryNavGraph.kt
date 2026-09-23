@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.kevan.hangry.data.breathing.BreathingSessionState
+import com.kevan.hangry.ui.more.MoreScreen
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -92,10 +95,17 @@ sealed class Screen(val route: String) {
     data object BodyMetrics : Screen("body_metrics")
     data object HealthRecords : Screen("health_records")
     data object Supplements : Screen("supplements")
-    data object Breathing : Screen("breathing?pattern={pattern}") {
-        /** A null pattern opens the screen as-is, e.g. to return to a running session. */
-        fun createRoute(patternId: String? = null) =
-            if (patternId == null) "breathing" else "breathing?pattern=$patternId"
+    data object More : Screen("more")
+    data object Breathing : Screen("breathing?pattern={pattern}&start={start}") {
+        /**
+         * A null pattern opens the screen as-is, e.g. to return to a running session.
+         * [start] begins a session straight away (used by the home screen widget).
+         */
+        fun createRoute(patternId: String? = null, start: Boolean = false) = when {
+            patternId == null -> "breathing"
+            start -> "breathing?pattern=$patternId&start=true"
+            else -> "breathing?pattern=$patternId"
+        }
     }
 }
 
@@ -346,10 +356,7 @@ fun HangryNavGraph(
             TrainingScreen(
                 viewModel = dashboardViewModel,
                 workoutRepository = appContainer.workoutRepository,
-                heartRateRepository = appContainer.heartRateRepository,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                heartRateRepository = appContainer.heartRateRepository
             )
         }
 
@@ -406,8 +413,10 @@ fun HangryNavGraph(
             )
         }
 
-        composable(Screen.Settings.route) {
+        composable(Screen.Settings.route) { backStackEntry ->
+            val expandAi = remember { backStackEntry.savedStateHandle.remove<Boolean>(EXPAND_AI_SETTINGS) == true }
             SettingsScreen(
+                expandAiInitially = expandAi,
                 syncManager = appContainer.healthSyncManager,
                 exportManager = appContainer.localExportManager,
                 localStorageManager = appContainer.localStorageManager,
@@ -465,7 +474,7 @@ fun HangryNavGraph(
                 dashboardViewModel = dashboardViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToMealPlan = { navController.navigate(Screen.MealPlan.route) },
-                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToAiSettings = { navController.openAiSettings() }
             )
         }
 
@@ -476,6 +485,21 @@ fun HangryNavGraph(
             )
         }
 
+        // Everything that isn't its own tab
+        composable(Screen.More.route) {
+            MoreScreen(
+                onOpenTrends = { navController.navigate(Screen.Trends.route) },
+                onOpenPosture = { navController.navigate(Screen.Posture.route) },
+                onOpenBodyFat = { navController.navigate(Screen.BodyFatCalculator.route) },
+                onOpenBodyMetrics = { navController.navigate(Screen.BodyMetrics.route) },
+                onOpenHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
+                onOpenSupplements = { navController.navigate(Screen.Supplements.route) },
+                onOpenBreathing = { navController.navigate(Screen.Breathing.createRoute()) },
+                onOpenWidgets = { navController.navigate(Screen.HomeScreenWidgets.route) },
+                onOpenSettings = { navController.navigate(Screen.Settings.route) }
+            )
+        }
+
         // Posture correction (AI feature - opt-in, see Settings > AI Features)
         composable(Screen.Posture.route) {
             PostureScreen(
@@ -483,7 +507,7 @@ fun HangryNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onStartNewScan = { navController.navigate(Screen.PostureCapture.route) },
                 onOpenScan = { scanId -> navController.navigate(Screen.PostureScanDetail.createRoute(scanId)) },
-                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToAiSettings = { navController.openAiSettings() },
                 onNavigateToAiCoach = { navController.navigate(Screen.AiCoach.route) }
             )
         }
@@ -513,7 +537,7 @@ fun HangryNavGraph(
             AiCoachScreen(
                 viewModel = aiCoachViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToAiSettings = { navController.openAiSettings() },
                 onOpenScreen = { screen, pattern ->
                     val route = when (screen) {
                         "breathing" -> Screen.Breathing.createRoute(pattern)
@@ -531,7 +555,17 @@ fun HangryNavGraph(
                         "settings" -> Screen.Settings.route
                         else -> null
                     }
-                    route?.let { navController.navigate(it) }
+                    when {
+                        route == null -> Unit
+                        // Tabs (Nutrition, Workouts) switch tabs like the bottom bar, rather than
+                        // stacking a second copy of the tab on top of the chat.
+                        route in BottomNavDestination.routeSet -> navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        else -> navController.navigate(route)
+                    }
                 }
             )
         }
@@ -583,10 +617,15 @@ fun HangryNavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("start") {
+                    type = NavType.BoolType
+                    defaultValue = false
                 }
             )
         ) { backStackEntry ->
             val patternId = backStackEntry.arguments?.getString("pattern")
+            val autoStart = backStackEntry.arguments?.getBoolean("start") == true
             val breathingViewModel: BreathingViewModel = viewModel(
                 factory = BreathingViewModel.provideFactory(
                     initialPattern = BreathingPattern.fromId(patternId),
@@ -595,6 +634,16 @@ fun HangryNavGraph(
                     healthConnectDataSource = appContainer.healthConnectDataSource
                 )
             )
+            // Started from the widget: begin once, and never over a session that's already running.
+            var autoStartHandled by rememberSaveable { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                if (autoStart && !autoStartHandled) {
+                    autoStartHandled = true
+                    if (appContainer.breathingSessionController.state.value is BreathingSessionState.Idle) {
+                        breathingViewModel.start()
+                    }
+                }
+            }
             BreathingScreen(
                 viewModel = breathingViewModel,
                 onNavigateBack = { navController.popBackStack() }
@@ -640,4 +689,12 @@ fun HangryNavGraph(
             )
         }
     }
+}
+
+private const val EXPAND_AI_SETTINGS = "expand_ai_settings"
+
+/** Opens Settings with the (normally collapsed) AI Features section expanded and scrolled into view. */
+private fun NavHostController.openAiSettings() {
+    navigate(Screen.Settings.route)
+    currentBackStackEntry?.savedStateHandle?.set(EXPAND_AI_SETTINGS, true)
 }

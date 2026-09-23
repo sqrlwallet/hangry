@@ -67,12 +67,14 @@ When all data streams are present:
 Training load quantifies cardiovascular and neuromuscular effort from logged workouts:
 $$\text{SessionLoad} = (\text{DurationMinutes} \times 0.8 + \text{CaloriesBonus} \times 5.0) \times M_{\text{intensity}}$$
 
-Intensity Multipliers ($M_{\text{intensity}}$):
-- `Running`, `HIIT`: $1.4$
-- `Cycling`, `Swimming`: $1.2$
-- `Strength Training`: $1.1$
-- `Walking`, `Yoga`: $0.7$
-- `Other`: $1.0$
+`CaloriesBonus` is the workout's full calories ÷ 100 (the recorded total, or active calories plus the resting burn during it).
+
+Intensity multipliers ($M_{\text{intensity}}$) come from each Health Connect exercise type's family (`WorkoutCategory`):
+- Running, stair climbing, HIIT, boxing, boot camp, martial arts: $1.4$
+- Cycling, elliptical, rowing machine, swimming, team and racquet sports, winter sports: $1.2$
+- Strength training, weightlifting, calisthenics, climbing, rowing, paddling and other water sports: $1.1$
+- Walking, hiking, golf, yoga, pilates, stretching: $0.7$
+- Anything else: $1.0$
 
 *Note: Training load is clearly indicated in the UI as a calculated estimate.*
 
@@ -140,13 +142,35 @@ $$\text{BMR}_{\text{male}} = 10w + 6.25h - 5a + 5 \qquad \text{BMR}_{\text{femal
 
 where $w$ = weight (kg, latest known reading), $h$ = height (cm), $a$ = age (years), all set once in Settings → Goals & Body Metrics. `OTHER` averages the male/female offsets ($-78$) rather than forcing a binary choice — documented as an approximation, not a clinical claim. BMR is computed once from the *latest* known weight and applied across any recomputed date range (a simplification: point-in-time historical weight isn't reconstructed).
 
-### 8.2 Daily Burn Breakdown
+### 8.2 Active Calories & Active Time
 
-$$\text{Total Burned} = \text{BMR} + \text{TotalActiveCalories}_{\text{Health Connect}}$$
+`ActiveActivityCalculator` works these out when each day's summary is built:
 
-`TotalActiveCalories` already encompasses both incidental daily movement and logged workouts as reported by Health Connect. For the on-screen breakdown, `Exercise` is estimated from logged workouts (Health Connect doesn't expose true per-workout calories on this app's data path, so a ~6 kcal/minute estimate is used when a source doesn't report it directly) and `NEAT = max(0, TotalActiveCalories − Exercise)`. Never substitutes a missing BMR or active-calorie reading with zero — the total is left `null` and the UI shows "—" with guidance on what's missing (§1).
+- **Workouts count in full** — every calorie burned during the workout (the recorded total; if a source only reports active calories, those plus the resting burn over the workout's duration), and every minute of it as active time.
+- **Steps outside workouts count too** — every 150 steps adds one active minute, and each step costs its full amount: the walking itself ($0.5 \text{ kcal} \times w \times$ stride km, stride $= 0.415h$) plus the resting burn during the 1/150 minute it takes ($\text{BMR} / 1440 / 150$).
 
-### 8.3 Daily Calorie Goal
+$$\text{ActiveCalories} = \sum \text{WorkoutCalories} + \text{Steps}_{\text{outside workouts}} \times \text{kcal per step}$$
+$$\text{ActiveMinutes} = \sum \text{WorkoutMinutes} + \frac{\text{Steps}_{\text{outside workouts}}}{150}$$
+
+Steps inside a workout aren't counted again as steps, since the workout already covers them. If a workout has no calorie figure, its minutes still count and its steps are costed as steps. Without weight or height a step can't be costed, so Health Connect's own active-calorie total is used instead.
+
+Stored days calculated under an older rule (`calculationVersion` below `SUMMARY_CALCULATION_VERSION`) are rebuilt automatically the next time the app opens.
+
+### 8.3 Daily Burn Breakdown
+
+$$\text{Total Burned} = \text{BMR} \times \frac{1440 - \text{ActiveMinutes}}{1440} + \text{ActiveCalories}$$
+
+Active calories already include the resting burn during active time, so BMR only covers the minutes that weren't active — otherwise that resting burn would be counted twice. For the on-screen breakdown, `Exercise` is the workouts' full calories and `NEAT = max(0, ActiveCalories − Exercise)`. Never substitutes a missing BMR or active-calorie reading with zero — the total is left `null` and the UI shows "—" with guidance on what's missing (§1).
+
+### 8.4 Maintenance Calories
+
+`EnergyBalanceCalculator` averages the 7 full days before today (days with step data only), counting activity exactly as §8.2:
+
+$$\text{Maintenance} = (\overline{\text{Resting}} + \overline{\text{StepCalories}} + \overline{\text{WorkoutCalories}}) \times 1.10$$
+
+where Resting is BMR over each day's inactive minutes (Katch–McArdle from lean mass when there's a measured body-fat scan, else Mifflin–St Jeor) and the extra 10% is the thermic effect of food. It needs weight, height, age, sex and at least 5 of the 7 days with step data; otherwise it lists what's missing instead of guessing.
+
+### 8.5 Daily Calorie Goal
 
 Given a weight goal and target date (Settings → Goals & Body Metrics), plus today's Total Burned as a TDEE estimate:
 

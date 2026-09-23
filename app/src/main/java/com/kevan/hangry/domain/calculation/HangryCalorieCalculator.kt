@@ -24,10 +24,11 @@ class HangryCalorieCalculator : CalorieCalculator {
     override fun calculateDailyBurn(
         bmr: Double?,
         totalActiveCalories: Double?,
-        exerciseCalories: Double
+        exerciseCalories: Double,
+        activeMinutes: Int?
     ): CalorieBurnResult {
         val neat = totalActiveCalories?.let { (it - exerciseCalories).coerceAtLeast(0.0) }
-        val total = bmr?.let { it + (totalActiveCalories ?: 0.0) }
+        val total = bmr?.let { ActiveActivityCalculator.totalBurn(it, totalActiveCalories, activeMinutes) }
 
         val confidence = when {
             bmr != null && totalActiveCalories != null -> ScoreConfidence.HIGH

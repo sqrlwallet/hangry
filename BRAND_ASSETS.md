@@ -6,7 +6,7 @@
 |---|---|---|---|
 | **Hangry Logo** | `app/src/main/res/drawable/hangry_logo.xml` | Primary brand emblem: stylized flame + vital pulse | Vector Drawable (XML) |
 | **Adaptive Launcher Foreground** | `app/src/main/res/drawable/ic_launcher_foreground.xml` | Modern app icon foreground centered on ember badge | Vector Drawable (XML) |
-| **Adaptive Launcher Background** | `app/src/main/res/drawable/ic_launcher_background.xml` | Solid dark background layer | Vector Drawable (XML) |
+| **Adaptive Launcher Background** | `app/src/main/res/drawable/ic_launcher_background.xml` | Warm peach radial gradient (`#FFE3D3` → `#FFB38A`) | Vector Drawable (XML) |
 | **Adaptive Launcher Monochrome** | `app/src/main/res/drawable/ic_launcher_monochrome.xml` | Themed/monochrome layer for Android 13+ (flame silhouette only) | Vector Drawable (XML) |
 | **Splash Screen Icon** | `app/src/main/res/drawable/hangry_logo.xml` | Centered vector icon during app cold start | Vector Drawable (XML) |
 

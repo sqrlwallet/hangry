@@ -251,6 +251,9 @@ class RealHealthConnectDataSource(
         } catch (_: Exception) {
             emptyList()
         }
+        val distanceRecords = runCatching { readAllRecords(DistanceRecord::class, filter) }.getOrDefault(emptyList())
+        val elevationRecords = runCatching { readAllRecords(ElevationGainedRecord::class, filter) }.getOrDefault(emptyList())
+        val powerRecords = runCatching { readAllRecords(PowerRecord::class, filter) }.getOrDefault(emptyList())
 
         return records.map { record ->
             val durationMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
@@ -286,12 +289,27 @@ class RealHealthConnectDataSource(
                 }
             }.toLong().takeIf { stepRecords.isNotEmpty() }
 
+            val distance = distanceRecords.sumOf {
+                it.distance.inMeters * overlapFraction(it.startTime, it.endTime, record.startTime, record.endTime)
+            }.takeIf { it > 0 }
+            val elevation = elevationRecords.sumOf {
+                it.elevation.inMeters * overlapFraction(it.startTime, it.endTime, record.startTime, record.endTime)
+            }.takeIf { it > 0 }
+            val powerSamples = powerRecords.flatMap { it.samples }
+                .filter { !it.time.isBefore(record.startTime) && !it.time.isAfter(record.endTime) }
+                .map { it.power.inWatts }
+            // Rests and pauses are segments too; they aren't sets.
+            val sets = record.segments.filter {
+                it.segmentType != ExerciseSegment.EXERCISE_SEGMENT_TYPE_REST &&
+                    it.segmentType != ExerciseSegment.EXERCISE_SEGMENT_TYPE_PAUSE
+            }
+
             ExerciseSessionEntity(
                 sourceRecordId = recordId,
                 sourcePackageName = pkg,
                 recordFingerprint = fingerprint,
-                exerciseType = mapExerciseType(record.exerciseType),
-                title = record.title,
+                exerciseType = HealthConnectWorkoutTypes.fromHealthConnect(record.exerciseType).name,
+                title = record.title?.takeIf { it.isNotBlank() },
                 startTime = record.startTime,
                 endTime = record.endTime,
                 durationMinutes = durationMinutes,
@@ -299,7 +317,16 @@ class RealHealthConnectDataSource(
                 totalCalories = totalCalories,
                 steps = sessionSteps,
                 estimatedTrainingLoad = null,
-                dataQualityState = "VALID"
+                dataQualityState = "VALID",
+                notes = record.notes?.takeIf { it.isNotBlank() },
+                distanceMeters = distance,
+                elevationGainMeters = elevation,
+                avgPowerWatts = powerSamples.takeIf { it.isNotEmpty() }?.average(),
+                setCount = sets.size.takeIf { it > 0 },
+                repCount = sets.sumOf { it.repetitions }.takeIf { it > 0 },
+                segmentSummary = HealthConnectWorkoutTypes.segmentSummary(sets.map { it.segmentType to it.repetitions }),
+                lapCount = record.laps.size.takeIf { it > 0 },
+                detailVersion = WORKOUT_DETAIL_VERSION
             )
         }
     }
@@ -919,16 +946,15 @@ class RealHealthConnectDataSource(
         return all
     }
 
-    private fun mapExerciseType(type: Int): String = when (type) {
-        ExerciseSessionRecord.EXERCISE_TYPE_RUNNING -> "RUNNING"
-        ExerciseSessionRecord.EXERCISE_TYPE_BIKING -> "CYCLING"
-        ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL,
-        ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_OPEN_WATER -> "SWIMMING"
-        ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "WALKING"
-        ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "STRENGTH_TRAINING"
-        ExerciseSessionRecord.EXERCISE_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING -> "HIIT"
-        ExerciseSessionRecord.EXERCISE_TYPE_YOGA -> "YOGA"
-        else -> "OTHER"
+    /** Share of an interval record that falls inside a workout, so partial overlaps are pro-rated. */
+    private fun overlapFraction(recStart: Instant, recEnd: Instant, sessionStart: Instant, sessionEnd: Instant): Double {
+        val overlapMs = java.time.Duration.between(maxOf(recStart, sessionStart), minOf(recEnd, sessionEnd)).toMillis()
+        val recordMs = java.time.Duration.between(recStart, recEnd).toMillis()
+        return when {
+            overlapMs <= 0 -> if (recordMs <= 0 && !recStart.isBefore(sessionStart) && !recStart.isAfter(sessionEnd)) 1.0 else 0.0
+            recordMs <= 0 -> 1.0
+            else -> overlapMs.toDouble() / recordMs
+        }
     }
 
     private fun sha256(input: String): String {

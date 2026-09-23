@@ -250,36 +250,21 @@ fun DashboardScreen(
             activeWidgets.forEach { widget ->
                 when (widget.type) {
                     WidgetType.RECOVERY_HERO -> {
-                        HangryScoreHero(
-                            scoreEntity = uiState.recoveryScore,
-                            isPending = uiState.isPendingSleepData,
-                            modifier = Modifier.clickable { onNavigateToRecoveryDetails() }
+                        // Recovery, sleep, strain and activity in one card, with today's advice under it.
+                        TodayOverviewCard(
+                            uiState = uiState,
+                            onOpenRecovery = onNavigateToRecoveryDetails,
+                            onOpenSleep = onNavigateToSleep,
+                            onOpenWorkouts = onNavigateToTraining,
+                            onSaveActivityGoals = { s, c, m -> viewModel.updateActivityGoals(s, c, m) }
                         )
+                        DailyBriefingCard(uiState = uiState)
                     }
 
-                    WidgetType.DAILY_ACTIVITY_RINGS -> {
-                        DailyActivityRingsCard(
-                            currentSteps = uiState.dailySummary?.steps ?: 0L,
-                            stepGoal = uiState.dailyStepGoal,
-                            currentCalories = uiState.todayActiveCalories,
-                            caloriesGoal = uiState.dailyActiveCaloriesGoal,
-                            isExpanded = uiState.isActivityExpanded,
-                            onToggleExpand = { viewModel.toggleActivityExpanded() },
-                            onSaveGoals = { s, c -> viewModel.updateActivityGoals(s, c) }
-                        )
-                    }
+                    // Folded into the overview, or reachable from the tab bar and Log Meal button.
+                    WidgetType.DAILY_ACTIVITY_RINGS, WidgetType.LOG_MEAL, WidgetType.SLEEP_STRAIN_RINGS,
+                    WidgetType.SLEEP_SUMMARY, WidgetType.AI_SHORTCUTS -> Unit
 
-                    WidgetType.LOG_MEAL -> {
-                        LogMealWidgetCard(
-                            totalCaloriesToday = nutritionUiState?.totalCaloriesToday ?: 0,
-                            calorieGoal = uiState.calorieGoal?.dailyCalorieTarget,
-                            recentEntries = nutritionUiState?.todayEntries ?: emptyList(),
-                            isAnalyzing = isAnalyzingMeal,
-                            onTakePhoto = { photoLauncher.takePhoto() },
-                            onPickFromGallery = { photoLauncher.pickFromGallery() },
-                            onOpenNutrition = onNavigateToNutrition
-                        )
-                    }
 
                     WidgetType.STRESS_MONITOR -> {
                         val stress = uiState.stressResult
@@ -288,20 +273,7 @@ fun DashboardScreen(
                         }
                     }
 
-                    WidgetType.SLEEP_STRAIN_RINGS -> {
-                        SleepStrainRingsRow(
-                            uiState = uiState,
-                            onNavigateToSleep = onNavigateToSleep,
-                            onNavigateToTraining = onNavigateToTraining
-                        )
-                    }
 
-                    WidgetType.SLEEP_SUMMARY -> {
-                        SleepSummaryCard(
-                            uiState = uiState,
-                            onNavigateToSleep = onNavigateToSleep
-                        )
-                    }
 
                     WidgetType.HEART_METRICS -> {
                         HeartMetricsRow(
@@ -314,14 +286,6 @@ fun DashboardScreen(
                         VitalsCard(summary = uiState.dailySummary)
                     }
 
-                    WidgetType.AI_SHORTCUTS -> {
-                        AiShortcutsRow(
-                            onNavigateToAiCoach = onNavigateToAiCoach,
-                            onNavigateToNutrition = onNavigateToNutrition,
-                            onNavigateToPosture = onNavigateToPosture,
-                            onNavigateToBodyFat = onNavigateToBodyFatCalculator
-                        )
-                    }
 
                     WidgetType.BODY_FAT_COMPOSITION -> {
                         val scan = uiState.latestBodyFatScan
@@ -371,13 +335,6 @@ fun DashboardScreen(
                     }
                 }
             }
-
-            // Daily Coach Briefing & Recovery Overview
-            DailyCoachBriefingCard(
-                uiState = uiState,
-                onNavigateToAiCoach = onNavigateToAiCoach,
-                onNavigateToNutrition = onNavigateToNutrition
-            )
 
             // Customize Dashboard Quick Button
             Surface(
@@ -487,159 +444,6 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun SleepStrainRingsRow(
-    uiState: DashboardUiState,
-    onNavigateToSleep: () -> Unit,
-    onNavigateToTraining: () -> Unit
-) {
-    val tokens = LocalHangryTokens.current
-    val isPending = uiState.isPendingSleepData
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToSleep() },
-            contentPadding = 12.dp
-        ) {
-            val quality = uiState.sleepAnalysis?.sleepQualityScore ?: 70
-            val sleepScoreColor = when {
-                isPending -> tokens.textMuted
-                quality >= 85 -> tokens.scoreColors.primed
-                quality >= 65 -> tokens.scoreColors.balanced
-                else -> tokens.scoreColors.rebuild
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                HangryRingGauge(
-                    progress = if (isPending) 0f else (quality / 100f).coerceIn(0f, 1f),
-                    color = sleepScoreColor,
-                    modifier = Modifier.size(52.dp),
-                    strokeWidth = 5.dp
-                ) {
-                    Text(
-                        text = if (isPending) "--" else "$quality",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = sleepScoreColor
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f, fill = false)) {
-                    Text(
-                        text = "Sleep Score",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = tokens.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = if (isPending) "Pending" else "Quality",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tokens.textMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToTraining() },
-            contentPadding = 12.dp
-        ) {
-            val strain = (uiState.dailySummary?.dayStrain ?: 0.0).coerceIn(0.0, HangryStrainCalculator.MAX_STRAIN)
-            val strainColor = if (isPending) tokens.textMuted else tokens.chartColors.trainingLoad
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                HangryRingGauge(
-                    progress = if (isPending) 0f else (strain / HangryStrainCalculator.MAX_STRAIN).toFloat(),
-                    color = strainColor,
-                    modifier = Modifier.size(52.dp),
-                    strokeWidth = 5.dp
-                ) {
-                    Text(
-                        text = if (isPending) "--" else String.format(Locale.US, "%.1f", strain),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = strainColor
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f, fill = false)) {
-                    Text(
-                        text = "Strain",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = tokens.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    val recommendation = uiState.strainRecommendation
-                    val targetText = when {
-                        isPending -> "Pending"
-                        recommendation != null -> String.format(Locale.US, "%.1f–%.1f", recommendation.targetLow, recommendation.targetHigh)
-                        else -> "Calibrating"
-                    }
-                    Text(
-                        text = targetText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tokens.textMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SleepSummaryCard(
-    uiState: DashboardUiState,
-    onNavigateToSleep: () -> Unit
-) {
-    val tokens = LocalHangryTokens.current
-    HangryCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onNavigateToSleep() }
-    ) {
-        Text(
-            text = stringResource(R.string.sleep_summary_title),
-            style = MaterialTheme.typography.titleSmall,
-            color = tokens.textSecondary
-        )
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-
-        val sleepMin = uiState.dailySummary?.sleepDurationMinutes
-        val sleepDisplay = when {
-            uiState.isPendingSleepData -> "Pending"
-            sleepMin != null && sleepMin > 0 -> "${sleepMin / 60}h ${sleepMin % 60}m"
-            else -> stringResource(R.string.not_available)
-        }
-
-        Text(
-            text = sleepDisplay,
-            style = MaterialTheme.typography.headlineMedium,
-            color = if (uiState.isPendingSleepData) tokens.textMuted else tokens.chartColors.sleep
-        )
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-        val performance = uiState.sleepAnalysis?.sleepPerformancePercentage
-        val sleepSubtitle = when {
-            uiState.isPendingSleepData -> "Log last night's sleep to unlock"
-            performance != null -> "$performance% of sleep need"
-            else -> stringResource(R.string.sleep_aligned_with_pattern)
-        }
-        Text(
-            text = sleepSubtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = tokens.textMuted
-        )
-    }
-}
-
-@Composable
 private fun HeartMetricsRow(
     uiState: DashboardUiState,
     onNavigateToHeartMetrics: () -> Unit
@@ -692,109 +496,6 @@ private fun HeartMetricsRow(
                 text = hrvText,
                 style = MaterialTheme.typography.headlineMedium,
                 color = tokens.chartColors.hrv
-            )
-        }
-    }
-}
-
-@Composable
-private fun AiShortcutsRow(
-    onNavigateToAiCoach: () -> Unit,
-    onNavigateToNutrition: () -> Unit,
-    onNavigateToPosture: () -> Unit,
-    onNavigateToBodyFat: () -> Unit = {}
-) {
-    val tokens = LocalHangryTokens.current
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToAiCoach() },
-            contentPadding = 12.dp
-        ) {
-            Text(
-                text = "Ask Dash",
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-            Text(
-                text = "Chat now",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToNutrition() },
-            contentPadding = 12.dp
-        ) {
-            Text(
-                text = "Nutrition",
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-            Text(
-                text = "Log food",
-                style = MaterialTheme.typography.titleMedium,
-                color = tokens.chartColors.trainingLoad,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToPosture() },
-            contentPadding = 12.dp
-        ) {
-            Text(
-                text = "Posture",
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-            Text(
-                text = "Check posture",
-                style = MaterialTheme.typography.titleMedium,
-                color = tokens.chartColors.hrv,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToBodyFat() },
-            contentPadding = 12.dp
-        ) {
-            Text(
-                text = "Body Fat",
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-            Text(
-                text = "Measure",
-                style = MaterialTheme.typography.titleMedium,
-                color = tokens.scoreColors.primed,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -882,139 +583,6 @@ private fun CalorieComponentLabel(label: String, value: Double?, labelColor: and
         )
     }
 }
-
-@Composable
-private fun DailyCoachBriefingCard(
-    uiState: DashboardUiState,
-    onNavigateToAiCoach: () -> Unit,
-    onNavigateToNutrition: () -> Unit
-) {
-    val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
-
-    val quality = uiState.sleepAnalysis?.sleepQualityScore ?: 70
-    val isPending = uiState.isPendingSleepData
-
-    val headline: String
-    val recommendation: String
-    val recommendationDetail: String
-
-    when {
-        isPending -> {
-            headline = "Awaiting Sleep Data"
-            recommendation = "Log or sync last night's sleep to get today's advice."
-            recommendationDetail = "Log or sync last night's sleep to calculate your recovery readiness, strain capacity, and personalized advice."
-        }
-        quality >= 80 -> {
-            headline = "Primed for Peak Output"
-            recommendation = "Sleep quality $quality%. Ready for high-strain training."
-            recommendationDetail = "Sleep quality was high ($quality%). Autonomic nervous system is restored. You have capacity for high-strain training or demanding workouts today."
-        }
-        quality in 50..79 -> {
-            headline = "Balanced Daily Capacity"
-            recommendation = "Sleep quality $quality%. Keep training steady, like zone 2."
-            recommendationDetail = "Moderate sleep recovery ($quality%). A steady training session, zone 2 cardio, or maintenance routine will keep momentum without overload."
-        }
-        else -> {
-            headline = "Rebuild & Restore Focus"
-            recommendation = "Sleep quality $quality%. Focus on active recovery today."
-            recommendationDetail = "Sleep recovery is in the rebuild zone ($quality%). Prioritize active recovery, hydration, mobility, and early wind-down tonight."
-        }
-    }
-
-    HangryCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Daily Briefing",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = tokens.textPrimary
-                )
-                HangryInfoTip(title = headline, body = recommendationDetail)
-            }
-            Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = if (isPending) "Calibrating" else if (quality >= 80) "Optimal" else if (quality in 50..79) "Balanced" else "Rebuild",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = headline,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = tokens.textPrimary
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = recommendation,
-            style = MaterialTheme.typography.bodyMedium,
-            color = tokens.textSecondary
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SuggestionChip(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onNavigateToAiCoach()
-                },
-                label = { Text("Ask Dash", style = MaterialTheme.typography.labelSmall) },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            )
-            SuggestionChip(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onNavigateToNutrition()
-                },
-                label = { Text("Log Food", style = MaterialTheme.typography.labelSmall) },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Restaurant,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = tokens.chartColors.activeCalories
-                    )
-                }
-            )
-        }
-    }
-}
-
 
 @Composable
 private fun BodyFatCompositionWidget(

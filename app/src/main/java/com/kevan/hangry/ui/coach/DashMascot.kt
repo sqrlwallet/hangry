@@ -85,28 +85,6 @@ fun DashAvatar(
     )
 }
 
-/** Full-body Dash with a gentle idle bob, used for the empty conversation hero. Tap to make Dash hop. */
-@Composable
-fun DashHero(
-    size: Dp = 160.dp,
-    modifier: Modifier = Modifier
-) {
-    val bob = rememberIdleBob(durationMillis = 1600)
-    val tap = rememberDashTap(swapToHappy = false)
-    Image(
-        painter = painterResource(id = R.drawable.dash_mascot),
-        contentDescription = "$MASCOT_NAME the fox waving hello",
-        contentScale = ContentScale.Fit,
-        modifier = modifier
-            .size(size)
-            .then(tap.modifier)
-            .graphicsLayer {
-                translationY = -6.dp.toPx() * bob - size.toPx() * HOP_HEIGHT * tap.hop.value
-                rotationZ = -1.5f + 3f * bob
-            }
-    )
-}
-
 /** Dash's expressions, each a full-body illustration on a transparent background. */
 enum class DashMood(@DrawableRes val imageRes: Int, val description: String) {
     HAPPY(R.drawable.dash_mood_happy, "$MASCOT_NAME giving a thumbs up"),
@@ -143,7 +121,7 @@ fun DashExpression(
     interactive: Boolean = true
 ) {
     val bob = rememberIdleBob(durationMillis = 1800)
-    val tap = rememberDashTap(swapToHappy = true)
+    val tap = rememberDashTap()
     val entrance = remember(mood) { Animatable(if (mood.popsIn) 0.55f else 1f) }
     LaunchedEffect(mood) {
         if (mood.popsIn) entrance.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 260f))
@@ -251,7 +229,7 @@ private class DashTapState(
 )
 
 @Composable
-private fun rememberDashTap(swapToHappy: Boolean): DashTapState {
+private fun rememberDashTap(): DashTapState {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val hop = remember { Animatable(0f) }
@@ -267,13 +245,11 @@ private fun rememberDashTap(swapToHappy: Boolean): DashTapState {
             hop.animateTo(1f, tween(durationMillis = 140, easing = FastOutSlowInEasing))
             hop.animateTo(0f, spring(dampingRatio = 0.4f, stiffness = 420f))
         }
-        if (swapToHappy) {
-            reacting = true
-            resetJob?.cancel()
-            resetJob = scope.launch {
-                delay(1200)
-                reacting = false
-            }
+        reacting = true
+        resetJob?.cancel()
+        resetJob = scope.launch {
+            delay(1200)
+            reacting = false
         }
     }
     return DashTapState(modifier, hop, reacting)

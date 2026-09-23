@@ -15,11 +15,14 @@ interface CalorieCalculator {
      * @param exerciseCalories the portion of [totalActiveCalories] attributable to logged
      *   workouts specifically (estimated - Health Connect doesn't expose true per-workout
      *   calories on this data path). NEAT is derived as the remainder.
+     * @param activeMinutes time spent active today. Active calories already include the
+     *   resting burn during that time, so BMR only covers the remaining minutes.
      */
     fun calculateDailyBurn(
         bmr: Double?,
         totalActiveCalories: Double?,
-        exerciseCalories: Double
+        exerciseCalories: Double,
+        activeMinutes: Int? = null
     ): CalorieBurnResult
 
     /**

@@ -7,21 +7,21 @@ import com.kevan.hangry.domain.model.EnergyBalanceEstimate
 import com.kevan.hangry.domain.model.EnergyBalanceResult
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToLong
 
 /**
- * Estimates maintenance calories from real behaviour over the 7 full days before today:
+ * Estimates maintenance calories from real behaviour over the 7 full days before today,
+ * counting activity exactly as Daily Activity does (see [ActiveActivityCalculator]):
  *
- *   maintenance = (BMR + NEAT + average workout calories) × 1.10
+ *   maintenance = (resting burn + step calories + workout calories) × 1.10
  *
+ * - Resting burn is BMR for the minutes you weren't active; active minutes already include
+ *   their own resting burn inside the step and workout calories, so it isn't counted twice.
  * - BMR uses Katch-McArdle (from lean mass) when there's a measured body-fat scan, since it's
  *   more accurate for lean or muscular people; otherwise Mifflin-St Jeor.
+ * - Every step outside a workout counts in full, and every workout counts in full.
  * - The extra 10% is the thermic effect of food - energy spent digesting - which neither BMR
  *   formula includes.
- *
- * - NEAT (non-exercise activity) is the calorie cost of one third of your average daily steps.
- *   Counting only a third is a deliberate rough allowance for steps already covered by workout
- *   calories (and for how much of a step count is low-effort shuffling) - a placeholder rule
- *   until workout steps are handled more precisely.
  * - Averages are over days that actually have step data; days with no data are skipped rather
  *   than treated as zero-activity days.
  *
@@ -67,30 +67,33 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         val workoutsByDay = workouts.groupBy { it.startTime.atZone(zone).toLocalDate() }
 
         var totalSteps = 0L
-        var totalWorkoutKcal = 0.0
+        var countedSteps = 0L
+        var restingKcalSum = 0.0
+        var stepKcalSum = 0.0
+        var workoutKcalSum = 0.0
+        var activeMinutesSum = 0
         var workoutsCounted = 0
         var workoutsWithoutCalories = 0
+        val kcalPerStep = ActiveActivityCalculator.kcalPerStep(weightKg, heightCm, bmr)
 
         stepsByDay.forEach { (day, daySteps) ->
+            val dayWorkouts = workoutsByDay[day].orEmpty()
+            val active = ActiveActivityCalculator.calculate(daySteps, dayWorkouts, weightKg, heightCm, bmr)
+            dayWorkouts.forEach { if (ActiveActivityCalculator.workoutCalories(it, bmr) == null) workoutsWithoutCalories++ else workoutsCounted++ }
+            val minutes = active.activeMinutes ?: 0
             totalSteps += daySteps
-            workoutsByDay[day].orEmpty().forEach { workout ->
-                val kcal = workoutCalories(workout, bmr)
-                if (kcal == null) {
-                    workoutsWithoutCalories++
-                } else {
-                    workoutsCounted++
-                    totalWorkoutKcal += kcal
-                }
-            }
+            countedSteps += ((active.stepCalories ?: 0.0) / kcalPerStep).roundToLong()
+            activeMinutesSum += minutes
+            restingKcalSum += bmr * (MINUTES_PER_DAY - minutes).coerceIn(0.0, MINUTES_PER_DAY) / MINUTES_PER_DAY
+            stepKcalSum += active.stepCalories ?: 0.0
+            workoutKcalSum += active.workoutCalories
         }
 
         val days = stepsByDay.size.toDouble()
-        val avgTotalSteps = totalSteps / days
-        val avgNeatSteps = avgTotalSteps / NEAT_STEP_DIVISOR
-        val kcalPerStep = kcalPerStep(weightKg, heightCm)
-        val neatKcal = avgNeatSteps * kcalPerStep
-        val avgWorkoutKcal = totalWorkoutKcal / days
-        val beforeFood = bmr + neatKcal + avgWorkoutKcal
+        val restingKcal = restingKcalSum / days
+        val stepKcal = stepKcalSum / days
+        val avgWorkoutKcal = workoutKcalSum / days
+        val beforeFood = restingKcal + stepKcal + avgWorkoutKcal
         val tefKcal = beforeFood * TEF_FRACTION
         val maintenance = beforeFood + tefKcal
 
@@ -111,10 +114,12 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
                 daysWithData = stepsByDay.size,
                 bmrKcal = bmr,
                 bmrMethod = bmrMethod,
-                avgTotalSteps = avgTotalSteps,
-                avgNeatSteps = avgNeatSteps,
+                restingKcal = restingKcal,
+                avgActiveMinutes = activeMinutesSum / days,
+                avgTotalSteps = totalSteps / days,
+                avgCountedSteps = countedSteps / days,
                 kcalPerStep = kcalPerStep,
-                neatKcal = neatKcal,
+                stepKcal = stepKcal,
                 avgWorkoutKcal = avgWorkoutKcal,
                 workoutsCounted = workoutsCounted,
                 workoutsWithoutCalories = workoutsWithoutCalories,
@@ -128,21 +133,11 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         )
     }
 
-    /** Active calories if recorded, else total calories minus the resting share of that time. */
-    private fun workoutCalories(workout: ExerciseSessionEntity, bmr: Double): Double? {
-        workout.activeCalories?.takeIf { it > 0 }?.let { return it }
-        val total = workout.totalCalories?.takeIf { it > 0 } ?: return null
-        val restingShare = bmr * workout.durationMinutes / MINUTES_PER_DAY
-        return (total - restingShare).coerceAtLeast(0.0)
-    }
-
     companion object {
         const val WINDOW_DAYS = 7
         const val MIN_DAYS_WITH_DATA = 5
         /** Thermic effect of food - ~10% of daily energy goes to digesting what you eat. */
         const val TEF_FRACTION = 0.10
-        /** Only a third of average daily steps counts toward NEAT - see the class docs. */
-        const val NEAT_STEP_DIVISOR = 3.0
         private const val MINUTES_PER_DAY = 1440.0
 
         /**

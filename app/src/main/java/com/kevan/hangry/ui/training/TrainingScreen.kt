@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
@@ -16,13 +15,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
+import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.model.HeartRateZoneDistribution
+import com.kevan.hangry.domain.model.WorkoutText
 import com.kevan.hangry.domain.repository.HeartRateRepository
 import com.kevan.hangry.domain.repository.WorkoutRepository
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.WorkoutFormat
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
@@ -54,7 +57,6 @@ fun TrainingScreen(
     viewModel: DashboardViewModel,
     workoutRepository: WorkoutRepository,
     heartRateRepository: HeartRateRepository,
-    onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -87,15 +89,8 @@ fun TrainingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                // A tab now, so no back arrow.
                 title = { Text(stringResource(R.string.title_training)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
                 actions = {
                     HangryInfoIconButton(title = "About Training & Zones", sections = TRAINING_INFO_SECTIONS)
                 },
@@ -386,43 +381,66 @@ private fun ZoneDetailRow(
 @Composable
 private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
     val tokens = LocalHangryTokens.current
+    val details = WorkoutText.details(workout)
     HangryCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.FitnessCenter,
-                    contentDescription = null,
-                    tint = tokens.chartColors.trainingLoad,
-                    modifier = Modifier.size(24.dp)
+            Icon(
+                imageVector = WorkoutFormat.icon(workout),
+                contentDescription = null,
+                tint = tokens.chartColors.trainingLoad,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = WorkoutText.name(workout),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = tokens.textPrimary
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = workout.title ?: workout.exerciseType.replace("_", " "),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = tokens.textPrimary
-                    )
-                    Text(
-                        text = "${workout.durationMinutes} min",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
-                    )
-                }
+                Text(
+                    text = WorkoutText.subtitle(workout),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.textSecondary
+                )
             }
-
-            Column(horizontalAlignment = Alignment.End) {
-                if (workout.activeCalories != null) {
-                    Text(
-                        text = "${workout.activeCalories.toInt()} kcal",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = tokens.chartColors.trainingLoad
-                    )
-                }
+            // Everything burned during the workout, not just what was above resting.
+            ActiveActivityCalculator.workoutCalories(workout, bmr = null)?.let { kcal ->
+                Text(
+                    text = "${kcal.toInt()} kcal",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = tokens.chartColors.trainingLoad
+                )
             }
+        }
+        if (details.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = details.joinToString("  ·  "),
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textPrimary,
+                modifier = Modifier.padding(start = 36.dp)
+            )
+        }
+        workout.segmentSummary?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textSecondary,
+                modifier = Modifier.padding(start = 36.dp, top = 2.dp)
+            )
+        }
+        workout.notes?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textMuted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 36.dp, top = 2.dp)
+            )
         }
     }
 }

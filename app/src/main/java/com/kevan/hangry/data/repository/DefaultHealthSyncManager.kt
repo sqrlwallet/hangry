@@ -4,9 +4,13 @@ import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.local.HangryDatabase
 import androidx.room.withTransaction
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
+import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
+import com.kevan.hangry.data.local.entity.WORKOUT_DETAIL_VERSION
 import com.kevan.hangry.data.local.entity.HrvFeelingEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
+import com.kevan.hangry.data.local.entity.SUMMARY_CALCULATION_VERSION
 import com.kevan.hangry.data.local.entity.SyncStateEntity
+import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.DayMetrics
 import com.kevan.hangry.domain.calculation.RecoveryCalculator
@@ -141,9 +145,8 @@ class DefaultHealthSyncManager(
 
                     val workoutInserted = database.exerciseSessionDao().insertOrIgnore(workouts)
                     chunkInserted += workoutInserted.count { it != -1L }
-                    workouts.forEach { workout ->
-                        workout.steps?.let { database.exerciseSessionDao().backfillSteps(workout.recordFingerprint, it) }
-                    }
+                    // Already-saved workouts are refreshed too, so edits and newly read details land.
+                    workouts.forEach { database.exerciseSessionDao().updateDetails(it) }
 
                     val rhrInserted = database.restingHeartRateDao().insertOrIgnore(rhrRecords)
                     chunkInserted += rhrInserted.count { it != -1L }
@@ -157,6 +160,7 @@ class DefaultHealthSyncManager(
 
                     val hrInserted = database.heartRateDao().insertOrIgnore(hrRecords)
                     chunkInserted += hrInserted.count { it != -1L }
+                    workouts.forEach { applyWorkoutHeartRate(it) }
 
                     val weightInserted = database.weightDao().insertOrIgnore(weightRecords)
                     chunkInserted += weightInserted.count { it != -1L }
@@ -257,9 +261,48 @@ class DefaultHealthSyncManager(
       }
     }.flowOn(Dispatchers.IO)
 
+    /** Average and peak heart rate during a workout, from the continuous samples already saved. */
+    private suspend fun applyWorkoutHeartRate(workout: ExerciseSessionEntity) {
+        val hr = database.heartRateDao()
+        database.exerciseSessionDao().updateHeartRate(
+            workout.recordFingerprint,
+            avg = hr.getAverageBpmBetween(workout.startTime, workout.endTime),
+            max = hr.getMaxBpmBetween(workout.startTime, workout.endTime)
+        )
+    }
+
+    /**
+     * One-time re-read of workouts saved by an older import, so history gets proper exercise
+     * types and details, not just new workouts. Returns true if anything was refreshed.
+     */
+    private suspend fun refreshWorkoutDetailsIfNeeded(): Boolean {
+        val dao = database.exerciseSessionDao()
+        val oldest = dao.getOldestStartNeedingDetails(WORKOUT_DETAIL_VERSION) ?: return false
+        val now = Instant.now()
+        var from = oldest.minus(1, ChronoUnit.DAYS)
+        while (from.isBefore(now)) {
+            val to = minOf(from.plus(30, ChronoUnit.DAYS), now)
+            // No access right now (permission, Health Connect missing): try again next launch.
+            val sessions = runCatching { dataSource.fetchExerciseSessions(from, to) }.getOrElse { return false }
+            database.withTransaction {
+                sessions.forEach { dao.updateDetails(it) }
+                sessions.forEach { applyWorkoutHeartRate(it) }
+            }
+            from = to
+        }
+        // Anything left was deleted at the source; don't keep trying to re-read it.
+        dao.markDetailVersion(WORKOUT_DETAIL_VERSION)
+        return true
+    }
+
     override suspend fun recalculateIfScoringChanged() {
-        val stored = database.recoveryScoreDao().getLatestScoreSync() ?: return
-        if (stored.algorithmVersion >= RecoveryConfig().algorithmVersion) return
+        // Workout types feed training load and strain, so refreshed workouts mean a recalculation.
+        val workoutsRefreshed = runCatching { refreshWorkoutDetailsIfNeeded() }.getOrDefault(false)
+        val scoringChanged = database.recoveryScoreDao().getLatestScoreSync()
+            ?.let { it.algorithmVersion < RecoveryConfig().algorithmVersion } == true
+        val summariesChanged = database.dailyHealthSummaryDao().getLatestSummarySync()
+            ?.let { it.calculationVersion < SUMMARY_CALCULATION_VERSION } == true
+        if (!scoringChanged && !summariesChanged && !workoutsRefreshed) return
         recalculateAllBaselines().collect { }
     }
 
@@ -524,6 +567,15 @@ class DefaultHealthSyncManager(
             val effectiveHydration = hydrationMap[date] ?: currentExistingSummary?.hydrationLiters
             val effectiveBodyFat = bodyFatMap[date] ?: currentExistingSummary?.bodyFatPercentage
 
+            val active = ActiveActivityCalculator.calculate(
+                totalSteps = steps?.stepCount,
+                workouts = workouts,
+                weightKg = latestWeightKg ?: profile?.currentWeightKg,
+                heightCm = effectiveHeightCm,
+                bmr = dayBmr,
+                recordedActiveCalories = steps?.activeCalories
+            )
+
             val summary = DailyHealthSummaryEntity(
                 date = date,
                 sleepDurationMinutes = primarySleep?.durationMinutes,
@@ -532,10 +584,11 @@ class DefaultHealthSyncManager(
                 sleepConsistencyScore = sleepAnalysis.consistencyPercentage.toDouble(),
                 steps = steps?.stepCount,
                 distanceMeters = steps?.distanceMeters,
-                activeCalories = steps?.activeCalories,
-                totalCalories = dayBmr?.let { it + (steps?.activeCalories ?: 0.0) } ?: steps?.activeCalories,
+                activeCalories = active.activeCalories,
+                totalCalories = ActiveActivityCalculator.totalBurn(dayBmr, active.activeCalories, active.activeMinutes),
                 bmrCalories = dayBmr,
                 exerciseDurationMinutes = workouts.sumOf { it.durationMinutes }.takeIf { it > 0 },
+                activeMinutes = active.activeMinutes,
                 exerciseCount = workouts.size,
                 dailyTrainingLoad = trainingLoad,
                 dayStrain = strainResult.dayStrain,
@@ -551,7 +604,7 @@ class DefaultHealthSyncManager(
                 bodyFatPercentage = effectiveBodyFat,
                 dataCompletenessRatio = completeness,
                 dataQualityState = qualityState,
-                calculationVersion = 1,
+                calculationVersion = SUMMARY_CALCULATION_VERSION,
                 lastCalculatedTimestamp = Instant.now()
             )
             summariesToInsert.add(summary)

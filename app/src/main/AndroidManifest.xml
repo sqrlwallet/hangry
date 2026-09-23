@@ -218,6 +218,90 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_provider_overview" />
         </receiver>
+
+        <receiver
+            android:name=".ui.widget.BreatheWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Breathe">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_breathe" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.HeartWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Heart">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_heart" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.HealthMarkersWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Health Markers">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_markers" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.GoalsWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Goals">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_goals" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.WeightWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Weight">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_weight" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.PostureWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Posture">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_posture" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.CycleWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Cycle">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_cycle" />
+        </receiver>
     </application>
 
 </manifest>

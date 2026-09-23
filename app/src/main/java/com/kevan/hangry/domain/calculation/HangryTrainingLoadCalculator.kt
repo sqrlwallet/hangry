@@ -2,24 +2,17 @@ package com.kevan.hangry.domain.calculation
 
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.domain.model.TrainingLoadAnalysis
+import com.kevan.hangry.domain.model.WorkoutType
 import kotlin.math.roundToInt
 
 class HangryTrainingLoadCalculator : TrainingLoadCalculator {
 
     override fun estimateSessionLoad(session: ExerciseSessionEntity): Double {
-        val multiplier = when (session.exerciseType.uppercase()) {
-            "RUNNING", "HIIT", "SPRINTING" -> 1.4
-            "CYCLING", "SWIMMING", "ROWING" -> 1.2
-            "STRENGTH_TRAINING", "CROSSFIT" -> 1.1
-            "WALKING", "YOGA", "PILATES", "STRETCHING" -> 0.7
-            else -> 1.0
-        }
+        // Harder families of exercise (running, HIIT) count for more per minute than easy ones.
+        val multiplier = WorkoutType.fromId(session.exerciseType).category.intensity
         val durationScore = session.durationMinutes.toDouble()
-        val calorieBonus = if (session.activeCalories != null && session.activeCalories > 0.0) {
-            (session.activeCalories / 100.0)
-        } else {
-            0.0
-        }
+        // Everything burned during the workout - many sources only report a total, not "active".
+        val calorieBonus = ActiveActivityCalculator.workoutCalories(session, bmr = null)?.let { it / 100.0 } ?: 0.0
         return (durationScore * 0.8 + calorieBonus * 5.0) * multiplier
     }
 

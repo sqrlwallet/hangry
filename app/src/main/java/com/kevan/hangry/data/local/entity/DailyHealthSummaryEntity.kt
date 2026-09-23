@@ -15,10 +15,12 @@ data class DailyHealthSummaryEntity(
     val sleepConsistencyScore: Double? = null,
     val steps: Long? = null,
     val distanceMeters: Double? = null,
-    val activeCalories: Double? = null,
+    val activeCalories: Double? = null, // workouts in full + every step's cost, see ActiveActivityCalculator
     val totalCalories: Double? = null,
     val bmrCalories: Double? = null, // resting metabolic rate contribution to totalCalories, see CALCULATIONS.md §8
     val exerciseDurationMinutes: Int? = null,
+    /** Whole workouts plus 1 minute per 150 steps taken outside them. */
+    val activeMinutes: Int? = null,
     val exerciseCount: Int = 0,
     val dailyTrainingLoad: Double? = null,
     val dayStrain: Double? = null, // 0-21 bounded day-strain, see CALCULATIONS.md §6
@@ -34,6 +36,12 @@ data class DailyHealthSummaryEntity(
     val bodyFatPercentage: Double? = null,
     val dataCompletenessRatio: Double = 0.0,
     val dataQualityState: String = "COMPLETE",
-    val calculationVersion: Int = 1,
+    val calculationVersion: Int = SUMMARY_CALCULATION_VERSION,
     val lastCalculatedTimestamp: Instant = Instant.now()
 )
+
+/**
+ * Bump when the way a day's summary is calculated changes, so stored days get rebuilt.
+ * 2: active calories/minutes count whole workouts and every step (ActiveActivityCalculator).
+ */
+const val SUMMARY_CALCULATION_VERSION = 2

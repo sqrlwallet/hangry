@@ -71,6 +71,9 @@ object HangryWidgetUpdater {
 
         // 6. Update Supplements Widgets
         updateSupplementsWidgets(context, appWidgetManager, container.supplementRepository.current())
+
+        // 7. Breathe, Heart, Health Markers, Goals, Weight, Posture and Cycle
+        HealthWidgets.updateAll(context, appWidgetManager, container, today)
     }
 
     private fun updateActivityWidgets(
@@ -190,23 +193,24 @@ object HangryWidgetUpdater {
             "—"
         }
 
-        val subtitleStr = if (durationMinutes != null && durationMinutes > 0) {
-            "Restorative sleep session"
-        } else {
-            "No sleep recorded yet"
+        // Only real numbers: the time asleep and, when there's enough history, consistency.
+        val hasSleep = durationMinutes != null && durationMinutes > 0
+        val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
+        val zone = ZoneId.systemDefault()
+        val subtitleStr = when {
+            !hasSleep -> "No sleep recorded yet"
+            latestSleep != null ->
+                "${latestSleep.startTime.atZone(zone).format(timeFormat)} – ${latestSleep.endTime.atZone(zone).format(timeFormat)}"
+            else -> "Last night"
         }
-
-        val scoreStr = if (durationMinutes != null && durationMinutes > 0) {
-            "${summary?.sleepConsistencyScore?.roundToInt() ?: 85}%"
-        } else {
-            "—"
-        }
+        val scoreStr = summary?.sleepConsistencyScore?.takeIf { hasSleep }?.let { "${it.roundToInt()}% steady" }
 
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_sleep)
             views.setTextViewText(R.id.tv_sleep_duration, durationStr)
             views.setTextViewText(R.id.tv_sleep_subtitle, subtitleStr)
-            views.setTextViewText(R.id.tv_sleep_score, scoreStr)
+            views.setTextViewText(R.id.tv_sleep_score, scoreStr.orEmpty())
+            views.setViewVisibility(R.id.tv_sleep_score, if (scoreStr == null) View.GONE else View.VISIBLE)
 
             val clickIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

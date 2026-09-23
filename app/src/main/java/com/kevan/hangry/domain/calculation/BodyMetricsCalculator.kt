@@ -617,23 +617,22 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
                 whatItIs = "How many calories you can eat per day to stay at your current weight, based on how you actually lived the last 7 days.",
                 howCalculated = how,
                 whyItMatters = "It's the anchor for every nutrition goal: eat at it to maintain, below it to lose fat, above it to gain. Because it uses your own steps and workouts, it moves with you - a more active week raises it.",
-                source = "BMR (Katch–McArdle with a recent body-fat scan, else Mifflin–St Jeor) + NEAT from one third of your daily steps (~0.5 kcal per kg per km walked) + average workout calories, plus 10% for digesting food (thermic effect of food)."
+                source = "BMR (Katch–McArdle with a recent body-fat scan, else Mifflin–St Jeor) for the time you weren't active, plus every step (~0.5 kcal per kg per km walked, plus resting burn while walking) and every workout in full, plus 10% for digesting food (thermic effect of food)."
             )
         }
         val result = c.input.energy
         val e = result?.estimate ?: return unavailable(
             "maintenance", "Maintenance calories", "kcal/day",
-            info("BMR + calories from one third of your average daily steps + average workout calories, plus 10% for digesting food, over the last 7 full days."),
+            info("Resting burn + every step + every workout, plus 10% for digesting food, over the last 7 full days."),
             result?.missing ?: listOf("Weight", "Height", "Age", "Sex", "Step data")
         )
         val notes = if (e.workoutsWithoutCalories > 0) {
             "${e.workoutsWithoutCalories} workout(s) had no calorie data and weren't counted."
         } else ""
         val how = "Over ${e.daysWithData} day(s) with data (${e.windowStart} to ${e.windowEnd}):\n" +
-            "• BMR (${e.bmrMethod}): ${f(e.bmrKcal, 0)} kcal\n" +
-            "• Everyday movement (NEAT): ${f(e.avgTotalSteps, 0)} steps ÷ 3 = ${f(e.avgNeatSteps, 0)} steps × ${f(e.kcalPerStep, 3)} kcal = ${f(e.neatKcal, 0)} kcal " +
-            "(only a third of steps is counted, as a rough allowance for steps already covered by workout calories)\n" +
-            "• Workouts: ${e.workoutsCounted} session(s), averaging ${f(e.avgWorkoutKcal, 0)} kcal per day\n" +
+            "• Resting (${e.bmrMethod} BMR ${f(e.bmrKcal, 0)} kcal, for the ${f(1440 - e.avgActiveMinutes, 0)} inactive minutes): ${f(e.restingKcal, 0)} kcal\n" +
+            "• Steps: ${f(e.avgCountedSteps, 0)} steps outside workouts × ${f(e.kcalPerStep, 3)} kcal = ${f(e.stepKcal, 0)} kcal\n" +
+            "• Workouts: ${e.workoutsCounted} session(s), averaging ${f(e.avgWorkoutKcal, 0)} kcal per day, counted in full\n" +
             "• Digesting food (thermic effect, 10%): ${f(e.tefKcal, 0)} kcal\n" +
             "= ${f(e.maintenanceKcal, 0)} kcal/day." + if (notes.isNotEmpty()) "\n$notes" else ""
         return BodyMetric(

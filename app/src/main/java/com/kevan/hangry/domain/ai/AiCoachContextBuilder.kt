@@ -8,11 +8,14 @@ import com.kevan.hangry.data.local.dao.PostureScanDao
 import com.kevan.hangry.data.local.dao.RecoveryScoreDao
 import com.kevan.hangry.data.local.dao.SleepSessionDao
 import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
 import com.kevan.hangry.domain.model.BodyMetricsSnapshot
 import com.kevan.hangry.domain.model.GoalDirection
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
+import com.kevan.hangry.domain.model.WorkoutText
+import com.kevan.hangry.domain.model.WorkoutType
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.repository.SupplementRepository
 import com.kevan.hangry.domain.model.SupplementsSnapshot
@@ -129,10 +132,11 @@ class AiCoachContextBuilder(
                 val sleepDur = s.sleepDurationMinutes?.let { "${it / 60}h ${it % 60}m" } ?: "N/A"
                 val steps = s.steps?.let { "$it steps" } ?: "0 steps"
                 val actCal = s.activeCalories?.let { "%.0f active kcal".format(java.util.Locale.US, it) } ?: "0 active kcal"
+                val actMin = s.activeMinutes?.let { " | Active: $it min" } ?: ""
                 val rhr = s.restingHeartRate?.let { "RHR %.0f bpm".format(java.util.Locale.US, it) } ?: "RHR N/A"
                 val hrv = s.hrvRmssd?.let { "HRV %.1f ms".format(java.util.Locale.US, it) } ?: "HRV N/A"
 
-                sb.appendLine("• $dateStr: Recovery: $rec | Sleep: $sleepDur | Strain: $strain | Steps: $steps | Burn: $actCal | $rhr | $hrv")
+                sb.appendLine("• $dateStr: Recovery: $rec | Sleep: $sleepDur | Strain: $strain | Steps: $steps | Burn: $actCal$actMin | $rhr | $hrv")
             }
         }
         sb.appendLine()
@@ -155,8 +159,10 @@ class AiCoachContextBuilder(
                 val timeStr = formatter.format(w.startTime)
                 val titleStr = w.title?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
                 val dur = "${w.durationMinutes} mins"
-                val cal = w.activeCalories?.let { "%.0f kcal".format(java.util.Locale.US, it) } ?: "N/A kcal"
-                sb.appendLine("- $timeStr: ${w.exerciseType}$titleStr · $dur · $cal".trim())
+                val cal = ActiveActivityCalculator.workoutCalories(w, bmr = null)?.let { "%.0f kcal".format(java.util.Locale.US, it) } ?: "N/A kcal"
+                val extra = (WorkoutText.details(w) + listOfNotNull(w.segmentSummary, w.notes?.let { "notes: $it" }))
+                    .joinToString("") { " · $it" }
+                sb.appendLine("- $timeStr: ${WorkoutType.fromId(w.exerciseType).label}$titleStr · $dur · $cal$extra".trim())
             }
         }
         sb.appendLine()
@@ -199,9 +205,9 @@ class AiCoachContextBuilder(
             return
         }
         sb.appendLine("Maintenance calories: ${f(e.maintenanceKcal)} kcal/day (averaged over ${e.daysWithData} days with data, ${e.windowStart} to ${e.windowEnd})")
-        sb.appendLine("• BMR (${e.bmrMethod}): ${f(e.bmrKcal)} kcal")
-        sb.appendLine("• NEAT: avg ${f(e.avgTotalSteps)} steps/day ÷ 3 = ${f(e.avgNeatSteps)} counted steps × ${"%.3f".format(Locale.US, e.kcalPerStep)} kcal/step = ${f(e.neatKcal)} kcal (a third is counted as a rough allowance for steps already covered by workout calories - an estimate)")
-        sb.appendLine("• Workouts: ${e.workoutsCounted} sessions, avg ${f(e.avgWorkoutKcal)} kcal/day" +
+        sb.appendLine("• Resting: BMR (${e.bmrMethod}) ${f(e.bmrKcal)} kcal, counted for the ${f(1440 - e.avgActiveMinutes)} inactive minutes = ${f(e.restingKcal)} kcal")
+        sb.appendLine("• Steps: avg ${f(e.avgTotalSteps)} steps/day, ${f(e.avgCountedSteps)} outside workouts × ${"%.3f".format(Locale.US, e.kcalPerStep)} kcal/step (walking + resting burn while walking) = ${f(e.stepKcal)} kcal")
+        sb.appendLine("• Workouts (counted in full): ${e.workoutsCounted} sessions, avg ${f(e.avgWorkoutKcal)} kcal/day" +
             if (e.workoutsWithoutCalories > 0) " (${e.workoutsWithoutCalories} had no calorie data)" else "")
         sb.appendLine("• Thermic effect of food (10%): ${f(e.tefKcal)} kcal")
         val goal = e.goal

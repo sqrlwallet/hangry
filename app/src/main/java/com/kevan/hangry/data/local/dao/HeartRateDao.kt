@@ -25,6 +25,9 @@ interface HeartRateDao {
     @Query("SELECT MIN(bpm) FROM heart_rate_samples WHERE timestamp >= :start AND timestamp <= :end AND bpm >= 35")
     suspend fun getMinBpmBetween(start: Instant, end: Instant): Double?
 
+    @Query("SELECT MAX(bpm) FROM heart_rate_samples WHERE timestamp >= :start AND timestamp <= :end")
+    suspend fun getMaxBpmBetween(start: Instant, end: Instant): Double?
+
     @Query("SELECT AVG(bpm) FROM (SELECT bpm FROM heart_rate_samples WHERE timestamp >= :start AND timestamp <= :end AND bpm >= 35 ORDER BY bpm ASC LIMIT 30)")
     suspend fun getRestingBpmEstimateBetween(start: Instant, end: Instant): Double?
 

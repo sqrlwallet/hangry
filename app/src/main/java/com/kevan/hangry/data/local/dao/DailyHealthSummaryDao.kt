@@ -34,6 +34,9 @@ interface DailyHealthSummaryDao {
     @Query("SELECT * FROM daily_health_summaries ORDER BY date DESC LIMIT 1")
     fun getLatestSummary(): Flow<DailyHealthSummaryEntity?>
 
+    @Query("SELECT * FROM daily_health_summaries ORDER BY date DESC LIMIT 1")
+    suspend fun getLatestSummarySync(): DailyHealthSummaryEntity?
+
     @Query("SELECT * FROM daily_health_summaries ORDER BY date ASC LIMIT 1")
     suspend fun getOldestSummary(): DailyHealthSummaryEntity?
 

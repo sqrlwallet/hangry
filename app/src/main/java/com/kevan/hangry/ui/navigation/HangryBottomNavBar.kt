@@ -17,15 +17,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.automirrored.outlined.TrendingUp
-import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.outlined.AccessibilityNew
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -82,22 +82,23 @@ sealed class BottomNavDestination(
         unselectedIcon = Icons.Outlined.AutoAwesome
     )
 
-    data object Posture : BottomNavDestination(
-        route = Screen.Posture.route,
-        label = "Posture",
-        selectedIcon = Icons.Filled.AccessibilityNew,
-        unselectedIcon = Icons.Outlined.AccessibilityNew
+    data object Workouts : BottomNavDestination(
+        route = Screen.Training.route,
+        label = "Workouts",
+        selectedIcon = Icons.Filled.FitnessCenter,
+        unselectedIcon = Icons.Outlined.FitnessCenter
     )
 
-    data object Trends : BottomNavDestination(
-        route = Screen.Trends.route,
-        label = "Trends",
-        selectedIcon = Icons.AutoMirrored.Filled.TrendingUp,
-        unselectedIcon = Icons.AutoMirrored.Outlined.TrendingUp
+    /** Trends, posture, body fat and everything else that isn't its own tab. */
+    data object More : BottomNavDestination(
+        route = Screen.More.route,
+        label = "More",
+        selectedIcon = Icons.Filled.GridView,
+        unselectedIcon = Icons.Outlined.GridView
     )
 
     companion object {
-        val entries = listOf(Today, Nutrition, AiCoach, Posture, Trends)
+        val entries = listOf(Today, Nutrition, AiCoach, Workouts, More)
         val routeSet = entries.map { it.route }.toSet()
     }
 }

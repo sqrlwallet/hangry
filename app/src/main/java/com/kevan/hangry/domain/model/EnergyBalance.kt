@@ -3,9 +3,9 @@ package com.kevan.hangry.domain.model
 import java.time.LocalDate
 
 /**
- * Maintenance calories estimated from the last 7 full days of real activity:
- * BMR + NEAT (from a third of average daily steps) + average workout calories, plus ~10%
- * for digesting food (the thermic effect of food, which BMR formulas don't include).
+ * Maintenance calories estimated from the last 7 full days of real activity, counted the same
+ * way as Daily Activity: resting burn for the minutes you weren't active, plus every step and
+ * every workout in full, plus ~10% for digesting food (the thermic effect of food).
  */
 data class EnergyBalanceEstimate(
     val windowStart: LocalDate,
@@ -15,16 +15,21 @@ data class EnergyBalanceEstimate(
     val bmrKcal: Double,
     /** "Katch-McArdle" when a measured body-fat scan is available, else "Mifflin-St Jeor". */
     val bmrMethod: String,
+    /** Resting burn over the minutes that weren't active (BMR × inactive share of the day). */
+    val restingKcal: Double,
+    /** Whole workouts plus 1 minute per 150 steps outside them. */
+    val avgActiveMinutes: Double,
     val avgTotalSteps: Double,
-    /** avgTotalSteps ÷ 3 - the share of steps counted as NEAT (see EnergyBalanceCalculator). */
-    val avgNeatSteps: Double,
+    /** Steps not already covered by a workout's calories. */
+    val avgCountedSteps: Double,
+    /** The full cost of a step, including the resting burn while taking it. */
     val kcalPerStep: Double,
-    val neatKcal: Double,
+    val stepKcal: Double,
     val avgWorkoutKcal: Double,
     val workoutsCounted: Int,
     /** Workouts with no calorie data at all - they add nothing to the estimate. */
     val workoutsWithoutCalories: Int,
-    /** Thermic effect of food: 10% of BMR + NEAT + workouts. */
+    /** Thermic effect of food: 10% of resting + steps + workouts. */
     val tefKcal: Double,
     val maintenanceKcal: Double,
     val goalWeightKg: Double?,

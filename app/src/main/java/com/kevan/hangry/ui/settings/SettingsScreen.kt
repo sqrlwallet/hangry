@@ -2,8 +2,19 @@ package com.kevan.hangry.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -46,7 +56,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     syncManager: HealthSyncManager,
@@ -66,9 +76,19 @@ fun SettingsScreen(
     onNavigateToBodyFatCalculator: () -> Unit = {},
     onNavigateToHealthRecords: () -> Unit = {},
     onResetToWelcome: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Opened from an "Open AI Settings" link: start with AI Features expanded and in view. */
+    expandAiInitially: Boolean = false
 ) {
     val tokens = LocalHangryTokens.current
+    val aiSectionRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(expandAiInitially) {
+        if (expandAiInitially) {
+            // Let the expand animation start so the whole section scrolls into view.
+            kotlinx.coroutines.delay(250)
+            aiSectionRequester.bringIntoView()
+        }
+    }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -150,32 +170,6 @@ fun SettingsScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
-            // Brand Identity Card
-            HangryCard {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.hangry_logo),
-                        contentDescription = "Hangry Brand Logo",
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Hangry",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = tokens.textPrimary
-                        )
-                        Text(
-                            text = "Local-first & private",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary
-                        )
-                    }
-                }
-            }
-
             // Goals & Body Metrics Section
             Text(text = "Goals & Body Metrics", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
             HangryCard {
@@ -279,9 +273,31 @@ fun SettingsScreen(
                 )
             }
 
-            // Synchronization Section
-            Text(text = "Synchronization", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
             HangryCard {
+                SettingsActionRow(
+                    icon = Icons.Default.Widgets,
+                    title = "Home Screen Widgets",
+                    subtitle = "Pin widgets to your home screen",
+                    onClick = onNavigateToHomeScreenWidgets
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                // Privacy & Legal - kept to a single link rather than duplicating the wellness/
+                // non-medical notice here too; that disclosure already lives on the same screen.
+                SettingsActionRow(
+                    icon = Icons.Default.Lock,
+                    title = "Privacy & Legal",
+                    subtitle = "Privacy policy & wellness notice",
+                    info = "Zero-cloud architecture, Health Connect audit & wellness notice",
+                    onClick = onNavigateToPrivacyPolicy
+                )
+            }
+
+            // Everything below is tucked into collapsed sections so the screen stays short.
+            SettingsCollapsibleSection(
+                title = "Synchronization",
+                summary = "Sync now, history, sources & baselines",
+                icon = Icons.Default.Sync
+            ) {
                 SettingsActionRow(
                     icon = Icons.Default.Refresh,
                     title = "Sync Now",
@@ -327,28 +343,31 @@ fun SettingsScreen(
                     subtitle = "Connected apps & import status",
                     onClick = onNavigateToDataSources
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-                SettingsActionRow(
-                    icon = Icons.Default.Widgets,
-                    title = "Home Screen Widgets",
-                    subtitle = "Pin widgets to your home screen",
-                    info = "Pin Steps, Calories, Sleep, Recovery & Quick Log widgets",
-                    onClick = onNavigateToHomeScreenWidgets
-                )
             }
 
             // AI Features Section (opt-in - see AiFeaturesSection for the consent flow)
-            AiFeaturesSection(
-                userProfileRepository = userProfileRepository,
-                secureKeyStore = secureKeyStore,
-                openRouterClient = openRouterClient,
-                coroutineScope = coroutineScope,
-                snackbarHostState = snackbarHostState
-            )
+            SettingsCollapsibleSection(
+                title = "AI Features",
+                summary = if (profile?.aiFeaturesEnabled == true) "On · Ask Dash, food & posture analysis" else "Off · Ask Dash, food & posture analysis",
+                icon = Icons.Default.SmartToy,
+                initiallyExpanded = expandAiInitially,
+                modifier = Modifier.bringIntoViewRequester(aiSectionRequester)
+            ) {
+                AiFeaturesSection(
+                    userProfileRepository = userProfileRepository,
+                    secureKeyStore = secureKeyStore,
+                    openRouterClient = openRouterClient,
+                    coroutineScope = coroutineScope,
+                    snackbarHostState = snackbarHostState
+                )
+            }
 
             // Data Sovereignty & Export Section
-            Text(text = "Data Sovereignty & Export", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
-            HangryCard {
+            SettingsCollapsibleSection(
+                title = "Data Sovereignty & Export",
+                summary = "Export as JSON or CSV",
+                icon = Icons.Default.FileDownload
+            ) {
                 SettingsActionRow(
                     icon = Icons.Default.FileDownload,
                     title = "Export Data as JSON",
@@ -371,21 +390,13 @@ fun SettingsScreen(
                 )
             }
 
-            // Privacy & Legal - kept to a single link rather than duplicating the wellness/
-            // non-medical notice here too; that disclosure already lives on the same screen.
-            HangryCard {
-                SettingsActionRow(
-                    icon = Icons.Default.Lock,
-                    title = "Privacy & Legal",
-                    subtitle = "Privacy policy & wellness notice",
-                    info = "Zero-cloud architecture, Health Connect audit & wellness notice",
-                    onClick = onNavigateToPrivacyPolicy
-                )
-            }
-
             // Local Storage & Database Health Section
-            Text(text = "Local Storage & Database Health", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
-            HangryCard {
+            SettingsCollapsibleSection(
+                title = "Local Storage & Database Health",
+                summary = storageBreakdown?.let { "Using ${StorageBreakdown.formatBytes(it.totalBytes)} · optimize & clean up" }
+                    ?: "Storage use, optimize & clean up",
+                icon = Icons.Default.Storage
+            ) {
                 val breakdown = storageBreakdown
                 if (breakdown != null) {
                     Row(
@@ -476,8 +487,12 @@ fun SettingsScreen(
             }
 
             // Danger Zone & Data Deletion
-            Text(text = "Data Management", style = MaterialTheme.typography.titleLarge, color = tokens.scoreColors.rebuild)
-            HangryCard {
+            SettingsCollapsibleSection(
+                title = "Data Management",
+                summary = "Delete health data or reset the app",
+                icon = Icons.Default.DeleteForever,
+                titleColor = tokens.scoreColors.rebuild
+            ) {
                 SettingsActionRow(
                     icon = Icons.Default.DeleteForever,
                     title = "Delete All Health Data",
@@ -863,6 +878,59 @@ internal fun SettingsActionRow(
         }
         if (info != null) {
             HangryInfoTip(title = title, body = info)
+        }
+    }
+}
+
+/**
+ * A settings group that starts collapsed: a tappable header (icon, title, one-line summary,
+ * chevron) that reveals its rows. Keeps Settings short for people who never need these.
+ */
+@Composable
+internal fun SettingsCollapsibleSection(
+    title: String,
+    summary: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    titleColor: Color? = null,
+    initiallyExpanded: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val tokens = LocalHangryTokens.current
+    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
+    val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "sectionChevron")
+    HangryCard(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClickLabel = if (expanded) "Collapse $title" else "Expand $title") { expanded = !expanded }
+                .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = titleColor ?: tokens.textSecondary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium, color = titleColor ?: tokens.textPrimary)
+                Text(text = summary, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+            }
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = tokens.textSecondary,
+                modifier = Modifier.rotate(chevronRotation)
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = tokens.cardBorder)
+                content()
+            }
         }
     }
 }

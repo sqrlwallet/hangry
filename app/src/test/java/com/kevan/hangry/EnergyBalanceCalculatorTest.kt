@@ -47,15 +47,18 @@ class EnergyBalanceCalculatorTest {
     private val week = (1L..7L).map { day(it, 10_000) }
 
     @Test
-    fun `maintenance is BMR plus NEAT plus workouts`() {
+    fun `maintenance is resting burn plus every step plus workouts`() {
         val e = estimate(week).estimate!!
         assertEquals(1780.0, e.bmrKcal, 0.5)
-        // A third of 10,000 steps counts toward NEAT.
-        assertEquals(10_000.0 / 3, e.avgNeatSteps, 0.01)
-        // 0.5 x 80 kg x (180 cm x 0.415 stride) = 0.02988 kcal per step
-        assertEquals(99.6, e.neatKcal, 0.5)
+        // 10,000 steps / 150 = 67 active minutes; BMR only covers the other 1,373.
+        assertEquals(67.0, e.avgActiveMinutes, 0.01)
+        assertEquals(1780.0 * (1440 - 67) / 1440, e.restingKcal, 0.01)
+        // Every step counts: 0.02988 kcal walking + 1780 / 1440 / 150 kcal resting burn per step.
+        assertEquals(10_000.0, e.avgCountedSteps, 0.01)
+        assertEquals(0.02988 + 1780.0 / 1440 / 150, e.kcalPerStep, 0.0001)
+        assertEquals(10_000 * e.kcalPerStep, e.stepKcal, 0.01)
         // Plus 10% thermic effect of food.
-        assertEquals((e.bmrKcal + e.neatKcal) * 1.10, e.maintenanceKcal, 0.01)
+        assertEquals((e.restingKcal + e.stepKcal) * 1.10, e.maintenanceKcal, 0.01)
         assertEquals("Mifflin-St Jeor", e.bmrMethod)
     }
 
@@ -66,19 +69,22 @@ class EnergyBalanceCalculatorTest {
     }
 
     @Test
-    fun `workout calories are added on top of a third of steps`() {
-        // One 30-min run worth 350 kcal on one day.
+    fun `workouts count in full and their steps are not counted twice`() {
+        // One 30-min run with 350 active kcal and 4,900 steps on one day.
         val e = estimate(week, listOf(run(today.minusDays(2), 30, 350.0, 4_900))).estimate!!
-        assertEquals(10_000.0 / 3, e.avgNeatSteps, 0.01)
-        assertEquals(350.0 / 7, e.avgWorkoutKcal, 0.01)
-        assertEquals((e.bmrKcal + e.neatKcal + 50.0) * 1.10, e.maintenanceKcal, 0.01)
+        // Active kcal plus the resting burn during those 30 minutes.
+        assertEquals((350.0 + 1780.0 * 30 / 1440) / 7, e.avgWorkoutKcal, 0.01)
+        // That day only 5,100 steps are counted as steps.
+        assertEquals((6 * 10_000 + 5_100) / 7.0, e.avgCountedSteps, 0.5)
+        assertEquals((e.restingKcal + e.stepKcal + e.avgWorkoutKcal) * 1.10, e.maintenanceKcal, 0.01)
     }
 
     @Test
-    fun `workout without calories adds nothing`() {
+    fun `workout without calories adds only its steps`() {
         val e = estimate(week, listOf(run(today.minusDays(2), 30, kcal = null, steps = 4_900))).estimate!!
         assertEquals(0.0, e.avgWorkoutKcal, 0.01)
         assertEquals(1, e.workoutsWithoutCalories)
+        assertEquals(10_000.0, e.avgCountedSteps, 0.5)
     }
 
     @Test

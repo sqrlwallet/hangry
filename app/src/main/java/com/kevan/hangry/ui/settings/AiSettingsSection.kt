@@ -70,8 +70,7 @@ fun AiFeaturesSection(
     var showModelDialog by remember { mutableStateOf(false) }
     var showCoachModelDialog by remember { mutableStateOf(false) }
 
-    Text(text = "AI Features", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary, modifier = modifier)
-    HangryCard {
+    Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

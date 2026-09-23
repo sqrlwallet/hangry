@@ -20,6 +20,7 @@ data class ExerciseSessionEntity(
     val sourceRecordId: String? = null,
     val sourcePackageName: String? = null,
     val recordFingerprint: String,
+    /** Health Connect's exercise type name, e.g. "WEIGHTLIFTING" - see WorkoutType. */
     val exerciseType: String,
     val title: String? = null,
     val startTime: Instant,
@@ -31,5 +32,25 @@ data class ExerciseSessionEntity(
     val steps: Long? = null,
     val estimatedTrainingLoad: Double? = null,
     val dataQualityState: String = "VALID",
-    val importTimestamp: Instant = Instant.now()
+    val importTimestamp: Instant = Instant.now(),
+    val notes: String? = null,
+    val distanceMeters: Double? = null,
+    val elevationGainMeters: Double? = null,
+    val avgHeartRate: Double? = null,
+    val maxHeartRate: Double? = null,
+    val avgPowerWatts: Double? = null,
+    /** Strength sets (exercise segments, not counting rests). */
+    val setCount: Int? = null,
+    val repCount: Int? = null,
+    /** e.g. "Bench press 3×10 · Squat 4×8". */
+    val segmentSummary: String? = null,
+    val lapCount: Int? = null,
+    /** Which version of the Health Connect import filled this row - older rows get re-read. */
+    val detailVersion: Int = 0
 )
+
+/**
+ * Bump when the workout import reads more from Health Connect, so saved workouts are re-read.
+ * 1: every exercise type, plus distance, elevation, heart rate, power, sets/reps, laps and notes.
+ */
+const val WORKOUT_DETAIL_VERSION = 1

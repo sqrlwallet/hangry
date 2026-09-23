@@ -23,6 +23,8 @@ import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
+import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
+import com.kevan.hangry.domain.model.WorkoutText
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
@@ -385,21 +387,21 @@ fun DayDetailSheet(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = session.title ?: session.exerciseType,
+                                        text = WorkoutText.name(session),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = tokens.textPrimary
                                     )
                                     Text(
-                                        text = "${session.durationMinutes} minutes",
+                                        text = (listOf(WorkoutText.subtitle(session)) + WorkoutText.details(session)).joinToString(" · "),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.textMuted
                                     )
                                 }
                                 Text(
-                                    text = session.activeCalories?.let { "${it.toInt()} kcal" } ?: "",
+                                    text = ActiveActivityCalculator.workoutCalories(session, bmr = null)?.let { "${it.toInt()} kcal" } ?: "",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = tokens.chartColors.activeCalories

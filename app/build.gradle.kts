@@ -5,6 +5,18 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
 }
 
+import java.util.Properties
+
+// Play Store upload key. Lives outside version control in keystore.properties (see
+// keystore.properties.example) or in HANGRY_* environment variables for CI.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+fun signingValue(key: String, env: String): String? =
+    keystoreProperties.getProperty(key) ?: System.getenv(env)
+val releaseStoreFile = signingValue("storeFile", "HANGRY_KEYSTORE_PATH")
+
 android {
     namespace = "com.kevan.hangry"
     compileSdk = 36
@@ -13,16 +25,34 @@ android {
         applicationId = "com.kevan.hangry"
         minSdk = 28
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.14.0"
+        versionCode = 16
+        versionName = "1.15.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "HANGRY_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "HANGRY_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "HANGRY_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            // Without an upload key, release builds fall back to the debug key so sideloadable
+            // APKs still build - Play rejects debug-signed uploads, so nothing ships by mistake.
+            signingConfig = if (releaseStoreFile != null) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn("keystore.properties not found - release build is signed with the DEBUG key and can't be uploaded to Play.")
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

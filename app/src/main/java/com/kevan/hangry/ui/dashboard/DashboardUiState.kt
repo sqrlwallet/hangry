@@ -3,6 +3,8 @@ package com.kevan.hangry.ui.dashboard
 import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
+import com.kevan.hangry.data.repository.BodyAgeSnapshot
+import com.kevan.hangry.domain.calculation.Streak
 import com.kevan.hangry.domain.model.CalorieBurnResult
 import com.kevan.hangry.domain.model.CalorieGoalRecommendation
 import com.kevan.hangry.domain.model.DashboardWidget
@@ -28,6 +30,10 @@ data class DashboardUiState(
     val dailyStepGoal: Long = 6000L,
     val dailyActivityMinutesGoal: Int = 90,
     val sleepGoalMinutes: Int = 480,
+    /** Habits with data, e.g. step goal and meals logged; empty until loaded. */
+    val streaks: List<Streak> = emptyList(),
+    /** Null until loaded. */
+    val bodyAge: BodyAgeSnapshot? = null,
     val dailyActiveCaloriesGoal: Int = 500,
     val todayActiveMinutes: Int = 0,
     val todayActiveCalories: Double = 0.0,

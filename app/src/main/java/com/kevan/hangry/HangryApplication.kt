@@ -1,6 +1,8 @@
 package com.kevan.hangry
 
 import android.app.Application
+import com.kevan.hangry.data.nudges.BedtimeReminder
+import com.kevan.hangry.data.nudges.DailyNudgeWorker
 import com.kevan.hangry.data.worker.HealthSyncWorker
 import com.kevan.hangry.di.AppContainer
 import com.kevan.hangry.di.DefaultAppContainer
@@ -17,6 +19,9 @@ class HangryApplication : Application() {
         // with KEEP is idempotent, so this is safe to call on every process start, including before
         // onboarding completes (an unauthorized sync is simply a harmless no-op).
         HealthSyncWorker.schedule(this)
+        // Morning readiness brief + bedtime reminder (both can be switched off in Settings).
+        DailyNudgeWorker.schedule(this)
+        BedtimeReminder.reschedule(this)
         com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(this)
         // Alarms are cleared by app updates and force-stops; re-arm supplement reminders.
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {

@@ -3,6 +3,9 @@ package com.kevan.hangry.ui.navigation
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.kevan.hangry.data.repository.BodyAgeLoader
+import com.kevan.hangry.data.repository.StreaksLoader
+import com.kevan.hangry.ui.bodyage.BodyAgeScreen
 import com.kevan.hangry.ui.components.millisUntilNextMidnight
 import com.kevan.hangry.ui.theme.HangryTheme
 import androidx.compose.animation.core.tween
@@ -96,6 +99,7 @@ sealed class Screen(val route: String) {
     data object HealthRecords : Screen("health_records")
     data object Supplements : Screen("supplements")
     data object More : Screen("more")
+    data object BodyAge : Screen("body_age")
     data object Breathing : Screen("breathing?pattern={pattern}&start={start}") {
         /**
          * A null pattern opens the screen as-is, e.g. to return to a running session.
@@ -143,7 +147,9 @@ fun HangryNavGraph(
             stressCalculator = appContainer.stressCalculator,
             dashboardWidgetRepository = appContainer.dashboardWidgetRepository,
             bodyFatRepository = appContainer.bodyFatRepository,
-            bodyMetricsRepository = appContainer.bodyMetricsRepository
+            bodyMetricsRepository = appContainer.bodyMetricsRepository,
+            streaksLoader = StreaksLoader(appContainer.database),
+            bodyAgeLoader = BodyAgeLoader(appContainer.database)
         )
     )
 
@@ -301,6 +307,7 @@ fun HangryNavGraph(
             val supplements by appContainer.supplementRepository.observe()
                 .collectAsState(initial = SupplementsSnapshot())
             DashboardScreen(
+                onNavigateToBodyAge = { navController.navigate(Screen.BodyAge.route) },
                 viewModel = dashboardViewModel,
                 nutritionViewModel = nutritionViewModel,
                 onNavigateToRecoveryDetails = {
@@ -482,9 +489,14 @@ fun HangryNavGraph(
             )
         }
 
+        composable(Screen.BodyAge.route) {
+            BodyAgeScreen(viewModel = dashboardViewModel, onNavigateBack = { navController.popBackStack() })
+        }
+
         // Everything that isn't its own tab
         composable(Screen.More.route) {
             MoreScreen(
+                onOpenBodyAge = { navController.navigate(Screen.BodyAge.route) },
                 onOpenTrends = { navController.navigate(Screen.Trends.route) },
                 onOpenPosture = { navController.navigate(Screen.Posture.route) },
                 onOpenBodyFat = { navController.navigate(Screen.BodyFatCalculator.route) },

@@ -224,3 +224,23 @@ Health Connect does not expose a native `StressRecord`. Commercial wearables cal
 - `HIGH` (80–100): High autonomic stress; restorative recovery recommended.
 - `BUILDING_BASELINE`: Calibrating until at least 3 usable days of history exist.
 
+
+---
+
+## 10. Body Age
+
+`BodyAgeCalculator` estimates how old your body "acts" from the last 30 days, compared with typical values for your age and sex. Each factor adds or removes a capped number of years; the total is capped at ±12 years. Factors with no data are listed as "not counted yet", never assumed. It needs your age, at least 7 days with data and at least 4 measured factors.
+
+| Factor | Neutral point | Effect (cap) |
+|---|---|---|
+| Cardio fitness (VO₂ max) | Typical for age/sex: 47 (men) / 40 (women) at 20, −0.4 ml/kg/min per year | 2 years per 3.5 ml/kg/min (1 MET) from typical (±5) |
+| Resting heart rate | 60 bpm | 1 year per 5 bpm (±3) |
+| HRV (RMSSD) | 62 − 0.6 × (age − 20) ms, min 20 | ± up to 1.5 years, scaled by % from typical |
+| Daily steps | 5,000–7,499 | ≥12k −2, ≥10k −1.5, ≥7.5k −1, <5k +1, <3k +2 |
+| Weekly exercise (non mind-body workouts) | 75–149 min | ≥300 −2, ≥150 −1, <75 +1, <30 +2 |
+| Strength sessions a week | — | ≥2 −1.5, ≥1 −0.5, 0 +1 |
+| Sleep | — | 7–9 h −1, 6–7 h or >9 h +0.5, <6 h +2 |
+| Sleep consistency | 70–84% | ≥85% −1, <70% +1 |
+| Body composition | Body-fat scan if within 180 days, else BMI | Healthy −1 (BMI −0.5), high +1, very high +2.5 |
+
+Zero workouts only counts as "no exercise" when the person's apps have recorded workouts before; otherwise exercise and strength are left out. Body Age for the 30 days before is also computed to show the month-over-month change. It's a motivational estimate, not a medical measurement.

@@ -28,8 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.breathing.BreathingSessionState
+import com.kevan.hangry.domain.calculation.StreakCalculator
 import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.domain.model.BreathingStats
+import com.kevan.hangry.ui.bodyage.BodyAgeCard
 import com.kevan.hangry.ui.breathing.BreathingExercisesCard
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.ui.coach.Celebrations
@@ -65,6 +67,7 @@ fun DashboardScreen(
     onNavigateToTraining: () -> Unit,
     onNavigateToHeartMetrics: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToBodyAge: () -> Unit = {},
     onNavigateToNutrition: () -> Unit,
     onNavigateToBodyFatCalculator: () -> Unit = {},
     onNavigateToBodyMetrics: () -> Unit = onNavigateToBodyFatCalculator,
@@ -119,8 +122,21 @@ fun DashboardScreen(
             celebration = "You hit your $goals goal${if (reached.size > 1) "s" else ""} today."
         }
     }
+    // Streak milestones (7, 14, 30... days): celebrated once per run, the highest one reached.
+    LaunchedEffect(Unit) { viewModel.refreshHabits() }
+    LaunchedEffect(uiState.streaks) {
+        for (streak in uiState.streaks) {
+            val start = streak.startedOn ?: continue
+            val newlyReached = StreakCalculator.milestonesReached(streak)
+                .filter { Celebrations.claim(context, "streak_${streak.type.name}_${start}_$it") }
+            val top = newlyReached.maxOrNull() ?: continue
+            celebration = "$top-day ${streak.type.label.lowercase()} streak! Keep it going."
+            break
+        }
+    }
+
     celebration?.let { message ->
-        DashCelebration(title = "Goal reached!", message = message, onDismiss = { celebration = null })
+        DashCelebration(title = if (message.contains("streak")) "Streak milestone!" else "Goal reached!", message = message, onDismiss = { celebration = null })
     }
 
 
@@ -265,6 +281,10 @@ fun DashboardScreen(
                         )
                         DailyBriefingCard(uiState = uiState)
                     }
+
+                    WidgetType.STREAKS -> StreaksCard(streaks = uiState.streaks)
+
+                    WidgetType.BODY_AGE -> BodyAgeCard(snapshot = uiState.bodyAge, onClick = onNavigateToBodyAge)
 
                     // Folded into the overview, or reachable from the tab bar and Log Meal button.
                     WidgetType.DAILY_ACTIVITY_RINGS, WidgetType.LOG_MEAL, WidgetType.SLEEP_STRAIN_RINGS,

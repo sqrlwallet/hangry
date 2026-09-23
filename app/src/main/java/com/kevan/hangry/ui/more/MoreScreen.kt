@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.DashboardCustomize
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MonitorHeart
@@ -32,6 +33,7 @@ data class MoreItem(val icon: ImageVector, val title: String, val subtitle: Stri
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
+    onOpenBodyAge: () -> Unit,
     onOpenTrends: () -> Unit,
     onOpenPosture: () -> Unit,
     onOpenBodyFat: () -> Unit,
@@ -46,6 +48,7 @@ fun MoreScreen(
 ) {
     val sections = listOf(
         "Progress" to listOf(
+            MoreItem(Icons.Default.Cake, "Body Age", "How old your body acts, from your habits and fitness", onOpenBodyAge),
             MoreItem(Icons.AutoMirrored.Filled.TrendingUp, "Trends", "Recovery, sleep, weight and more over time", onOpenTrends),
             MoreItem(Icons.Default.AccessibilityNew, "Posture", "Posture checks and your timeline", onOpenPosture),
             MoreItem(Icons.Default.PieChart, "Body Fat & Composition", "From photos or tape measurements", onOpenBodyFat),

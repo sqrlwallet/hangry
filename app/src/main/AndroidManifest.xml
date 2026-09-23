@@ -146,6 +146,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- Bedtime nudge: fires the reminder and re-plans it after reboot, updates and clock changes. -->
+        <receiver
+            android:name=".data.nudges.BedtimeReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Home Screen AppWidgets -->
         <receiver
             android:name=".ui.widget.ActivityWidgetProvider"

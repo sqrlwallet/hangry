@@ -108,7 +108,11 @@ class DefaultDashboardWidgetRepository(
         val existingIds = list.map { it.id }.toSet()
         val missingDefaults = defaultWidgets.filterNot { it.id in existingIds }
         val mergedList = if (missingDefaults.isNotEmpty()) {
-            list + missingDefaults.mapIndexed { idx, w -> w.copy(order = list.size + idx) }
+            // New cards go to the bottom - except Streaks and Body Age, which belong right under
+            // the overview (in that order: missing defaults keep their default order).
+            list + missingDefaults.mapIndexed { idx, w ->
+                w.copy(order = if (w.type == WidgetType.STREAKS || w.type == WidgetType.BODY_AGE) idx - 100 else list.size + idx)
+            }
         } else {
             list
         }

@@ -11,6 +11,8 @@ import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
+import com.kevan.hangry.data.repository.BodyAgeLoader
+import com.kevan.hangry.data.repository.StreaksLoader
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.SleepCalculator
@@ -24,6 +26,7 @@ import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.domain.model.RecoveryState
 import com.kevan.hangry.domain.model.SyncStatus
 import com.kevan.hangry.domain.repository.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -32,6 +35,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlinx.coroutines.withContext
 
 class DashboardViewModel(
     private val dailySummaryRepository: DailySummaryRepository,
@@ -48,7 +52,9 @@ class DashboardViewModel(
     private val dashboardWidgetRepository: DashboardWidgetRepository,
     private val bodyFatRepository: BodyFatRepository,
     /** Source of the 7-day maintenance/goal calorie estimate; null leaves the calorie goal blank. */
-    private val bodyMetricsRepository: BodyMetricsRepository? = null
+    private val bodyMetricsRepository: BodyMetricsRepository? = null,
+    private val streaksLoader: StreaksLoader? = null,
+    private val bodyAgeLoader: BodyAgeLoader? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -83,6 +89,7 @@ class DashboardViewModel(
      */
     fun onAppResumed() {
         onDayMaybeChanged()
+        refreshHabits()
         val last = lastSyncCompletedAt ?: return
         if (!_uiState.value.isSyncing && java.time.Duration.between(last, Instant.now()) > RESUME_SYNC_AFTER) {
             syncNow(days = 3)
@@ -339,6 +346,26 @@ class DashboardViewModel(
         _selectedDate.value = LocalDate.now(zone)
     }
 
+    /** Recomputes the habit streaks (step goal, meals, sleep goal, supplements) and Body Age. */
+    fun refreshHabits() {
+        bodyAgeLoader?.let { loader ->
+            viewModelScope.launch {
+                val snapshot = runCatching { withContext(Dispatchers.IO) { loader.load(LocalDate.now(zone), zone) } }.getOrNull()
+                _uiState.update { it.copy(bodyAge = snapshot) }
+            }
+        }
+        val loader = streaksLoader ?: return
+        viewModelScope.launch {
+            val profile = userProfileRepository.getProfileSync()
+            val streaks = runCatching {
+                withContext(Dispatchers.IO) {
+                    loader.load(LocalDate.now(zone), profile?.dailyStepGoal ?: 6000L, profile?.sleepGoalMinutes ?: 480, zone)
+                }
+            }.getOrDefault(emptyList())
+            _uiState.update { it.copy(streaks = streaks) }
+        }
+    }
+
     fun updateActivityGoals(stepGoal: Long, caloriesGoal: Int, activeMinutesGoal: Int? = null) {
         viewModelScope.launch {
             val currentProfile = userProfileRepository.getProfileSync() ?: UserProfileEntity()
@@ -357,6 +384,7 @@ class DashboardViewModel(
                     dailyActivityMinutesGoal = minutesGoal
                 )
             }
+            refreshHabits()
         }
     }
 
@@ -420,6 +448,7 @@ class DashboardViewModel(
                                 lastSyncFormatted = formatTime(Instant.now().also { lastSyncCompletedAt = it })
                             )
                         }
+                        refreshHabits()
                     }
                     SyncStatus.FAILED -> {
                         _uiState.update {
@@ -457,7 +486,9 @@ class DashboardViewModel(
             stressCalculator: StressCalculator,
             dashboardWidgetRepository: DashboardWidgetRepository,
             bodyFatRepository: BodyFatRepository,
-            bodyMetricsRepository: BodyMetricsRepository? = null
+            bodyMetricsRepository: BodyMetricsRepository? = null,
+            streaksLoader: StreaksLoader? = null,
+            bodyAgeLoader: BodyAgeLoader? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -475,7 +506,9 @@ class DashboardViewModel(
                     stressCalculator = stressCalculator,
                     dashboardWidgetRepository = dashboardWidgetRepository,
                     bodyFatRepository = bodyFatRepository,
-                    bodyMetricsRepository = bodyMetricsRepository
+                    bodyMetricsRepository = bodyMetricsRepository,
+                    streaksLoader = streaksLoader,
+                    bodyAgeLoader = bodyAgeLoader
                 ) as T
             }
         }

@@ -268,6 +268,8 @@ fun SettingsScreen(
             }
 
             // Everything below is tucked into collapsed sections so the screen stays short.
+            RemindersSection()
+
             SettingsCollapsibleSection(
                 title = "Synchronization",
                 summary = "Sync now, history, sources & baselines",

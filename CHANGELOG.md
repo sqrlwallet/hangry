@@ -1,3 +1,19 @@
+## 🚀 What's New in Hangry v1.18.0
+
+### 🧬 Body Age
+- See how old your body "acts" compared with your real age, from 30 days of sleep, activity, fitness (VO₂ max), heart and body composition.
+- Every factor shows how many years it adds or removes, with a tip; the month-over-month change is shown too. An estimate for motivation, not a medical measurement.
+
+### 🔥 Streaks
+- Step goal, meals logged, sleep goal and all supplements taken - days in a row, with your best run. Dash celebrates 7, 14, 30, 60, 100, 180 and 365 days.
+
+### 🔔 Reminders
+- **Morning readiness**: once last night's sleep syncs, your recovery and today's strain target, with Dash.
+- **Bedtime reminder**: a nudge 30 minutes before your suggested bedtime.
+- Both can be switched off in Settings → Reminders.
+
+---
+
 ## 🚀 What's New in Hangry v1.17.0
 
 ### ✅ Only Real Numbers

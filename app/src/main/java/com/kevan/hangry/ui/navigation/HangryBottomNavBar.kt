@@ -77,7 +77,7 @@ sealed class BottomNavDestination(
 
     data object AiCoach : BottomNavDestination(
         route = Screen.AiCoach.route,
-        label = "Coach",
+        label = "Ask Dash",
         selectedIcon = Icons.Filled.AutoAwesome,
         unselectedIcon = Icons.Outlined.AutoAwesome
     )

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
+import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
@@ -26,7 +27,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 private val RECOVERY_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "Heart Rate Variability — 35% weight",
-        "Reflects parasympathetic autonomic tone. Higher HRV relative to your 7-day rolling baseline indicates systemic readiness. If your device doesn't report HRV, it counts as a good day."
+        "Reflects parasympathetic autonomic tone. Higher HRV relative to your 7-day rolling baseline indicates systemic readiness. If your device doesn't report HRV, we count it as excellent - and you can change that to how you actually feel."
     ),
     HangryInfoSection(
         "Resting Heart Rate — 25% weight",
@@ -103,12 +104,17 @@ fun RecoveryDetailsScreen(
                 color = tokens.textPrimary
             )
 
-            RecoveryComponentRow(
-                label = "Heart Rate Variability",
-                valueColor = tokens.chartColors.hrv,
-                score = scoreEntity?.hrvComponentScore,
-                missingLabel = "Not reported · counted as good"
-            )
+            // No HRV from the device: the score assumes an excellent day unless the user says
+            // otherwise. With a real reading there's nothing to pick - it's calculated.
+            if (scoreEntity?.score != null && scoreEntity.hrvComponentScore == null) {
+                HrvFeelingCard(selected = uiState.hrvFeeling, onSelect = viewModel::setHrvFeeling)
+            } else {
+                RecoveryComponentRow(
+                    label = "Heart Rate Variability",
+                    valueColor = tokens.chartColors.hrv,
+                    score = scoreEntity?.hrvComponentScore
+                )
+            }
             RecoveryComponentRow(
                 label = "Resting Heart Rate",
                 valueColor = tokens.chartColors.restingHeartRate,
@@ -124,6 +130,53 @@ fun RecoveryDetailsScreen(
                 valueColor = tokens.chartColors.trainingLoad,
                 score = scoreEntity?.trainingLoadComponentScore
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HrvFeelingCard(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit) {
+    val tokens = LocalHangryTokens.current
+    HangryCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Heart Rate Variability",
+                style = MaterialTheme.typography.titleMedium,
+                color = tokens.chartColors.hrv
+            )
+            Text(
+                text = selected.label,
+                style = MaterialTheme.typography.titleMedium,
+                color = tokens.textPrimary
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = if (selected == HrvFeeling.DEFAULT) {
+                "Your device didn't report HRV today, so we're counting it as excellent. Feeling different? Pick what fits and your recovery updates."
+            } else {
+                "Your device didn't report HRV today, so we're using how you feel: ${selected.description.lowercase()}."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = tokens.textSecondary
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            HrvFeeling.entries.forEach { feeling ->
+                FilterChip(
+                    selected = feeling == selected,
+                    onClick = { onSelect(feeling) },
+                    label = { Text(feeling.label) }
+                )
+            }
         }
     }
 }

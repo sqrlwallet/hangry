@@ -13,6 +13,10 @@ interface ExerciseSessionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertOrIgnore(sessions: List<ExerciseSessionEntity>): List<Long>
 
+    /** Fills in workout steps on sessions imported before steps were tracked (insertOrIgnore skips them). */
+    @Query("UPDATE exercise_sessions SET steps = :steps WHERE recordFingerprint = :fingerprint AND steps IS NULL")
+    suspend fun backfillSteps(fingerprint: String, steps: Long)
+
     // Attributed by startTime alone - a session that starts before `end` but runs past it
     // (e.g. crosses midnight) still belongs to the day it started, instead of being excluded
     // from every window because it isn't fully contained by any single one.

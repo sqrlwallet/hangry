@@ -8,7 +8,16 @@ import com.kevan.hangry.data.local.dao.PostureScanDao
 import com.kevan.hangry.data.local.dao.RecoveryScoreDao
 import com.kevan.hangry.data.local.dao.SleepSessionDao
 import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
+import com.kevan.hangry.domain.model.BodyMetricsSnapshot
+import com.kevan.hangry.domain.model.GoalDirection
+import com.kevan.hangry.domain.model.HealthRecordsSnapshot
+import com.kevan.hangry.domain.model.MarkerType
+import com.kevan.hangry.domain.repository.HealthRecordsRepository
+import com.kevan.hangry.domain.model.EnergyBalanceResult
+import com.kevan.hangry.domain.repository.BodyMetricsRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
+import java.util.Locale
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -26,7 +35,11 @@ class AiCoachContextBuilder(
     private val sleepSessionDao: SleepSessionDao,
     private val foodLogDao: FoodLogDao,
     private val postureScanDao: PostureScanDao,
-    private val coachJournalDao: CoachJournalDao
+    private val coachJournalDao: CoachJournalDao,
+    /** Body metrics + 7-day maintenance/goal calories. Optional so tests can omit it. */
+    private val bodyMetricsRepository: BodyMetricsRepository? = null,
+    /** Labs, vitals, goals, allergies, conditions, pregnancy and cycle. Optional for tests. */
+    private val healthRecordsRepository: HealthRecordsRepository? = null
 ) {
 
     suspend fun build7DayContext(): String {
@@ -71,6 +84,13 @@ class AiCoachContextBuilder(
             sb.appendLine("Profile defaults in use.")
         }
         sb.appendLine()
+
+        bodyMetricsRepository?.current()?.let { snapshot ->
+            appendEnergyBalance(sb, snapshot.input.energy)
+            appendBodyMetrics(sb, snapshot)
+        }
+
+        healthRecordsRepository?.current()?.let { appendHealthRecords(sb, it, today) }
 
         sb.appendLine("=== USER'S PERSONAL JOURNAL & KNOWN PROBLEMS / MEMORIES ===")
         if (journalMemories.isEmpty()) {
@@ -143,4 +163,91 @@ class AiCoachContextBuilder(
 
         return sb.toString().trim()
     }
+
+    private fun appendEnergyBalance(sb: StringBuilder, energy: EnergyBalanceResult?) {
+        sb.appendLine("=== ENERGY BALANCE (last 7 full days, excluding today) ===")
+        val e = energy?.estimate
+        if (e == null) {
+            val missing = energy?.missing?.joinToString(", ") ?: "profile and step data"
+            sb.appendLine("Not enough data to estimate maintenance calories yet (needs: $missing). Don't invent a number - suggest filling these in.")
+            sb.appendLine()
+            return
+        }
+        sb.appendLine("Maintenance calories: ${f(e.maintenanceKcal)} kcal/day (averaged over ${e.daysWithData} days with data, ${e.windowStart} to ${e.windowEnd})")
+        sb.appendLine("• BMR (Mifflin-St Jeor): ${f(e.bmrKcal)} kcal")
+        sb.appendLine("• NEAT: avg ${f(e.avgTotalSteps)} steps/day ÷ 3 = ${f(e.avgNeatSteps)} counted steps × ${"%.3f".format(Locale.US, e.kcalPerStep)} kcal/step = ${f(e.neatKcal)} kcal (a third is counted as a rough allowance for steps already covered by workout calories - an estimate)")
+        sb.appendLine("• Workouts: ${e.workoutsCounted} sessions, avg ${f(e.avgWorkoutKcal)} kcal/day" +
+            if (e.workoutsWithoutCalories > 0) " (${e.workoutsWithoutCalories} had no calorie data)" else "")
+        val goal = e.goal
+        when {
+            e.goalWeightKg == null || e.goalDate == null ->
+                sb.appendLine("Goal: none set (no goal weight + target date). Eating ~${f(e.maintenanceKcal)} kcal/day maintains current weight.")
+            goal?.dailyCalorieTarget == null ->
+                sb.appendLine("Goal: ${"%.1f".format(Locale.US, e.goalWeightKg)} kg by ${e.goalDate} - ${goal?.guidance ?: "target date has passed"}")
+            else -> {
+                val adj = e.dailyAdjustmentKcal ?: 0.0
+                val kind = if (adj < 0) "deficit" else "surplus"
+                sb.appendLine("Goal: ${"%.1f".format(Locale.US, e.goalWeightKg)} kg by ${e.goalDate} → eat ${goal.dailyCalorieTarget} kcal/day (${f(kotlin.math.abs(adj))} kcal/day $kind, ~${"%.2f".format(Locale.US, kotlin.math.abs(goal.weeklyPaceKg))} kg/week). ${goal.guidance}")
+            }
+        }
+        sb.appendLine()
+    }
+
+    private fun appendBodyMetrics(sb: StringBuilder, snapshot: BodyMetricsSnapshot) {
+        val available = snapshot.groups.flatMap { it.metrics }.filter { it.isAvailable }
+            .filterNot { it.id == "maintenance" || it.id == "goal_calories" } // covered above
+        if (available.isEmpty()) return
+        sb.appendLine("=== BODY METRICS (calculated in-app from profile, tape measurements & latest body-fat scan) ===")
+        available.forEach { m ->
+            val unit = if (m.unit.isNotEmpty()) " ${m.unit}" else ""
+            val status = m.status?.let { " - $it" } ?: ""
+            sb.appendLine("• ${m.name}: ${m.displayValue}$unit$status")
+        }
+        sb.appendLine()
+    }
+
+    private fun appendHealthRecords(sb: StringBuilder, records: HealthRecordsSnapshot, today: LocalDate) {
+        sb.appendLine("=== HEALTH RECORDS (user-entered or imported; for tracking context only - never diagnose) ===")
+        sb.appendLine("Allergies: " + records.allergies.joinToString(", ") { a -> a.name + (a.note?.let { " ($it)" } ?: "") }.ifEmpty { "none recorded" })
+        sb.appendLine("Conditions: " + records.conditions.joinToString(", ") { it.name }.ifEmpty { "none recorded" })
+        if (records.showsFemaleHealth) {
+            sb.appendLine("Pregnant: " + if (records.isPregnant) "YES" + (records.pregnancyDueDate?.let { ", due $it" } ?: "") else "no")
+            val cycle = HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, today)
+            if (cycle.lastPeriodStart != null) {
+                val parts = listOfNotNull(
+                    "last period started ${cycle.lastPeriodStart}",
+                    cycle.currentCycleDay?.let { "cycle day $it" },
+                    cycle.averageCycleDays?.let { "avg cycle %.0f days".format(Locale.US, it) },
+                    cycle.predictedNextStart?.let { "next period predicted ~$it" },
+                    if (cycle.inPeriodNow) "currently on period" else null
+                )
+                sb.appendLine("Menstrual cycle: " + parts.joinToString(", "))
+            }
+        }
+        val tracked = MarkerType.entries.filter { records.latest(it) != null || records.goal(it) != null }
+        if (tracked.isEmpty()) {
+            sb.appendLine("Lab/vital markers: none recorded yet.")
+        } else {
+            sb.appendLine("Lab/vital markers (latest first, up to 3 readings):")
+            tracked.forEach { type ->
+                val history = records.history(type).take(3)
+                val status = HealthMarkerCalculator.describe(type, history.firstOrNull(), records.sex).status
+                val readings = history.joinToString("; ") { r ->
+                    val ctx = r.glucoseContext?.let { " ${it.label.lowercase()}" } ?: ""
+                    "${HealthMarkerCalculator.format(type, r.value, r.secondaryValue)} ${type.canonicalUnit}$ctx on ${r.date}"
+                }.ifEmpty { "no readings" }
+                val goal = records.goal(type)?.let { g ->
+                    val p = HealthMarkerCalculator.progress(g, history.firstOrNull())
+                    val target = HealthMarkerCalculator.format(type, g.targetValue, g.targetSecondary)
+                    val direction = if (g.direction == GoalDirection.LOWER) "at or below" else "at or above"
+                    " | GOAL: $direction $target ${type.canonicalUnit}" + (g.targetDate?.let { " by $it" } ?: "") +
+                        if (p.reached) " (reached)" else p.fraction?.let { " (%.0f%% of the way)".format(Locale.US, it * 100) } ?: ""
+                } ?: ""
+                sb.appendLine("• ${type.label}: $readings" + (status?.let { " [$it]" } ?: "") + goal)
+            }
+        }
+        sb.appendLine()
+    }
+
+    private fun f(value: Double) = "%,.0f".format(Locale.US, value)
 }

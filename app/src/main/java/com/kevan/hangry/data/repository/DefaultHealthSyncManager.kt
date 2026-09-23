@@ -4,15 +4,19 @@ import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.local.HangryDatabase
 import androidx.room.withTransaction
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
+import com.kevan.hangry.data.local.entity.HrvFeelingEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.data.local.entity.SyncStateEntity
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.DayMetrics
 import com.kevan.hangry.domain.calculation.RecoveryCalculator
+import com.kevan.hangry.domain.calculation.RecoveryConfig
 import com.kevan.hangry.domain.calculation.SleepCalculator
 import com.kevan.hangry.domain.calculation.StrainCalculator
 import com.kevan.hangry.domain.calculation.TrainingLoadCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
+import com.kevan.hangry.domain.model.HrvFeeling
+import com.kevan.hangry.domain.model.RecoveryResult
 import com.kevan.hangry.domain.model.SyncProgress
 import com.kevan.hangry.domain.model.SyncStatus
 import com.kevan.hangry.domain.repository.HealthSyncManager
@@ -20,6 +24,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Instant
@@ -135,6 +141,9 @@ class DefaultHealthSyncManager(
 
                     val workoutInserted = database.exerciseSessionDao().insertOrIgnore(workouts)
                     chunkInserted += workoutInserted.count { it != -1L }
+                    workouts.forEach { workout ->
+                        workout.steps?.let { database.exerciseSessionDao().backfillSteps(workout.recordFingerprint, it) }
+                    }
 
                     val rhrInserted = database.restingHeartRateDao().insertOrIgnore(rhrRecords)
                     chunkInserted += rhrInserted.count { it != -1L }
@@ -248,6 +257,64 @@ class DefaultHealthSyncManager(
       }
     }.flowOn(Dispatchers.IO)
 
+    override suspend fun recalculateIfScoringChanged() {
+        val stored = database.recoveryScoreDao().getLatestScoreSync() ?: return
+        if (stored.algorithmVersion >= RecoveryConfig().algorithmVersion) return
+        recalculateAllBaselines().collect { }
+    }
+
+    override fun observeHrvFeeling(date: LocalDate): Flow<HrvFeeling?> =
+        database.hrvFeelingDao().observeForDate(date).map { HrvFeeling.fromName(it?.feeling) }
+
+    override suspend fun setHrvFeeling(date: LocalDate, feeling: HrvFeeling) = withContext(Dispatchers.IO) {
+      syncMutex.withLock {
+        database.hrvFeelingDao().upsert(HrvFeelingEntity(date = date, feeling = feeling.name))
+        // Recompute just this day from its stored summary - the same inputs a full sync uses.
+        val summaryDao = database.dailyHealthSummaryDao()
+        val summary = summaryDao.getSummaryForDateSync(date) ?: return@withLock
+        val history = (1..7).map { offset ->
+            val prevDate = date.minusDays(offset.toLong())
+            summaryDao.getSummaryForDateSync(prevDate).toDayMetrics(prevDate)
+        }
+        val result = recoveryCalculator.calculateRecovery(
+            date = date,
+            currentDayMetrics = summary.toDayMetrics(date),
+            baselineHistory = history,
+            config = recoveryConfigFor(feeling)
+        )
+        database.recoveryScoreDao().insertOrReplace(result.toEntity(date))
+      }
+    }
+
+    private fun recoveryConfigFor(feeling: HrvFeeling?) =
+        RecoveryConfig(assumedHrvScore = (feeling ?: HrvFeeling.DEFAULT).score)
+
+    private fun DailyHealthSummaryEntity?.toDayMetrics(date: LocalDate) = DayMetrics(
+        date = date,
+        sleepDurationMinutes = this?.sleepDurationMinutes,
+        restingHeartRate = this?.restingHeartRate,
+        hrvRmssd = this?.hrvRmssd,
+        trainingLoad = this?.dailyTrainingLoad,
+        sleepConsistencyPercentage = this?.sleepConsistencyScore?.roundToInt() ?: 85
+    )
+
+    private fun RecoveryResult.toEntity(date: LocalDate) = RecoveryScoreEntity(
+        date = date,
+        score = score,
+        confidence = confidence.name,
+        state = state.name,
+        algorithmVersion = algorithmVersion,
+        baselineWindowDays = 7,
+        hrvComponentScore = hrvScore,
+        rhrComponentScore = rhrScore,
+        sleepComponentScore = sleepScore,
+        trainingLoadComponentScore = trainingLoadScore,
+        positiveContributors = positiveContributors.joinToString("|"),
+        negativeContributors = negativeContributors.joinToString("|"),
+        supportiveAdvice = supportiveAdvice,
+        calculatedAt = Instant.now()
+    )
+
     override fun getSyncStates(): Flow<List<SyncStateEntity>> =
         database.syncStateDao().getAllSyncStates()
 
@@ -266,6 +333,13 @@ class DefaultHealthSyncManager(
             database.syncStateDao().deleteAll()
             database.foodLogDao().deleteBySource(com.kevan.hangry.data.local.entity.FoodLogSource.HEALTH_CONNECT)
             database.bodyFatScanDao().deleteAll()
+            database.hrvFeelingDao().deleteAll()
+            with(database.healthRecordsDao()) {
+                deleteAllMarkers()
+                deleteAllGoals()
+                deleteAllProfileItems()
+                deleteAllPeriods()
+            }
         }
     }
 
@@ -277,6 +351,8 @@ class DefaultHealthSyncManager(
         val effectiveStart = if (earliestDataDate != null && earliestDataDate.isBefore(start)) earliestDataDate else start
 
         val daysBetween = ChronoUnit.DAYS.between(effectiveStart, end).toInt()
+        val hrvFeelings = database.hrvFeelingDao().getBetweenList(effectiveStart, end)
+            .associate { it.date to HrvFeeling.fromName(it.feeling) }
 
         // Resting metabolic rate is computed once from the latest known profile/weight and
         // applied across the recomputed range - a documented simplification (see CALCULATIONS.md
@@ -506,26 +582,10 @@ class DefaultHealthSyncManager(
             val recoveryResult = recoveryCalculator.calculateRecovery(
                 date = date,
                 currentDayMetrics = currentDayMetrics,
-                baselineHistory = baselineDays
+                baselineHistory = baselineDays,
+                config = recoveryConfigFor(hrvFeelings[date])
             )
-
-            val scoreEntity = RecoveryScoreEntity(
-                date = date,
-                score = recoveryResult.score,
-                confidence = recoveryResult.confidence.name,
-                state = recoveryResult.state.name,
-                algorithmVersion = recoveryResult.algorithmVersion,
-                baselineWindowDays = 7,
-                hrvComponentScore = recoveryResult.hrvScore,
-                rhrComponentScore = recoveryResult.rhrScore,
-                sleepComponentScore = recoveryResult.sleepScore,
-                trainingLoadComponentScore = recoveryResult.trainingLoadScore,
-                positiveContributors = recoveryResult.positiveContributors.joinToString("|"),
-                negativeContributors = recoveryResult.negativeContributors.joinToString("|"),
-                supportiveAdvice = recoveryResult.supportiveAdvice,
-                calculatedAt = Instant.now()
-            )
-            scoresToInsert.add(scoreEntity)
+            scoresToInsert.add(recoveryResult.toEntity(date))
         }
 
         database.withTransaction {

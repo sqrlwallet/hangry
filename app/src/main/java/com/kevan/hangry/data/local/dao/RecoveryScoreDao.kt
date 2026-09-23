@@ -25,6 +25,9 @@ interface RecoveryScoreDao {
     @Query("SELECT * FROM recovery_scores ORDER BY date DESC LIMIT 1")
     fun getLatestScore(): Flow<RecoveryScoreEntity?>
 
+    @Query("SELECT * FROM recovery_scores ORDER BY date DESC LIMIT 1")
+    suspend fun getLatestScoreSync(): RecoveryScoreEntity?
+
     @Query("SELECT * FROM recovery_scores WHERE date >= :start AND date <= :end ORDER BY date DESC")
     fun getScoresBetween(start: LocalDate, end: LocalDate): Flow<List<RecoveryScoreEntity>>
 

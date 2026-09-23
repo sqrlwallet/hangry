@@ -110,7 +110,8 @@
         </LinearLayout>
 
         <!-- Divider -->
-        <View
+        <!-- FrameLayout, not View: a bare View isn't allowed in RemoteViews before Android 12. -->
+        <FrameLayout
             android:layout_width="1dp"
             android:layout_height="match_parent"
             android:background="#3A363F" />

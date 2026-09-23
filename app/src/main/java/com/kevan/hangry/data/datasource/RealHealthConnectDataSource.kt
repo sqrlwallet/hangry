@@ -1,3 +1,6 @@
+// Medical records (Personal Health Record) APIs are experimental in connect-client 1.1.0.
+@file:OptIn(androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi::class)
+
 package com.kevan.hangry.data.datasource
 
 import android.content.Context
@@ -9,6 +12,7 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import com.kevan.hangry.data.healthrecords.FhirHealthRecordParser
 import com.kevan.hangry.data.local.entity.*
 import java.security.MessageDigest
 import java.time.Instant
@@ -35,6 +39,17 @@ class RealHealthConnectDataSource(
         // Write-only - used solely to log breathing sessions the user completed in the app.
         const val PERMISSION_WRITE_MINDFULNESS = "android.permission.health.WRITE_MINDFULNESS"
         val PERMISSION_WRITE_EXERCISE = HealthPermission.getWritePermission(ExerciseSessionRecord::class)
+
+        // Health records (read-only): home vitals plus clinical records, where supported.
+        val PERMISSION_READ_BLOOD_PRESSURE = HealthPermission.getReadPermission(BloodPressureRecord::class)
+        val PERMISSION_READ_BLOOD_GLUCOSE = HealthPermission.getReadPermission(BloodGlucoseRecord::class)
+        val PERMISSION_READ_MENSTRUATION = HealthPermission.getReadPermission(MenstruationPeriodRecord::class)
+        val MEDICAL_RECORD_PERMISSIONS = setOf(
+            HealthPermission.PERMISSION_READ_MEDICAL_DATA_LABORATORY_RESULTS,
+            HealthPermission.PERMISSION_READ_MEDICAL_DATA_VITAL_SIGNS,
+            HealthPermission.PERMISSION_READ_MEDICAL_DATA_CONDITIONS,
+            HealthPermission.PERMISSION_READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES
+        )
 
         val PERMISSIONS = setOf(
             PERMISSION_READ_HEALTH_DATA_HISTORY,
@@ -229,6 +244,11 @@ class RealHealthConnectDataSource(
         } catch (_: Exception) {
             emptyList()
         }
+        val stepRecords = try {
+            readAllRecords(StepsRecord::class, filter)
+        } catch (_: Exception) {
+            emptyList()
+        }
 
         return records.map { record ->
             val durationMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
@@ -250,6 +270,20 @@ class RealHealthConnectDataSource(
                 matchingTotalCals.sumOf { it.energy.inKilocalories }
             } else null
 
+            // Same raw-record summing as the daily step total, pro-rated for records that only
+            // partly overlap the session, so workout steps can be subtracted from it cleanly.
+            val sessionSteps = stepRecords.sumOf { steps ->
+                val overlapStart = maxOf(steps.startTime, record.startTime)
+                val overlapEnd = minOf(steps.endTime, record.endTime)
+                val recordMs = java.time.Duration.between(steps.startTime, steps.endTime).toMillis()
+                val overlapMs = java.time.Duration.between(overlapStart, overlapEnd).toMillis()
+                when {
+                    overlapMs <= 0 -> 0.0
+                    recordMs <= 0 -> steps.count.toDouble()
+                    else -> steps.count * overlapMs.toDouble() / recordMs
+                }
+            }.toLong().takeIf { stepRecords.isNotEmpty() }
+
             ExerciseSessionEntity(
                 sourceRecordId = recordId,
                 sourcePackageName = pkg,
@@ -261,6 +295,7 @@ class RealHealthConnectDataSource(
                 durationMinutes = durationMinutes,
                 activeCalories = activeCalories,
                 totalCalories = totalCalories,
+                steps = sessionSteps,
                 estimatedTrainingLoad = null,
                 dataQualityState = "VALID"
             )
@@ -685,6 +720,126 @@ class RealHealthConnectDataSource(
             Log.w("HangryHealthConnect", "Failed writing breathing session: ${e.message}")
             false
         }
+    }
+
+    override suspend fun grantedPermissions(): Set<String> = runCatching { getGrantedPermissions() }.getOrDefault(emptySet())
+
+    override suspend fun supportsMedicalRecords(): Boolean {
+        val activeClient = client ?: return false
+        return try {
+            activeClient.features.getFeatureStatus(HealthConnectFeatures.FEATURE_PERSONAL_HEALTH_RECORD) ==
+                HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    override suspend fun healthRecordPermissions(includeCycle: Boolean): Set<String> {
+        if (client == null) return emptySet()
+        return buildSet {
+            add(PERMISSION_READ_BLOOD_PRESSURE)
+            add(PERMISSION_READ_BLOOD_GLUCOSE)
+            if (includeCycle) add(PERMISSION_READ_MENSTRUATION)
+            if (supportsMedicalRecords()) addAll(MEDICAL_RECORD_PERMISSIONS)
+        }
+    }
+
+    override suspend fun fetchHealthRecords(since: Instant, includeCycle: Boolean): ImportedHealthRecords {
+        if (client == null) return ImportedHealthRecords()
+        val granted = grantedPermissions()
+        val zone = ZoneId.systemDefault()
+        val filter = TimeRangeFilter.between(since, Instant.now())
+        val markers = mutableListOf<HealthMarkerEntity>()
+        val items = mutableListOf<HealthProfileItemEntity>()
+        val periods = mutableListOf<MenstrualPeriodEntity>()
+
+        if (PERMISSION_READ_BLOOD_PRESSURE in granted) {
+            runCatching { readAllRecords(BloodPressureRecord::class, filter) }.getOrDefault(emptyList()).forEach { r ->
+                markers += HealthMarkerEntity(
+                    type = com.kevan.hangry.domain.model.MarkerType.BLOOD_PRESSURE.id,
+                    value = r.systolic.inMillimetersOfMercury,
+                    secondaryValue = r.diastolic.inMillimetersOfMercury,
+                    measuredAt = r.time,
+                    date = r.time.atZone(zone).toLocalDate(),
+                    source = com.kevan.hangry.domain.model.RecordSource.HEALTH_CONNECT.name,
+                    sourceRecordId = "hc:${r.metadata.id}"
+                )
+            }
+        }
+        if (PERMISSION_READ_BLOOD_GLUCOSE in granted) {
+            runCatching { readAllRecords(BloodGlucoseRecord::class, filter) }.getOrDefault(emptyList()).forEach { r ->
+                val context = when (r.relationToMeal) {
+                    BloodGlucoseRecord.RELATION_TO_MEAL_FASTING -> com.kevan.hangry.domain.model.GlucoseContext.FASTING
+                    BloodGlucoseRecord.RELATION_TO_MEAL_BEFORE_MEAL -> com.kevan.hangry.domain.model.GlucoseContext.BEFORE_MEAL
+                    BloodGlucoseRecord.RELATION_TO_MEAL_AFTER_MEAL -> com.kevan.hangry.domain.model.GlucoseContext.AFTER_MEAL
+                    else -> com.kevan.hangry.domain.model.GlucoseContext.RANDOM
+                }
+                markers += HealthMarkerEntity(
+                    type = com.kevan.hangry.domain.model.MarkerType.BLOOD_GLUCOSE.id,
+                    value = r.level.inMilligramsPerDeciliter,
+                    measuredAt = r.time,
+                    date = r.time.atZone(zone).toLocalDate(),
+                    glucoseContext = context.name,
+                    source = com.kevan.hangry.domain.model.RecordSource.HEALTH_CONNECT.name,
+                    sourceRecordId = "hc:${r.metadata.id}"
+                )
+            }
+        }
+        if (includeCycle && PERMISSION_READ_MENSTRUATION in granted) {
+            runCatching { readAllRecords(MenstruationPeriodRecord::class, filter) }.getOrDefault(emptyList()).forEach { r ->
+                periods += MenstrualPeriodEntity(
+                    startDate = r.startTime.atZone(zone).toLocalDate(),
+                    // HC end is exclusive; the last period day is the day before.
+                    endDate = r.endTime.minusMillis(1).atZone(zone).toLocalDate(),
+                    source = com.kevan.hangry.domain.model.RecordSource.HEALTH_CONNECT.name,
+                    sourceRecordId = "hc:${r.metadata.id}"
+                )
+            }
+        }
+        if (supportsMedicalRecords() && granted.any { it in MEDICAL_RECORD_PERMISSIONS }) {
+            readMedical(MedicalResource.MEDICAL_RESOURCE_TYPE_LABORATORY_RESULTS, granted).forEach { res ->
+                FhirHealthRecordParser.parseObservation(res.fhirResource.data, res.fhirResource.id, zone)?.let { markers += it }
+            }
+            readMedical(MedicalResource.MEDICAL_RESOURCE_TYPE_VITAL_SIGNS, granted).forEach { res ->
+                FhirHealthRecordParser.parseObservation(res.fhirResource.data, res.fhirResource.id, zone)
+                    ?.takeIf { it.type == com.kevan.hangry.domain.model.MarkerType.BLOOD_PRESSURE.id }
+                    ?.let { markers += it }
+            }
+            readMedical(MedicalResource.MEDICAL_RESOURCE_TYPE_CONDITIONS, granted).forEach { res ->
+                FhirHealthRecordParser.parseCondition(res.fhirResource.data, res.fhirResource.id)?.let { items += it }
+            }
+            readMedical(MedicalResource.MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES, granted).forEach { res ->
+                FhirHealthRecordParser.parseAllergy(res.fhirResource.data, res.fhirResource.id)?.let { items += it }
+            }
+        }
+        return ImportedHealthRecords(markers, items, periods)
+    }
+
+    private suspend fun readMedical(type: Int, granted: Set<String>): List<MedicalResource> {
+        val needed = when (type) {
+            MedicalResource.MEDICAL_RESOURCE_TYPE_LABORATORY_RESULTS -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_LABORATORY_RESULTS
+            MedicalResource.MEDICAL_RESOURCE_TYPE_VITAL_SIGNS -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_VITAL_SIGNS
+            MedicalResource.MEDICAL_RESOURCE_TYPE_CONDITIONS -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_CONDITIONS
+            else -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES
+        }
+        if (needed !in granted) return emptyList()
+        val activeClient = client ?: return emptyList()
+        val all = mutableListOf<MedicalResource>()
+        try {
+            var response = activeClient.readMedicalResources(
+                androidx.health.connect.client.request.ReadMedicalResourcesInitialRequest(type, emptySet(), 1000)
+            )
+            all += response.medicalResources
+            while (response.nextPageToken != null) {
+                response = activeClient.readMedicalResources(
+                    androidx.health.connect.client.request.ReadMedicalResourcesPageRequest(response.nextPageToken!!, 1000)
+                )
+                all += response.medicalResources
+            }
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading medical records ($type): ${e.message}")
+        }
+        return all
     }
 
     private fun mapExerciseType(type: Int): String = when (type) {

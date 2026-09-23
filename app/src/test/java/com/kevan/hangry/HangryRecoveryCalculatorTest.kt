@@ -66,7 +66,7 @@ class HangryRecoveryCalculatorTest {
         assertTrue("Score must be between 0 and 100", result.score!! in 0..100)
         assertEquals(ScoreConfidence.HIGH, result.confidence)
         assertTrue(result.positiveContributors.isNotEmpty())
-        assertEquals(2, result.algorithmVersion)
+        assertEquals(3, result.algorithmVersion)
     }
 
     @Test
@@ -217,5 +217,41 @@ class HangryRecoveryCalculatorTest {
         prohibitedWords.forEach { word ->
             assertFalse("Copy must not contain shameful/clinical word '$word'", text.contains(word, ignoreCase = true))
         }
+    }
+
+    @Test
+    fun testMissingHrv_usesFeelingDefaultingToExcellent() {
+        val history = (1..7).map { offset ->
+            DayMetrics(today.minusDays(offset.toLong()), 480, 58.0, 65.0)
+        }
+        val noHrv = DayMetrics(today, 480, 58.0, null)
+
+        val excellent = calculator.calculateRecovery(today, noHrv, history)
+        val drained = calculator.calculateRecovery(
+            today, noHrv, history, com.kevan.hangry.domain.calculation.RecoveryConfig(
+                assumedHrvScore = com.kevan.hangry.domain.model.HrvFeeling.DRAINED.score
+            )
+        )
+        assertEquals(
+            com.kevan.hangry.domain.model.HrvFeeling.EXCELLENT.score,
+            com.kevan.hangry.domain.calculation.RecoveryConfig().assumedHrvScore,
+            0.0
+        )
+        assertTrue("A lower feeling must lower recovery", drained.score!! < excellent.score!!)
+    }
+
+    @Test
+    fun testRealHrv_ignoresFeeling() {
+        val history = (1..7).map { offset ->
+            DayMetrics(today.minusDays(offset.toLong()), 480, 58.0, 65.0)
+        }
+        val withHrv = DayMetrics(today, 480, 58.0, 60.0)
+        val default = calculator.calculateRecovery(today, withHrv, history)
+        val drained = calculator.calculateRecovery(
+            today, withHrv, history, com.kevan.hangry.domain.calculation.RecoveryConfig(
+                assumedHrvScore = com.kevan.hangry.domain.model.HrvFeeling.DRAINED.score
+            )
+        )
+        assertEquals(default.score, drained.score)
     }
 }

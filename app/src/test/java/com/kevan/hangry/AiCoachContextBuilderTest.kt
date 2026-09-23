@@ -53,6 +53,7 @@ class AiCoachContextBuilderTest {
         override fun getScoreForDate(date: LocalDate): Flow<RecoveryScoreEntity?> = flowOf(null)
         override suspend fun getScoreForDateSync(date: LocalDate): RecoveryScoreEntity? = null
         override fun getLatestScore(): Flow<RecoveryScoreEntity?> = flowOf(null)
+        override suspend fun getLatestScoreSync(): RecoveryScoreEntity? = null
         override fun getScoresBetween(start: LocalDate, end: LocalDate): Flow<List<RecoveryScoreEntity>> = flowOf(scores)
         override fun getAllScores(): Flow<List<RecoveryScoreEntity>> = flowOf(scores)
         override suspend fun getScoresBetweenList(start: LocalDate, end: LocalDate): List<RecoveryScoreEntity> = scores
@@ -62,6 +63,7 @@ class AiCoachContextBuilderTest {
 
     private class FakeExerciseSessionDao(var workouts: List<ExerciseSessionEntity> = emptyList()) : ExerciseSessionDao {
         override suspend fun insertOrIgnore(sessions: List<ExerciseSessionEntity>): List<Long> = emptyList()
+        override suspend fun backfillSteps(fingerprint: String, steps: Long) {}
         override fun getSessionsBetween(start: Instant, end: Instant): Flow<List<ExerciseSessionEntity>> = flowOf(workouts)
         override suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<ExerciseSessionEntity> = workouts
         override fun getAllSessions(): Flow<List<ExerciseSessionEntity>> = flowOf(workouts)

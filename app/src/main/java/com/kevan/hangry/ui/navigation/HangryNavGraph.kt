@@ -26,7 +26,12 @@ import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorScreen
 import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorViewModel
 import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.domain.model.BreathingStats
+import com.kevan.hangry.ui.bodymetrics.BodyMetricsScreen
+import com.kevan.hangry.ui.bodymetrics.BodyMetricsViewModel
+import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.ui.breathing.BreathingScreen
+import com.kevan.hangry.ui.healthrecords.HealthRecordsScreen
+import com.kevan.hangry.ui.healthrecords.HealthRecordsViewModel
 import com.kevan.hangry.ui.breathing.BreathingViewModel
 import com.kevan.hangry.ui.coach.AiCoachScreen
 import com.kevan.hangry.ui.coach.AiCoachViewModel
@@ -80,6 +85,8 @@ sealed class Screen(val route: String) {
     data object AiCoach : Screen("ai_coach")
     data object HomeScreenWidgets : Screen("home_screen_widgets")
     data object BodyFatCalculator : Screen("body_fat_calculator")
+    data object BodyMetrics : Screen("body_metrics")
+    data object HealthRecords : Screen("health_records")
     data object Breathing : Screen("breathing?pattern={pattern}") {
         /** A null pattern opens the screen as-is, e.g. to return to a running session. */
         fun createRoute(patternId: String? = null) =
@@ -120,7 +127,8 @@ fun HangryNavGraph(
             calorieCalculator = appContainer.calorieCalculator,
             stressCalculator = appContainer.stressCalculator,
             dashboardWidgetRepository = appContainer.dashboardWidgetRepository,
-            bodyFatRepository = appContainer.bodyFatRepository
+            bodyFatRepository = appContainer.bodyFatRepository,
+            bodyMetricsRepository = appContainer.bodyMetricsRepository
         )
     )
 
@@ -242,6 +250,8 @@ fun HangryNavGraph(
             val breathingStats by appContainer.breathingRepository.observeStats()
                 .collectAsState(initial = BreathingStats())
             val breathingSession by appContainer.breathingSessionController.state.collectAsState()
+            val healthRecords by appContainer.healthRecordsRepository.observe()
+                .collectAsState(initial = HealthRecordsSnapshot())
             DashboardScreen(
                 viewModel = dashboardViewModel,
                 nutritionViewModel = nutritionViewModel,
@@ -275,8 +285,13 @@ fun HangryNavGraph(
                 onNavigateToBodyFatCalculator = {
                     navController.navigate(Screen.BodyFatCalculator.route)
                 },
+                onNavigateToBodyMetrics = {
+                    navController.navigate(Screen.BodyMetrics.route)
+                },
                 breathingStats = breathingStats,
                 breathingSession = breathingSession,
+                healthRecords = healthRecords,
+                onNavigateToHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
                 onNavigateToBreathing = { pattern ->
                     navController.navigate(Screen.Breathing.createRoute(pattern?.id)) {
                         launchSingleTop = true
@@ -400,6 +415,9 @@ fun HangryNavGraph(
                 onNavigateToBodyFatCalculator = {
                     navController.navigate(Screen.BodyFatCalculator.route)
                 },
+                onNavigateToHealthRecords = {
+                    navController.navigate(Screen.HealthRecords.route)
+                },
                 onResetToWelcome = {
                     coroutineScope.launch {
                         val existing = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
@@ -488,6 +506,20 @@ fun HangryNavGraph(
             )
         }
 
+        // Labs, vitals, goals, allergies, conditions, pregnancy & cycle - tracking only
+        composable(Screen.HealthRecords.route) {
+            val healthRecordsViewModel: HealthRecordsViewModel = viewModel(
+                factory = HealthRecordsViewModel.provideFactory(
+                    repository = appContainer.healthRecordsRepository,
+                    healthConnect = appContainer.healthConnectDataSource
+                )
+            )
+            HealthRecordsScreen(
+                viewModel = healthRecordsViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
         // Guided breathing exercises
         composable(
             route = Screen.Breathing.route,
@@ -531,7 +563,25 @@ fun HangryNavGraph(
             BodyFatCalculatorScreen(
                 viewModel = bodyFatViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToBodyMetrics = {
+                    // Coming from Body Metrics' "Update measurements", just go back to it.
+                    if (!navController.popBackStack(Screen.BodyMetrics.route, inclusive = false)) {
+                        navController.navigate(Screen.BodyMetrics.route)
+                    }
+                }
+            )
+        }
+
+        // Every derived body metric (BMI, FFMI, WHtR, BRI...) with an explainer for each
+        composable(Screen.BodyMetrics.route) {
+            val bodyMetricsViewModel: BodyMetricsViewModel = viewModel(
+                factory = BodyMetricsViewModel.provideFactory(appContainer.bodyMetricsRepository)
+            )
+            BodyMetricsScreen(
+                viewModel = bodyMetricsViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onUpdateMeasurements = { navController.navigate(Screen.BodyFatCalculator.route) }
             )
         }
     }

@@ -40,6 +40,7 @@ fun BodyFatCalculatorScreen(
     viewModel: BodyFatCalculatorViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToBodyMetrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
@@ -242,6 +243,12 @@ fun BodyFatCalculatorScreen(
                             )
                         }
                     }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = onNavigateToBodyMetrics, modifier = Modifier.align(Alignment.End)) {
+                    Text("See all body metrics")
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             }
 

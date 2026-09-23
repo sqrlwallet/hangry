@@ -1,12 +1,15 @@
 package com.kevan.hangry.data.breathing
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
@@ -70,7 +73,7 @@ class BreathingSessionService : Service() {
                 .collect { content ->
                     if (content == null) {
                         stopSelf()
-                    } else {
+                    } else if (canPostNotifications()) {
                         getSystemService(NotificationManager::class.java)
                             .notify(NOTIFICATION_ID, buildNotification(content.first, content.second))
                     }
@@ -122,6 +125,11 @@ class BreathingSessionService : Service() {
                 )
             )
             .build()
+
+    /** Without it the session still runs; Android just hides the notification. */
+    private fun canPostNotifications(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     private fun ensureChannel() {
         val manager = getSystemService(NotificationManager::class.java)

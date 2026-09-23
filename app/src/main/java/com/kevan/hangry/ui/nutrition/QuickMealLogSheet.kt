@@ -34,6 +34,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun QuickMealLogSheet(
     initialPhotoUri: Uri? = null,
+    /** Shown above the form, e.g. why a photo couldn't be analyzed automatically. */
+    notice: String? = null,
     aiEnabled: Boolean = false,
     mealPlans: List<MealPlanEntity> = emptyList(),
     onDismiss: () -> Unit,
@@ -77,12 +79,29 @@ fun QuickMealLogSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Log Meal",
+                    text = "Meal details",
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary
                 )
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close", tint = tokens.textMuted)
+                }
+            }
+
+            notice?.let { text ->
+                Surface(
+                    color = tokens.brandAccentContainer,
+                    shape = RoundedCornerShape(HangryTokens.CornerRadii.small),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(18.dp))
+                        Text(text = text, style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary)
+                    }
                 }
             }
 

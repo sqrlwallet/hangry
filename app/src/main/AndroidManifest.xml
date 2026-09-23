@@ -27,6 +27,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Shows the ongoing breathing-session notification (with its End button) on Android 13+. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Comprehensive Health Connect Permissions -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
@@ -55,6 +57,15 @@
     <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
     <uses-permission android:name="android.permission.health.READ_RESPIRATORY_RATE" />
     <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />
+
+    <!-- Health records (read-only): home glucose readings, period tracking (shown only when sex
+         is set to female), and Health Connect medical records on devices that support them. -->
+    <uses-permission android:name="android.permission.health.READ_BLOOD_GLUCOSE" />
+    <uses-permission android:name="android.permission.health.READ_MENSTRUATION" />
+    <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_LABORATORY_RESULTS" />
+    <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_VITAL_SIGNS" />
+    <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_CONDITIONS" />
+    <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES" />
 
     <application
         android:name=".HangryApplication"

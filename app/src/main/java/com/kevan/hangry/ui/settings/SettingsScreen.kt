@@ -64,6 +64,7 @@ fun SettingsScreen(
     onNavigateToPrivacyPolicy: () -> Unit = {},
     onNavigateToHomeScreenWidgets: () -> Unit = {},
     onNavigateToBodyFatCalculator: () -> Unit = {},
+    onNavigateToHealthRecords: () -> Unit = {},
     onResetToWelcome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -267,6 +268,14 @@ fun SettingsScreen(
                     subtitle = "Photos & tape measurements",
                     info = "Calculate body fat % via photos & tape circumferences",
                     onClick = onNavigateToBodyFatCalculator
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                SettingsActionRow(
+                    icon = Icons.Default.MonitorHeart,
+                    title = "Health Records",
+                    subtitle = "Blood pressure, labs, allergies & goals",
+                    info = "Track blood pressure, blood sugar, cholesterol and testosterone, set goals, and add allergies and conditions - for your own tracking, not medical advice",
+                    onClick = onNavigateToHealthRecords
                 )
             }
 

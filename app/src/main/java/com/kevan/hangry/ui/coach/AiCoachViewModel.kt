@@ -65,7 +65,7 @@ class AiCoachViewModel(
                 },
                 onFailure = { e ->
                     val errorMsg = when (e) {
-                        is OpenRouterException -> e.message ?: "Failed to connect to AI Coach."
+                        is OpenRouterException -> e.message ?: "Couldn't reach Dash. Try again."
                         else -> e.localizedMessage ?: "Something went wrong. Please try again."
                     }
                     _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }

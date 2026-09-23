@@ -1,6 +1,5 @@
 package com.kevan.hangry.ui.dashboard
 
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +28,8 @@ import com.kevan.hangry.data.breathing.BreathingSessionState
 import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.domain.model.BreathingStats
 import com.kevan.hangry.ui.breathing.BreathingExercisesCard
+import com.kevan.hangry.domain.model.HealthRecordsSnapshot
+import com.kevan.hangry.ui.healthrecords.HealthRecordsCard
 import com.kevan.hangry.domain.calculation.HangryStrainCalculator
 import com.kevan.hangry.domain.model.DashboardWidget
 import com.kevan.hangry.domain.model.WidgetType
@@ -56,9 +57,12 @@ fun DashboardScreen(
     onNavigateToPosture: () -> Unit,
     onNavigateToAiCoach: () -> Unit = {},
     onNavigateToBodyFatCalculator: () -> Unit = {},
+    onNavigateToBodyMetrics: () -> Unit = onNavigateToBodyFatCalculator,
     breathingStats: BreathingStats = BreathingStats(),
     breathingSession: BreathingSessionState = BreathingSessionState.Idle,
     onNavigateToBreathing: (BreathingPattern?) -> Unit = {},
+    healthRecords: HealthRecordsSnapshot = HealthRecordsSnapshot(),
+    onNavigateToHealthRecords: () -> Unit = {},
     autoOpenQuickLog: Boolean = false,
     onAutoOpenQuickLogHandled: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -68,18 +72,19 @@ fun DashboardScreen(
     val tokens = LocalHangryTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var showQuickLogSheet by remember { mutableStateOf(false) }
-    var capturedMealPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val isAnalyzingMeal = nutritionUiState?.isAnalyzing == true
 
+    // Photo first, always: the shot goes straight to AI and is logged; the manual sheet only
+    // appears (photo attached) when AI can't do it.
     val photoLauncher = rememberPhotoCaptureLauncher { uri ->
-        capturedMealPhotoUri = uri
-        showQuickLogSheet = true
+        nutritionViewModel?.logMealFromPhoto(uri)
     }
 
+    // The home-screen "Log Meal" widget lands here - open the camera, not a form.
     LaunchedEffect(autoOpenQuickLog) {
         if (autoOpenQuickLog) {
-            showQuickLogSheet = true
             onAutoOpenQuickLogHandled()
+            photoLauncher.takePhoto()
         }
     }
 
@@ -93,11 +98,18 @@ fun DashboardScreen(
 
     LaunchedEffect(nutritionUiState?.lastSavedEntry) {
         val saved = nutritionUiState?.lastSavedEntry ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(
+        val result = snackbarHostState.showSnackbar(
             message = "Logged: ${saved.foodName} · ${saved.calories} kcal",
+            actionLabel = "Edit",
             duration = SnackbarDuration.Short
         )
-        nutritionViewModel?.clearLastSaved()
+        if (result == SnackbarResult.ActionPerformed) {
+            // The Nutrition screen hosts the edit dialog and opens it for editingEntry.
+            nutritionViewModel?.startEdit(saved)
+            onNavigateToNutrition()
+        } else {
+            nutritionViewModel?.clearLastSaved()
+        }
     }
 
     Scaffold(
@@ -155,6 +167,7 @@ fun DashboardScreen(
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     photoLauncher.takePhoto()
                 },
+                enabled = !isAnalyzingMeal,
                 shape = RoundedCornerShape(26.dp),
                 color = Color.Transparent,
                 shadowElevation = 14.dp,
@@ -180,15 +193,23 @@ fun DashboardScreen(
                     modifier = Modifier.padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Log Meal",
-                        tint = Color.White,
-                        modifier = Modifier.size(19.dp)
-                    )
+                    if (isAnalyzingMeal) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Log Meal",
+                            tint = Color.White,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Log Meal",
+                        text = if (isAnalyzingMeal) "Reading your meal…" else "Log Meal",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.2.sp
@@ -247,11 +268,9 @@ fun DashboardScreen(
                             totalCaloriesToday = nutritionUiState?.totalCaloriesToday ?: 0,
                             calorieGoal = uiState.calorieGoal?.dailyCalorieTarget,
                             recentEntries = nutritionUiState?.todayEntries ?: emptyList(),
+                            isAnalyzing = isAnalyzingMeal,
                             onTakePhoto = { photoLauncher.takePhoto() },
-                            onQuickAdd = {
-                                capturedMealPhotoUri = null
-                                showQuickLogSheet = true
-                            },
+                            onPickFromGallery = { photoLauncher.pickFromGallery() },
                             onOpenNutrition = onNavigateToNutrition
                         )
                     }
@@ -302,8 +321,12 @@ fun DashboardScreen(
                         val scan = uiState.latestBodyFatScan
                         BodyFatCompositionWidget(
                             scan = scan,
-                            onClick = onNavigateToBodyFatCalculator
+                            onClick = onNavigateToBodyMetrics
                         )
+                    }
+
+                    WidgetType.HEALTH_RECORDS -> {
+                        HealthRecordsCard(records = healthRecords, onClick = onNavigateToHealthRecords)
                     }
 
                     WidgetType.BREATHING -> {
@@ -406,15 +429,14 @@ fun DashboardScreen(
         }
     }
 
-    if (showQuickLogSheet && nutritionViewModel != null) {
+    val manualReviewPhoto = nutritionUiState?.manualReviewPhoto
+    if (manualReviewPhoto != null) {
         QuickMealLogSheet(
-            initialPhotoUri = capturedMealPhotoUri,
-            aiEnabled = nutritionUiState?.aiFeaturesEnabled ?: false,
-            mealPlans = nutritionUiState?.mealPlans ?: emptyList(),
-            onDismiss = {
-                showQuickLogSheet = false
-                capturedMealPhotoUri = null
-            },
+            initialPhotoUri = manualReviewPhoto,
+            notice = nutritionUiState.manualReviewNotice,
+            aiEnabled = nutritionUiState.aiFeaturesEnabled,
+            mealPlans = nutritionUiState.mealPlans,
+            onDismiss = { nutritionViewModel.dismissManualReview() },
             onLogMeal = { name, calories, uri, p, c, f ->
                 nutritionViewModel.quickLogMeal(name, calories, uri, p, c, f)
             },
@@ -668,7 +690,7 @@ private fun AiShortcutsRow(
             contentPadding = 12.dp
         ) {
             Text(
-                text = "AI Coach",
+                text = "Ask Dash",
                 style = MaterialTheme.typography.titleSmall,
                 color = tokens.textSecondary,
                 maxLines = 1,
@@ -676,7 +698,7 @@ private fun AiShortcutsRow(
             )
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             Text(
-                text = "Ask coach",
+                text = "Chat now",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
@@ -891,7 +913,7 @@ private fun DailyCoachBriefingCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Daily Coach Briefing",
+                    text = "Daily Briefing",
                     style = MaterialTheme.typography.titleSmall,
                     color = tokens.textPrimary
                 )
@@ -938,7 +960,7 @@ private fun DailyCoachBriefingCard(
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onNavigateToAiCoach()
                 },
-                label = { Text("Ask Coach", style = MaterialTheme.typography.labelSmall) },
+                label = { Text("Ask Dash", style = MaterialTheme.typography.labelSmall) },
                 icon = {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
@@ -999,7 +1021,7 @@ private fun BodyFatCompositionWidget(
                 )
             }
             Text(
-                text = "Tap to measure →",
+                text = "All body metrics →",
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )

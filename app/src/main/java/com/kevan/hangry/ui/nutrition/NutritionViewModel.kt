@@ -108,6 +108,19 @@ class NutritionViewModel(
         _selectedDate.value = LocalDate.now(zone)
     }
 
+    /**
+     * The one entry point for "log a meal": a photo straight from the camera (or gallery).
+     * With AI on, it's analyzed and logged with no form at all - the user gets an Edit shortcut
+     * afterwards. Only when AI can't do it does the manual details sheet appear, photo attached.
+     */
+    fun logMealFromPhoto(uri: Uri) {
+        if (!_uiState.value.aiFeaturesEnabled) {
+            openManualReview(uri, "Turn on AI Features in Settings and meals are filled in from the photo automatically.")
+            return
+        }
+        analyzePhoto(uri, note = null)
+    }
+
     fun analyzePhoto(uri: Uri, note: String?) {
         val base64 = context.readImageAsBase64Jpeg(uri)
         if (base64 == null) {
@@ -119,10 +132,19 @@ class NutritionViewModel(
             foodAnalyzer.analyzePhoto(base64, note).fold(
                 onSuccess = { result -> autoSave(result, FoodLogSource.PHOTO, uri) },
                 onFailure = { e ->
-                    _uiState.update { it.copy(isAnalyzing = false, errorMessage = e.messageOrDefault()) }
+                    _uiState.update { it.copy(isAnalyzing = false) }
+                    openManualReview(uri, "AI couldn't read this one: ${e.messageOrDefault()}")
                 }
             )
         }
+    }
+
+    private fun openManualReview(uri: Uri, notice: String) {
+        _uiState.update { it.copy(manualReviewPhoto = uri, manualReviewNotice = notice) }
+    }
+
+    fun dismissManualReview() {
+        _uiState.update { it.copy(manualReviewPhoto = null, manualReviewNotice = null) }
     }
 
     fun analyzeDescription(text: String) {

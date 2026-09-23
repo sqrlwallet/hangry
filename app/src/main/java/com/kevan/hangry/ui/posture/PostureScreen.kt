@@ -427,7 +427,7 @@ fun PostureScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Ask AI Coach for personal drills",
+                                        text = "Ask Dash for personal drills",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = tokens.textPrimary,
                                         fontWeight = FontWeight.Medium

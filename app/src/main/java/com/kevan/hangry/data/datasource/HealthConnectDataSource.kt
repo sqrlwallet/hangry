@@ -41,4 +41,25 @@ interface HealthConnectDataSource {
 
     /** Writes one completed breathing session to Health Connect. Returns false on any failure. */
     suspend fun writeBreathingSession(session: BreathingSessionEntity, title: String): Boolean
+
+    /** Every permission Hangry has been granted. */
+    suspend fun grantedPermissions(): Set<String>
+
+    /**
+     * Read permissions for health records: blood pressure, blood glucose, menstruation (only
+     * when [includeCycle]) and - where the device supports it - medical records.
+     */
+    suspend fun healthRecordPermissions(includeCycle: Boolean): Set<String>
+
+    /** True when Health Connect on this device supports medical records (Android 16+). */
+    suspend fun supportsMedicalRecords(): Boolean
+
+    /** Reads whatever health-record data is granted. Never throws; missing access just yields less. */
+    suspend fun fetchHealthRecords(since: Instant, includeCycle: Boolean): ImportedHealthRecords
 }
+
+data class ImportedHealthRecords(
+    val markers: List<HealthMarkerEntity> = emptyList(),
+    val profileItems: List<HealthProfileItemEntity> = emptyList(),
+    val periods: List<MenstrualPeriodEntity> = emptyList()
+)

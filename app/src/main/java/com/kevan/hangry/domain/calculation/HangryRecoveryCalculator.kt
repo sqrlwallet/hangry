@@ -86,7 +86,7 @@ class HangryRecoveryCalculator : RecoveryCalculator {
         val loadScore: Double = clampScore((consistency * 0.7) + 15.0)
 
         // Dynamic re-weighting based on available components (NEVER substitute missing data with zero).
-        // HRV is the exception: when it isn't available it counts as a good day (config.assumedHrvScore).
+        // HRV is the exception: when it isn't available it counts as an excellent day (config.assumedHrvScore).
         // result.hrvScore stays null so the UI still shows HRV as not reported.
         var totalWeight = 0.0
         var weightedSum = 0.0

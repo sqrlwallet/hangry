@@ -6,6 +6,7 @@ import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.domain.model.CalorieBurnResult
 import com.kevan.hangry.domain.model.CalorieGoalRecommendation
 import com.kevan.hangry.domain.model.DashboardWidget
+import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.domain.model.SleepAnalysis
 import com.kevan.hangry.domain.model.StrainRecommendation
 import com.kevan.hangry.domain.model.StressResult
@@ -42,7 +43,9 @@ data class DashboardUiState(
     // True from midnight until today's sleep is recorded (synced or logged manually) - while
     // true, Strain/Recovery/Sleep Score are withheld from the UI and shown as "Pending" instead
     // of a zero or a stale carried-over value.
-    val isPendingSleepData: Boolean = true
+    val isPendingSleepData: Boolean = true,
+    /** Stand-in for HRV on the selected day when no reading exists (default Excellent). */
+    val hrvFeeling: HrvFeeling = HrvFeeling.DEFAULT
 ) {
     val isViewingToday: Boolean get() = selectedDate == LocalDate.now()
 }

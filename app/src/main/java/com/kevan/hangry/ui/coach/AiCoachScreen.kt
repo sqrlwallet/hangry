@@ -185,7 +185,7 @@ fun AiCoachScreen(
                         modifier = Modifier.weight(1f)
                     )
                     HangryInfoTip(
-                        title = "Coach context",
+                        title = "What Dash knows",
                         body = "Context loaded: Last 7 days of sleep, strain, workouts & journal"
                     )
                 }

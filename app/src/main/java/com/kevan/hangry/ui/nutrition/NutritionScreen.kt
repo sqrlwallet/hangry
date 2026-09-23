@@ -96,16 +96,10 @@ fun NutritionScreen(
 
     var showDescribeDialog by remember { mutableStateOf(false) }
     var showQuickLogSheet by remember { mutableStateOf(false) }
-    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
-    val photoLauncher = rememberPhotoCaptureLauncher { uri: Uri ->
-        if (uiState.aiFeaturesEnabled) {
-            viewModel.analyzePhoto(uri, note = null)
-        } else {
-            selectedPhotoUri = uri
-            showQuickLogSheet = true
-        }
-    }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
+    val photoLauncher = rememberPhotoCaptureLauncher { uri: Uri -> viewModel.logMealFromPhoto(uri) }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
@@ -144,6 +138,23 @@ fun NutritionScreen(
                     HangryInfoIconButton(title = "About Nutrition", sections = NUTRITION_INFO_SECTIONS)
                     IconButton(onClick = onNavigateToMealPlan) {
                         Icon(imageVector = Icons.Default.RestaurantMenu, contentDescription = "Meal Plan")
+                    }
+                    // Typing a meal in by hand is deliberately tucked away here: the photo is the
+                    // default path everywhere, and AI fills in the details.
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Enter meal manually") },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    showQuickLogSheet = true
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -228,16 +239,6 @@ fun NutritionScreen(
                         modifier = Modifier.weight(1f)
                     )
                     LogActionButton(
-                        icon = Icons.Default.Add,
-                        label = "Quick Log",
-                        enabled = !uiState.isAnalyzing,
-                        onClick = {
-                            selectedPhotoUri = null
-                            showQuickLogSheet = true
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                    LogActionButton(
                         icon = Icons.Default.Image,
                         label = "Gallery",
                         enabled = !uiState.isAnalyzing,
@@ -252,58 +253,6 @@ fun NutritionScreen(
                             onClick = { showDescribeDialog = true },
                             modifier = Modifier.weight(1f)
                         )
-                    }
-                }
-            }
-
-            item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Quick Add",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = tokens.textSecondary,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    )
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
-                    ) {
-                        item {
-                            SuggestionChip(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.quickLogMeal("Snack (100 kcal)", 100, null, 3.0, 15.0, 3.0)
-                                },
-                                label = { Text("+100 kcal Snack") }
-                            )
-                        }
-                        item {
-                            SuggestionChip(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.quickLogMeal("Quick Meal (250 kcal)", 250, null, 15.0, 30.0, 8.0)
-                                },
-                                label = { Text("+250 kcal Meal") }
-                            )
-                        }
-                        item {
-                            SuggestionChip(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.quickLogMeal("Full Meal (500 kcal)", 500, null, 30.0, 55.0, 18.0)
-                                },
-                                label = { Text("+500 kcal Meal") }
-                            )
-                        }
-                        item {
-                            SuggestionChip(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.quickLogMeal("Water (500 ml)", 0, null, 0.0, 0.0, 0.0)
-                                },
-                                label = { Text("+500ml Water") }
-                            )
-                        }
                     }
                 }
             }
@@ -381,32 +330,15 @@ fun NutritionScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Row(
+                        Button(
+                            onClick = { photoLauncher.takePhoto() },
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            OutlinedButton(
-                                onClick = { photoLauncher.takePhoto() },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Snap Photo", style = MaterialTheme.typography.labelMedium)
-                            }
-                            Button(
-                                onClick = {
-                                    selectedPhotoUri = null
-                                    showQuickLogSheet = true
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Quick Log", style = MaterialTheme.typography.labelMedium)
-                            }
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Snap your meal", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -488,14 +420,15 @@ fun NutritionScreen(
         )
     }
 
-    if (showQuickLogSheet) {
+    if (showQuickLogSheet || uiState.manualReviewPhoto != null) {
         QuickMealLogSheet(
-            initialPhotoUri = selectedPhotoUri,
+            initialPhotoUri = uiState.manualReviewPhoto,
+            notice = uiState.manualReviewNotice,
             aiEnabled = uiState.aiFeaturesEnabled,
             mealPlans = uiState.mealPlans,
             onDismiss = {
                 showQuickLogSheet = false
-                selectedPhotoUri = null
+                viewModel.dismissManualReview()
             },
             onLogMeal = { name, calories, uri, p, c, f ->
                 viewModel.quickLogMeal(name, calories, uri, p, c, f)

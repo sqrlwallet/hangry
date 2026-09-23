@@ -106,6 +106,12 @@ fun PrivacyPolicyScreen(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                 PrivacyPermissionRow(category = "Body Weight", purpose = "Body mass trend over time")
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
+                PrivacyPermissionRow(category = "Blood Pressure & Blood Sugar", purpose = "Health Records tracking & goals")
+                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
+                PrivacyPermissionRow(category = "Menstruation (female only)", purpose = "Cycle tracking & predictions")
+                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
+                PrivacyPermissionRow(category = "Medical Records (Android 16+)", purpose = "Lab results, vitals, conditions & allergies - read only")
+                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                 PrivacyPermissionRow(category = "Historical Data", purpose = "One-time read on setup to build your baseline")
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                 PrivacyPermissionRow(category = "Background Read", purpose = "Refreshes readiness before you open the app")
@@ -142,8 +148,10 @@ fun PrivacyPolicyScreen(
                 Text(
                     text = "Off by default. When you enable it and add your own OpenRouter key, " +
                         "photos/text you submit for food or posture analysis are sent directly " +
-                        "from your device to OpenRouter - never through a Hangry server. Turn it " +
-                        "off anytime in Settings.",
+                        "from your device to OpenRouter - never through a Hangry server. When you " +
+                        "chat with Ask Dash, your recent health data (including Health Records such " +
+                        "as lab results, allergies, conditions, pregnancy and cycle) is included so " +
+                        "answers use your real numbers. Turn it off anytime in Settings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )

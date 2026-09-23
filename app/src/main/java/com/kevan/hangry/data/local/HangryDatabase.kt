@@ -33,9 +33,14 @@ import com.kevan.hangry.data.local.entity.*
         CoachJournalEntity::class,
         CoachMessageEntity::class,
         BodyFatScanEntity::class,
-        BreathingSessionEntity::class
+        BreathingSessionEntity::class,
+        HrvFeelingEntity::class,
+        HealthMarkerEntity::class,
+        MarkerGoalEntity::class,
+        HealthProfileItemEntity::class,
+        MenstrualPeriodEntity::class
     ],
-    version = 14,
+    version = 17,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -62,6 +67,8 @@ abstract class HangryDatabase : RoomDatabase() {
     abstract fun coachMessageDao(): CoachMessageDao
     abstract fun bodyFatScanDao(): BodyFatScanDao
     abstract fun breathingSessionDao(): BreathingSessionDao
+    abstract fun hrvFeelingDao(): HrvFeelingDao
+    abstract fun healthRecordsDao(): HealthRecordsDao
 
     open fun checkpointAndOptimize() {
         openHelper.writableDatabase.let { db ->
@@ -312,6 +319,86 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE exercise_sessions ADD COLUMN steps INTEGER")
+            }
+        }
+
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS hrv_feelings (date INTEGER PRIMARY KEY NOT NULL, feeling TEXT NOT NULL, updatedAt INTEGER NOT NULL)"
+                )
+            }
+        }
+
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN isPregnant INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN pregnancyDueDate INTEGER")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS health_markers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        type TEXT NOT NULL,
+                        value REAL NOT NULL,
+                        secondaryValue REAL,
+                        measuredAt INTEGER NOT NULL,
+                        date INTEGER NOT NULL,
+                        glucoseContext TEXT,
+                        source TEXT NOT NULL,
+                        sourceRecordId TEXT,
+                        note TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_health_markers_type_measuredAt ON health_markers(type, measuredAt)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_health_markers_sourceRecordId ON health_markers(sourceRecordId)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS marker_goals (
+                        type TEXT PRIMARY KEY NOT NULL,
+                        targetValue REAL NOT NULL,
+                        targetSecondary REAL,
+                        direction TEXT NOT NULL,
+                        startValue REAL,
+                        startDate INTEGER NOT NULL,
+                        targetDate INTEGER,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS health_profile_items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        kind TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        note TEXT,
+                        source TEXT NOT NULL,
+                        sourceRecordId TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_health_profile_items_sourceRecordId ON health_profile_items(sourceRecordId)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS menstrual_periods (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        startDate INTEGER NOT NULL,
+                        endDate INTEGER,
+                        source TEXT NOT NULL,
+                        sourceRecordId TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_menstrual_periods_startDate ON menstrual_periods(startDate)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_menstrual_periods_sourceRecordId ON menstrual_periods(sourceRecordId)")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -323,7 +410,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
                     )
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {

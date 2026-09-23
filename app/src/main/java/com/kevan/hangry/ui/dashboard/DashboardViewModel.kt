@@ -16,7 +16,10 @@ import com.kevan.hangry.domain.calculation.SleepCalculator
 import com.kevan.hangry.domain.calculation.StrainCalculator
 import com.kevan.hangry.domain.calculation.StressCalculator
 import com.kevan.hangry.domain.calculation.TrainingLoadCalculator
+import com.kevan.hangry.domain.model.CalorieGoalRecommendation
 import com.kevan.hangry.domain.model.DashboardWidget
+import com.kevan.hangry.domain.model.EnergyBalanceEstimate
+import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.domain.model.RecoveryState
 import com.kevan.hangry.domain.model.SyncStatus
 import com.kevan.hangry.domain.repository.*
@@ -27,6 +30,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 class DashboardViewModel(
     private val dailySummaryRepository: DailySummaryRepository,
@@ -41,7 +45,9 @@ class DashboardViewModel(
     private val calorieCalculator: CalorieCalculator,
     private val stressCalculator: StressCalculator,
     private val dashboardWidgetRepository: DashboardWidgetRepository,
-    private val bodyFatRepository: BodyFatRepository
+    private val bodyFatRepository: BodyFatRepository,
+    /** Source of the 7-day maintenance/goal calorie estimate; null leaves the calorie goal blank. */
+    private val bodyMetricsRepository: BodyMetricsRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -58,6 +64,23 @@ class DashboardViewModel(
 
     init {
         loadDashboardData()
+        observeHrvFeeling()
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observeHrvFeeling() {
+        viewModelScope.launch {
+            _selectedDate.flatMapLatest { healthSyncManager.observeHrvFeeling(it) }.collect { feeling ->
+                _uiState.update { it.copy(hrvFeeling = feeling ?: HrvFeeling.DEFAULT) }
+            }
+        }
+    }
+
+    /** Only offered when the day has no HRV reading; the stored recovery score updates via its flow. */
+    fun setHrvFeeling(feeling: HrvFeeling) {
+        val date = _selectedDate.value
+        _uiState.update { it.copy(hrvFeeling = feeling) }
+        viewModelScope.launch { healthSyncManager.setHrvFeeling(date, feeling) }
     }
 
     private data class DashboardSources(
@@ -73,7 +96,8 @@ class DashboardViewModel(
         val profile: UserProfileEntity?,
         val latestWeight: WeightMeasurementEntity?,
         val widgets: List<DashboardWidget>,
-        val latestBodyFatScan: BodyFatScanEntity?
+        val latestBodyFatScan: BodyFatScanEntity?,
+        val energy: EnergyBalanceEstimate?
     )
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -93,13 +117,15 @@ class DashboardViewModel(
                     DashboardSources(date, summary, score, sleepSessions, allWorkouts, recentSummaries)
                 }
 
+                val energyFlow = bodyMetricsRepository?.observe()?.map { it.input.energy?.estimate } ?: flowOf(null)
                 val secondaryFlow = combine(
                     userProfileRepository.getProfile(),
                     weightDao.getLatestWeight(),
                     dashboardWidgetRepository.getWidgets(),
-                    bodyFatRepository.getLatestScan()
-                ) { profile, latestWeight, widgets, latestBodyFatScan ->
-                    SecondarySources(profile, latestWeight, widgets, latestBodyFatScan)
+                    bodyFatRepository.getLatestScan(),
+                    energyFlow
+                ) { profile, latestWeight, widgets, latestBodyFatScan, energy ->
+                    SecondarySources(profile, latestWeight, widgets, latestBodyFatScan, energy)
                 }
 
                 combine(coreFlow, secondaryFlow) { core, secondary ->
@@ -107,7 +133,7 @@ class DashboardViewModel(
                 }
             }.collect { (core, secondary) ->
                 val (date, summary, score, sleepSessions, allWorkouts, recentSummaries) = core
-                val (profile, latestWeight, widgets, latestBodyFatScan) = secondary
+                val (profile, latestWeight, widgets, latestBodyFatScan, energy) = secondary
 
                 // Sorted newest-first: the most recent session is "current", the rest is real
                 // baseline history (fixes the previous bug of always passing an empty history).
@@ -169,13 +195,17 @@ class DashboardViewModel(
                     totalActiveCalories = effectiveActiveCalories,
                     exerciseCalories = exerciseCalories
                 )
-                val calorieGoal = calorieCalculator.recommendDailyCalorieGoal(
-                    tdee = calorieBurn.totalBurnedCalories,
-                    currentWeightKg = latestWeight?.weightKg,
-                    weightGoalKg = profile?.weightGoalKg,
-                    targetDate = profile?.goalTargetDate,
-                    today = date
-                )
+                // Built from the last 7 full days of steps and workouts rather than today's still
+                // accumulating burn, so the target doesn't swing through the day. With no goal
+                // set, the target is simply maintenance; with too little data, it stays blank.
+                val calorieGoal = energy?.let { e ->
+                    e.goal ?: CalorieGoalRecommendation(
+                        dailyCalorieTarget = e.maintenanceKcal.roundToInt(),
+                        weeklyPaceKg = 0.0,
+                        isPaceAdjustedForSafety = false,
+                        guidance = "Eat about this much to stay at your current weight, based on your last 7 days of steps and workouts."
+                    )
+                }
 
                 // Autonomic stress calculation based on rolling 7d baseline of HRV & RHR
                 val trailing7Summaries = recentSummaries.take(7)
@@ -238,6 +268,8 @@ class DashboardViewModel(
         // periodic 6h background sync - a full historical import if the database is still
         // empty (first run), otherwise a quick recent-days catch-up.
         viewModelScope.launch {
+            // e.g. missing HRV now scores as excellent - refresh scores saved under the old rules.
+            healthSyncManager.recalculateIfScoringChanged()
             val existing = dailySummaryRepository.getSummaryForDateSync(_selectedDate.value)
             if (existing == null) {
                 syncNow()
@@ -383,7 +415,8 @@ class DashboardViewModel(
             calorieCalculator: CalorieCalculator,
             stressCalculator: StressCalculator,
             dashboardWidgetRepository: DashboardWidgetRepository,
-            bodyFatRepository: BodyFatRepository
+            bodyFatRepository: BodyFatRepository,
+            bodyMetricsRepository: BodyMetricsRepository? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -400,7 +433,8 @@ class DashboardViewModel(
                     calorieCalculator = calorieCalculator,
                     stressCalculator = stressCalculator,
                     dashboardWidgetRepository = dashboardWidgetRepository,
-                    bodyFatRepository = bodyFatRepository
+                    bodyFatRepository = bodyFatRepository,
+                    bodyMetricsRepository = bodyMetricsRepository
                 ) as T
             }
         }

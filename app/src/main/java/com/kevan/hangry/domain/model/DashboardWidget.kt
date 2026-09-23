@@ -16,6 +16,7 @@ enum class WidgetType {
     CALORIE_BURN,
     AI_SHORTCUTS,
     BREATHING,
+    HEALTH_RECORDS,
     CUSTOM_METRIC
 }
 
@@ -125,18 +126,25 @@ data class DashboardWidget(
                 order = 9
             ),
             DashboardWidget(
+                id = "health_records",
+                type = WidgetType.HEALTH_RECORDS,
+                title = "Health Records",
+                isVisible = true,
+                order = 10
+            ),
+            DashboardWidget(
                 id = "breathing_exercises",
                 type = WidgetType.BREATHING,
                 title = "Breathing Exercises",
                 isVisible = true,
-                order = 10
+                order = 11
             ),
             DashboardWidget(
                 id = "calorie_burn",
                 type = WidgetType.CALORIE_BURN,
                 title = "Calorie Expenditure Breakdown",
                 isVisible = false, // disabled by default since DailyActivityRings shows active calories, user can enable
-                order = 11
+                order = 12
             )
         )
     }

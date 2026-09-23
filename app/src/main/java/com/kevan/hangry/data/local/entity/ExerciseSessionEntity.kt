@@ -27,6 +27,8 @@ data class ExerciseSessionEntity(
     val durationMinutes: Int,
     val activeCalories: Double? = null,
     val totalCalories: Double? = null,
+    /** Steps recorded during the session - subtracted from daily steps so they aren't also counted as NEAT. */
+    val steps: Long? = null,
     val estimatedTrainingLoad: Double? = null,
     val dataQualityState: String = "VALID",
     val importTimestamp: Instant = Instant.now()

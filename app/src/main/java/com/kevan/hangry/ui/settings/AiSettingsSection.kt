@@ -93,7 +93,7 @@ fun AiFeaturesSection(
                     )
                     HangryInfoTip(
                         title = "AI Features",
-                        body = "Off by default. Powers AI Coach, food logging, and posture analysis using OpenRouter with your own key."
+                        body = "Off by default. Powers Ask Dash, food logging, and posture analysis using OpenRouter with your own key."
                     )
                 }
                 Text(
@@ -135,7 +135,7 @@ fun AiFeaturesSection(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
             SettingsActionRow(
                 icon = Icons.Default.SmartToy,
-                title = "AI Coach Model",
+                title = "Ask Dash Model",
                 subtitle = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
                 onClick = { showCoachModelDialog = true }
             )
@@ -186,8 +186,8 @@ fun AiFeaturesSection(
 
     if (showCoachModelDialog) {
         ModelDialog(
-            title = "AI Coach Model",
-            description = "Used by the AI Coach chat",
+            title = "Ask Dash Model",
+            description = "Used when you chat with Ask Dash",
             currentModel = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
             onDismiss = { showCoachModelDialog = false },
             onSave = { newModel ->

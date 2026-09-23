@@ -7,8 +7,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,8 +25,9 @@ fun LogMealWidgetCard(
     totalCaloriesToday: Int,
     calorieGoal: Int?,
     recentEntries: List<FoodLogEntity>,
+    isAnalyzing: Boolean = false,
     onTakePhoto: () -> Unit,
-    onQuickAdd: () -> Unit,
+    onPickFromGallery: () -> Unit,
     onOpenNutrition: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -64,7 +65,7 @@ fun LogMealWidgetCard(
                     )
                     HangryInfoTip(
                         title = "Nutrition & Meals",
-                        body = "Snap your food to log calories instantly or enter details quickly."
+                        body = "Snap your food and AI logs the calories and macros for you. You can edit any entry afterwards."
                     )
                 }
 
@@ -90,50 +91,55 @@ fun LogMealWidgetCard(
                 }
             }
 
-            // Primary Action Row: Camera (1-tap photo) & Quick Add
+            // Photo is the only primary action; gallery is a secondary icon. Manual entry lives
+            // in the Nutrition screen's overflow menu.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
                     onClick = onTakePhoto,
+                    enabled = !isAnalyzing,
                     modifier = Modifier
-                        .weight(1.3f)
+                        .weight(1f)
                         .height(44.dp),
                     shape = RoundedCornerShape(HangryTokens.CornerRadii.medium),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    if (isAnalyzing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Snap Meal",
+                        text = if (isAnalyzing) "Reading your meal…" else "Snap Meal",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
 
-                OutlinedButton(
-                    onClick = onQuickAdd,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
+                OutlinedIconButton(
+                    onClick = onPickFromGallery,
+                    enabled = !isAnalyzing,
+                    modifier = Modifier.size(44.dp),
                     shape = RoundedCornerShape(HangryTokens.CornerRadii.medium)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Quick Log",
-                        style = MaterialTheme.typography.labelMedium
+                        imageVector = Icons.Default.PhotoLibrary,
+                        contentDescription = "Pick meal photo from gallery",
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

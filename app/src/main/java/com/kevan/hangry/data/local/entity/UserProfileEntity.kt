@@ -23,6 +23,9 @@ data class UserProfileEntity(
     val chestCircumferenceCm: Double? = null,
     val waistCircumferenceCm: Double? = null,
     val hipCircumferenceCm: Double? = null,
+    // Only offered when biologicalSex is FEMALE.
+    val isPregnant: Boolean = false,
+    val pregnancyDueDate: LocalDate? = null,
     // AI features (food/posture photo analysis via OpenRouter) are opt-in - false until the
     // user explicitly accepts the consent dialog in Settings. The API key itself is never
     // stored here; see data/security/SecureKeyStore.

@@ -31,6 +31,10 @@ interface AppContainer {
     val strainCalculator: StrainCalculator
     val calorieCalculator: CalorieCalculator
     val bodyFatCalculator: BodyFatCalculator
+    val bodyMetricsCalculator: BodyMetricsCalculator
+    val energyBalanceCalculator: EnergyBalanceCalculator
+    val bodyMetricsRepository: BodyMetricsRepository
+    val healthRecordsRepository: HealthRecordsRepository
     val stressCalculator: StressCalculator
     val dashboardWidgetRepository: DashboardWidgetRepository
 
@@ -103,6 +107,31 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val bodyFatCalculator: BodyFatCalculator by lazy {
         HangryBodyFatCalculator()
+    }
+
+    override val bodyMetricsCalculator: BodyMetricsCalculator by lazy {
+        BodyMetricsCalculator(calorieCalculator)
+    }
+
+    override val energyBalanceCalculator: EnergyBalanceCalculator by lazy {
+        EnergyBalanceCalculator(calorieCalculator)
+    }
+
+    override val bodyMetricsRepository: BodyMetricsRepository by lazy {
+        DefaultBodyMetricsRepository(
+            userProfileRepository = userProfileRepository,
+            weightDao = database.weightDao(),
+            heightDao = database.heightDao(),
+            bodyFatRepository = bodyFatRepository,
+            dailyHealthSummaryDao = database.dailyHealthSummaryDao(),
+            exerciseSessionDao = database.exerciseSessionDao(),
+            bodyMetricsCalculator = bodyMetricsCalculator,
+            energyBalanceCalculator = energyBalanceCalculator
+        )
+    }
+
+    override val healthRecordsRepository: HealthRecordsRepository by lazy {
+        DefaultHealthRecordsRepository(database.healthRecordsDao(), userProfileRepository, healthConnectDataSource)
     }
 
     override val stressCalculator: StressCalculator by lazy {
@@ -220,7 +249,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             sleepSessionDao = database.sleepSessionDao(),
             foodLogDao = database.foodLogDao(),
             postureScanDao = database.postureScanDao(),
-            coachJournalDao = database.coachJournalDao()
+            coachJournalDao = database.coachJournalDao(),
+            bodyMetricsRepository = bodyMetricsRepository,
+            healthRecordsRepository = healthRecordsRepository
         )
     }
 

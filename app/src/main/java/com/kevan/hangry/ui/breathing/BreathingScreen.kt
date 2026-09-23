@@ -1,6 +1,12 @@
 package com.kevan.hangry.ui.breathing
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -56,7 +62,7 @@ import java.util.Locale
 private val BREATHING_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "Following the cues",
-        "A rising tone means breathe in, a falling tone means breathe out, and a soft single ping marks a hold. Put on headphones, close your eyes and follow the sounds - you can lock the screen and the session keeps going."
+        "A short beep marks the start of each step - breathe in, hold, or breathe out - and a double beep means the session is done. Watch the circle to learn the rhythm, then put on headphones, close your eyes and follow the sounds - you can lock the screen and the session keeps going."
     ),
     HangryInfoSection(
         "Slow breathing & HRV",
@@ -91,6 +97,21 @@ fun BreathingScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = PermissionController.createRequestPermissionResultContract()
     ) { viewModel.onPermissionResult() }
+    // The ongoing notification (phase + End button) needs this on Android 13+. The session runs
+    // either way, so the result is ignored.
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { viewModel.start() }
+    val context = LocalContext.current
+    val startSession = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.start()
+        }
+    }
     val requestHealthConnect = {
         if (setup.permissionsToRequest.isNotEmpty()) permissionLauncher.launch(setup.permissionsToRequest)
     }
@@ -153,7 +174,7 @@ fun BreathingScreen(
                     onSelectMinutes = viewModel::selectMinutes,
                     onToggleSound = viewModel::setSoundEnabled,
                     onConnectHealth = requestHealthConnect,
-                    onStart = viewModel::start
+                    onStart = startSession
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -238,7 +259,7 @@ private fun SessionSetup(
                 Text("Audio cues", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 HangryInfoTip(
                     title = "Audio cues",
-                    body = "Rising tone: breathe in · falling tone: breathe out · soft ping: hold. " +
+                    body = "A beep plays each time you switch between breathing in, holding and breathing out. " +
                         "You can lock your screen - the audio cues keep playing."
                 )
             }

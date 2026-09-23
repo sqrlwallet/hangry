@@ -1,5 +1,6 @@
 package com.kevan.hangry.domain.calculation
 
+import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.domain.model.RecoveryResult
 import java.time.LocalDate
 
@@ -22,7 +23,8 @@ data class DayMetrics(
 )
 
 data class RecoveryConfig(
-    val algorithmVersion: Int = 2,
+    // Bump whenever scoring changes - stored scores from older versions are recomputed on launch.
+    val algorithmVersion: Int = 3,
     val minDaysForBaseline: Int = 3,
     val optimalBaselineDays: Int = 7,
     val hrvWeight: Double = 0.35,
@@ -31,6 +33,7 @@ data class RecoveryConfig(
     val loadWeight: Double = 0.15,
     val defaultTargetSleepMinutes: Int = 480, // 8 hours
     // Many wearables never report HRV to Health Connect. Rather than letting RHR and sleep carry
-    // the whole score, a missing HRV reading is treated as a good (above-baseline) day.
-    val assumedHrvScore: Double = 75.0
+    // the whole score, a missing HRV reading is treated as an excellent day by default - the user
+    // can lower it per day with how they actually feel (HrvFeeling).
+    val assumedHrvScore: Double = HrvFeeling.DEFAULT.score
 )

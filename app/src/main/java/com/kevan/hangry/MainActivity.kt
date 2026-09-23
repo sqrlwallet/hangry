@@ -34,12 +34,17 @@ class MainActivity : ComponentActivity() {
         }
 
         val initialDestination = getDestinationFromIntent(intent)
-        val startDestination = initialDestination ?: kotlinx.coroutines.runBlocking {
-            if (appContainer.userProfileRepository.getProfileSync()?.onboardingCompleted == true) {
-                Screen.Dashboard.route
-            } else {
-                Screen.Welcome.route
+        val startDestination = initialDestination ?: runCatching {
+            kotlinx.coroutines.runBlocking {
+                if (appContainer.userProfileRepository.getProfileSync()?.onboardingCompleted == true) {
+                    Screen.Dashboard.route
+                } else {
+                    Screen.Welcome.route
+                }
             }
+        }.getOrElse {
+            android.util.Log.e("MainActivity", "Failed to determine initial destination, falling back to Welcome", it)
+            Screen.Welcome.route
         }
 
         setContent {

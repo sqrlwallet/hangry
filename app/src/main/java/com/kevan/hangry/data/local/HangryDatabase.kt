@@ -63,9 +63,9 @@ abstract class HangryDatabase : RoomDatabase() {
 
     open fun checkpointAndOptimize() {
         openHelper.writableDatabase.let { db ->
-            db.execSQL("PRAGMA wal_checkpoint(TRUNCATE);")
-            db.execSQL("PRAGMA incremental_vacuum;")
-            db.execSQL("PRAGMA optimize;")
+            runCatching { db.query("PRAGMA wal_checkpoint(TRUNCATE)").close() }
+            runCatching { db.query("PRAGMA incremental_vacuum").close() }
+            runCatching { db.query("PRAGMA optimize").close() }
         }
     }
 
@@ -289,25 +289,20 @@ abstract class HangryDatabase : RoomDatabase() {
                     HangryDatabase::class.java,
                     "hangry.db"
                 )
+                    .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                         MIGRATION_10_11, MIGRATION_11_12
                     )
                     .addCallback(object : RoomDatabase.Callback() {
-                        override fun onCreate(db: SupportSQLiteDatabase) {
-                            super.onCreate(db)
-                            db.execSQL("PRAGMA auto_vacuum = INCREMENTAL;")
-                        }
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            db.execSQL("PRAGMA journal_mode = WAL;")
-                            db.execSQL("PRAGMA synchronous = NORMAL;")
-                            db.execSQL("PRAGMA busy_timeout = 6000;")
-                            db.execSQL("PRAGMA foreign_keys = ON;")
-                            db.execSQL("PRAGMA cache_size = -8000;")
-                            db.execSQL("PRAGMA temp_store = MEMORY;")
-                            db.execSQL("PRAGMA optimize;")
+                            runCatching { db.query("PRAGMA synchronous = NORMAL").close() }
+                            runCatching { db.query("PRAGMA busy_timeout = 6000").close() }
+                            runCatching { db.query("PRAGMA foreign_keys = ON").close() }
+                            runCatching { db.query("PRAGMA cache_size = -8000").close() }
+                            runCatching { db.query("PRAGMA temp_store = MEMORY").close() }
                         }
                     })
                     .fallbackToDestructiveMigration(dropAllTables = true)

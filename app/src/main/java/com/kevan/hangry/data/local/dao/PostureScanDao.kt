@@ -27,6 +27,9 @@ interface PostureScanDao {
     @Query("SELECT * FROM posture_scans WHERE id = :id")
     suspend fun getById(id: Long): PostureScanEntity?
 
+    @Query("SELECT photoPathsJson FROM posture_scans")
+    suspend fun getAllPhotoPathsJson(): List<String>
+
     @Query("DELETE FROM posture_scans")
     suspend fun deleteAll()
 }

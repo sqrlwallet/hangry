@@ -13,7 +13,11 @@ import java.time.LocalDate
  */
 @Entity(
     tableName = "coach_journal_entries",
-    indices = [Index(value = ["date"])]
+    indices = [
+        Index(value = ["date"]),
+        Index(value = ["date", "timestamp"]),
+        Index(value = ["category"])
+    ]
 )
 data class CoachJournalEntity(
     @PrimaryKey(autoGenerate = true)

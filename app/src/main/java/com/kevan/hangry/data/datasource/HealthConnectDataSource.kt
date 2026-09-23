@@ -19,6 +19,13 @@ interface HealthConnectDataSource {
     suspend fun fetchOxygenSaturation(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
     suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
     suspend fun fetchBloodPressure(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Double>>
+    suspend fun fetchBasalMetabolicRates(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
+    suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
+    suspend fun fetchBodyFat(start: Instant, end: Instant): Map<LocalDate, Double>
+    suspend fun fetchNutritionRecords(start: Instant, end: Instant): List<FoodLogEntity>
+
+    /** Probes Health Connect to find the earliest record date across all primary types, or null if no records exist. */
+    suspend fun findEarliestDataDate(): LocalDate?
 
     /** Writes one AI-logged (or manually-logged) food entry to Health Connect. Returns false on any failure. */
     suspend fun writeNutritionRecord(entry: FoodLogEntity): Boolean

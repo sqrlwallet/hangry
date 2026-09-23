@@ -61,16 +61,15 @@ fun TrainingScreen(
     val tokens = LocalHangryTokens.current
 
     val zone = ZoneId.systemDefault()
-    val today = LocalDate.now(zone)
-    val dayStart = today.atStartOfDay(zone).toInstant()
-    val dayEnd = today.plusDays(1).atStartOfDay(zone).toInstant()
+    val activeDate = uiState.selectedDate
+    val isToday = activeDate == LocalDate.now(zone)
+    val dayStart = activeDate.atStartOfDay(zone).toInstant()
+    val dayEnd = activeDate.plusDays(1).atStartOfDay(zone).toInstant()
 
-    // Scoped to today - this screen's "Workouts Today" stat already reports today's count,
-    // so the list below it showing every workout ever logged (unrelated to "today") was
-    // misleadingly presented as if it were the same thing.
+    // Scoped to active date - reports workouts and heart rate distribution for the inspected date
     val workouts by workoutRepository.getSessionsBetween(dayStart, dayEnd).collectAsState(initial = emptyList())
 
-    // Collect today's zone distribution, falling back to 7-day trailing if today has no samples
+    // Collect active date's zone distribution, falling back to 7-day trailing if active date has no samples
     val todayZoneDistribution by heartRateRepository.getZoneDistribution(dayStart, dayEnd)
         .collectAsState(initial = HeartRateZoneDistribution())
 
@@ -119,7 +118,7 @@ fun TrainingScreen(
                     horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
                 ) {
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = "Workouts Today", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = if (isToday) "Workouts Today" else "Workouts", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "${workouts.size}",
@@ -128,7 +127,7 @@ fun TrainingScreen(
                         )
                     }
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = "Active Burn Today", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = if (isToday) "Active Burn Today" else "Active Burn", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "${uiState.todayActiveCalories.toInt()} kcal",

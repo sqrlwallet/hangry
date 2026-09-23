@@ -54,6 +54,8 @@ class RealHealthConnectDataSource(
             HealthPermission.getReadPermission(NutritionRecord::class),
             HealthPermission.getReadPermission(BodyTemperatureRecord::class),
             HealthPermission.getReadPermission(BodyFatRecord::class),
+            HealthPermission.getReadPermission(RespiratoryRateRecord::class),
+            HealthPermission.getReadPermission(BloodPressureRecord::class),
             // Write-only - used solely by the opt-in AI calorie tracker to log a food entry
             // the user explicitly saved.
             HealthPermission.getWritePermission(NutritionRecord::class)
@@ -79,8 +81,20 @@ class RealHealthConnectDataSource(
             ),
             "Vitals & Cardio Fitness" to setOf(
                 HealthPermission.getReadPermission(OxygenSaturationRecord::class),
-                HealthPermission.getReadPermission(Vo2MaxRecord::class)
-            )
+                HealthPermission.getReadPermission(Vo2MaxRecord::class),
+                HealthPermission.getReadPermission(RespiratoryRateRecord::class),
+                HealthPermission.getReadPermission(BloodPressureRecord::class)
+            ),
+            "Nutrition & Hydration" to setOf(
+                HealthPermission.getReadPermission(NutritionRecord::class),
+                HealthPermission.getReadPermission(HydrationRecord::class)
+            ),
+            "Body Measurements" to setOf(
+                HealthPermission.getReadPermission(WeightRecord::class),
+                HealthPermission.getReadPermission(HeightRecord::class),
+                HealthPermission.getReadPermission(BodyFatRecord::class)
+            ),
+            "Full History Access" to setOf(PERMISSION_READ_HEALTH_DATA_HISTORY)
         )
     }
 
@@ -415,11 +429,157 @@ class RealHealthConnectDataSource(
     }
 
     override suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
-        return emptyMap()
+        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val records = try {
+            readAllRecords(RespiratoryRateRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading respiratory rates: ${e.message}")
+            emptyList<RespiratoryRateRecord>()
+        }
+        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .mapValues { (_, dayRecords) ->
+                dayRecords.map { it.rate }.average()
+            }
     }
 
     override suspend fun fetchBloodPressure(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Double>> {
-        return emptyMap()
+        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val records = try {
+            readAllRecords(BloodPressureRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading blood pressure: ${e.message}")
+            emptyList<BloodPressureRecord>()
+        }
+        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .mapValues { (_, dayRecords) ->
+                val avgSystolic = dayRecords.map { it.systolic.inMillimetersOfMercury }.average()
+                val avgDiastolic = dayRecords.map { it.diastolic.inMillimetersOfMercury }.average()
+                Pair(avgSystolic, avgDiastolic)
+            }
+    }
+
+    override suspend fun fetchBasalMetabolicRates(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val records = try {
+            readAllRecords(BasalMetabolicRateRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading BMR records: ${e.message}")
+            emptyList<BasalMetabolicRateRecord>()
+        }
+        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .mapValues { (_, dayRecords) ->
+                dayRecords.map { it.basalMetabolicRate.inKilocaloriesPerDay }.average()
+            }
+    }
+
+    override suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val records = try {
+            readAllRecords(HydrationRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading hydration records: ${e.message}")
+            emptyList<HydrationRecord>()
+        }
+        return records.groupBy { it.startTime.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .mapValues { (_, dayRecords) ->
+                dayRecords.sumOf { it.volume.inLiters }
+            }
+    }
+
+    override suspend fun fetchBodyFat(start: Instant, end: Instant): Map<LocalDate, Double> {
+        val records = try {
+            readAllRecords(BodyFatRecord::class, TimeRangeFilter.between(start, end))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading body fat records: ${e.message}")
+            emptyList<BodyFatRecord>()
+        }
+        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .mapValues { (_, dayRecords) ->
+                dayRecords.map { it.percentage.value }.average()
+            }
+    }
+
+    override suspend fun fetchNutritionRecords(start: Instant, end: Instant): List<FoodLogEntity> {
+        val records = try {
+            readAllRecords(NutritionRecord::class, TimeRangeFilter.between(start, end))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading external nutrition records: ${e.message}")
+            emptyList<NutritionRecord>()
+        }
+        val appPackage = context.packageName
+        return records
+            // Never re-import entries written by Hangry itself to avoid duplication
+            .filter { it.metadata.dataOrigin.packageName != appPackage }
+            .map { record ->
+                val date = record.startTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                val calories = record.energy?.inKilocalories?.toInt() ?: 0
+                val title = record.name?.takeIf { it.isNotBlank() } ?: "Health Connect Meal"
+                FoodLogEntity(
+                    date = date,
+                    timestamp = record.startTime,
+                    source = FoodLogSource.HEALTH_CONNECT,
+                    foodName = title,
+                    calories = calories,
+                    proteinG = record.protein?.inGrams ?: 0.0,
+                    carbsG = record.totalCarbohydrate?.inGrams ?: 0.0,
+                    fatG = record.totalFat?.inGrams ?: 0.0,
+                    fiberG = record.dietaryFiber?.inGrams ?: 0.0,
+                    sugarG = record.sugar?.inGrams ?: 0.0,
+                    sodiumMg = (record.sodium?.inGrams ?: 0.0) * 1000.0,
+                    healthConnectSynced = true,
+                    sourceRecordId = record.metadata.id
+                )
+            }
+    }
+
+    override suspend fun findEarliestDataDate(): LocalDate? {
+        val activeClient = client ?: return null
+        val now = Instant.now()
+        val filter = TimeRangeFilter.before(now)
+        var earliestDate: LocalDate? = null
+
+        val recordClasses = listOf(
+            StepsRecord::class,
+            SleepSessionRecord::class,
+            ExerciseSessionRecord::class,
+            HeartRateRecord::class,
+            WeightRecord::class,
+            NutritionRecord::class
+        )
+
+        for (recordClass in recordClasses) {
+            try {
+                val request = ReadRecordsRequest(
+                    recordType = recordClass,
+                    timeRangeFilter = filter,
+                    ascendingOrder = true,
+                    pageSize = 1
+                )
+                val response = activeClient.readRecords(request)
+                val record = response.records.firstOrNull() ?: continue
+                val recordDate = when (record) {
+                    is StepsRecord -> record.startTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                    is SleepSessionRecord -> record.startTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                    is ExerciseSessionRecord -> record.startTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                    is HeartRateRecord -> record.startTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                    is WeightRecord -> record.time.atZone(ZoneId.systemDefault()).toLocalDate()
+                    is NutritionRecord -> record.startTime.atZone(ZoneId.systemDefault()).toLocalDate()
+                    else -> null
+                }
+                if (recordDate != null) {
+                    if (earliestDate == null || recordDate.isBefore(earliestDate)) {
+                        earliestDate = recordDate
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d("HangryHealthConnect", "Earliest date probe notice for ${recordClass.simpleName}: ${e.message}")
+            }
+        }
+        return earliestDate
     }
 
     override suspend fun writeNutritionRecord(entry: FoodLogEntity): Boolean {

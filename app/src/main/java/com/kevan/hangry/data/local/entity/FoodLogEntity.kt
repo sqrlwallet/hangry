@@ -11,11 +11,17 @@ object FoodLogSource {
     const val PHOTO = "PHOTO"
     const val MANUAL = "MANUAL"
     const val MEAL_PLAN = "MEAL_PLAN"
+    const val HEALTH_CONNECT = "HEALTH_CONNECT"
 }
 
 @Entity(
     tableName = "food_log",
-    indices = [Index(value = ["date"])]
+    indices = [
+        Index(value = ["date"]),
+        Index(value = ["date", "timestamp"]),
+        Index(value = ["source"]),
+        Index(value = ["sourceRecordId"], unique = true)
+    ]
 )
 data class FoodLogEntity(
     @PrimaryKey(autoGenerate = true)
@@ -33,5 +39,6 @@ data class FoodLogEntity(
     val sodiumMg: Double = 0.0,
     /** Local file path (app-private storage), only set when [source] is PHOTO. */
     val photoPath: String? = null,
-    val healthConnectSynced: Boolean = false
+    val healthConnectSynced: Boolean = false,
+    val sourceRecordId: String? = null
 )

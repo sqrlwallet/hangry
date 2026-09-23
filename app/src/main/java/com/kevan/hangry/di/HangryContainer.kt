@@ -3,6 +3,7 @@ package com.kevan.hangry.di
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import com.kevan.hangry.data.ai.OpenRouterAiCoachService
+import com.kevan.hangry.data.ai.OpenRouterBodyFatAnalyzer
 import com.kevan.hangry.data.ai.OpenRouterClient
 import com.kevan.hangry.data.ai.OpenRouterFoodAnalyzer
 import com.kevan.hangry.data.ai.OpenRouterPostureAnalyzer
@@ -13,6 +14,7 @@ import com.kevan.hangry.data.repository.*
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiCoachContextBuilder
 import com.kevan.hangry.domain.ai.AiCoachService
+import com.kevan.hangry.domain.ai.BodyFatAnalyzer
 import com.kevan.hangry.domain.ai.FoodAnalyzer
 import com.kevan.hangry.domain.ai.PostureAnalyzer
 import com.kevan.hangry.domain.calculation.*
@@ -27,6 +29,7 @@ interface AppContainer {
     val trainingLoadCalculator: TrainingLoadCalculator
     val strainCalculator: StrainCalculator
     val calorieCalculator: CalorieCalculator
+    val bodyFatCalculator: BodyFatCalculator
     val stressCalculator: StressCalculator
     val dashboardWidgetRepository: DashboardWidgetRepository
 
@@ -39,12 +42,15 @@ interface AppContainer {
     val healthSyncManager: HealthSyncManager
     val userProfileRepository: UserProfileRepository
     val localExportManager: LocalExportManager
+    val localStorageManager: LocalStorageManager
+    val bodyFatRepository: BodyFatRepository
 
     // AI features (opt-in): OpenRouter-backed calorie & posture analysis + AI Coach
     val secureKeyStore: SecureKeyStore
     val openRouterClient: OpenRouterClient
     val foodAnalyzer: FoodAnalyzer
     val postureAnalyzer: PostureAnalyzer
+    val bodyFatAnalyzer: BodyFatAnalyzer
     val foodLogRepository: FoodLogRepository
     val mealPlanRepository: MealPlanRepository
     val postureScanRepository: PostureScanRepository
@@ -90,6 +96,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val calorieCalculator: CalorieCalculator by lazy {
         HangryCalorieCalculator()
+    }
+
+    override val bodyFatCalculator: BodyFatCalculator by lazy {
+        HangryBodyFatCalculator()
     }
 
     override val stressCalculator: StressCalculator by lazy {
@@ -144,6 +154,19 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         DefaultLocalExportManager(dailySummaryRepository)
     }
 
+    override val localStorageManager: LocalStorageManager by lazy {
+        com.kevan.hangry.data.storage.DefaultLocalStorageManager(
+            context = context,
+            database = database,
+            foodLogDao = database.foodLogDao(),
+            postureScanDao = database.postureScanDao()
+        )
+    }
+
+    override val bodyFatRepository: BodyFatRepository by lazy {
+        DefaultBodyFatRepository(database.bodyFatScanDao())
+    }
+
     override val secureKeyStore: SecureKeyStore by lazy {
         SecureKeyStore(context)
     }
@@ -158,6 +181,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val postureAnalyzer: PostureAnalyzer by lazy {
         OpenRouterPostureAnalyzer(openRouterClient, secureKeyStore, userProfileRepository)
+    }
+
+    override val bodyFatAnalyzer: BodyFatAnalyzer by lazy {
+        OpenRouterBodyFatAnalyzer(openRouterClient, secureKeyStore, userProfileRepository)
     }
 
     override val foodLogRepository: FoodLogRepository by lazy {

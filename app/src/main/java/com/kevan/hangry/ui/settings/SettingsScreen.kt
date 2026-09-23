@@ -26,10 +26,13 @@ import com.kevan.hangry.data.ai.OpenRouterClient
 import com.kevan.hangry.data.local.dao.HeightDao
 import com.kevan.hangry.data.local.dao.WeightDao
 import com.kevan.hangry.data.local.entity.UserProfileEntity
+import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.repository.LocalExportManager
+import com.kevan.hangry.domain.repository.LocalStorageManager
+import com.kevan.hangry.domain.repository.StorageBreakdown
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.ui.components.HangryCard
@@ -45,6 +48,7 @@ import java.time.ZoneOffset
 fun SettingsScreen(
     syncManager: HealthSyncManager,
     exportManager: LocalExportManager,
+    localStorageManager: LocalStorageManager,
     userProfileRepository: UserProfileRepository,
     weightDao: WeightDao,
     heightDao: HeightDao,
@@ -56,6 +60,7 @@ fun SettingsScreen(
     onNavigateToDataSources: () -> Unit,
     onNavigateToPrivacyPolicy: () -> Unit = {},
     onNavigateToHomeScreenWidgets: () -> Unit = {},
+    onNavigateToBodyFatCalculator: () -> Unit = {},
     onResetToWelcome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -69,10 +74,17 @@ fun SettingsScreen(
     var showEditGoalsDialog by remember { mutableStateOf(false) }
     var isDeletingHealth by remember { mutableStateOf(false) }
     var isResetting by remember { mutableStateOf(false) }
+    var isOptimizingDb by remember { mutableStateOf(false) }
+    var isCleaningOrphans by remember { mutableStateOf(false) }
+    var storageBreakdown by remember { mutableStateOf<StorageBreakdown?>(null) }
     // Shared across Sync Now / Recalculate Baselines / Export - these all hit the same local
     // DB and Health Connect client, so running two at once serves no purpose and previously
     // let an impatient double-tap queue up duplicate work with no feedback that it happened.
     var isBusy by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        storageBreakdown = localStorageManager.getStorageBreakdown()
+    }
 
     val profile by userProfileRepository.getProfile().collectAsState(initial = null)
     val latestWeight by weightDao.getLatestWeight().collectAsState(initial = null)
@@ -164,10 +176,11 @@ fun SettingsScreen(
             Text(text = "Goals & Body Metrics", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
             HangryCard {
                 val currentProfile = profile
+                val effectiveWeightKg = latestWeight?.weightKg ?: currentProfile?.currentWeightKg
                 val hasBodyMetrics = currentProfile?.age != null && effectiveHeightCm != null && currentProfile.biologicalSex != null
-                val bmrPreview = if (hasBodyMetrics && latestWeight != null) {
+                val bmrPreview = if (hasBodyMetrics && effectiveWeightKg != null) {
                     val sex = runCatching { BiologicalSex.valueOf(currentProfile!!.biologicalSex!!) }.getOrNull()
-                    sex?.let { calorieCalculator.calculateBmr(latestWeight!!.weightKg, effectiveHeightCm!!, currentProfile!!.age!!, it) }
+                    sex?.let { calorieCalculator.calculateBmr(effectiveWeightKg, effectiveHeightCm!!, currentProfile!!.age!!, it) }
                 } else {
                     null
                 }
@@ -186,11 +199,35 @@ fun SettingsScreen(
                         )
                         Text(text = "${effectiveHeightCm?.toInt()} cm", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                     }
+                    if (effectiveWeightKg != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(
+                                text = if (latestWeight != null) "Current weight (synced)" else "Current weight",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = tokens.textSecondary
+                            )
+                            Text(text = "%.1f kg".format(java.util.Locale.US, effectiveWeightKg), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                        }
+                    }
                     if (bmrPreview != null) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(text = "Estimated resting burn (BMR)", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                             Text(text = "${bmrPreview.toInt()} kcal", style = MaterialTheme.typography.bodyMedium, color = tokens.chartColors.trainingLoad)
+                        }
+                    }
+                    val circumferencesList = listOfNotNull(
+                        currentProfile?.neckCircumferenceCm?.let { "Neck: ${it.toInt()}cm" },
+                        currentProfile?.chestCircumferenceCm?.let { "Chest: ${it.toInt()}cm" },
+                        currentProfile?.waistCircumferenceCm?.let { "Waist: ${it.toInt()}cm" },
+                        currentProfile?.hipCircumferenceCm?.let { "Hips: ${it.toInt()}cm" }
+                    )
+                    if (circumferencesList.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Circumferences", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                            Text(text = circumferencesList.joinToString(" • "), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -206,7 +243,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 } else if (!hasBodyMetrics) {
                     Text(
-                        text = "Add your body metrics to estimate calorie burn.",
+                        text = "Add your body metrics to estimate calorie burn and body composition.",
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
@@ -216,8 +253,15 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.Edit,
                     title = "Edit Goals & Body Metrics",
-                    subtitle = "Age, sex, height, and your weight goal",
+                    subtitle = "Age, sex, height, current & goal weight, circumferences",
                     onClick = { showEditGoalsDialog = true }
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                SettingsActionRow(
+                    icon = Icons.Default.AccessibilityNew,
+                    title = "AI Body Fat & Composition",
+                    subtitle = "Calculate body fat % via photos & tape circumferences",
+                    onClick = onNavigateToBodyFatCalculator
                 )
             }
 
@@ -242,7 +286,7 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.History,
                     title = "Historical Sync Range",
-                    subtitle = "Re-import up to 2 years of Health Connect records",
+                    subtitle = "Re-import all available Health Connect records",
                     onClick = onNavigateToHistoricalSync
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -320,6 +364,96 @@ fun SettingsScreen(
                 )
             }
 
+            // Local Storage & Database Health Section
+            Text(text = "Local Storage & Database Health", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+            HangryCard {
+                val breakdown = storageBreakdown
+                if (breakdown != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Total App Storage",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tokens.textPrimary
+                        )
+                        Text(
+                            text = StorageBreakdown.formatBytes(breakdown.totalBytes),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tokens.scoreColors.primed
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Main Database", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = StorageBreakdown.formatBytes(breakdown.databaseBytes), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "WAL & Shared Memory", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = StorageBreakdown.formatBytes(breakdown.walBytes), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Food Photos", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = StorageBreakdown.formatBytes(breakdown.foodPhotosBytes), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Posture Photos", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = StorageBreakdown.formatBytes(breakdown.posturePhotosBytes), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Temporary Cache", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = StorageBreakdown.formatBytes(breakdown.cacheBytes), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = tokens.cardBorder)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                SettingsActionRow(
+                    icon = Icons.Default.Speed,
+                    title = if (isOptimizingDb) "Optimizing Database..." else "Optimize & Compact Database",
+                    subtitle = "Runs WAL checkpoint, reclaims freed disk pages & updates query stats",
+                    enabled = !isBusy && !isOptimizingDb,
+                    onClick = {
+                        coroutineScope.launch {
+                            isOptimizingDb = true
+                            localStorageManager.optimizeDatabase()
+                            storageBreakdown = localStorageManager.getStorageBreakdown()
+                            isOptimizingDb = false
+                            snackbarHostState.showSnackbar("Database compacted and optimized.")
+                        }
+                    }
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                SettingsActionRow(
+                    icon = Icons.Default.CleaningServices,
+                    title = if (isCleaningOrphans) "Cleaning Orphaned Files..." else "Clean Orphaned Assets & Cache",
+                    subtitle = "Removes unreferenced food/posture images and temporary cache files",
+                    enabled = !isBusy && !isCleaningOrphans,
+                    onClick = {
+                        coroutineScope.launch {
+                            isCleaningOrphans = true
+                            val cleanedFiles = localStorageManager.cleanOrphanedFiles()
+                            val freedCacheBytes = localStorageManager.clearCache()
+                            storageBreakdown = localStorageManager.getStorageBreakdown()
+                            isCleaningOrphans = false
+                            snackbarHostState.showSnackbar(
+                                if (cleanedFiles > 0 || freedCacheBytes > 0)
+                                    "Cleaned $cleanedFiles orphaned file(s) and freed ${StorageBreakdown.formatBytes(freedCacheBytes)} cache."
+                                else
+                                    "Storage is clean. No orphaned files found."
+                            )
+                        }
+                    }
+                )
+            }
+
             // Danger Zone & Data Deletion
             Text(text = "Data Management", style = MaterialTheme.typography.titleLarge, color = tokens.scoreColors.rebuild)
             HangryCard {
@@ -357,9 +491,13 @@ fun SettingsScreen(
                         isDeletingHealth = true
                         coroutineScope.launch {
                             syncManager.clearAllData()
+                            localStorageManager.cleanOrphanedFiles()
+                            localStorageManager.clearCache()
+                            localStorageManager.optimizeDatabase()
+                            storageBreakdown = localStorageManager.getStorageBreakdown()
                             isDeletingHealth = false
                             showDeleteHealthDialog = false
-                            snackbarHostState.showSnackbar("All local health data permanently deleted.")
+                            snackbarHostState.showSnackbar("All local health data permanently deleted and database compacted.")
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = tokens.scoreColors.rebuild)
@@ -414,10 +552,20 @@ fun SettingsScreen(
     if (showEditGoalsDialog) {
         EditGoalsDialog(
             profile = profile,
+            initialWeightKg = latestWeight?.weightKg ?: profile?.currentWeightKg,
             onDismiss = { showEditGoalsDialog = false },
-            onSave = { updated ->
+            onSave = { updated, newWeight ->
                 coroutineScope.launch {
                     userProfileRepository.saveProfile(updated)
+                    if (newWeight != null && newWeight > 0.0) {
+                        val record = WeightMeasurementEntity(
+                            recordFingerprint = "manual_entry_${Instant.now().toEpochMilli()}",
+                            timestamp = Instant.now(),
+                            weightKg = newWeight,
+                            sourcePackageName = "com.kevan.hangry.manual"
+                        )
+                        weightDao.insertOrIgnore(listOf(record))
+                    }
                     showEditGoalsDialog = false
                     snackbarHostState.showSnackbar("Goals & body metrics saved.")
                 }
@@ -431,15 +579,21 @@ fun SettingsScreen(
 @Composable
 private fun EditGoalsDialog(
     profile: UserProfileEntity?,
+    initialWeightKg: Double?,
     onDismiss: () -> Unit,
-    onSave: (UserProfileEntity) -> Unit
+    onSave: (UserProfileEntity, Double?) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
     var ageInput by remember { mutableStateOf(profile?.age?.toString() ?: "") }
     var heightInput by remember { mutableStateOf(profile?.heightCm?.toInt()?.toString() ?: "") }
+    var currentWeightInput by remember { mutableStateOf(initialWeightKg?.toString() ?: profile?.currentWeightKg?.toString() ?: "") }
     var weightGoalInput by remember { mutableStateOf(profile?.weightGoalKg?.toString() ?: "") }
     var selectedSex by remember { mutableStateOf(profile?.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() }) }
     var targetDate by remember { mutableStateOf(profile?.goalTargetDate) }
+    var neckInput by remember { mutableStateOf(profile?.neckCircumferenceCm?.toString() ?: "") }
+    var chestInput by remember { mutableStateOf(profile?.chestCircumferenceCm?.toString() ?: "") }
+    var waistInput by remember { mutableStateOf(profile?.waistCircumferenceCm?.toString() ?: "") }
+    var hipInput by remember { mutableStateOf(profile?.hipCircumferenceCm?.toString() ?: "") }
     var showDatePicker by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -451,7 +605,7 @@ private fun EditGoalsDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Used only on-device to estimate your resting calorie burn and a personalized daily calorie target. Never shared.",
+                    text = "Used only on-device to estimate resting calorie burn, body composition, and personalized goals. Never shared.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -476,7 +630,7 @@ private fun EditGoalsDialog(
                     }
                 }
                 Text(
-                    text = "Used for the Mifflin-St Jeor resting-metabolism formula; OTHER averages the male/female coefficients.",
+                    text = "Used for Mifflin-St Jeor resting metabolism & U.S. Navy body fat formulas.",
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
@@ -497,6 +651,19 @@ private fun EditGoalsDialog(
                 HorizontalDivider(color = tokens.cardBorder)
 
                 OutlinedTextField(
+                    value = currentWeightInput,
+                    onValueChange = { currentWeightInput = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text("Current Weight (kg)") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Saving records your current weight immediately for daily calorie targets and trend tracking.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tokens.textMuted
+                )
+
+                OutlinedTextField(
                     value = weightGoalInput,
                     onValueChange = { weightGoalInput = it.filter { c -> c.isDigit() || c == '.' } },
                     label = { Text("Weight goal (kg)") },
@@ -510,25 +677,73 @@ private fun EditGoalsDialog(
                 ) {
                     Text(targetDate?.let { "Target date: $it" } ?: "Choose a target date")
                 }
+
+                HorizontalDivider(color = tokens.cardBorder)
+
                 Text(
-                    text = "We recommend a safe pace and cap the daily calorie target accordingly if this date is ambitious.",
+                    text = "Body Circumferences (Optional)",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = tokens.textPrimary
+                )
+                Text(
+                    text = "Tape circumferences enable the algorithmic U.S. Navy body fat calculator and enhance AI vision accuracy.",
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = neckInput,
+                        onValueChange = { neckInput = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Neck (cm)") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = chestInput,
+                        onValueChange = { chestInput = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Chest (cm)") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = waistInput,
+                        onValueChange = { waistInput = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Waist (cm)") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = hipInput,
+                        onValueChange = { hipInput = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Hips (cm)") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
+                    val parsedCurrentWeight = currentWeightInput.toDoubleOrNull()
                     val updated = (profile ?: UserProfileEntity()).copy(
                         age = ageInput.toIntOrNull(),
                         biologicalSex = selectedSex?.name,
                         heightCm = heightInput.toDoubleOrNull(),
+                        currentWeightKg = parsedCurrentWeight,
                         weightGoalKg = weightGoalInput.toDoubleOrNull(),
                         goalTargetDate = targetDate,
+                        neckCircumferenceCm = neckInput.toDoubleOrNull(),
+                        chestCircumferenceCm = chestInput.toDoubleOrNull(),
+                        waistCircumferenceCm = waistInput.toDoubleOrNull(),
+                        hipCircumferenceCm = hipInput.toDoubleOrNull(),
                         updatedAt = Instant.now()
                     )
-                    onSave(updated)
+                    onSave(updated, parsedCurrentWeight)
                 }
             ) {
                 Text("Save")

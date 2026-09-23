@@ -31,9 +31,10 @@ import com.kevan.hangry.data.local.entity.*
         MealPlanEntity::class,
         PostureScanEntity::class,
         CoachJournalEntity::class,
-        CoachMessageEntity::class
+        CoachMessageEntity::class,
+        BodyFatScanEntity::class
     ],
-    version = 9,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -58,6 +59,15 @@ abstract class HangryDatabase : RoomDatabase() {
     abstract fun postureScanDao(): PostureScanDao
     abstract fun coachJournalDao(): CoachJournalDao
     abstract fun coachMessageDao(): CoachMessageDao
+    abstract fun bodyFatScanDao(): BodyFatScanDao
+
+    open fun checkpointAndOptimize() {
+        openHelper.writableDatabase.let { db ->
+            db.execSQL("PRAGMA wal_checkpoint(TRUNCATE);")
+            db.execSQL("PRAGMA incremental_vacuum;")
+            db.execSQL("PRAGMA optimize;")
+        }
+    }
 
     companion object {
         @Volatile
@@ -216,6 +226,62 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE food_log ADD COLUMN sourceRecordId TEXT")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_food_log_sourceRecordId ON food_log(sourceRecordId)")
+                db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN hydrationLiters REAL")
+                db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN bodyFatPercentage REAL")
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN currentWeightKg REAL")
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN neckCircumferenceCm REAL")
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN chestCircumferenceCm REAL")
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN waistCircumferenceCm REAL")
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN hipCircumferenceCm REAL")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS body_fat_scans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        date INTEGER NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        bodyFatPercentage REAL NOT NULL,
+                        confidenceMin REAL,
+                        confidenceMax REAL,
+                        category TEXT NOT NULL,
+                        method TEXT NOT NULL,
+                        weightKg REAL,
+                        neckCm REAL,
+                        chestCm REAL,
+                        waistCm REAL,
+                        hipCm REAL,
+                        leanMassKg REAL,
+                        fatMassKg REAL,
+                        visualObservationsJson TEXT NOT NULL,
+                        healthInsightsJson TEXT NOT NULL,
+                        consistencyNote TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_body_fat_scans_date ON body_fat_scans(date)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_body_fat_scans_timestamp ON body_fat_scans(timestamp)")
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_food_log_date_timestamp ON food_log(date, timestamp)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_food_log_source ON food_log(source)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_meal_plan_createdAt ON meal_plan(createdAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_coach_journal_entries_date_timestamp ON coach_journal_entries(date, timestamp)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_coach_journal_entries_category ON coach_journal_entries(category)")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -223,7 +289,27 @@ abstract class HangryDatabase : RoomDatabase() {
                     HangryDatabase::class.java,
                     "hangry.db"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(
+                        MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+                        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                        MIGRATION_10_11, MIGRATION_11_12
+                    )
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onCreate(db: SupportSQLiteDatabase) {
+                            super.onCreate(db)
+                            db.execSQL("PRAGMA auto_vacuum = INCREMENTAL;")
+                        }
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            db.execSQL("PRAGMA journal_mode = WAL;")
+                            db.execSQL("PRAGMA synchronous = NORMAL;")
+                            db.execSQL("PRAGMA busy_timeout = 6000;")
+                            db.execSQL("PRAGMA foreign_keys = ON;")
+                            db.execSQL("PRAGMA cache_size = -8000;")
+                            db.execSQL("PRAGMA temp_store = MEMORY;")
+                            db.execSQL("PRAGMA optimize;")
+                        }
+                    })
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                 INSTANCE = instance

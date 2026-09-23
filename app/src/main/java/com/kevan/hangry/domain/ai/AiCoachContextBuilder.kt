@@ -53,9 +53,19 @@ class AiCoachContextBuilder(
             val sex = profile.biologicalSex ?: "Not specified"
             val age = profile.age?.let { "$it yrs" } ?: "Not specified"
             val height = profile.heightCm?.let { "%.1f cm".format(java.util.Locale.US, it) } ?: "Not specified"
-            val curWeight = latestWeight?.weightKg?.let { "%.1f kg".format(java.util.Locale.US, it) } ?: "Not specified"
+            val effectiveWeight = latestWeight?.weightKg ?: profile.currentWeightKg
+            val curWeight = effectiveWeight?.let { "%.1f kg".format(java.util.Locale.US, it) } ?: "Not specified"
             val goalWeight = profile.weightGoalKg?.let { "%.1f kg".format(java.util.Locale.US, it) } ?: "None set"
             sb.appendLine("Sex: $sex | Age: $age | Height: $height | Current Weight: $curWeight | Goal Weight: $goalWeight")
+            val circumferences = listOfNotNull(
+                profile.neckCircumferenceCm?.let { "Neck: ${it}cm" },
+                profile.chestCircumferenceCm?.let { "Chest: ${it}cm" },
+                profile.waistCircumferenceCm?.let { "Waist: ${it}cm" },
+                profile.hipCircumferenceCm?.let { "Hips: ${it}cm" }
+            ).joinToString(", ")
+            if (circumferences.isNotBlank()) {
+                sb.appendLine("Circumferences: $circumferences")
+            }
             sb.appendLine("Daily Targets: Steps: ${profile.dailyStepGoal} | Active Cal: ${profile.dailyActiveCaloriesGoal} kcal | Sleep Target: ${profile.sleepDurationTargetMinutes / 60}h ${profile.sleepDurationTargetMinutes % 60}m")
         } else {
             sb.appendLine("Profile defaults in use.")

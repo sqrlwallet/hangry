@@ -82,6 +82,7 @@ class AiCoachContextBuilderTest {
 
     private class FakeFoodLogDao(var foodLogs: List<FoodLogEntity> = emptyList()) : FoodLogDao {
         override suspend fun insert(entry: FoodLogEntity): Long = 1L
+        override suspend fun insertOrIgnore(entries: List<FoodLogEntity>): List<Long> = entries.map { 1L }
         override suspend fun update(entry: FoodLogEntity) {}
         override suspend fun delete(entry: FoodLogEntity) {}
         override fun getForDate(date: LocalDate): Flow<List<FoodLogEntity>> = flowOf(foodLogs)
@@ -89,6 +90,8 @@ class AiCoachContextBuilderTest {
         override suspend fun getBetweenList(start: LocalDate, end: LocalDate): List<FoodLogEntity> = foodLogs
         override fun getTotalCaloriesForDate(date: LocalDate): Flow<Int> = flowOf(0)
         override suspend fun markSyncedToHealthConnect(id: Long) {}
+        override suspend fun getAllPhotoPaths(): List<String> = foodLogs.mapNotNull { it.photoPath }
+        override suspend fun deleteBySource(source: String) {}
         override suspend fun deleteAll() {}
     }
 
@@ -99,6 +102,7 @@ class AiCoachContextBuilderTest {
         override fun getLatest(): Flow<PostureScanEntity?> = flowOf(latest)
         override suspend fun getLatestSync(): PostureScanEntity? = latest
         override suspend fun getById(id: Long): PostureScanEntity? = latest
+        override suspend fun getAllPhotoPathsJson(): List<String> = listOfNotNull(latest?.photoPathsJson)
         override suspend fun deleteAll() {}
     }
 

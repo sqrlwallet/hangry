@@ -41,4 +41,6 @@ data class DashboardUiState(
     // true, Strain/Recovery/Sleep Score are withheld from the UI and shown as "Pending" instead
     // of a zero or a stale carried-over value.
     val isPendingSleepData: Boolean = true
-)
+) {
+    val isViewingToday: Boolean get() = selectedDate == LocalDate.now()
+}

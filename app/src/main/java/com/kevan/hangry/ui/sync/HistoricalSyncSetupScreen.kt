@@ -12,24 +12,49 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.onboarding.OnboardingStepIndicator
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoricalSyncSetupScreen(
     onStartSync: (days: Int) -> Unit,
     onNavigateBack: () -> Unit,
+    dataSource: HealthConnectDataSource? = null,
     showStepIndicator: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    var selectedRange by remember { mutableIntStateOf(730) } // Default to all available data
+    var selectedRange by remember { mutableIntStateOf(-1) } // Default to all available data (-1 = unbounded)
+    var earliestDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    LaunchedEffect(dataSource) {
+        earliestDate = try {
+            dataSource?.findEarliestDataDate()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    val allTimeLabel = remember(earliestDate) {
+        val date = earliestDate
+        if (date != null) {
+            val years = ChronoUnit.DAYS.between(date, LocalDate.now()) / 365.25
+            val dateStr = date.format(DateTimeFormatter.ofPattern("MMM yyyy"))
+            "All available data (From $dateStr · %.1f yrs - Recommended)".format(years)
+        } else {
+            "All available data (Full history - Recommended)"
+        }
+    }
 
     val ranges = listOf(
-        Pair(730, "All available data (Up to 2 years - Recommended)"),
+        Pair(-1, allTimeLabel),
         Pair(365, "Last 365 days (Annual history)"),
         Pair(90, "Last 90 days (Deeper trends)"),
         Pair(30, "Last 30 days (Standard baseline)"),
@@ -114,9 +139,9 @@ fun HistoricalSyncSetupScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.textPrimary
                             )
-                            if (days == 730) {
+                            if (days == -1) {
                                 Text(
-                                    text = "Imports all historical health records for maximum baseline depth.",
+                                    text = "Imports your entire Health Connect history without date cutoffs.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.scoreColors.primed
                                 )

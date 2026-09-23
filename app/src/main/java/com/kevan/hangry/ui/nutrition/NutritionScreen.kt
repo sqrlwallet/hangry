@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.ui.components.DateNavigatorBar
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.components.HangryInfoIconButton
@@ -159,6 +160,13 @@ fun NutritionScreen(
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            item {
+                DateNavigatorBar(
+                    selectedDate = uiState.selectedDate,
+                    onDateSelected = { date -> viewModel.selectDate(date) }
+                )
+            }
+
             if (!uiState.aiFeaturesEnabled) {
                 item {
                     HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {

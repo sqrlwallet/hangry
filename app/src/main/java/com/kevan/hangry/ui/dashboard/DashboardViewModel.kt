@@ -48,7 +48,8 @@ class DashboardViewModel(
     // "Today" is the device's local day everywhere in this pipeline - see DefaultHealthSyncManager,
     // which uses the same zone so day boundaries agree end to end.
     private val zone = ZoneId.systemDefault()
-    private val selectedDate = LocalDate.now(zone)
+    private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
+    val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
     // Guards against re-triggering a sync every time this flow recombines while waiting for it.
     private var autoResyncedForDate: LocalDate? = null
@@ -58,6 +59,7 @@ class DashboardViewModel(
     }
 
     private data class DashboardSources(
+        val targetDate: LocalDate,
         val summary: DailyHealthSummaryEntity?,
         val score: RecoveryScoreEntity?,
         val sleepSessions: List<SleepSessionEntity>,
@@ -71,31 +73,36 @@ class DashboardViewModel(
         val widgets: List<DashboardWidget>
     )
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun loadDashboardData() {
         viewModelScope.launch {
-            val sleepHistoryStart = selectedDate.minusDays(31).atStartOfDay(zone).toInstant()
-            val sleepHistoryEnd = selectedDate.plusDays(1).atStartOfDay(zone).toInstant()
+            _selectedDate.flatMapLatest { date ->
+                val sleepHistoryStart = date.minusDays(31).atStartOfDay(zone).toInstant()
+                val sleepHistoryEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
 
-            val coreFlow = combine(
-                dailySummaryRepository.getSummaryForDate(selectedDate),
-                dailySummaryRepository.getRecoveryScoreForDate(selectedDate),
-                sleepRepository.getSessionsBetween(sleepHistoryStart, sleepHistoryEnd),
-                workoutRepository.getAllSessions(),
-                dailySummaryRepository.getSummariesBetween(selectedDate.minusDays(29), selectedDate.minusDays(1))
-            ) { summary, score, sleepSessions, allWorkouts, recentSummaries ->
-                DashboardSources(summary, score, sleepSessions, allWorkouts, recentSummaries)
-            }
+                val coreFlow = combine(
+                    dailySummaryRepository.getSummaryForDate(date),
+                    dailySummaryRepository.getRecoveryScoreForDate(date),
+                    sleepRepository.getSessionsBetween(sleepHistoryStart, sleepHistoryEnd),
+                    workoutRepository.getAllSessions(),
+                    dailySummaryRepository.getSummariesBetween(date.minusDays(29), date.minusDays(1))
+                ) { summary, score, sleepSessions, allWorkouts, recentSummaries ->
+                    DashboardSources(date, summary, score, sleepSessions, allWorkouts, recentSummaries)
+                }
 
-            val secondaryFlow = combine(
-                userProfileRepository.getProfile(),
-                weightDao.getLatestWeight(),
-                dashboardWidgetRepository.getWidgets()
-            ) { profile, latestWeight, widgets ->
-                SecondarySources(profile, latestWeight, widgets)
-            }
+                val secondaryFlow = combine(
+                    userProfileRepository.getProfile(),
+                    weightDao.getLatestWeight(),
+                    dashboardWidgetRepository.getWidgets()
+                ) { profile, latestWeight, widgets ->
+                    SecondarySources(profile, latestWeight, widgets)
+                }
 
-            combine(coreFlow, secondaryFlow) { core, secondary ->
-                val (summary, score, sleepSessions, allWorkouts, recentSummaries) = core
+                combine(coreFlow, secondaryFlow) { core, secondary ->
+                    Pair(core, secondary)
+                }
+            }.collect { (core, secondary) ->
+                val (date, summary, score, sleepSessions, allWorkouts, recentSummaries) = core
                 val (profile, latestWeight, widgets) = secondary
 
                 // Sorted newest-first: the most recent session is "current", the rest is real
@@ -106,9 +113,11 @@ class DashboardViewModel(
 
                 // Strain, recovery, and sleep score should only surface once today's sleep is in -
                 // before that (i.e. from midnight until a session is logged/synced) they read as
-                // "pending" rather than showing a zero or yesterday's stale value.
-                val sleepRecordedForToday = sortedSleep.any { session ->
-                    session.endTime.atZone(zone).toLocalDate() == selectedDate
+                // "pending" rather than showing a zero or yesterday's stale value. For past days,
+                // sleep is never "pending".
+                val isToday = date == LocalDate.now(zone)
+                val sleepRecordedForDate = sortedSleep.any { session ->
+                    session.endTime.atZone(zone).toLocalDate() == date
                 }
 
                 val previousDaySummary = recentSummaries.firstOrNull()
@@ -124,11 +133,11 @@ class DashboardViewModel(
                     rollingAverageStrain = rollingAverageStrain
                 )
                 val todaysWorkouts = allWorkouts.filter {
-                    it.startTime.atZone(zone).toLocalDate() == selectedDate
+                    it.startTime.atZone(zone).toLocalDate() == date
                 }
                 val trailingSevenDayWorkouts = allWorkouts.filter {
-                    val date = it.startTime.atZone(zone).toLocalDate()
-                    date >= selectedDate.minusDays(7) && date < selectedDate
+                    val wDate = it.startTime.atZone(zone).toLocalDate()
+                    wDate >= date.minusDays(7) && wDate < date
                 }
                 val trainingAnalysis = trainingLoadCalculator.calculateDailyLoad(
                     workoutsToday = todaysWorkouts,
@@ -161,7 +170,7 @@ class DashboardViewModel(
                     currentWeightKg = latestWeight?.weightKg,
                     weightGoalKg = profile?.weightGoalKg,
                     targetDate = profile?.goalTargetDate,
-                    today = selectedDate
+                    today = date
                 )
 
                 // Autonomic stress calculation based on rolling 7d baseline of HRV & RHR
@@ -188,7 +197,7 @@ class DashboardViewModel(
                 _uiState.update { current ->
                     current.copy(
                         isLoading = false,
-                        selectedDate = selectedDate,
+                        selectedDate = date,
                         dailySummary = summary,
                         recoveryScore = score,
                         sleepAnalysis = sleepAnalysis,
@@ -205,32 +214,51 @@ class DashboardViewModel(
                         widgets = widgets,
                         latestWeightKg = latestWeight?.weightKg,
                         aiFeaturesEnabled = profile?.aiFeaturesEnabled ?: false,
-                        isPendingSleepData = !sleepRecordedForToday
+                        isPendingSleepData = isToday && !sleepRecordedForDate
                     )
                 }
 
                 // A sleep session just landed but the persisted summary/recovery row for today
                 // predates it (still stuck at the last sync) - refresh just today so the newly
                 // unlocked strain/recovery/sleep numbers are accurate, not the pre-sleep values.
-                val summaryStaleRelativeToSleep = sleepRecordedForToday && summary?.sleepDurationMinutes == null
-                if (summaryStaleRelativeToSleep && autoResyncedForDate != selectedDate && !_uiState.value.isSyncing) {
-                    autoResyncedForDate = selectedDate
+                val summaryStaleRelativeToSleep = isToday && sleepRecordedForDate && summary?.sleepDurationMinutes == null
+                if (summaryStaleRelativeToSleep && autoResyncedForDate != date && !_uiState.value.isSyncing) {
+                    autoResyncedForDate = date
                     syncNow(days = 1)
                 }
-            }.collect()
+            }
         }
 
         // Refresh from Health Connect every time the app/dashboard opens, not just on the
         // periodic 6h background sync - a full historical import if the database is still
         // empty (first run), otherwise a quick recent-days catch-up.
         viewModelScope.launch {
-            val existing = dailySummaryRepository.getSummaryForDateSync(selectedDate)
+            val existing = dailySummaryRepository.getSummaryForDateSync(_selectedDate.value)
             if (existing == null) {
                 syncNow()
             } else {
                 syncNow(days = 3)
             }
         }
+    }
+
+    fun selectDate(date: LocalDate) {
+        _selectedDate.value = date
+    }
+
+    fun goToPreviousDay() {
+        _selectedDate.value = _selectedDate.value.minusDays(1)
+    }
+
+    fun goToNextDay() {
+        val current = _selectedDate.value
+        if (current < LocalDate.now(zone)) {
+            _selectedDate.value = current.plusDays(1)
+        }
+    }
+
+    fun goToToday() {
+        _selectedDate.value = LocalDate.now(zone)
     }
 
     fun updateActivityGoals(stepGoal: Long, caloriesGoal: Int) {

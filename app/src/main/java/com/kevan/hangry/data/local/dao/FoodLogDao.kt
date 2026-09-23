@@ -3,6 +3,7 @@ package com.kevan.hangry.data.local.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.kevan.hangry.data.local.entity.FoodLogEntity
@@ -13,6 +14,9 @@ import java.time.LocalDate
 interface FoodLogDao {
     @Insert
     suspend fun insert(entry: FoodLogEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertOrIgnore(entries: List<FoodLogEntity>): List<Long>
 
     @Update
     suspend fun update(entry: FoodLogEntity)
@@ -34,6 +38,12 @@ interface FoodLogDao {
 
     @Query("UPDATE food_log SET healthConnectSynced = 1 WHERE id = :id")
     suspend fun markSyncedToHealthConnect(id: Long)
+
+    @Query("SELECT photoPath FROM food_log WHERE photoPath IS NOT NULL")
+    suspend fun getAllPhotoPaths(): List<String>
+
+    @Query("DELETE FROM food_log WHERE source = :source")
+    suspend fun deleteBySource(source: String)
 
     @Query("DELETE FROM food_log")
     suspend fun deleteAll()

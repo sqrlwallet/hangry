@@ -11,6 +11,7 @@ import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.local.entity.MealPlanEntity
+import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.domain.ai.FoodAnalyzer
 import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.domain.repository.FoodLogRepository
@@ -18,10 +19,12 @@ import com.kevan.hangry.domain.repository.MealPlanRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.util.clearCapturedImageCache
 import com.kevan.hangry.util.readImageAsBase64Jpeg
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -35,6 +38,7 @@ import java.time.ZoneId
  * Edit action or tapping the row in the log corrects it in place rather than blocking the save
  * on a review step every time.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class NutritionViewModel(
     @field:SuppressLint("StaticFieldLeak")
     private val context: Context,
@@ -46,29 +50,62 @@ class NutritionViewModel(
 ) : ViewModel() {
 
     private val zone = ZoneId.systemDefault()
-    private val today = LocalDate.now(zone)
+    private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
+    val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
     private val _uiState = MutableStateFlow(NutritionUiState())
     val uiState: StateFlow<NutritionUiState> = _uiState.asStateFlow()
 
+    private data class NutritionSources(
+        val targetDate: LocalDate,
+        val entries: List<FoodLogEntity>,
+        val totalCalories: Int,
+        val plans: List<MealPlanEntity>,
+        val profile: UserProfileEntity?
+    )
+
     init {
         viewModelScope.launch {
-            combine(
-                foodLogRepository.getForDate(today),
-                foodLogRepository.getTotalCaloriesForDate(today),
-                mealPlanRepository.getAll(),
-                userProfileRepository.getProfile()
-            ) { entries, total, plans, profile ->
+            _selectedDate.flatMapLatest { date ->
+                combine(
+                    foodLogRepository.getForDate(date),
+                    foodLogRepository.getTotalCaloriesForDate(date),
+                    mealPlanRepository.getAll(),
+                    userProfileRepository.getProfile()
+                ) { entries, total, plans, profile ->
+                    NutritionSources(date, entries, total, plans, profile)
+                }
+            }.collect { sources ->
                 _uiState.update {
                     it.copy(
-                        todayEntries = entries,
-                        totalCaloriesToday = total,
-                        mealPlans = plans,
-                        aiFeaturesEnabled = profile?.aiFeaturesEnabled ?: false
+                        selectedDate = sources.targetDate,
+                        todayEntries = sources.entries,
+                        totalCaloriesToday = sources.totalCalories,
+                        mealPlans = sources.plans,
+                        aiFeaturesEnabled = sources.profile?.aiFeaturesEnabled ?: false
                     )
                 }
-            }.collect { }
+            }
         }
+    }
+
+    fun selectDate(date: LocalDate) {
+        _selectedDate.value = date
+    }
+
+    fun goToPreviousDay() {
+        _selectedDate.value = _selectedDate.value.minusDays(1)
+    }
+
+    fun goToNextDay() {
+        val current = _selectedDate.value
+        if (current < LocalDate.now(zone)) {
+            _selectedDate.value = current.plusDays(1)
+        }
+    }
+
+    fun goToToday() {
+        _selectedDate.value = LocalDate.now(zone)
     }
 
     fun analyzePhoto(uri: Uri, note: String?) {
@@ -114,7 +151,7 @@ class NutritionViewModel(
         viewModelScope.launch {
             val permanentPhotoPath = photoUri?.let { movePhotoToPermanentStorage(it) }
             val entry = FoodLogEntity(
-                date = today,
+                date = _selectedDate.value,
                 timestamp = Instant.now(),
                 source = if (photoUri != null) FoodLogSource.PHOTO else FoodLogSource.MANUAL,
                 foodName = safeName,
@@ -154,7 +191,7 @@ class NutritionViewModel(
     private suspend fun autoSave(analysis: FoodAnalysisResult, source: String, photoUri: Uri?) {
         val permanentPhotoPath = photoUri?.let { movePhotoToPermanentStorage(it) }
         val entry = FoodLogEntity(
-            date = today,
+            date = _selectedDate.value,
             timestamp = Instant.now(),
             source = source,
             foodName = analysis.foodName,
@@ -203,7 +240,7 @@ class NutritionViewModel(
     fun logFromMealPlan(plan: MealPlanEntity) {
         viewModelScope.launch {
             val entry = FoodLogEntity(
-                date = today,
+                date = _selectedDate.value,
                 timestamp = Instant.now(),
                 source = FoodLogSource.MEAL_PLAN,
                 foodName = plan.name,

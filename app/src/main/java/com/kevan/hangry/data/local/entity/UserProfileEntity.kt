@@ -18,6 +18,11 @@ data class UserProfileEntity(
     val biologicalSex: String? = null, // "MALE", "FEMALE", "OTHER" - see BiologicalSex
     val weightGoalKg: Double? = null,
     val goalTargetDate: LocalDate? = null,
+    val currentWeightKg: Double? = null,
+    val neckCircumferenceCm: Double? = null,
+    val chestCircumferenceCm: Double? = null,
+    val waistCircumferenceCm: Double? = null,
+    val hipCircumferenceCm: Double? = null,
     // AI features (food/posture photo analysis via OpenRouter) are opt-in - false until the
     // user explicitly accepts the consent dialog in Settings. The API key itself is never
     // stored here; see data/security/SecureKeyStore.

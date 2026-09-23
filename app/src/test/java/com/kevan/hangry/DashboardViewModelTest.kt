@@ -188,5 +188,38 @@ class DashboardViewModelTest {
 
         assertTrue(syncCalled)
         assertFalse(viewModel.uiState.value.isSyncing)
+
+        // Test Date Navigation
+        val yesterday = today.minusDays(1)
+        viewModel.goToPreviousDay()
+        testScheduler.advanceUntilIdle()
+        assertEquals(yesterday, viewModel.selectedDate.value)
+        assertEquals(yesterday, viewModel.uiState.value.selectedDate)
+        assertFalse(viewModel.uiState.value.isViewingToday)
+
+        // Test goToNextDay returns to today
+        viewModel.goToNextDay()
+        testScheduler.advanceUntilIdle()
+        assertEquals(today, viewModel.selectedDate.value)
+        assertTrue(viewModel.uiState.value.isViewingToday)
+
+        // Next day beyond today is prevented
+        viewModel.goToNextDay()
+        testScheduler.advanceUntilIdle()
+        assertEquals(today, viewModel.selectedDate.value)
+
+        // Test selectDate for past day
+        val pastDate = today.minusDays(7)
+        viewModel.selectDate(pastDate)
+        testScheduler.advanceUntilIdle()
+        assertEquals(pastDate, viewModel.selectedDate.value)
+        assertEquals(pastDate, viewModel.uiState.value.selectedDate)
+        assertFalse(viewModel.uiState.value.isViewingToday)
+
+        // Test goToToday snap back
+        viewModel.goToToday()
+        testScheduler.advanceUntilIdle()
+        assertEquals(today, viewModel.selectedDate.value)
+        assertTrue(viewModel.uiState.value.isViewingToday)
     }
 }

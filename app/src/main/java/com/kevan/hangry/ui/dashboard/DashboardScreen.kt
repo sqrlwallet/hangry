@@ -93,6 +93,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Row(
@@ -100,20 +101,22 @@ fun DashboardScreen(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
                     .statusBarsPadding()
-                    .padding(horizontal = 4.dp),
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { viewModel.setCustomizeSheetVisible(true) }) {
                     Icon(
                         imageVector = Icons.Default.DashboardCustomize,
-                        contentDescription = "Customize Dashboard"
+                        contentDescription = "Customize Dashboard",
+                        tint = tokens.textSecondary
                     )
                 }
                 IconButton(onClick = onNavigateToSettings) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings"
+                        contentDescription = "Settings",
+                        tint = tokens.textSecondary
                     )
                 }
                 IconButton(
@@ -129,7 +132,8 @@ fun DashboardScreen(
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.sync_now)
+                            contentDescription = stringResource(R.string.sync_now),
+                            tint = tokens.textSecondary
                         )
                     }
                 }
@@ -197,6 +201,12 @@ fun DashboardScreen(
                 .padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            // Date Navigator Bar: navigate between days, inspect past data, or pick a date
+            DateNavigatorBar(
+                selectedDate = uiState.selectedDate,
+                onDateSelected = { date -> viewModel.selectDate(date) }
+            )
+
             // Modular Widget Engine: Render active widgets ordered by user preference
             val activeWidgets = (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets())
                 .filter { it.isVisible }

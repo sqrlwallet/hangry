@@ -30,6 +30,8 @@ data class DailyHealthSummaryEntity(
     val respiratoryRate: Double? = null,
     val bloodPressureSystolic: Double? = null,
     val bloodPressureDiastolic: Double? = null,
+    val hydrationLiters: Double? = null,
+    val bodyFatPercentage: Double? = null,
     val dataCompletenessRatio: Double = 0.0,
     val dataQualityState: String = "COMPLETE",
     val calculationVersion: Int = 1,

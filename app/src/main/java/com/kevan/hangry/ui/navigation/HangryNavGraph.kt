@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,6 +21,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.di.AppContainer
+import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorScreen
+import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorViewModel
 import com.kevan.hangry.ui.coach.AiCoachScreen
 import com.kevan.hangry.ui.coach.AiCoachViewModel
 import com.kevan.hangry.ui.dashboard.DashboardScreen
@@ -71,6 +74,7 @@ sealed class Screen(val route: String) {
     }
     data object AiCoach : Screen("ai_coach")
     data object HomeScreenWidgets : Screen("home_screen_widgets")
+    data object BodyFatCalculator : Screen("body_fat_calculator")
 }
 
 @Composable
@@ -178,6 +182,7 @@ fun HangryNavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
+                dataSource = appContainer.healthConnectDataSource,
                 showStepIndicator = onboardingInProgress
             )
         }
@@ -292,8 +297,29 @@ fun HangryNavGraph(
             TrendsScreen(
                 dailySummaryRepository = appContainer.dailySummaryRepository,
                 weightDao = appContainer.database.weightDao(),
+                workoutRepository = appContainer.workoutRepository,
+                foodLogRepository = appContainer.foodLogRepository,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToDashboardForDate = { date ->
+                    dashboardViewModel.selectDate(date)
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToNutritionForDate = { date ->
+                    nutritionViewModel.selectDate(date)
+                    navController.navigate(Screen.Nutrition.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToBodyFatCalculator = {
+                    navController.navigate(Screen.BodyFatCalculator.route)
                 }
             )
         }
@@ -312,6 +338,7 @@ fun HangryNavGraph(
             SettingsScreen(
                 syncManager = appContainer.healthSyncManager,
                 exportManager = appContainer.localExportManager,
+                localStorageManager = appContainer.localStorageManager,
                 userProfileRepository = appContainer.userProfileRepository,
                 weightDao = appContainer.database.weightDao(),
                 heightDao = appContainer.database.heightDao(),
@@ -332,6 +359,9 @@ fun HangryNavGraph(
                 },
                 onNavigateToHomeScreenWidgets = {
                     navController.navigate(Screen.HomeScreenWidgets.route)
+                },
+                onNavigateToBodyFatCalculator = {
+                    navController.navigate(Screen.BodyFatCalculator.route)
                 },
                 onResetToWelcome = {
                     coroutineScope.launch {
@@ -418,6 +448,27 @@ fun HangryNavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        // Body Fat & Composition Calculator
+        composable(Screen.BodyFatCalculator.route) {
+            val bodyFatViewModel: BodyFatCalculatorViewModel = viewModel(
+                factory = BodyFatCalculatorViewModel.provideFactory(
+                    context = LocalContext.current,
+                    userProfileRepository = appContainer.userProfileRepository,
+                    weightDao = appContainer.database.weightDao(),
+                    heightDao = appContainer.database.heightDao(),
+                    bodyFatCalculator = appContainer.bodyFatCalculator,
+                    bodyFatAnalyzer = appContainer.bodyFatAnalyzer,
+                    bodyFatRepository = appContainer.bodyFatRepository,
+                    secureKeyStore = appContainer.secureKeyStore
+                )
+            )
+            BodyFatCalculatorScreen(
+                viewModel = bodyFatViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
     }

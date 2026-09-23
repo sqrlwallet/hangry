@@ -10,9 +10,8 @@ class DefaultLocalExportManager(
 ) : LocalExportManager {
 
     override suspend fun exportDataAsJson(): String {
-        val today = LocalDate.now()
-        val summaries = dailySummaryRepository.getSummariesBetween(today.minusDays(90), today).firstOrNull() ?: emptyList()
-        val scores = dailySummaryRepository.getScoresBetween(today.minusDays(90), today).firstOrNull() ?: emptyList()
+        val summaries = dailySummaryRepository.getAllSummaries().firstOrNull() ?: emptyList()
+        val scores = dailySummaryRepository.getAllScores().firstOrNull() ?: emptyList()
 
         val sb = StringBuilder()
         sb.append("{\n")
@@ -20,7 +19,7 @@ class DefaultLocalExportManager(
         sb.append("  \"exportTimestamp\": \"${System.currentTimeMillis()}\",\n")
         sb.append("  \"dailySummaries\": [\n")
         summaries.forEachIndexed { index, s ->
-            sb.append("    {\"date\": \"${s.date}\", \"sleepMinutes\": ${s.sleepDurationMinutes}, \"steps\": ${s.steps}, \"restingHeartRate\": ${s.restingHeartRate}, \"hrvRmssd\": ${s.hrvRmssd}}")
+            sb.append("    {\"date\": \"${s.date}\", \"sleepMinutes\": ${s.sleepDurationMinutes}, \"steps\": ${s.steps}, \"activeCalories\": ${s.activeCalories}, \"totalCalories\": ${s.totalCalories}, \"restingHeartRate\": ${s.restingHeartRate}, \"hrvRmssd\": ${s.hrvRmssd}, \"vo2Max\": ${s.vo2Max}, \"spo2\": ${s.spo2Percentage}, \"respRate\": ${s.respiratoryRate}, \"bpSystolic\": ${s.bloodPressureSystolic}, \"bpDiastolic\": ${s.bloodPressureDiastolic}, \"hydrationLiters\": ${s.hydrationLiters}, \"bodyFatPercentage\": ${s.bodyFatPercentage}}")
             if (index < summaries.size - 1) sb.append(",")
             sb.append("\n")
         }
@@ -37,13 +36,12 @@ class DefaultLocalExportManager(
     }
 
     override suspend fun exportDataAsCsv(): String {
-        val today = LocalDate.now()
-        val summaries = dailySummaryRepository.getSummariesBetween(today.minusDays(90), today).firstOrNull() ?: emptyList()
+        val summaries = dailySummaryRepository.getAllSummaries().firstOrNull() ?: emptyList()
 
         val sb = StringBuilder()
-        sb.append("Date,SleepMinutes,Steps,DistanceMeters,RestingHeartRate,HrvRmssd,TrainingLoad\n")
+        sb.append("Date,SleepMinutes,Steps,DistanceMeters,ActiveCalories,TotalCalories,RestingHeartRate,HrvRmssd,TrainingLoad,Vo2Max,SpO2,HydrationLiters,BodyFatPct\n")
         summaries.forEach { s ->
-            sb.append("${s.date},${s.sleepDurationMinutes ?: ""},${s.steps ?: ""},${s.distanceMeters ?: ""},${s.restingHeartRate ?: ""},${s.hrvRmssd ?: ""},${s.dailyTrainingLoad ?: ""}\n")
+            sb.append("${s.date},${s.sleepDurationMinutes ?: ""},${s.steps ?: ""},${s.distanceMeters ?: ""},${s.activeCalories ?: ""},${s.totalCalories ?: ""},${s.restingHeartRate ?: ""},${s.hrvRmssd ?: ""},${s.dailyTrainingLoad ?: ""},${s.vo2Max ?: ""},${s.spo2Percentage ?: ""},${s.hydrationLiters ?: ""},${s.bodyFatPercentage ?: ""}\n")
         }
         return sb.toString()
     }

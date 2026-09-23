@@ -7,6 +7,7 @@ import com.kevan.hangry.data.ai.OpenRouterBodyFatAnalyzer
 import com.kevan.hangry.data.ai.OpenRouterClient
 import com.kevan.hangry.data.ai.OpenRouterFoodAnalyzer
 import com.kevan.hangry.data.ai.OpenRouterPostureAnalyzer
+import com.kevan.hangry.data.breathing.BreathingSessionController
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
 import com.kevan.hangry.data.local.HangryDatabase
@@ -44,6 +45,8 @@ interface AppContainer {
     val localExportManager: LocalExportManager
     val localStorageManager: LocalStorageManager
     val bodyFatRepository: BodyFatRepository
+    val breathingRepository: BreathingRepository
+    val breathingSessionController: BreathingSessionController
 
     // AI features (opt-in): OpenRouter-backed calorie & posture analysis + AI Coach
     val secureKeyStore: SecureKeyStore
@@ -165,6 +168,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val bodyFatRepository: BodyFatRepository by lazy {
         DefaultBodyFatRepository(database.bodyFatScanDao())
+    }
+
+    override val breathingRepository: BreathingRepository by lazy {
+        DefaultBreathingRepository(database.breathingSessionDao(), healthConnectDataSource)
+    }
+
+    override val breathingSessionController: BreathingSessionController by lazy {
+        BreathingSessionController(context, breathingRepository)
     }
 
     override val secureKeyStore: SecureKeyStore by lazy {

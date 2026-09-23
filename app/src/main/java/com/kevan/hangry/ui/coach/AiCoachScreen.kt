@@ -19,13 +19,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,14 +100,9 @@ fun AiCoachScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("AI Coach", style = MaterialTheme.typography.titleLarge)
+                        DashAvatar(size = 32.dp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(MASCOT_NAME, style = MaterialTheme.typography.titleLarge)
                     }
                 },
                 navigationIcon = {
@@ -183,12 +176,7 @@ fun AiCoachScreen(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.SmartToy,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    DashAvatar(size = 18.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Context loaded: Last 7 days of sleep, strain, workouts & journal",
@@ -317,7 +305,7 @@ fun AiCoachScreen(
                         value = inputText,
                         onValueChange = { inputText = it },
                         placeholder = {
-                            Text("Ask coach or share a problem...", style = MaterialTheme.typography.bodyMedium)
+                            Text("Ask $MASCOT_NAME or share a problem...", style = MaterialTheme.typography.bodyMedium)
                         },
                         trailingIcon = if (inputText.isNotEmpty()) {
                             {
@@ -352,7 +340,7 @@ fun AiCoachScreen(
                         ),
                         modifier = Modifier
                             .weight(1f)
-                            .semantics { contentDescription = "Message input for Hangry AI Coach" },
+                            .semantics { contentDescription = "Message input for $MASCOT_NAME" },
                         shape = RoundedCornerShape(24.dp),
                         maxLines = 4,
                         enabled = !uiState.isLoading
@@ -376,7 +364,7 @@ fun AiCoachScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = if (uiState.isLoading) "Coach is thinking" else "Send message",
+                            contentDescription = if (uiState.isLoading) "$MASCOT_NAME is thinking" else "Send message",
                             tint = if (inputText.isNotBlank() && !uiState.isLoading) MaterialTheme.colorScheme.onPrimary else tokens.textSecondary
                         )
                     }
@@ -454,23 +442,18 @@ private fun AiNotConfiguredBanner(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = HangryTokens.Spacing.l
         ) {
-            Icon(
-                imageVector = Icons.Default.SmartToy,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp)
-            )
+            DashAvatar(size = 56.dp)
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
             Text(
-                text = "AI Coach Setup",
+                text = "Set up $MASCOT_NAME",
                 style = MaterialTheme.typography.titleLarge,
                 color = tokens.textPrimary
             )
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
             val message = when {
-                !aiEnabled -> "AI features are disabled in Settings. Enable AI Features to give your coach access to your 7-day health, nutrition, and journal memory."
+                !aiEnabled -> "AI features are disabled in Settings. Enable AI Features to give $MASCOT_NAME access to your 7-day health, nutrition, and journal memory."
                 !hasApiKey -> "An OpenRouter API key is required to use AI features. Add your API key in Settings."
-                else -> "AI Coach is currently not configured."
+                else -> "$MASCOT_NAME is currently not configured."
             }
             Text(
                 text = message,
@@ -503,15 +486,10 @@ private fun EmptyConversationView(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            imageVector = Icons.Default.AutoAwesome,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(54.dp)
-        )
+        DashHero(size = 168.dp)
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
         Text(
-            text = "Meet your AI Coach",
+            text = "Hi, I'm $MASCOT_NAME!",
             style = MaterialTheme.typography.headlineSmall,
             color = tokens.textPrimary,
             fontWeight = FontWeight.Bold
@@ -721,15 +699,10 @@ private fun CoachMessageItem(
                     .padding(start = 6.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+                DashAvatar(size = 24.dp)
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Hangry Coach",
+                    text = MASCOT_NAME,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -825,10 +798,12 @@ private fun CoachLoadingBubble() {
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                DashAvatar(size = 24.dp)
+                Spacer(modifier = Modifier.width(10.dp))
                 PulsingDotsIndicator(dotColor = MaterialTheme.colorScheme.primary, dotSize = 7.dp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Analyzing your 7-day health trends…",
+                    text = "$MASCOT_NAME is sniffing through your 7-day trends…",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -858,7 +833,7 @@ private fun CoachJournalBottomSheet(
             Column {
                 Text("Personal Journal & Memories", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Problems, injuries, and details remembered by your AI Coach",
+                    "Problems, injuries, and details remembered by $MASCOT_NAME",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -878,7 +853,7 @@ private fun CoachJournalBottomSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No journal memories yet. Tell your AI Coach about any problems, symptoms, or food reactions in chat, and they will be remembered here!",
+                    text = "No journal memories yet. Tell $MASCOT_NAME about any problems, symptoms, or food reactions in chat, and they will be remembered here!",
                     style = MaterialTheme.typography.bodyMedium,
                     color = tokens.textSecondary,
                     modifier = Modifier.padding(horizontal = 16.dp)

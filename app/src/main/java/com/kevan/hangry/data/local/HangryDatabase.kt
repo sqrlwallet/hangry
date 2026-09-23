@@ -32,9 +32,10 @@ import com.kevan.hangry.data.local.entity.*
         PostureScanEntity::class,
         CoachJournalEntity::class,
         CoachMessageEntity::class,
-        BodyFatScanEntity::class
+        BodyFatScanEntity::class,
+        BreathingSessionEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -60,6 +61,7 @@ abstract class HangryDatabase : RoomDatabase() {
     abstract fun coachJournalDao(): CoachJournalDao
     abstract fun coachMessageDao(): CoachMessageDao
     abstract fun bodyFatScanDao(): BodyFatScanDao
+    abstract fun breathingSessionDao(): BreathingSessionDao
 
     open fun checkpointAndOptimize() {
         openHelper.writableDatabase.let { db ->
@@ -288,6 +290,28 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS breathing_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        date INTEGER NOT NULL,
+                        startTime INTEGER NOT NULL,
+                        endTime INTEGER NOT NULL,
+                        patternId TEXT NOT NULL,
+                        durationSeconds INTEGER NOT NULL,
+                        cyclesCompleted INTEGER NOT NULL,
+                        completed INTEGER NOT NULL,
+                        healthConnectSynced INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_breathing_sessions_date ON breathing_sessions(date)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_breathing_sessions_startTime ON breathing_sessions(startTime)")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -299,7 +323,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14
                     )
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {

@@ -25,6 +25,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kevan.hangry.R
+import com.kevan.hangry.data.breathing.BreathingSessionState
+import com.kevan.hangry.domain.model.BreathingPattern
+import com.kevan.hangry.domain.model.BreathingStats
+import com.kevan.hangry.ui.breathing.BreathingExercisesCard
 import com.kevan.hangry.domain.calculation.HangryStrainCalculator
 import com.kevan.hangry.domain.model.DashboardWidget
 import com.kevan.hangry.domain.model.WidgetType
@@ -52,6 +56,9 @@ fun DashboardScreen(
     onNavigateToPosture: () -> Unit,
     onNavigateToAiCoach: () -> Unit = {},
     onNavigateToBodyFatCalculator: () -> Unit = {},
+    breathingStats: BreathingStats = BreathingStats(),
+    breathingSession: BreathingSessionState = BreathingSessionState.Idle,
+    onNavigateToBreathing: (BreathingPattern?) -> Unit = {},
     autoOpenQuickLog: Boolean = false,
     onAutoOpenQuickLogHandled: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -296,6 +303,15 @@ fun DashboardScreen(
                         BodyFatCompositionWidget(
                             scan = scan,
                             onClick = onNavigateToBodyFatCalculator
+                        )
+                    }
+
+                    WidgetType.BREATHING -> {
+                        BreathingExercisesCard(
+                            stats = breathingStats,
+                            session = breathingSession,
+                            onOpenPattern = { pattern -> onNavigateToBreathing(pattern) },
+                            onOpenSession = { onNavigateToBreathing(null) }
                         )
                     }
 

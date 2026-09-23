@@ -24,6 +24,10 @@ import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.di.AppContainer
 import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorScreen
 import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorViewModel
+import com.kevan.hangry.domain.model.BreathingPattern
+import com.kevan.hangry.domain.model.BreathingStats
+import com.kevan.hangry.ui.breathing.BreathingScreen
+import com.kevan.hangry.ui.breathing.BreathingViewModel
 import com.kevan.hangry.ui.coach.AiCoachScreen
 import com.kevan.hangry.ui.coach.AiCoachViewModel
 import com.kevan.hangry.ui.dashboard.DashboardScreen
@@ -76,6 +80,11 @@ sealed class Screen(val route: String) {
     data object AiCoach : Screen("ai_coach")
     data object HomeScreenWidgets : Screen("home_screen_widgets")
     data object BodyFatCalculator : Screen("body_fat_calculator")
+    data object Breathing : Screen("breathing?pattern={pattern}") {
+        /** A null pattern opens the screen as-is, e.g. to return to a running session. */
+        fun createRoute(patternId: String? = null) =
+            if (patternId == null) "breathing" else "breathing?pattern=$patternId"
+    }
 }
 
 @Composable
@@ -230,6 +239,9 @@ fun HangryNavGraph(
 
         // Main Dashboard
         composable(Screen.Dashboard.route) {
+            val breathingStats by appContainer.breathingRepository.observeStats()
+                .collectAsState(initial = BreathingStats())
+            val breathingSession by appContainer.breathingSessionController.state.collectAsState()
             DashboardScreen(
                 viewModel = dashboardViewModel,
                 nutritionViewModel = nutritionViewModel,
@@ -262,6 +274,13 @@ fun HangryNavGraph(
                 },
                 onNavigateToBodyFatCalculator = {
                     navController.navigate(Screen.BodyFatCalculator.route)
+                },
+                breathingStats = breathingStats,
+                breathingSession = breathingSession,
+                onNavigateToBreathing = { pattern ->
+                    navController.navigate(Screen.Breathing.createRoute(pattern?.id)) {
+                        launchSingleTop = true
+                    }
                 },
                 autoOpenQuickLog = quickLogTrigger,
                 onAutoOpenQuickLogHandled = onQuickLogTriggerHandled
@@ -466,6 +485,32 @@ fun HangryNavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        // Guided breathing exercises
+        composable(
+            route = Screen.Breathing.route,
+            arguments = listOf(
+                navArgument("pattern") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val patternId = backStackEntry.arguments?.getString("pattern")
+            val breathingViewModel: BreathingViewModel = viewModel(
+                factory = BreathingViewModel.provideFactory(
+                    initialPattern = BreathingPattern.fromId(patternId),
+                    controller = appContainer.breathingSessionController,
+                    repository = appContainer.breathingRepository,
+                    healthConnectDataSource = appContainer.healthConnectDataSource
+                )
+            )
+            BreathingScreen(
+                viewModel = breathingViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

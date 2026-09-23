@@ -26,6 +26,7 @@ class HangryApplication : Application() {
         // Alarms are cleared by app updates and force-stops; re-arm supplement reminders.
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
             runCatching { container.supplementRepository.rescheduleReminders() }
+            runCatching { container.userProfileRepository.refreshAgeFromBirthday() }
         }
     }
 }

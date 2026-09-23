@@ -68,9 +68,17 @@ import com.kevan.hangry.ui.trends.TrendsScreen
 import com.kevan.hangry.ui.widget.HomeScreenWidgetsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
+import com.kevan.hangry.domain.model.BiologicalSex
+import com.kevan.hangry.domain.model.HealthProfileKind
+import com.kevan.hangry.ui.onboarding.AboutYouScreen
+import com.kevan.hangry.ui.onboarding.ProfileExtrasScreen
+import java.time.Instant
 
 sealed class Screen(val route: String) {
     data object Welcome : Screen("welcome")
+    data object AboutYou : Screen("about_you")
+    data object ProfileExtras : Screen("profile_extras")
     data object PermissionSetup : Screen("permission_setup")
     data object HistoricalSyncSetup : Screen("historical_sync_setup")
     data object SyncProgress : Screen("sync_progress/{rangeDays}") {
@@ -131,6 +139,8 @@ fun HangryNavGraph(
     // (the only entry point into this flow, whether fresh install or a Reset Application
     // re-entry), false for good the moment onboarding actually completes.
     var onboardingInProgress by remember { mutableStateOf(false) }
+    // cm/kg or ft/lb, chosen on "About you" and carried to the extras step.
+    var onboardingImperial by rememberSaveable { mutableStateOf(false) }
 
     val dashboardViewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.provideFactory(
@@ -231,8 +241,100 @@ fun HangryNavGraph(
                         // or "Reset Application" re-entering it mid-session - so this is always the
                         // correct moment to (re)assert that the step indicator should show.
                         onboardingInProgress = true
-                        navController.navigate(Screen.PermissionSetup.route)
+                        navController.navigate(Screen.AboutYou.route)
                     }
+                )
+            }
+        }
+
+        composable(Screen.AboutYou.route) {
+            HangryTheme(darkTheme = true) {
+                // Loaded once before showing the form, so answers already given (going back, or
+                // after a reset) prefill it.
+                val stored by produceState<Pair<UserProfileEntity?, Double?>?>(null) {
+                    value = appContainer.userProfileRepository.getProfileSync() to
+                        appContainer.database.weightDao().getLatestWeightSync()?.weightKg
+                }
+                val (profile, latestWeight) = stored ?: return@HangryTheme
+                AboutYouScreen(
+                    profile = profile,
+                    initialWeightKg = latestWeight ?: profile?.currentWeightKg,
+                    imperial = onboardingImperial,
+                    onImperialChange = { onboardingImperial = it },
+                    onNavigateBack = { navController.popBackStack() },
+                    onContinue = { basics ->
+                        coroutineScope.launch {
+                            val repo = appContainer.userProfileRepository
+                            val existing = repo.getProfileSync() ?: UserProfileEntity()
+                            repo.saveProfile(
+                                existing.copy(
+                                    dateOfBirth = basics.dateOfBirth,
+                                    biologicalSex = basics.sex.name,
+                                    heightCm = basics.heightCm,
+                                    currentWeightKg = basics.weightKg,
+                                    updatedAt = Instant.now()
+                                )
+                            )
+                            // A weigh-in today, so calorie targets and the weight trend have a
+                            // starting point before anything syncs.
+                            if (latestWeight == null || kotlin.math.abs(latestWeight - basics.weightKg) >= 0.05) {
+                                appContainer.database.weightDao().insertOrIgnore(
+                                    listOf(
+                                        WeightMeasurementEntity(
+                                            recordFingerprint = "manual_entry_${Instant.now().toEpochMilli()}",
+                                            timestamp = Instant.now(),
+                                            weightKg = basics.weightKg,
+                                            sourcePackageName = "com.kevan.hangry.manual"
+                                        )
+                                    )
+                                )
+                            }
+                            navController.navigate(Screen.ProfileExtras.route)
+                        }
+                    },
+                    onSkip = { navController.navigate(Screen.ProfileExtras.route) }
+                )
+            }
+        }
+
+        composable(Screen.ProfileExtras.route) {
+            HangryTheme(darkTheme = true) {
+                val loaded by produceState<UserProfileEntity?>(null) {
+                    value = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
+                }
+                val profile = loaded ?: return@HangryTheme
+                ProfileExtrasScreen(
+                    profile = profile,
+                    sex = profile.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() },
+                    currentWeightKg = profile.currentWeightKg,
+                    imperial = onboardingImperial,
+                    onNavigateBack = { navController.popBackStack() },
+                    onDone = { extras ->
+                        coroutineScope.launch {
+                            val repo = appContainer.userProfileRepository
+                            val existing = repo.getProfileSync() ?: UserProfileEntity()
+                            repo.saveProfile(
+                                existing.copy(
+                                    weightGoalKg = extras.weightGoalKg ?: existing.weightGoalKg,
+                                    goalTargetDate = extras.goalTargetDate ?: existing.goalTargetDate,
+                                    sleepGoalMinutes = extras.sleepGoalMinutes ?: existing.sleepGoalMinutes,
+                                    dailyStepGoal = extras.dailyStepGoal ?: existing.dailyStepGoal,
+                                    neckCircumferenceCm = extras.neckCm ?: existing.neckCircumferenceCm,
+                                    waistCircumferenceCm = extras.waistCm ?: existing.waistCircumferenceCm,
+                                    hipCircumferenceCm = extras.hipCm ?: existing.hipCircumferenceCm,
+                                    updatedAt = Instant.now()
+                                )
+                            )
+                            val records = appContainer.healthRecordsRepository
+                            val known = records.current().profileItems.map { it.kind to it.name.lowercase() }.toSet()
+                            extras.allergies.filter { (HealthProfileKind.ALLERGY to it.lowercase()) !in known }
+                                .forEach { records.addProfileItem(HealthProfileKind.ALLERGY, it, null) }
+                            extras.conditions.filter { (HealthProfileKind.CONDITION to it.lowercase()) !in known }
+                                .forEach { records.addProfileItem(HealthProfileKind.CONDITION, it, null) }
+                            navController.navigate(Screen.PermissionSetup.route)
+                        }
+                    },
+                    onSkip = { navController.navigate(Screen.PermissionSetup.route) }
                 )
             }
         }
@@ -490,7 +592,17 @@ fun HangryNavGraph(
         }
 
         composable(Screen.BodyAge.route) {
-            BodyAgeScreen(viewModel = dashboardViewModel, onNavigateBack = { navController.popBackStack() })
+            BodyAgeScreen(
+                viewModel = dashboardViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onSaveBirthday = { dob ->
+                    coroutineScope.launch {
+                        val profile = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
+                        appContainer.userProfileRepository.saveProfile(profile.copy(dateOfBirth = dob))
+                        dashboardViewModel.refreshHabits()
+                    }
+                }
+            )
         }
 
         // Everything that isn't its own tab

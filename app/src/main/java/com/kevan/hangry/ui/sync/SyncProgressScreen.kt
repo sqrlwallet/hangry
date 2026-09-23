@@ -18,6 +18,7 @@ import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.onboarding.OnboardingStepIndicator
+import com.kevan.hangry.ui.onboarding.OnboardingSteps
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -75,7 +76,7 @@ fun SyncProgressScreen(
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
             if (showStepIndicator) {
-                OnboardingStepIndicator(currentStep = 3, totalSteps = 3)
+                OnboardingStepIndicator(currentStep = OnboardingSteps.SYNC, totalSteps = OnboardingSteps.TOTAL)
                 Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
             }
 

@@ -6,7 +6,8 @@ import kotlin.math.roundToInt
 
 /** A 30-day picture of the habits and markers Body Age is built from. Null = no data. */
 data class BodyAgeInputs(
-    val age: Int,
+    /** Exact age in years (e.g. 34.7) - from the date of birth when there is one. */
+    val age: Double,
     val sex: BiologicalSex?,
     val daysWithData: Int,
     val vo2Max: Double?,
@@ -32,7 +33,7 @@ data class BodyAgeFactor(
 )
 
 data class BodyAgeResult(
-    val chronologicalAge: Int,
+    val chronologicalAge: Double,
     val bodyAge: Double,
     val factors: List<BodyAgeFactor>,
     /** Factors that had no data, so they didn't count. */
@@ -175,13 +176,13 @@ object BodyAgeCalculator {
      * Typical VO2 max by age and sex (roughly the 50th percentile in population fitness norms):
      * falls about 0.4 ml/kg/min a year from age 20.
      */
-    fun vo2Norm(age: Int, sex: BiologicalSex?): Double {
+    fun vo2Norm(age: Double, sex: BiologicalSex?): Double {
         val at20 = when (sex) {
             BiologicalSex.MALE -> 47.0
             BiologicalSex.FEMALE -> 40.0
             else -> 43.5
         }
-        return (at20 - 0.4 * (age - 20).coerceAtLeast(0)).coerceAtLeast(20.0)
+        return (at20 - 0.4 * (age - 20).coerceAtLeast(0.0)).coerceAtLeast(20.0)
     }
 
     private fun cap(value: Double, limit: Double) = value.coerceIn(-limit, limit)

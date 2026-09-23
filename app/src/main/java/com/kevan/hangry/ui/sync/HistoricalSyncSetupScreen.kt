@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.onboarding.OnboardingStepIndicator
+import com.kevan.hangry.ui.onboarding.OnboardingSteps
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
@@ -145,7 +146,7 @@ fun HistoricalSyncSetupScreen(
                 verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
                 if (showStepIndicator) {
-                    OnboardingStepIndicator(currentStep = 2, totalSteps = 3)
+                    OnboardingStepIndicator(currentStep = OnboardingSteps.HISTORY, totalSteps = OnboardingSteps.TOTAL)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {

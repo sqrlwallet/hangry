@@ -1,3 +1,14 @@
+## 🚀 What's New in Hangry v1.19.0
+
+### 👋 Get Set Up Right
+- Onboarding now asks for your **date of birth, sex, height and weight**, in cm·kg or ft·lb, so calorie burn, body metrics and Body Age are about you from day one.
+- A new optional step lets you add a **goal weight and date**, **sleep goal**, **step goal**, **allergies**, **health conditions** and **tape measurements**. Skip any or all; everything can be changed later in Settings.
+
+### 🎂 Exact Age
+- Add your birthday (onboarding, Settings or the Body Age screen) and your age stays current by itself. Body Age compares against your exact age, e.g. 34.7.
+
+---
+
 ## 🚀 What's New in Hangry v1.18.0
 
 ### 🧬 Body Age

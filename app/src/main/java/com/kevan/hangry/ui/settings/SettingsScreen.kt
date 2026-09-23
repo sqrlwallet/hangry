@@ -39,12 +39,14 @@ import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.calculation.CalorieCalculator
+import com.kevan.hangry.domain.model.AgeMath
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.repository.LocalExportManager
 import com.kevan.hangry.domain.repository.LocalStorageManager
 import com.kevan.hangry.domain.repository.StorageBreakdown
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.UserProfileRepository
+import com.kevan.hangry.ui.bodyage.BirthdayPickerDialog
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
@@ -599,6 +601,15 @@ private fun EditGoalsDialog(
 ) {
     val tokens = LocalHangryTokens.current
     var ageInput by remember { mutableStateOf(profile?.age?.toString() ?: "") }
+    var dateOfBirth by remember { mutableStateOf(profile?.dateOfBirth) }
+    var pickingBirthday by remember { mutableStateOf(false) }
+    if (pickingBirthday) {
+        BirthdayPickerDialog(initial = dateOfBirth, onDismiss = { pickingBirthday = false }, onPicked = {
+            dateOfBirth = it
+            ageInput = AgeMath.years(it).toString()
+            pickingBirthday = false
+        })
+    }
     var heightInput by remember { mutableStateOf(profile?.heightCm?.toInt()?.toString() ?: "") }
     var currentWeightInput by remember { mutableStateOf(initialWeightKg?.toString() ?: profile?.currentWeightKg?.toString() ?: "") }
     var weightGoalInput by remember { mutableStateOf(profile?.weightGoalKg?.toString() ?: "") }
@@ -657,9 +668,15 @@ private fun EditGoalsDialog(
                     value = ageInput,
                     onValueChange = { ageInput = it.filter { c -> c.isDigit() } },
                     label = { Text("Age") },
+                    // With a birthday, age is worked out from it and always current.
+                    readOnly = dateOfBirth != null,
+                    supportingText = { Text(if (dateOfBirth != null) "From your birthday" else "Or add your birthday for an exact, always-current age") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
+                OutlinedButton(onClick = { pickingBirthday = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(dateOfBirth?.let { "Birthday: ${it.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))}" } ?: "Add your birthday")
+                }
 
                 Text(text = "Biological sex", style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -771,7 +788,8 @@ private fun EditGoalsDialog(
                 onClick = {
                     val parsedCurrentWeight = currentWeightInput.toDoubleOrNull()
                     val updated = (profile ?: UserProfileEntity()).copy(
-                        age = ageInput.toIntOrNull(),
+                        age = dateOfBirth?.let { AgeMath.years(it) } ?: ageInput.toIntOrNull(),
+                        dateOfBirth = dateOfBirth,
                         biologicalSex = selectedSex?.name,
                         heightCm = heightInput.toDoubleOrNull(),
                         currentWeightKg = parsedCurrentWeight,

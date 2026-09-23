@@ -229,7 +229,7 @@ Health Connect does not expose a native `StressRecord`. Commercial wearables cal
 
 ## 10. Body Age
 
-`BodyAgeCalculator` estimates how old your body "acts" from the last 30 days, compared with typical values for your age and sex. Each factor adds or removes a capped number of years; the total is capped at ±12 years. Factors with no data are listed as "not counted yet", never assumed. It needs your age, at least 7 days with data and at least 4 measured factors.
+`BodyAgeCalculator` estimates how old your body "acts" from the last 30 days, compared with typical values for your age and sex. Each factor adds or removes a capped number of years; the total is capped at ±12 years. Factors with no data are listed as "not counted yet", never assumed. It uses your **exact age from your date of birth** (e.g. 34.7, via `AgeMath`), falling back to a typed-in whole age, and needs at least 7 days with data and at least 4 measured factors. The previous-month comparison uses your age a month ago.
 
 | Factor | Neutral point | Effect (cap) |
 |---|---|---|

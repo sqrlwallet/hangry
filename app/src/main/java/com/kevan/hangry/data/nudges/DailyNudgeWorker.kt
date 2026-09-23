@@ -25,6 +25,8 @@ class DailyNudgeWorker(appContext: Context, params: WorkerParameters) : Coroutin
                 MorningReadiness.maybeNotify(context)
             }
             BedtimeReminder.rescheduleNow(context)
+            // A birthday may have passed since the app last ran.
+            app.container.userProfileRepository.refreshAgeFromBirthday()
         }
         return Result.success()
     }

@@ -12,6 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,12 +23,16 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.repository.BodyAgeSnapshot
 import com.kevan.hangry.domain.calculation.BodyAgeFactor
 import com.kevan.hangry.domain.calculation.BodyAgeResult
+import com.kevan.hangry.domain.model.AgeMath
 import com.kevan.hangry.ui.coach.DashExpression
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.math.abs
 
@@ -38,10 +45,13 @@ internal fun BodyAgeResult.mood(): DashMood = when {
     else -> DashMood.CONCERNED
 }
 
-internal fun BodyAgeResult.comparison(): String = when {
-    difference <= -0.5 -> "${years(difference)} years younger than your real age of $chronologicalAge"
-    difference >= 0.5 -> "${years(difference)} years older than your real age of $chronologicalAge"
-    else -> "Right on your real age of $chronologicalAge"
+internal fun BodyAgeResult.comparison(): String {
+    val real = String.format(Locale.US, "%.1f", chronologicalAge)
+    return when {
+        difference <= -0.5 -> "${years(difference)} years younger than your real age of $real"
+        difference >= 0.5 -> "${years(difference)} years older than your real age of $real"
+        else -> "Right on your real age of $real"
+    }
 }
 
 internal fun BodyAgeSnapshot.trend(): String? {
@@ -66,7 +76,10 @@ fun BodyAgeCard(snapshot: BodyAgeSnapshot?, onClick: () -> Unit, modifier: Modif
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
             Column(modifier = Modifier.weight(1f)) {
                 Text("Body Age", style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
-                if (result == null) {
+                if (snapshot?.needsBirthday == true) {
+                    Text("Add your birthday", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Text("Tap to see how old your body acts", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                } else if (result == null) {
                     Text("Needs a little more data", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                     Text("Tap to see what's missing", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                 } else {
@@ -86,11 +99,20 @@ fun BodyAgeCard(snapshot: BodyAgeSnapshot?, onClick: () -> Unit, modifier: Modif
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BodyAgeScreen(viewModel: DashboardViewModel, onNavigateBack: () -> Unit) {
+fun BodyAgeScreen(
+    viewModel: DashboardViewModel,
+    onNavigateBack: () -> Unit,
+    /** Saves the date of birth; Body Age then uses the exact age from it. */
+    onSaveBirthday: (LocalDate) -> Unit
+) {
     val tokens = LocalHangryTokens.current
     val state by viewModel.uiState.collectAsState()
     val snapshot = state.bodyAge
     val result = snapshot?.current
+    var pickingBirthday by remember { mutableStateOf(false) }
+    if (pickingBirthday) {
+        BirthdayPickerDialog(onDismiss = { pickingBirthday = false }, onPicked = { pickingBirthday = false; onSaveBirthday(it) })
+    }
 
     Scaffold(
         topBar = {
@@ -115,7 +137,17 @@ fun BodyAgeScreen(viewModel: DashboardViewModel, onNavigateBack: () -> Unit) {
             HangryCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 140.dp)
-                    if (result == null) {
+                    if (snapshot?.needsBirthday == true) {
+                        Text("When's your birthday?", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Body Age compares your body with your exact age, so it needs your date of birth. It stays on your phone.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tokens.textSecondary
+                        )
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        Button(onClick = { pickingBirthday = true }) { Text("Add my birthday") }
+                    } else if (result == null) {
                         Text("Not enough data yet", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
                         Spacer(modifier = Modifier.height(6.dp))
                         snapshot?.needs.orEmpty().forEach {
@@ -134,6 +166,18 @@ fun BodyAgeScreen(viewModel: DashboardViewModel, onNavigateBack: () -> Unit) {
                             Text(it, style = MaterialTheme.typography.labelLarge, color = tokens.textMuted)
                         }
                     }
+                }
+            }
+
+            if (result != null && snapshot.exactAge == false) {
+                HangryCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("Make it exact", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(
+                        "You entered your age as a whole number. Add your birthday so Body Age uses your exact age and keeps up as birthdays pass.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = tokens.textSecondary
+                    )
+                    TextButton(onClick = { pickingBirthday = true }) { Text("Add my birthday") }
                 }
             }
 
@@ -195,5 +239,33 @@ private fun FactorRow(factor: BodyAgeFactor) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(factor.tip, style = MaterialTheme.typography.bodySmall, color = tokens.textMuted)
         }
+    }
+}
+
+/** A date picker for the date of birth, limited to plausible adult birthdays. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun BirthdayPickerDialog(initial: LocalDate? = null, onDismiss: () -> Unit, onPicked: (LocalDate) -> Unit) {
+    val today = LocalDate.now()
+    val utc = ZoneOffset.UTC
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = (initial ?: today.minusYears(30)).atStartOfDay(utc).toInstant().toEpochMilli(),
+        yearRange = (today.year - 110)..(today.year - 13),
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                AgeMath.isPlausible(Instant.ofEpochMilli(utcTimeMillis).atZone(utc).toLocalDate(), today)
+        }
+    )
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                enabled = state.selectedDateMillis != null,
+                onClick = { state.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(utc).toLocalDate()) } }
+            ) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    ) {
+        DatePicker(state = state, title = { Text("Your date of birth", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) })
     }
 }

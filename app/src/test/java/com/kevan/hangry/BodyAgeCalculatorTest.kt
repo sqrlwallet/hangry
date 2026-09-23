@@ -24,7 +24,7 @@ class BodyAgeCalculatorTest {
         consistency: Double? = null,
         bodyFat: Double? = null,
         bmi: Double? = null
-    ) = BodyAgeInputs(age, sex, days, vo2, rhr, hrv, steps, exercise, strength, sleep, consistency, bodyFat, bmi)
+    ) = BodyAgeInputs(age.toDouble(), sex, days, vo2, rhr, hrv, steps, exercise, strength, sleep, consistency, bodyFat, bmi)
 
     @Test
     fun tooFewDaysOrFactors_givesNoResult() {
@@ -69,8 +69,18 @@ class BodyAgeCalculatorTest {
 
     @Test
     fun vo2NormFallsWithAgeAndDiffersBySex() {
-        assertEquals(47.0, BodyAgeCalculator.vo2Norm(20, BiologicalSex.MALE), 0.001)
-        assertEquals(36.0, BodyAgeCalculator.vo2Norm(30, BiologicalSex.FEMALE), 0.001)
-        assertEquals(20.0, BodyAgeCalculator.vo2Norm(95, BiologicalSex.FEMALE), 0.001)
+        assertEquals(47.0, BodyAgeCalculator.vo2Norm(20.0, BiologicalSex.MALE), 0.001)
+        assertEquals(36.0, BodyAgeCalculator.vo2Norm(30.0, BiologicalSex.FEMALE), 0.001)
+        assertEquals(20.0, BodyAgeCalculator.vo2Norm(95.0, BiologicalSex.FEMALE), 0.001)
+    }
+
+    @Test
+    fun exactAgeIsUsedAsIs() {
+        val r = BodyAgeCalculator.calculate(
+            BodyAgeInputs(34.7, BiologicalSex.FEMALE, 30, null, 60.0, null, 6_000.0, null, null, 420.0, 75.0, null, null)
+        )!!
+        // RHR 60 ±0, 6k steps ±0, 7 h sleep -1, consistency 75 ±0.
+        assertEquals(34.7, r.chronologicalAge, 0.001)
+        assertEquals(33.7, r.bodyAge, 0.001)
     }
 }

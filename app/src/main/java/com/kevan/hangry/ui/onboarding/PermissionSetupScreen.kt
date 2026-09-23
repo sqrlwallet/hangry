@@ -169,7 +169,7 @@ fun PermissionSetupScreen(
                     .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
                 verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
-                OnboardingStepIndicator(currentStep = 1, totalSteps = 3)
+                OnboardingStepIndicator(currentStep = OnboardingSteps.CONNECT, totalSteps = OnboardingSteps.TOTAL)
 
             DashExpression(
                 mood = DashMood.HEART,

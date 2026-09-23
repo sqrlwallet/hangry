@@ -14,7 +14,10 @@ data class UserProfileEntity(
     val onboardingCompleted: Boolean = false,
     val preferredDataSourcePackage: String? = null,
     val heightCm: Double? = null,
+    /** Whole years; kept in step with [dateOfBirth] when that is set (see UserProfileRepository). */
     val age: Int? = null,
+    /** Gives an always-current, exact age (Body Age uses e.g. 34.7). */
+    val dateOfBirth: LocalDate? = null,
     val biologicalSex: String? = null, // "MALE", "FEMALE", "OTHER" - see BiologicalSex
     val weightGoalKg: Double? = null,
     val goalTargetDate: LocalDate? = null,

@@ -66,7 +66,7 @@ class HangryRecoveryCalculatorTest {
         assertTrue("Score must be between 0 and 100", result.score!! in 0..100)
         assertEquals(ScoreConfidence.HIGH, result.confidence)
         assertTrue(result.positiveContributors.isNotEmpty())
-        assertEquals(3, result.algorithmVersion)
+        assertEquals(RecoveryConfig().algorithmVersion, result.algorithmVersion)
     }
 
     @Test
@@ -253,5 +253,24 @@ class HangryRecoveryCalculatorTest {
             )
         )
         assertEquals(default.score, drained.score)
+    }
+
+    @Test
+    fun testDayWithNoReadings_getsNoScoreEvenWithBaseline() {
+        val today = LocalDate.of(2026, 9, 24)
+        val history = (1..7).map { DayMetrics(today.minusDays(it.toLong()), 470, 59.0, 63.0, sleepConsistencyPercentage = 90) }
+        // No sleep, resting heart rate or HRV today - the assumed-HRV rule can't stand in for all of them.
+        val result = calculator.calculateRecovery(today, DayMetrics(today, null, null, null), history, RecoveryConfig())
+        assertNull(result.score)
+        assertEquals(RecoveryState.BUILDING_BASELINE, result.state)
+    }
+
+    @Test
+    fun testUnknownConsistency_isLeftOutRatherThanAssumed() {
+        val today = LocalDate.of(2026, 9, 24)
+        val history = (1..7).map { DayMetrics(today.minusDays(it.toLong()), 480, 60.0, 65.0) }
+        val withoutConsistency = calculator.calculateRecovery(today, DayMetrics(today, 480, 60.0, 65.0), history, RecoveryConfig())
+        assertNull(withoutConsistency.trainingLoadScore)
+        assertNotNull(withoutConsistency.score)
     }
 }

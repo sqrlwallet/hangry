@@ -1,3 +1,30 @@
+## 🚀 What's New in Hangry v1.17.0
+
+### ✅ Only Real Numbers
+- Days with no sleep, heart rate or HRV get no recovery score (no more "68% Steady" from nothing); widgets show today only.
+- Sleep stages appear only when your device recorded them; quality, averages and consistency stay blank until there's data.
+- No invented 2000 kcal target, generic strain target, "Just now" sync time or permanent "Pending sync".
+- Past days show their own sleep, not an older night's.
+
+### 🐛 Fixes
+- The date rolls over at midnight, so meals are logged to the right day; returning to the app catches up with a quick sync.
+- Widget and notification links open on top of Today, so Back always works.
+- Nothing hides behind the tab bar or floating buttons; links to a tab switch tabs instead of stacking a copy.
+- Ask Dash's message box and the Body Fat fields stay above the keyboard.
+- Set your own sleep goal in Settings.
+
+### ⚡ Faster & Smaller
+- App size down from ~55 MB to ~6.6 MB.
+- Opening the app no longer recalculates your whole history; startup doesn't wait for the database.
+- Dash's animations, the breathing timer and widgets use less battery.
+
+### ✨ Polish
+- Pull-to-refresh with Dash on Workouts; past-day notes on Sleep, Heart and Recovery.
+- Clearer empty states, consistent "Today" wording, no back arrows on tabs, dark-mode-aware stage and zone colors.
+- Accessibility: labelled Dash for TalkBack, bigger touch targets, larger widget text.
+
+---
+
 ## 🚀 What's New in Hangry v1.16.0
 
 ### 🦊 Dash Everywhere

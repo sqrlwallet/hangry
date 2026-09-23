@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,10 +29,14 @@ import com.kevan.hangry.domain.repository.WorkoutRepository
 import com.kevan.hangry.ui.coach.DashExpression
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.coach.DashNote
+import com.kevan.hangry.ui.components.DashEmptyScene
+import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.WorkoutFormat
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.dayHeading
+import com.kevan.hangry.ui.dashboard.DashPullIndicator
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -40,12 +46,12 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-// 5-Zone Cardio Palette
-private val Zone1Color = Color(0xFF00A4FF) // Azure Radiance (Active Recovery)
-private val Zone2Color = Color(0xFF01A652) // Green Haze (Aerobic Base)
-private val Zone3Color = Color(0xFFFFCE00) // Supernova (Aerobic Tempo)
-private val Zone4Color = Color(0xFFFF7E1D) // Pumpkin (Threshold)
-private val Zone5Color = Color(0xFFE5484D) // Crimson (Peak VO2)
+// 5-zone cardio palette, from the theme so it adapts to light and dark mode.
+private val Zone1Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[0] // Active recovery
+private val Zone2Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[1] // Aerobic base
+private val Zone3Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[2] // Aerobic tempo
+private val Zone4Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[3] // Threshold
+private val Zone5Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[4] // Peak
 
 private val TRAINING_INFO_SECTIONS = listOf(
     HangryInfoSection(
@@ -103,10 +109,20 @@ fun TrainingScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
+        // Pull down to sync new workouts from Health Connect, with Dash, like on Today.
+        val pullState = rememberPullToRefreshState()
+        PullToRefreshBox(
+            isRefreshing = uiState.isSyncing,
+            onRefresh = { viewModel.syncNow(days = 3) },
+            state = pullState,
+            modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+            indicator = {
+                DashPullIndicator(state = pullState, isRefreshing = uiState.isSyncing, modifier = Modifier.align(Alignment.TopCenter))
+            }
+        ) {
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
                 .padding(horizontal = HangryTokens.Spacing.m),
             // Clear of the floating tab bar, which the list scrolls behind.
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = HangryTokens.Spacing.m + LocalDockInset.current),
@@ -141,7 +157,18 @@ fun TrainingScreen(
 
             // Cardio Intensity & Heart Rate Zones Section
             item {
-                HangryCard {
+                if (effectiveDistribution.totalCount == 0) {
+                    // No heart-rate samples at all: say so, rather than five 0% zones.
+                    HangryCard {
+                        DashEmptyState(
+                            scene = DashEmptyScene.HRV,
+                            title = "No heart-rate data yet",
+                            body = "Heart-rate zones appear once a watch or ring syncs continuous heart rate to Health Connect.",
+                            imageSize = 120.dp,
+                            modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
+                        )
+                    }
+                } else HangryCard {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -308,7 +335,7 @@ fun TrainingScreen(
 
             item {
                 Text(
-                    text = "Today's Workouts",
+                    text = dayHeading("Workouts", activeDate),
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary,
                     modifier = Modifier.padding(top = HangryTokens.Spacing.s)
@@ -322,7 +349,7 @@ fun TrainingScreen(
                             DashExpression(mood = DashMood.SLEEPY, size = 72.dp, contentDescription = null)
                             Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
                             Text(
-                                text = stringResource(R.string.training_load_rest_day),
+                                text = if (isToday) "No workouts synced yet today. Workouts from your watch or fitness apps show up here." else "No workouts recorded on this day.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.textSecondary
                             )
@@ -352,6 +379,7 @@ fun TrainingScreen(
             item {
                 Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
             }
+        }
         }
     }
 }

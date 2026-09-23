@@ -207,7 +207,7 @@ fun SyncProgressScreen(
                     )
                 ) {
                     Text(
-                        text = if (progress.status == SyncStatus.SUCCESS) "Enter Hangry" else "Continue to Dashboard",
+                        text = if (progress.status == SyncStatus.SUCCESS) "Enter Hangry" else "Continue to Today",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         ),

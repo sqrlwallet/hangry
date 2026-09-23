@@ -59,6 +59,20 @@ class NutritionViewModel(
     private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
+    private var lastKnownToday: LocalDate = LocalDate.now(zone)
+
+    /**
+     * The app came back to the foreground, or the clock passed midnight. If the screen was
+     * following "today", it moves to the new today - otherwise a meal logged after midnight
+     * would land on yesterday. A day the user picked on purpose stays as it is.
+     */
+    fun onDayMaybeChanged() {
+        val today = LocalDate.now(zone)
+        if (today == lastKnownToday) return
+        if (_selectedDate.value == lastKnownToday) _selectedDate.value = today
+        lastKnownToday = today
+    }
+
     private val _uiState = MutableStateFlow(NutritionUiState())
     val uiState: StateFlow<NutritionUiState> = _uiState.asStateFlow()
 
@@ -97,21 +111,6 @@ class NutritionViewModel(
 
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
-    }
-
-    fun goToPreviousDay() {
-        _selectedDate.value = _selectedDate.value.minusDays(1)
-    }
-
-    fun goToNextDay() {
-        val current = _selectedDate.value
-        if (current < LocalDate.now(zone)) {
-            _selectedDate.value = current.plusDays(1)
-        }
-    }
-
-    fun goToToday() {
-        _selectedDate.value = LocalDate.now(zone)
     }
 
     /**

@@ -24,18 +24,19 @@ import kotlin.math.roundToInt
 @Composable
 fun MacroProgressBar(
     totalCalories: Int,
-    targetCalories: Int,
+    /** Null until there's enough profile and activity data for a real target - nothing is assumed. */
+    targetCalories: Int?,
     proteinG: Double,
-    proteinGoalG: Double,
+    proteinGoalG: Double?,
     carbsG: Double,
-    carbsGoalG: Double,
+    carbsGoalG: Double?,
     fatG: Double,
-    fatGoalG: Double,
+    fatGoalG: Double?,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
 
-    val calorieProgress = if (targetCalories > 0) {
+    val calorieProgress = if (targetCalories != null && targetCalories > 0) {
         (totalCalories.toFloat() / targetCalories).coerceIn(0f, 1f)
     } else 0f
 
@@ -60,22 +61,22 @@ fun MacroProgressBar(
                         color = tokens.textPrimary
                     )
                     Text(
-                        text = "$totalCalories of $targetCalories kcal",
+                        text = if (targetCalories != null) "$totalCalories of $targetCalories kcal"
+                        else "$totalCalories kcal eaten · add your details in Settings for a target",
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
                 }
 
-                val percent = if (targetCalories > 0) {
-                    ((totalCalories.toDouble() / targetCalories) * 100).roundToInt()
-                } else 0
-
-                Text(
-                    text = "$percent%",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (percent > 100) tokens.scoreColors.rebuild else tokens.chartColors.activeCalories
-                )
+                if (targetCalories != null && targetCalories > 0) {
+                    val percent = ((totalCalories.toDouble() / targetCalories) * 100).roundToInt()
+                    Text(
+                        text = "$percent%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (percent > 100) tokens.scoreColors.rebuild else tokens.chartColors.activeCalories
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
@@ -128,12 +129,12 @@ fun MacroProgressBar(
 private fun MacroPill(
     label: String,
     currentG: Double,
-    goalG: Double,
+    goalG: Double?,
     color: Color,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val progress = if (goalG > 0) (currentG.toFloat() / goalG.toFloat()).coerceIn(0f, 1f) else 0f
+    val progress = if (goalG != null && goalG > 0) (currentG.toFloat() / goalG.toFloat()).coerceIn(0f, 1f) else 0f
     val animProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = tween(durationMillis = 800),
@@ -159,7 +160,7 @@ private fun MacroPill(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "${goalG.roundToInt()}g",
+                    text = goalG?.let { "${it.roundToInt()}g" } ?: "",
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )

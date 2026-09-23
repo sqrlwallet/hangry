@@ -39,7 +39,7 @@
             android:paddingVertical="2dp"
             android:text="— min / wk"
             android:textColor="#6FC3DF"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 

@@ -83,7 +83,7 @@
                 android:layout_height="wrap_content"
                 android:text="RECOVERY"
                 android:textColor="#B5AEB8"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -105,7 +105,7 @@
                 android:paddingVertical="1dp"
                 android:text="CALIBRATING"
                 android:textColor="#01A652"
-                android:textSize="9sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 

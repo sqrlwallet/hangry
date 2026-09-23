@@ -33,6 +33,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.State
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +56,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -126,19 +130,26 @@ fun DashExpression(
     contentDescription: String? = mood.description,
     interactive: Boolean = true
 ) {
+    // Animated values are read only inside graphicsLayer/draw blocks, so the idle motion
+    // redraws the image each frame without recomposing the card around it.
     val bob = rememberIdleBob(durationMillis = 1800)
     val tap = rememberDashTap()
     val entrance = remember(mood) { Animatable(if (mood.popsIn) 0.55f else 1f) }
     LaunchedEffect(mood) {
         if (mood.popsIn) entrance.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 260f))
     }
-    val beat = if (mood == DashMood.HEART) rememberHeartbeat() else 1f
+    val beat: State<Float> = if (mood == DashMood.HEART) rememberHeartbeat() else remember { mutableFloatStateOf(1f) }
     val shown = if (tap.reacting) DashMood.HAPPY else mood
 
     Box(
         modifier = modifier
             .size(size)
-            .then(if (interactive) tap.modifier else Modifier),
+            .then(if (interactive) tap.modifier else Modifier)
+            // A tappable Dash needs a name for TalkBack even where the image itself is decorative.
+            .then(
+                if (interactive && contentDescription == null) Modifier.semantics { this.contentDescription = MASCOT_NAME }
+                else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (mood == DashMood.HEART) {
@@ -152,8 +163,8 @@ fun DashExpression(
                 modifier = Modifier
                     .size(size)
                     .graphicsLayer {
-                        translationY = -size.toPx() * (0.025f * bob + HOP_HEIGHT * tap.hop.value)
-                        val scale = entrance.value * beat
+                        translationY = -size.toPx() * (0.025f * bob.value + HOP_HEIGHT * tap.hop.value)
+                        val scale = entrance.value * beat.value
                         scaleX = scale
                         scaleY = scale
                         transformOrigin = TransformOrigin(0.5f, 1f)
@@ -192,9 +203,9 @@ fun DashNote(
 private const val HOP_HEIGHT = 0.12f
 
 @Composable
-private fun rememberIdleBob(durationMillis: Int): Float {
+private fun rememberIdleBob(durationMillis: Int): State<Float> {
     val transition = rememberInfiniteTransition(label = "dashIdle")
-    val bob by transition.animateFloat(
+    return transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -203,14 +214,13 @@ private fun rememberIdleBob(durationMillis: Int): Float {
         ),
         label = "dashBob"
     )
-    return bob
 }
 
 /** Lub-dub: two quick swells, then a rest, about 55 bpm. */
 @Composable
-private fun rememberHeartbeat(): Float {
+private fun rememberHeartbeat(): State<Float> {
     val transition = rememberInfiniteTransition(label = "dashHeartbeat")
-    val beat by transition.animateFloat(
+    return transition.animateFloat(
         initialValue = 1f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -225,7 +235,6 @@ private fun rememberHeartbeat(): Float {
         ),
         label = "dashBeat"
     )
-    return beat
 }
 
 private class DashTapState(
@@ -263,10 +272,10 @@ private fun rememberDashTap(): DashTapState {
 
 /** Warm glow behind the heart that brightens with each beat. */
 @Composable
-private fun HeartGlow(beat: Float, modifier: Modifier = Modifier) {
-    // beat runs 1.0..1.06; map it to 0..1 for the glow strength.
-    val strength = ((beat - 1f) / 0.06f).coerceIn(0f, 1f)
+private fun HeartGlow(beat: State<Float>, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
+        // beat runs 1.0..1.06; map it to 0..1 for the glow strength. Read here, at draw time.
+        val strength = ((beat.value - 1f) / 0.06f).coerceIn(0f, 1f)
         val center = Offset(this.size.width * 0.42f, this.size.height * 0.6f)
         val radius = this.size.minDimension * (0.34f + 0.06f * strength)
         drawCircle(
@@ -332,7 +341,7 @@ private fun ConfettiBurst(modifier: Modifier = Modifier) {
 @Composable
 private fun FloatingZs(size: Dp, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "dashZs")
-    val t by transition.animateFloat(
+    val time = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(durationMillis = 3000, easing = LinearEasing)),
@@ -340,23 +349,31 @@ private fun FloatingZs(size: Dp, modifier: Modifier = Modifier) {
     )
     val density = LocalDensity.current
     val sizePx = with(density) { size.toPx() }
+    // Drawn at the largest size and scaled down in graphicsLayer, so the animation never
+    // triggers recomposition - only redraws.
+    val maxFontPx = sizePx * 0.15f
     Box(modifier = modifier) {
         repeat(3) { i ->
-            val p = (t + i / 3f) % 1f
-            val fontPx = sizePx * (0.08f + 0.07f * p)
             Text(
                 text = "z",
                 color = Color(0xFF8FA6D6),
                 fontWeight = FontWeight.Black,
-                fontSize = with(density) { fontPx.toSp() },
+                fontSize = with(density) { maxFontPx.toSp() },
                 modifier = Modifier
                     .offset {
+                        val p = (time.value + i / 3f) % 1f
                         IntOffset(
                             x = (sizePx * (0.66f + 0.2f * p) + sizePx * 0.03f * sin(p * 2 * PI.toFloat())).roundToInt(),
                             y = (sizePx * (0.28f - 0.3f * p)).roundToInt()
                         )
                     }
-                    .graphicsLayer { alpha = sin(p * PI.toFloat()) }
+                    .graphicsLayer {
+                        val p = (time.value + i / 3f) % 1f
+                        alpha = sin(p * PI.toFloat())
+                        val scale = (0.08f + 0.07f * p) / 0.15f
+                        scaleX = scale
+                        scaleY = scale
+                    }
             )
         }
     }

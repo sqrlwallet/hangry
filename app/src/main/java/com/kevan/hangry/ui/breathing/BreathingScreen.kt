@@ -91,7 +91,18 @@ fun BreathingScreen(
     modifier: Modifier = Modifier
 ) {
     val setup by viewModel.setup.collectAsState()
-    val session by viewModel.session.collectAsState()
+    // The session ticks every 50 ms. Only the active-session area reads it directly; the rest of
+    // the screen follows just which kind of session it is, so it isn't recomposed on every tick.
+    val sessionState = viewModel.session.collectAsState()
+    val sessionKind by remember {
+        derivedStateOf {
+            when (sessionState.value) {
+                is BreathingSessionState.Active -> SessionKind.ACTIVE
+                is BreathingSessionState.Finished -> SessionKind.FINISHED
+                BreathingSessionState.Idle -> SessionKind.IDLE
+            }
+        }
+    }
     val stats by viewModel.stats.collectAsState()
     val recent by viewModel.recentSessions.collectAsState()
 
@@ -119,7 +130,7 @@ fun BreathingScreen(
 
     // The breathing guide is meant to be watched; keep the display awake while a session runs.
     val view = LocalView.current
-    val isActive = session is BreathingSessionState.Active
+    val isActive = sessionKind == SessionKind.ACTIVE
     DisposableEffect(isActive) {
         view.keepScreenOn = isActive
         onDispose { view.keepScreenOn = false }
@@ -150,23 +161,24 @@ fun BreathingScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
-            when (val current = session) {
-                is BreathingSessionState.Active -> ActiveSession(
-                    state = current,
+            when (sessionKind) {
+                SessionKind.ACTIVE -> ActiveSessionHost(
+                    sessionState = sessionState,
                     onPause = viewModel::pause,
                     onResume = viewModel::resume,
                     onStop = viewModel::stop,
-                    onToggleSound = { viewModel.setSoundEnabled(!current.soundEnabled) }
+                    onToggleSound = { viewModel.setSoundEnabled(!it) }
                 )
 
-                is BreathingSessionState.Finished -> SessionSummary(
+
+                SessionKind.FINISHED -> (sessionState.value as? BreathingSessionState.Finished)?.let { current -> SessionSummary(
                     state = current,
                     healthConnect = setup.healthConnect,
                     onConnectHealth = requestHealthConnect,
                     onDone = viewModel::dismissSummary
-                )
+                ) }
 
-                BreathingSessionState.Idle -> SessionSetup(
+                SessionKind.IDLE -> SessionSetup(
                     setup = setup,
                     minutesToday = stats.minutesToday,
                     minutesThisWeek = stats.minutesThisWeek,
@@ -406,6 +418,27 @@ private fun RecentSessionRow(session: BreathingSessionEntity) {
 // endregion
 
 // region Active session
+
+private enum class SessionKind { IDLE, ACTIVE, FINISHED }
+
+/** The one place that reads the 50 ms session ticks, so only this subtree recomposes with them. */
+@Composable
+private fun ActiveSessionHost(
+    sessionState: State<BreathingSessionState>,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit,
+    onToggleSound: (currentlyEnabled: Boolean) -> Unit
+) {
+    val current = sessionState.value as? BreathingSessionState.Active ?: return
+    ActiveSession(
+        state = current,
+        onPause = onPause,
+        onResume = onResume,
+        onStop = onStop,
+        onToggleSound = { onToggleSound(current.soundEnabled) }
+    )
+}
 
 @Composable
 private fun ActiveSession(

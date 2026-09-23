@@ -39,6 +39,7 @@ import com.kevan.hangry.data.ai.OpenRouterException
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiDefaults
 import com.kevan.hangry.domain.repository.UserProfileRepository
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -278,7 +279,7 @@ private fun ApiKeyDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (isTesting) {
-                        CircularProgressIndicator(modifier = Modifier.height(16.dp), strokeWidth = 2.dp)
+                        DashSpinner(size = 24.dp, contentDescription = "Testing connection")
                     } else {
                         Text("Test Connection")
                     }

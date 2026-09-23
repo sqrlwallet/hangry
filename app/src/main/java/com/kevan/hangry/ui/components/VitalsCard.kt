@@ -70,8 +70,17 @@ fun VitalsCard(
                 VitalItem(
                     label = "Blood Oxygen",
                     value = summary?.spo2Percentage?.let { String.format(Locale.US, "%.0f%%", it) } ?: "—",
-                    subtitle = if (summary?.spo2Percentage != null) "Normal (95–100%)" else "Pending sync",
-                    valueColor = if (summary?.spo2Percentage != null) tokens.scoreColors.primed else tokens.textMuted,
+                    subtitle = when (val spo2 = summary?.spo2Percentage) {
+                        null -> "No data yet"
+                        in 95.0..100.0 -> "Normal (95–100%)"
+                        in 90.0..95.0 -> "A little low"
+                        else -> "Low - worth checking"
+                    },
+                    valueColor = when (val spo2 = summary?.spo2Percentage) {
+                        null -> tokens.textMuted
+                        in 95.0..100.0 -> tokens.scoreColors.primed
+                        else -> tokens.scoreColors.rebuild
+                    },
                     modifier = Modifier.weight(1f)
                 )
 
@@ -79,7 +88,7 @@ fun VitalsCard(
                     label = "VO₂ Max",
                     value = summary?.vo2Max?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
                     unit = if (summary?.vo2Max != null) "mL/kg/min" else null,
-                    subtitle = if (summary?.vo2Max != null) "Cardio Fitness" else "Pending sync",
+                    subtitle = if (summary?.vo2Max != null) "Cardio Fitness" else "No data yet",
                     valueColor = if (summary?.vo2Max != null) tokens.scoreColors.primed else tokens.textMuted,
                     modifier = Modifier.weight(1f)
                 )

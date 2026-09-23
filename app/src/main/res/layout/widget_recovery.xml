@@ -40,7 +40,7 @@
             android:paddingVertical="2dp"
             android:text="CALIBRATING"
             android:textColor="#01A652"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 

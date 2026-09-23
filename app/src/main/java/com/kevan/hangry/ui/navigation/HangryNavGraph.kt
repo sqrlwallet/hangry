@@ -1,19 +1,18 @@
 package com.kevan.hangry.ui.navigation
 
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.kevan.hangry.ui.components.millisUntilNextMidnight
 import com.kevan.hangry.ui.theme.HangryTheme
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.kevan.hangry.data.breathing.BreathingSessionState
 import com.kevan.hangry.ui.more.MoreScreen
-import androidx.compose.ui.Alignment
+import com.kevan.hangry.util.OnboardingFlag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,6 +63,7 @@ import com.kevan.hangry.ui.sync.SyncProgressScreen
 import com.kevan.hangry.ui.training.TrainingScreen
 import com.kevan.hangry.ui.trends.TrendsScreen
 import com.kevan.hangry.ui.widget.HomeScreenWidgetsScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
@@ -184,6 +184,28 @@ fun HangryNavGraph(
         )
     )
 
+    val appContext = LocalContext.current.applicationContext
+
+    // Keep "today" and the data fresh: on every return to the app, and at midnight if it's open.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                dashboardViewModel.onAppResumed()
+                nutritionViewModel.onDayMaybeChanged()
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(millisUntilNextMidnight())
+            dashboardViewModel.onDayMaybeChanged()
+            nutritionViewModel.onDayMaybeChanged()
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = finalStart,
@@ -257,6 +279,7 @@ fun HangryNavGraph(
                         coroutineScope.launch {
                             val existing = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
                             appContainer.userProfileRepository.saveProfile(existing.copy(onboardingCompleted = true))
+                            OnboardingFlag.set(appContext, true)
                             onboardingInProgress = false
                             navController.navigate(Screen.Dashboard.route) {
                                 popUpTo(0) { inclusive = true }
@@ -287,25 +310,16 @@ fun HangryNavGraph(
                     navController.navigate(Screen.Sleep.route)
                 },
                 onNavigateToTraining = {
-                    navController.navigate(Screen.Training.route)
+                    navController.navigateToTab(Screen.Training.route)
                 },
                 onNavigateToHeartMetrics = {
                     navController.navigate(Screen.HeartMetrics.route)
-                },
-                onNavigateToTrends = {
-                    navController.navigate(Screen.Trends.route)
                 },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
                 onNavigateToNutrition = {
-                    navController.navigate(Screen.Nutrition.route)
-                },
-                onNavigateToPosture = {
-                    navController.navigate(Screen.Posture.route)
-                },
-                onNavigateToAiCoach = {
-                    navController.navigate(Screen.AiCoach.route)
+                    navController.navigateToTab(Screen.Nutrition.route)
                 },
                 onNavigateToBodyFatCalculator = {
                     navController.navigate(Screen.BodyFatCalculator.route)
@@ -383,19 +397,11 @@ fun HangryNavGraph(
                 },
                 onNavigateToDashboardForDate = { date ->
                     dashboardViewModel.selectDate(date)
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigateToTab(Screen.Dashboard.route)
                 },
                 onNavigateToNutritionForDate = { date ->
                     nutritionViewModel.selectDate(date)
-                    navController.navigate(Screen.Nutrition.route) {
-                        launchSingleTop = true
-                    }
+                    navController.navigateToTab(Screen.Nutrition.route)
                 },
                 onNavigateToBodyFatCalculator = {
                     navController.navigate(Screen.BodyFatCalculator.route)
@@ -438,19 +444,11 @@ fun HangryNavGraph(
                 onNavigateToPrivacyPolicy = {
                     navController.navigate(Screen.PrivacyPolicy.route)
                 },
-                onNavigateToHomeScreenWidgets = {
-                    navController.navigate(Screen.HomeScreenWidgets.route)
-                },
-                onNavigateToBodyFatCalculator = {
-                    navController.navigate(Screen.BodyFatCalculator.route)
-                },
-                onNavigateToHealthRecords = {
-                    navController.navigate(Screen.HealthRecords.route)
-                },
                 onResetToWelcome = {
                     coroutineScope.launch {
                         val existing = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
                         appContainer.userProfileRepository.saveProfile(existing.copy(onboardingCompleted = false))
+                        OnboardingFlag.set(appContext, false)
                         navController.navigate(Screen.Welcome.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -472,7 +470,6 @@ fun HangryNavGraph(
             NutritionScreen(
                 viewModel = nutritionViewModel,
                 dashboardViewModel = dashboardViewModel,
-                onNavigateBack = { navController.popBackStack() },
                 onNavigateToMealPlan = { navController.navigate(Screen.MealPlan.route) },
                 onNavigateToAiSettings = { navController.openAiSettings() }
             )
@@ -499,11 +496,7 @@ fun HangryNavGraph(
                 onCustomizeToday = {
                     // Open Today with its customize sheet already up.
                     dashboardViewModel.setCustomizeSheetVisible(true)
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigateToTab(Screen.Dashboard.route)
                 },
                 onOpenSettings = { navController.navigate(Screen.Settings.route) }
             )
@@ -517,7 +510,7 @@ fun HangryNavGraph(
                 onStartNewScan = { navController.navigate(Screen.PostureCapture.route) },
                 onOpenScan = { scanId -> navController.navigate(Screen.PostureScanDetail.createRoute(scanId)) },
                 onNavigateToAiSettings = { navController.openAiSettings() },
-                onNavigateToAiCoach = { navController.navigate(Screen.AiCoach.route) }
+                onNavigateToAiCoach = { navController.navigateToTab(Screen.AiCoach.route) }
             )
         }
 
@@ -545,7 +538,6 @@ fun HangryNavGraph(
         composable(Screen.AiCoach.route) {
             AiCoachScreen(
                 viewModel = aiCoachViewModel,
-                onNavigateBack = { navController.popBackStack() },
                 onNavigateToAiSettings = { navController.openAiSettings() },
                 onOpenScreen = { screen, pattern ->
                     val route = when (screen) {
@@ -568,11 +560,7 @@ fun HangryNavGraph(
                         route == null -> Unit
                         // Tabs (Nutrition, Workouts) switch tabs like the bottom bar, rather than
                         // stacking a second copy of the tab on top of the chat.
-                        route in BottomNavDestination.routeSet -> navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        route in BottomNavDestination.routeSet -> navController.navigateToTab(route)
                         else -> navController.navigate(route)
                     }
                 }
@@ -706,4 +694,16 @@ private const val EXPAND_AI_SETTINGS = "expand_ai_settings"
 private fun NavHostController.openAiSettings() {
     navigate(Screen.Settings.route)
     currentBackStackEntry?.savedStateHandle?.set(EXPAND_AI_SETTINGS, true)
+}
+
+/**
+ * Opens a tab the way the bottom bar does - switching to it and keeping its state - rather than
+ * stacking a second copy of the tab on top of the current screen.
+ */
+internal fun NavHostController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
 }

@@ -64,7 +64,14 @@ data class ChartMetricColors(
     val restingHeartRate: Color,
     val trainingLoad: Color,
     val steps: Color,
-    val activeCalories: Color = trainingLoad
+    val activeCalories: Color = trainingLoad,
+    /** Sleep stages: deep, REM, light, awake. */
+    val sleepDeep: Color = Color(0xFF0C6FF9),
+    val sleepRem: Color = Color(0xFF00A4FF),
+    val sleepLight: Color = Color(0xFF7DBBFF),
+    val sleepAwake: Color = Color(0xFFFF7E1D),
+    /** Heart-rate zones 1-5, easy to peak. */
+    val zones: List<Color> = listOf(Color(0xFF00A4FF), Color(0xFF01A652), Color(0xFFFFCE00), Color(0xFFFF7E1D), Color(0xFFE5484D))
 )
 
 @Immutable
@@ -131,7 +138,13 @@ val LightChartMetricColors = ChartMetricColors(
     hrv = GreenHazeDeep,
     restingHeartRate = ShipGray,
     trainingLoad = Color(0xFFE0650F),
-    steps = BlueRibbon
+    steps = BlueRibbon,
+    // Deeper shades so stages and zones stay readable on the light cream background.
+    sleepDeep = Color(0xFF0A5BD1),
+    sleepRem = Color(0xFF0086D1),
+    sleepLight = Color(0xFF4F93DD),
+    sleepAwake = Color(0xFFD9640F),
+    zones = listOf(Color(0xFF0086D1), Color(0xFF018A44), Color(0xFFB88C00), Color(0xFFD9640F), Color(0xFFC7373C))
 )
 
 val DarkMacroNutrientColors = MacroNutrientColors(

@@ -94,7 +94,6 @@ private val QUICK_STARTERS = listOf(
 @Composable
 fun AiCoachScreen(
     viewModel: AiCoachViewModel,
-    onNavigateBack: () -> Unit,
     onNavigateToAiSettings: () -> Unit,
     /** Dash's OPEN_SCREEN action: (screen name, optional breathing pattern). */
     onOpenScreen: (String, String?) -> Unit = { _, _ -> },
@@ -173,7 +172,7 @@ fun AiCoachScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) },
         topBar = {
             TopAppBar(
                 title = {
@@ -183,11 +182,7 @@ fun AiCoachScreen(
                         Text(MASCOT_NAME, style = MaterialTheme.typography.titleLarge)
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+                // A tab, so no back arrow.
                 actions = {
                     // Journal & Memories button
                     BadgedBox(
@@ -228,14 +223,16 @@ fun AiCoachScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         // The message box has to sit above the floating tab bar (hidden while typing).
+        // The app draws edge to edge, so the window doesn't shrink for the keyboard: make room
+        // for it here, on top of what's already reserved for the nav bar or dock.
         val dockInset = LocalDockInset.current
+        val bottomReserved = maxOf(innerPadding.calculateBottomPadding(), dockInset)
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = maxOf(innerPadding.calculateBottomPadding(), dockInset)
-                )
+                .padding(top = innerPadding.calculateTopPadding(), bottom = bottomReserved)
+                .consumeWindowInsets(PaddingValues(bottom = bottomReserved))
+                .imePadding()
         ) {
             // Check AI configuration
             if (!uiState.isAiConfigured) {
@@ -269,7 +266,7 @@ fun AiCoachScreen(
                     )
                     HangryInfoTip(
                         title = "What Dash knows",
-                        body = "Context loaded: Last 7 days of sleep, strain, workouts & journal"
+                        body = "$MASCOT_NAME can see your last 7 days of sleep, recovery, strain, workouts and meals, 4-week trends, body metrics, health records, supplements, posture checks and the memories you've shared."
                     )
                 }
             }

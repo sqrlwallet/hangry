@@ -101,7 +101,7 @@ fun DayDetailSheet(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Open on Dashboard",
+                        text = "Open on Today",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }

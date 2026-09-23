@@ -18,6 +18,8 @@ $$R_{\text{raw}} = \frac{\sum_{i \in \text{Available}} (w_i \cdot S_i)}{\sum_{i 
 
 $$\text{Hangry Recovery} = \text{clamp}(0, 100, \text{round}(R_{\text{raw}}))$$
 
+A day with **no sleep, resting heart rate or HRV** gets no score at all (shown as "—"). Missing HRV alone still counts as an excellent reading next to real ones, but it can't stand in for all three. The consistency part of the load component is only included once there are 3 recent nights to judge it; it's never assumed.
+
 ### 2.2 Component Weights & Heuristics
 When all data streams are present:
 - **HRV RMSSD ($w_{\text{hrv}} = 0.35$)**:
@@ -183,6 +185,8 @@ $$\text{DailyAdjustment} = \frac{(\text{GoalWeight} - \text{CurrentWeight}) \tim
 A recommendation is only returned once TDEE, current weight, goal weight, and a future target date are all available — otherwise `null`, so the UI can show its own "add your goal" prompt rather than a fabricated number.
 
 ### 7.1 Sleep Quality Score (0–100)
+
+Quality combines only what was actually measured - efficiency (needs time in bed), restorative share (needs recorded deep and REM stages) and consistency (needs 3 recent nights). With none of them, there's no quality score. Sleep stages are never estimated from fixed percentages: a night without recorded stages shows no stage breakdown. Averages stay blank until there's history, and sleep need starts from the user's own sleep goal (8 h by default, set in Settings) until there's a personal average.
 
 Sleep Performance (§7 above) is a **quantity** measure — how much you slept versus how much you needed, and can exceed 100%. Sleep Quality is a separate, bounded **quality** measure of how *good* that sleep actually was, independent of duration:
 

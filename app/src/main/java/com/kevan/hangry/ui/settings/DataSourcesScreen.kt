@@ -85,7 +85,7 @@ fun DataSourcesScreen(
                 item {
                     HangryCard {
                         Text(
-                            text = "No sync records yet. Sync from the dashboard.",
+                            text = "No sync records yet. Pull down on Today to sync.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textSecondary
                         )

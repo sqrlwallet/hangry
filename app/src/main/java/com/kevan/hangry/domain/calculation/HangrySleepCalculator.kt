@@ -18,21 +18,13 @@ class HangrySleepCalculator : SleepCalculator {
         rollingAverageStrain: Double?
     ): SleepAnalysis {
         val sevenDaySessions = recentSessions.take(7)
-        val sevenDayAvg = if (sevenDaySessions.isNotEmpty()) {
-            sevenDaySessions.map { it.durationMinutes }.average().roundToInt()
-        } else {
-            targetDurationMinutes
-        }
+        // No history means no average - never the target dressed up as one.
+        val sevenDayAvg = sevenDaySessions.takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
+        val thirtyDayAvg = recentSessions.take(30).takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
 
-        val thirtyDaySessions = recentSessions.take(30)
-        val thirtyDayAvg = if (thirtyDaySessions.isNotEmpty()) {
-            thirtyDaySessions.map { it.durationMinutes }.average().roundToInt()
-        } else {
-            sevenDayAvg
-        }
-
+        // Sleep need starts from your own average, or the target until there's history.
         val sleepNeed = computeSleepNeedMinutes(
-            personalBaselineMinutes = sevenDayAvg,
+            personalBaselineMinutes = sevenDayAvg ?: targetDurationMinutes,
             previousDaySleepDebtMinutes = previousDaySleepDebtMinutes,
             previousDayStrain = previousDayStrain,
             rollingAverageStrain = rollingAverageStrain
@@ -43,10 +35,7 @@ class HangrySleepCalculator : SleepCalculator {
             return SleepAnalysis(
                 durationMinutes = 0,
                 timeInBedMinutes = null,
-                consistencyPercentage = 0,
                 sleepNeedMinutes = sleepNeed,
-                sleepPerformancePercentage = 0,
-                sleepQualityScore = 0,
                 recommendedBedtime = recommendedBedtime,
                 sevenDayAverageMinutes = sevenDayAvg,
                 thirtyDayAverageMinutes = thirtyDayAvg,
@@ -62,30 +51,31 @@ class HangrySleepCalculator : SleepCalculator {
         val sleepDebt = max(0, sleepNeed - duration)
         val sleepPerformance = if (sleepNeed > 0) {
             ((duration.toDouble() / sleepNeed) * 100).roundToInt().coerceIn(0, 150)
-        } else {
-            100
-        }
-        val baselineRatio = if (sevenDayAvg > 0) duration.toDouble() / sevenDayAvg else 1.0
+        } else null
+        val baselineRatio = if (sevenDayAvg != null && sevenDayAvg > 0) duration.toDouble() / sevenDayAvg else 1.0
 
         val supportiveNote = when {
+            sevenDayAvg == null -> "Your first night logged. Your personal baseline builds from here."
             baselineRatio >= 1.05 -> "Solid sleep duration supported your recovery today."
             baselineRatio in 0.95..1.04 -> "Your sleep aligned well with your typical baseline."
             else -> "Your sleep was shorter than your usual pattern."
         }
 
-        // Consistency calculation: comparison of session durations against 7-day average
-        val consistency = if (sevenDaySessions.size >= 3) {
+        // Consistency: how much session lengths vary around the 7-day average. Needs 3 nights.
+        val consistency = if (sevenDayAvg != null && sevenDaySessions.size >= 3) {
             val variance = sevenDaySessions.map { Math.abs(it.durationMinutes - sevenDayAvg) }.average()
             max(40, (100 - (variance / 6.0)).roundToInt())
-        } else {
-            85 // Default calibration baseline
-        }
+        } else null
 
-        val deep = currentSession.deepSleepMinutes ?: (duration * 0.20).roundToInt()
-        val rem = currentSession.remSleepMinutes ?: (duration * 0.25).roundToInt()
-        val awake = currentSession.awakeMinutes ?: max(0, (duration * 0.05).roundToInt())
-        val light = currentSession.lightSleepMinutes ?: max(0, duration - deep - rem - awake)
-        val restorativePct = if (duration > 0) ((deep + rem).toDouble() / duration * 100).roundToInt().coerceIn(0, 100) else 0
+        // Stages only when the device recorded them - never estimated from fixed percentages.
+        val deep = currentSession.deepSleepMinutes
+        val rem = currentSession.remSleepMinutes
+        val awake = currentSession.awakeMinutes
+        val light = currentSession.lightSleepMinutes
+            ?: if (deep != null && rem != null) max(0, duration - deep - rem - (awake ?: 0)) else null
+        val restorativePct = if (deep != null && rem != null && duration > 0) {
+            ((deep + rem).toDouble() / duration * 100).roundToInt().coerceIn(0, 100)
+        } else null
 
         val qualityScore = computeQualityScore(
             durationMinutes = duration,
@@ -126,25 +116,24 @@ class HangrySleepCalculator : SleepCalculator {
     private fun computeQualityScore(
         durationMinutes: Int,
         timeInBedMinutes: Int?,
-        restorativePercentage: Int,
-        consistencyPercentage: Int
-    ): Int {
+        restorativePercentage: Int?,
+        consistencyPercentage: Int?
+    ): Int? {
         val efficiencyScore = if (timeInBedMinutes != null && timeInBedMinutes > 0) {
             ((durationMinutes.toDouble() / timeInBedMinutes) * 100).coerceIn(0.0, 100.0)
         } else {
             null
         }
-        val restorativeScore = (restorativePercentage / IDEAL_RESTORATIVE_PERCENTAGE * 100.0).coerceIn(0.0, 100.0)
-        val consistencyScore = consistencyPercentage.toDouble().coerceIn(0.0, 100.0)
+        val restorativeScore = restorativePercentage?.let { (it / IDEAL_RESTORATIVE_PERCENTAGE * 100.0).coerceIn(0.0, 100.0) }
+        val consistencyScore = consistencyPercentage?.toDouble()?.coerceIn(0.0, 100.0)
 
-        var weightedSum = restorativeScore * RESTORATIVE_WEIGHT
-        var totalWeight = RESTORATIVE_WEIGHT
-        weightedSum += consistencyScore * CONSISTENCY_WEIGHT
-        totalWeight += CONSISTENCY_WEIGHT
-        if (efficiencyScore != null) {
-            weightedSum += efficiencyScore * EFFICIENCY_WEIGHT
-            totalWeight += EFFICIENCY_WEIGHT
-        }
+        // Only what was actually measured counts; with none of it there's no quality score.
+        var weightedSum = 0.0
+        var totalWeight = 0.0
+        restorativeScore?.let { weightedSum += it * RESTORATIVE_WEIGHT; totalWeight += RESTORATIVE_WEIGHT }
+        consistencyScore?.let { weightedSum += it * CONSISTENCY_WEIGHT; totalWeight += CONSISTENCY_WEIGHT }
+        efficiencyScore?.let { weightedSum += it * EFFICIENCY_WEIGHT; totalWeight += EFFICIENCY_WEIGHT }
+        if (totalWeight == 0.0) return null
 
         return (weightedSum / totalWeight).roundToInt().coerceIn(0, 100)
     }

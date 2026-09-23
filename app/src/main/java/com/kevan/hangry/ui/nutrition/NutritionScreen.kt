@@ -22,12 +22,15 @@ import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.ui.coach.DashSpinner
+import com.kevan.hangry.ui.components.DashEmptyScene
+import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.DateNavigatorBar
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
+import com.kevan.hangry.ui.components.dayHeading
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -77,7 +80,6 @@ private val NUTRITION_INFO_SECTIONS = listOf(
 fun NutritionScreen(
     viewModel: NutritionViewModel,
     dashboardViewModel: DashboardViewModel,
-    onNavigateBack: () -> Unit,
     onNavigateToMealPlan: () -> Unit,
     onNavigateToAiSettings: () -> Unit,
     modifier: Modifier = Modifier
@@ -88,13 +90,14 @@ fun NutritionScreen(
     val dashboardState by dashboardViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val calorieTarget = dashboardState.calorieGoal?.dailyCalorieTarget ?: 2000
+    // No target until there's enough data for a real one - never an assumed 2000 kcal.
+    val calorieTarget = dashboardState.calorieGoal?.dailyCalorieTarget
     val totalProtein = uiState.todayEntries.sumOf { it.proteinG }
     val totalCarbs = uiState.todayEntries.sumOf { it.carbsG }
     val totalFat = uiState.todayEntries.sumOf { it.fatG }
-    val proteinGoal = (calorieTarget * 0.25 / 4.0).coerceAtLeast(50.0)
-    val carbsGoal = (calorieTarget * 0.50 / 4.0).coerceAtLeast(100.0)
-    val fatGoal = (calorieTarget * 0.25 / 9.0).coerceAtLeast(30.0)
+    val proteinGoal = calorieTarget?.let { (it * 0.25 / 4.0).coerceAtLeast(50.0) }
+    val carbsGoal = calorieTarget?.let { (it * 0.50 / 4.0).coerceAtLeast(100.0) }
+    val fatGoal = calorieTarget?.let { (it * 0.25 / 9.0).coerceAtLeast(30.0) }
 
     var showDescribeDialog by remember { mutableStateOf(false) }
     var showQuickLogSheet by remember { mutableStateOf(false) }
@@ -127,15 +130,11 @@ fun NutritionScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) },
         topBar = {
             TopAppBar(
+                // A tab, so no back arrow.
                 title = { Text(stringResource(R.string.title_nutrition)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
                 actions = {
                     HangryInfoIconButton(title = "About Nutrition", sections = NUTRITION_INFO_SECTIONS)
                     IconButton(onClick = onNavigateToMealPlan) {
@@ -290,59 +289,18 @@ fun NutritionScreen(
             }
 
             item {
-                Text(text = "Today's Log", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = dayHeading("Log", uiState.selectedDate), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
             }
 
             if (uiState.todayEntries.isEmpty()) {
                 item {
-                    HangryCard(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Nothing logged yet",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = tokens.textPrimary
-                                )
-                                HangryInfoTip(
-                                    title = "Fueling & Recovery",
-                                    body = "Tracking your daily meals provides the energy and macronutrient data needed to calibrate training volume with metabolic recovery. Prioritize lean protein and hydration to optimize your recovery baseline."
-                                )
-                            }
-                            Surface(
-                                color = tokens.chartColors.activeCalories.copy(alpha = 0.14f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = "$calorieTarget kcal Target",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = tokens.chartColors.activeCalories,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Button(
-                            onClick = { photoLauncher.takePhoto() },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Snap your meal", style = MaterialTheme.typography.labelMedium)
-                        }
+                    HangryCard(modifier = Modifier.fillMaxWidth()) {
+                        DashEmptyState(
+                            scene = DashEmptyScene.MEALS,
+                            title = "Nothing logged yet",
+                            body = "Tap Log Meal to snap a photo, or use the meal plan for a quick log.",
+                            modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
+                        )
                     }
                 }
             } else {

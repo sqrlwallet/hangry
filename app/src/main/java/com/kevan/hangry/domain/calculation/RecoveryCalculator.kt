@@ -19,12 +19,14 @@ data class DayMetrics(
     val restingHeartRate: Double?,
     val hrvRmssd: Double?,
     val trainingLoad: Double? = 0.0,
-    val sleepConsistencyPercentage: Int? = 85
+    /** Null until there are enough nights to judge; never assumed. */
+    val sleepConsistencyPercentage: Int? = null
 )
 
 data class RecoveryConfig(
     // Bump whenever scoring changes - stored scores from older versions are recomputed on launch.
-    val algorithmVersion: Int = 3,
+    // 4: no score for days with no readings; unknown consistency no longer assumed.
+    val algorithmVersion: Int = 4,
     val minDaysForBaseline: Int = 3,
     val optimalBaselineDays: Int = 7,
     val hrvWeight: Double = 0.35,

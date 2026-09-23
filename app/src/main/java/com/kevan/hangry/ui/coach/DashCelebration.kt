@@ -53,7 +53,4 @@ object Celebrations {
         prefs.edit().putBoolean(key, true).apply()
         return true
     }
-
-    fun wasShown(context: Context, key: String): Boolean =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(key, false)
 }

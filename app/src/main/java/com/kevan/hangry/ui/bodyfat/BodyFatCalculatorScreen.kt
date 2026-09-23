@@ -89,6 +89,9 @@ fun BodyFatCalculatorScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                // Keep the tape-measurement fields above the keyboard.
+                .consumeWindowInsets(innerPadding)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)

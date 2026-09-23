@@ -33,7 +33,6 @@ fun CustomizeDashboardSheet(
     onAddCustomWidget: (widget: DashboardWidget) -> Unit,
     onRemoveWidget: (widgetId: String) -> Unit,
     onResetDefaults: () -> Unit,
-    onNavigateToHomeScreenWidgets: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
@@ -46,6 +45,7 @@ fun CustomizeDashboardSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = HangryTokens.Spacing.xl)
         ) {
@@ -56,13 +56,13 @@ fun CustomizeDashboardSheet(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Customize Home",
+                        text = "Customize Today",
                         style = MaterialTheme.typography.titleLarge,
                         color = tokens.textPrimary
                     )
                     HangryInfoTip(
-                        title = "Customize Home",
-                        body = "Show, hide, or reorder cards on your home screen. You can also create custom widgets with specific metrics."
+                        title = "Customize Today",
+                        body = "Show, hide, or reorder the cards on Today. You can also create a card for a specific metric."
                     )
                 }
                 Row {
@@ -85,20 +85,6 @@ fun CustomizeDashboardSheet(
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Create Custom Widget")
-            }
-
-            if (onNavigateToHomeScreenWidgets != null) {
-                OutlinedButton(
-                    onClick = {
-                        onDismiss()
-                        onNavigateToHomeScreenWidgets()
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(top = HangryTokens.Spacing.s)
-                ) {
-                    Icon(Icons.Default.Widgets, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Phone Home Screen Widgets")
-                }
             }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
@@ -237,7 +223,7 @@ fun CreateCustomWidgetDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Create Dashboard Widget") },
+        title = { Text("Create a Today card") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -339,7 +325,7 @@ fun CreateCustomWidgetDialog(
                     onCreate(newWidget)
                 }
             ) {
-                Text("Add to Home")
+                Text("Add to Today")
             }
         },
         dismissButton = {

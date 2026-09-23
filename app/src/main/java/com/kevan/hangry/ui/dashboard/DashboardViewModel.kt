@@ -60,6 +60,35 @@ class DashboardViewModel(
     private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
+    private var lastKnownToday: LocalDate = LocalDate.now(zone)
+
+    /**
+     * The app came back to the foreground, or the clock passed midnight. If the screen was
+     * following "today", it moves to the new today - otherwise a meal logged after midnight
+     * would land on yesterday. A day the user picked on purpose stays as it is.
+     */
+    fun onDayMaybeChanged() {
+        val today = LocalDate.now(zone)
+        if (today == lastKnownToday) return
+        if (_selectedDate.value == lastKnownToday) _selectedDate.value = today
+        lastKnownToday = today
+    }
+
+    private var lastSyncCompletedAt: Instant? = null
+
+    /**
+     * The app came back to the foreground: roll over to the new day if needed, and catch up
+     * with Health Connect if the last sync was a while ago - the startup sync only runs when
+     * the app process starts, not every time you switch back to it.
+     */
+    fun onAppResumed() {
+        onDayMaybeChanged()
+        val last = lastSyncCompletedAt ?: return
+        if (!_uiState.value.isSyncing && java.time.Duration.between(last, Instant.now()) > RESUME_SYNC_AFTER) {
+            syncNow(days = 3)
+        }
+    }
+
     // Guards against re-triggering a sync every time this flow recombines while waiting for it.
     private var autoResyncedForDate: LocalDate? = null
 
@@ -138,9 +167,12 @@ class DashboardViewModel(
 
                 // Sorted newest-first: the most recent session is "current", the rest is real
                 // baseline history (fixes the previous bug of always passing an empty history).
+                // The selected day's night is the one that ended on it; only earlier nights are
+                // history. A day with no sleep of its own shows none, not an older night.
                 val sortedSleep = sleepSessions.sortedByDescending { it.startTime }
-                val latestSleep = sortedSleep.firstOrNull()
-                val sleepBaselineHistory = if (sortedSleep.isNotEmpty()) sortedSleep.drop(1) else emptyList()
+                val latestSleep = sortedSleep.firstOrNull { it.endTime.atZone(zone).toLocalDate() == date }
+                val sleepBaselineHistory = sortedSleep.filter { it.endTime.atZone(zone).toLocalDate().isBefore(date) }
+                val sleepGoal = profile?.sleepGoalMinutes ?: 480
 
                 // Strain, recovery, and sleep score should only surface once today's sleep is in -
                 // before that (i.e. from midnight until a session is logged/synced) they read as
@@ -152,13 +184,14 @@ class DashboardViewModel(
                 }
 
                 val previousDaySummary = recentSummaries.firstOrNull()
-                val previousDayDebt = previousDaySummary?.sleepDurationMinutes?.let { max(0, 480 - it) } ?: 0
+                val previousDayDebt = previousDaySummary?.sleepDurationMinutes?.let { max(0, sleepGoal - it) } ?: 0
                 val rollingAverageStrain = recentSummaries.mapNotNull { it.dayStrain }
                     .let { if (it.isNotEmpty()) it.average() else null }
 
                 val sleepAnalysis = sleepCalculator.analyzeSleep(
                     currentSession = latestSleep,
                     recentSessions = sleepBaselineHistory,
+                    targetDurationMinutes = sleepGoal,
                     previousDaySleepDebtMinutes = previousDayDebt,
                     previousDayStrain = previousDaySummary?.dayStrain,
                     rollingAverageStrain = rollingAverageStrain
@@ -180,10 +213,12 @@ class DashboardViewModel(
                 } catch (_: IllegalArgumentException) {
                     RecoveryState.BUILDING_BASELINE
                 }
-                val strainRecommendation = strainCalculator.recommendStrainTarget(
-                    recoveryState = recoveryState,
-                    recentDailyStrain = recentSummaries.mapNotNull { it.dayStrain }
-                )
+                // The target is a band around your own recent strain; with no history yet there's
+                // nothing personal to base it on, so no target rather than a generic one.
+                val recentStrain = recentSummaries.mapNotNull { it.dayStrain }
+                val strainRecommendation = recentStrain.takeIf { it.isNotEmpty() }?.let {
+                    strainCalculator.recommendStrainTarget(recoveryState = recoveryState, recentDailyStrain = it)
+                }
 
                 // Workouts count in full - every calorie burned during them, not just the extra.
                 // The stored summary adds every step on top (see ActiveActivityCalculator); before
@@ -247,6 +282,7 @@ class DashboardViewModel(
                         stressResult = stressResult,
                         dailyStepGoal = stepGoal,
                         dailyActivityMinutesGoal = minutesGoal,
+                        sleepGoalMinutes = sleepGoal,
                         dailyActiveCaloriesGoal = caloriesGoal,
                         todayActiveMinutes = activeMinutes,
                         todayActiveCalories = activeCalories,
@@ -269,9 +305,9 @@ class DashboardViewModel(
             }
         }
 
-        // Refresh from Health Connect every time the app/dashboard opens, not just on the
-        // periodic 6h background sync - a full historical import if the database is still
-        // empty (first run), otherwise a quick recent-days catch-up.
+        // Refresh from Health Connect when the app starts, not just on the periodic 6h background
+        // sync - a full historical import if the database is still empty (first run), otherwise a
+        // quick recent-days catch-up. Coming back to a running app is handled by onAppResumed().
         viewModelScope.launch {
             // e.g. missing HRV now scores as excellent - refresh scores saved under the old rules.
             healthSyncManager.recalculateIfScoringChanged()
@@ -322,10 +358,6 @@ class DashboardViewModel(
                 )
             }
         }
-    }
-
-    fun toggleActivityExpanded() {
-        _uiState.update { it.copy(isActivityExpanded = !it.isActivityExpanded) }
     }
 
     fun setCustomizeSheetVisible(visible: Boolean) {
@@ -385,7 +417,7 @@ class DashboardViewModel(
                             it.copy(
                                 isSyncing = false,
                                 syncStatusMessage = null,
-                                lastSyncFormatted = formatTime(Instant.now())
+                                lastSyncFormatted = formatTime(Instant.now().also { lastSyncCompletedAt = it })
                             )
                         }
                     }
@@ -449,3 +481,6 @@ class DashboardViewModel(
         }
     }
 }
+
+/** Coming back to the app after this long triggers a catch-up sync. */
+private val RESUME_SYNC_AFTER: java.time.Duration = java.time.Duration.ofMinutes(15)

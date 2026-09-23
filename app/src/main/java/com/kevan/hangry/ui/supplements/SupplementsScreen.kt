@@ -118,7 +118,9 @@ fun SupplementsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s)
+                // Room so the floating add button never covers the last card.
+                .padding(bottom = 72.dp),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             if (snapshot.supplements.isEmpty()) {
@@ -312,6 +314,7 @@ private fun SupplementEditorSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = HangryTokens.Spacing.xl),
@@ -416,9 +419,13 @@ private fun SupplementEditorSheet(
                         onClick = { pickingTimeIndex = index },
                         label = { Text(time.format(TIME_FORMAT)) },
                         trailingIcon = {
-                            Icon(Icons.Default.Close, contentDescription = "Remove time", modifier = Modifier.size(16.dp).clickable {
-                                onChange { s -> s.copy(times = s.times.filterIndexed { i, _ -> i != index }) }
-                            })
+                            // A 32dp touch area around the 16dp icon, so it's easy to hit.
+                            IconButton(
+                                onClick = { onChange { s -> s.copy(times = s.times.filterIndexed { i, _ -> i != index }) } },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove time", modifier = Modifier.size(16.dp))
+                            }
                         }
                     )
                 }

@@ -338,7 +338,7 @@ class DefaultHealthSyncManager(
         restingHeartRate = this?.restingHeartRate,
         hrvRmssd = this?.hrvRmssd,
         trainingLoad = this?.dailyTrainingLoad,
-        sleepConsistencyPercentage = this?.sleepConsistencyScore?.roundToInt() ?: 85
+        sleepConsistencyPercentage = this?.sleepConsistencyScore?.roundToInt()
     )
 
     private fun RecoveryResult.toEntity(date: LocalDate) = RecoveryScoreEntity(
@@ -388,12 +388,14 @@ class DefaultHealthSyncManager(
         }
     }
 
+    /**
+     * Rebuilds the daily summaries and recovery scores for [start]..[end] only. Days before
+     * [start] are already stored and are read back for baselines (see the rolling 7-day history
+     * below), so a quick sync no longer recomputes all of history - that full pass is
+     * recalculateAllBaselines(), run when the scoring rules change.
+     */
     private suspend fun computeDailySummaries(start: LocalDate, end: LocalDate) {
-        val earliestSteps = database.stepsDao().getEarliestDate()
-        val oldestSleep = database.sleepSessionDao().getOldestSession()?.startTime?.atZone(zone)?.toLocalDate()
-        val oldestExercise = database.exerciseSessionDao().getOldestSession()?.startTime?.atZone(zone)?.toLocalDate()
-        val earliestDataDate = listOfNotNull(earliestSteps, oldestSleep, oldestExercise).minOrNull()
-        val effectiveStart = if (earliestDataDate != null && earliestDataDate.isBefore(start)) earliestDataDate else start
+        val effectiveStart = start
 
         val daysBetween = ChronoUnit.DAYS.between(effectiveStart, end).toInt()
         val hrvFeelings = database.hrvFeelingDao().getBetweenList(effectiveStart, end)
@@ -499,7 +501,8 @@ class DefaultHealthSyncManager(
             val effectiveBpSystolic = bpReading?.first ?: currentExistingSummary?.bloodPressureSystolic
             val effectiveBpDiastolic = bpReading?.second ?: currentExistingSummary?.bloodPressureDiastolic
 
-            val prevDayDebt = prevDaySummary?.sleepDurationMinutes?.let { max(0, 480 - it) } ?: 0
+            val sleepGoal = profile?.sleepGoalMinutes ?: 480
+            val prevDayDebt = prevDaySummary?.sleepDurationMinutes?.let { max(0, sleepGoal - it) } ?: 0
             val recentSummariesForStrain = database.dailyHealthSummaryDao()
                 .getSummariesBetweenList(date.minusDays(7), date.minusDays(1))
             val rollingAvgStrain = recentSummariesForStrain.mapNotNull { it.dayStrain }
@@ -508,6 +511,7 @@ class DefaultHealthSyncManager(
             val sleepAnalysis = sleepCalculator.analyzeSleep(
                 currentSession = primarySleep,
                 recentSessions = sleepHistoryForCalc,
+                targetDurationMinutes = sleepGoal,
                 previousDaySleepDebtMinutes = prevDayDebt,
                 previousDayStrain = prevDaySummary?.dayStrain,
                 rollingAverageStrain = rollingAvgStrain
@@ -581,7 +585,7 @@ class DefaultHealthSyncManager(
                 sleepDurationMinutes = primarySleep?.durationMinutes,
                 sleepStartTime = primarySleep?.startTime,
                 sleepEndTime = primarySleep?.endTime,
-                sleepConsistencyScore = sleepAnalysis.consistencyPercentage.toDouble(),
+                sleepConsistencyScore = sleepAnalysis.consistencyPercentage?.toDouble(),
                 steps = steps?.stepCount,
                 distanceMeters = steps?.distanceMeters,
                 activeCalories = active.activeCalories,
@@ -621,7 +625,7 @@ class DefaultHealthSyncManager(
                     restingHeartRate = prevSummary?.restingHeartRate,
                     hrvRmssd = prevSummary?.hrvRmssd,
                     trainingLoad = prevSummary?.dailyTrainingLoad,
-                    sleepConsistencyPercentage = prevSummary?.sleepConsistencyScore?.roundToInt() ?: 85
+                    sleepConsistencyPercentage = prevSummary?.sleepConsistencyScore?.roundToInt()
                 )
             }
 

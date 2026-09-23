@@ -1,6 +1,8 @@
 package com.kevan.hangry.ui.healthrecords
 
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import com.kevan.hangry.ui.coach.Celebrations
 import com.kevan.hangry.ui.coach.DashCelebration
 import com.kevan.hangry.ui.coach.DashSpinner
@@ -155,7 +157,9 @@ fun HealthRecordsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.m),
+                    .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.m)
+                    // Room so the floating add button never covers the last card.
+                    .padding(bottom = 72.dp),
                 verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
                 when (tabs[selectedTab]) {
@@ -451,14 +455,15 @@ private fun ProfileSection(
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items.forEach { item ->
+                    // The whole chip is the remove button - a 16dp icon alone is too small to hit.
                     InputChip(
                         selected = false,
-                        onClick = {},
+                        onClick = { onDelete(item.id) },
                         label = { Text(item.name + (item.note?.let { " · $it" } ?: "")) },
                         trailingIcon = {
-                            Icon(Icons.Default.Close, contentDescription = "Remove ${item.name}",
-                                modifier = Modifier.size(16.dp).clickable { onDelete(item.id) })
-                        }
+                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                        },
+                        modifier = Modifier.semantics { onClick(label = "Remove ${item.name}", action = null) }
                     )
                 }
             }

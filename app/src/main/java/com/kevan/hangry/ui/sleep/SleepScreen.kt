@@ -26,6 +26,7 @@ import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
+import com.kevan.hangry.ui.components.PastDayNote
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -144,12 +145,16 @@ fun SleepScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            PastDayNote(date = uiState.selectedDate)
             if (uiState.isPendingSleepData) {
                 HangryPendingNotice(
                     message = "Log last night's sleep to see today's insights.",
                     details = "Log last night's sleep to see your sleep score, architecture, and insights for today.",
                     dashMood = DashMood.SLEEPY
                 )
+            } else if (sleepMin <= 0) {
+                // A past day with nothing logged - say so rather than showing empty cards.
+                DashNote(mood = DashMood.SLEEPY, text = "No sleep was recorded for this day. Tap + to log it.")
             } else {
                 val performance = analysis?.sleepPerformancePercentage
                 DashNote(
@@ -174,7 +179,7 @@ fun SleepScreen(
                             color = tokens.textSecondary
                         )
                         Text(
-                            text = stringResource(R.string.sleep_target_label, 8),
+                            text = "Target ${formatGoal(uiState.sleepGoalMinutes)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -207,9 +212,9 @@ fun SleepScreen(
                     HangryCard(modifier = Modifier.weight(1f)) {
                         Text(text = "Time in Bed", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
-                        val inBed = analysis?.timeInBedMinutes ?: (sleepMin + 20)
+                        val inBed = analysis?.timeInBedMinutes
                         Text(
-                            text = "${inBed / 60}h ${inBed % 60}m",
+                            text = inBed?.let { "${it / 60}h ${it % 60}m" } ?: "—",
                             style = MaterialTheme.typography.headlineSmall,
                             color = tokens.textPrimary
                         )
@@ -241,30 +246,32 @@ fun SleepScreen(
                             )
                             HangryInfoIconButton(title = "Sleep Guidance", sections = SLEEP_COACH_SECTIONS, compact = true)
                         }
-                        val quality = analysis?.sleepQualityScore ?: 70
-                        val qualityColor = when {
-                            quality >= 85 -> tokens.scoreColors.primed
-                            quality >= 65 -> tokens.scoreColors.balanced
-                            else -> tokens.scoreColors.rebuild
-                        }
-                        Surface(
-                            color = qualityColor.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = "Quality $quality/100",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = qualityColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        // Quality needs stages, time in bed or a few nights of history.
+                        analysis?.sleepQualityScore?.let { quality ->
+                            val qualityColor = when {
+                                quality >= 85 -> tokens.scoreColors.primed
+                                quality >= 65 -> tokens.scoreColors.balanced
+                                else -> tokens.scoreColors.rebuild
+                            }
+                            Surface(
+                                color = qualityColor.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "Quality $quality/100",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = qualityColor,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
-                    val need = analysis?.sleepNeedMinutes ?: 480
-                    val performance = analysis?.sleepPerformancePercentage ?: 100
+                    val need = analysis?.sleepNeedMinutes ?: uiState.sleepGoalMinutes
+                    val performance = analysis?.sleepPerformancePercentage
                     Text(
-                        text = "Tonight's need: ${need / 60}h ${need % 60}m · $performance% met last night",
+                        text = "Tonight's need: ${need / 60}h ${need % 60}m" + (performance?.let { " · $it% met last night" } ?: ""),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary
                     )
@@ -282,13 +289,26 @@ fun SleepScreen(
                     }
                 }
 
-                // Sleep Architecture & Stages Breakdown
-                val deep = analysis?.deepSleepMinutes ?: 0
-                val rem = analysis?.remSleepMinutes ?: 0
-                val light = analysis?.lightSleepMinutes ?: 0
-                val awake = analysis?.awakeMinutes ?: 0
+                // Sleep Architecture & Stages Breakdown - only when the device recorded stages.
+                val deepRecorded = analysis?.deepSleepMinutes
+                val remRecorded = analysis?.remSleepMinutes
+                if (deepRecorded == null || remRecorded == null) {
+                    HangryCard {
+                        Text("Sleep stages", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Your device didn't record sleep stages for this night. A watch or ring that tracks sleep adds deep, REM and light sleep here.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textSecondary
+                        )
+                    }
+                } else {
+                val deep = deepRecorded
+                val rem = remRecorded
+                val light = analysis.lightSleepMinutes ?: 0
+                val awake = analysis.awakeMinutes ?: 0
                 val totalStageMinutes = maxOf(1, deep + rem + light + awake)
-                val restorativePct = analysis?.restorativePercentage ?: 0
+                val restorativePct = analysis.restorativePercentage ?: 0
 
                 HangryCard {
                     Row(
@@ -331,7 +351,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(deep.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF0C6FF9), RoundedCornerShape(topStart = 7.dp, bottomStart = 7.dp))
+                                    .background(tokens.chartColors.sleepDeep, RoundedCornerShape(topStart = 7.dp, bottomStart = 7.dp))
                             )
                         }
                         if (rem > 0) {
@@ -339,7 +359,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(rem.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF00A4FF))
+                                    .background(tokens.chartColors.sleepRem)
                             )
                         }
                         if (light > 0) {
@@ -347,7 +367,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(light.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF7DBBFF))
+                                    .background(tokens.chartColors.sleepLight)
                             )
                         }
                         if (awake > 0) {
@@ -355,7 +375,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(awake.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFFFF7E1D), RoundedCornerShape(topEnd = 7.dp, bottomEnd = 7.dp))
+                                    .background(tokens.chartColors.sleepAwake, RoundedCornerShape(topEnd = 7.dp, bottomEnd = 7.dp))
                             )
                         }
                     }
@@ -363,32 +383,33 @@ fun SleepScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     SleepStageRow(
-                        color = Color(0xFF0C6FF9),
+                        color = tokens.chartColors.sleepDeep,
                         name = "Deep Sleep",
                         durationMinutes = deep,
                         percentage = (deep.toDouble() / totalStageMinutes * 100).toInt()
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                     SleepStageRow(
-                        color = Color(0xFF00A4FF),
+                        color = tokens.chartColors.sleepRem,
                         name = "REM Sleep",
                         durationMinutes = rem,
                         percentage = (rem.toDouble() / totalStageMinutes * 100).toInt()
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                     SleepStageRow(
-                        color = Color(0xFF7DBBFF),
+                        color = tokens.chartColors.sleepLight,
                         name = "Light Sleep",
                         durationMinutes = light,
                         percentage = (light.toDouble() / totalStageMinutes * 100).toInt()
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                     SleepStageRow(
-                        color = Color(0xFFFF7E1D),
+                        color = tokens.chartColors.sleepAwake,
                         name = "Awake / Restless",
                         durationMinutes = awake,
                         percentage = (awake.toDouble() / totalStageMinutes * 100).toInt()
                     )
+                }
                 }
             }
 
@@ -402,8 +423,8 @@ fun SleepScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "7-Day Average", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    val avg7 = analysis?.sevenDayAverageMinutes ?: 480
-                    Text(text = "${avg7 / 60}h ${avg7 % 60}m", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    val avg7 = analysis?.sevenDayAverageMinutes
+                    Text(text = avg7?.let { "${it / 60}h ${it % 60}m" } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -413,8 +434,8 @@ fun SleepScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "30-Day Average", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    val avg30 = analysis?.thirtyDayAverageMinutes ?: 480
-                    Text(text = "${avg30 / 60}h ${avg30 % 60}m", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    val avg30 = analysis?.thirtyDayAverageMinutes
+                    Text(text = avg30?.let { "${it / 60}h ${it % 60}m" } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -424,7 +445,12 @@ fun SleepScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "Consistency Index", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    Text(text = "${analysis?.consistencyPercentage ?: 85}%", style = MaterialTheme.typography.titleMedium, color = tokens.scoreColors.primed)
+                    val consistency = analysis?.consistencyPercentage
+                    Text(
+                        text = consistency?.let { "$it%" } ?: "Needs 3 nights",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (consistency != null) tokens.scoreColors.primed else tokens.textMuted
+                    )
                 }
             }
         }
@@ -549,3 +575,5 @@ private fun SleepStageRow(
         }
     }
 }
+
+private fun formatGoal(minutes: Int): String = if (minutes % 60 == 0) "${minutes / 60}h" else "${minutes / 60}h ${minutes % 60}m"

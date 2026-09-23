@@ -27,6 +27,7 @@ import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
+import com.kevan.hangry.ui.components.PastDayNote
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -124,6 +125,8 @@ fun HeartMetricsScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            item { PastDayNote(date = uiState.selectedDate) }
+
             // Dash holds the beating heart when HRV is at or above your normal.
             if (hasHrvBaseline && currentHrv != null && currentHrv >= hrvMean) {
                 item {
@@ -163,7 +166,7 @@ fun HeartMetricsScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (hasRhrBaseline) "14d Avg: ${rhrMean.toInt()} bpm" else "Resting Baseline",
+                            text = if (hasRhrBaseline) "28-day avg: ${rhrMean.toInt()} bpm" else "Resting Baseline",
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -192,7 +195,7 @@ fun HeartMetricsScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (hasHrvBaseline) "14d Avg: ${hrvMean.toInt()} ms" else "RMSSD Metric",
+                            text = if (hasHrvBaseline) "28-day avg: ${hrvMean.toInt()} ms" else "RMSSD Metric",
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -368,9 +371,9 @@ fun HeartMetricsScreen(
 
                         val rhrDelta = currentRhr - rhrMean
                         val rhrExplanation = when {
-                            rhrDelta < -2.0 -> String.format(Locale.US, "%.1f bpm below your 14-day average (%d bpm).", kotlin.math.abs(rhrDelta), rhrMean.toInt())
-                            rhrDelta > 2.0 -> String.format(Locale.US, "%.1f bpm above your 14-day average (%d bpm).", rhrDelta, rhrMean.toInt())
-                            else -> String.format(Locale.US, "Within 1 bpm of your 14-day average (%d bpm).", rhrMean.toInt())
+                            rhrDelta < -2.0 -> String.format(Locale.US, "%.1f bpm below your 28-day average (%d bpm).", kotlin.math.abs(rhrDelta), rhrMean.toInt())
+                            rhrDelta > 2.0 -> String.format(Locale.US, "%.1f bpm above your 28-day average (%d bpm).", rhrDelta, rhrMean.toInt())
+                            else -> String.format(Locale.US, "Within 1 bpm of your 28-day average (%d bpm).", rhrMean.toInt())
                         }
 
                         Text(
@@ -395,10 +398,12 @@ fun HeartMetricsScreen(
             if (rhrList.isEmpty()) {
                 item {
                     HangryCard {
-                        Text(
-                            text = "No readings yet.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary
+                        DashEmptyState(
+                            scene = DashEmptyScene.HRV,
+                            title = "No resting heart rate yet",
+                            body = "A watch or ring that reports resting heart rate to Health Connect fills this in.",
+                            imageSize = 120.dp,
+                            modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
                 }

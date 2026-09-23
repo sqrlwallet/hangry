@@ -25,8 +25,8 @@ android {
         applicationId = "com.kevan.hangry"
         minSdk = 28
         targetSdk = 35
-        versionCode = 18
-        versionName = "1.16.0"
+        versionCode = 19
+        versionName = "1.17.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,7 +44,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 shrinking: drops unused code (most of the Material icons library) and
+            // resources - takes the APK from ~55 MB to a fraction of that.
+            isMinifyEnabled = true
+            isShrinkResources = true
             // Without an upload key, release builds fall back to the debug key so sideloadable
             // APKs still build - Play rejects debug-signed uploads, so nothing ships by mistake.
             signingConfig = if (releaseStoreFile != null) {

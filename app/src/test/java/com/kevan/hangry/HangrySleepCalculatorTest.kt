@@ -103,7 +103,7 @@ class HangrySleepCalculatorTest {
             "Sleep need must increase after a debt-carrying, high-strain previous day",
             withDebtAndStrain.sleepNeedMinutes > baseline.sleepNeedMinutes
         )
-        assertTrue(withDebtAndStrain.sleepPerformancePercentage <= baseline.sleepPerformancePercentage)
+        assertTrue(withDebtAndStrain.sleepPerformancePercentage!! <= baseline.sleepPerformancePercentage!!)
     }
 
     @Test
@@ -168,7 +168,7 @@ class HangrySleepCalculatorTest {
 
         assertTrue(
             "Efficient, restorative sleep must score higher quality than fragmented sleep",
-            goodAnalysis.sleepQualityScore > fragmentedAnalysis.sleepQualityScore
+            goodAnalysis.sleepQualityScore!! > fragmentedAnalysis.sleepQualityScore!!
         )
         assertTrue(goodAnalysis.sleepQualityScore in 0..100)
         assertTrue(fragmentedAnalysis.sleepQualityScore in 0..100)
@@ -182,10 +182,43 @@ class HangrySleepCalculatorTest {
             startTime = now.minus(8, ChronoUnit.HOURS),
             endTime = now,
             durationMinutes = 480,
-            timeInBedMinutes = null
+            timeInBedMinutes = null,
+            deepSleepMinutes = 90,
+            remSleepMinutes = 110
         )
         val analysis = calculator.analyzeSleep(session, emptyList())
         assertTrue(analysis.sleepQualityScore in 0..100)
+    }
+
+    @Test
+    fun testNothingMeasured_leavesStagesQualityAndAveragesUnknown() {
+        val now = Instant.now()
+        // A manually logged night: only a duration, no stages, no time in bed, no history.
+        val session = SleepSessionEntity(
+            recordFingerprint = "manual",
+            startTime = now.minus(8, ChronoUnit.HOURS),
+            endTime = now,
+            durationMinutes = 450
+        )
+        val analysis = calculator.analyzeSleep(session, emptyList())
+        assertNull(analysis.deepSleepMinutes)
+        assertNull(analysis.remSleepMinutes)
+        assertNull(analysis.restorativePercentage)
+        assertNull(analysis.sleepQualityScore)
+        assertNull(analysis.consistencyPercentage)
+        assertNull(analysis.sevenDayAverageMinutes)
+        assertNull(analysis.thirtyDayAverageMinutes)
+        // Need still has a meaning without history: the target.
+        assertEquals(480, analysis.sleepNeedMinutes)
+    }
+
+    @Test
+    fun testSleepGoal_drivesNeedWithoutHistory() {
+        val now = Instant.now()
+        val session = SleepSessionEntity(recordFingerprint = "goal", startTime = now.minus(7, ChronoUnit.HOURS), endTime = now, durationMinutes = 420)
+        val analysis = calculator.analyzeSleep(session, emptyList(), targetDurationMinutes = 420)
+        assertEquals(420, analysis.sleepNeedMinutes)
+        assertEquals(100, analysis.sleepPerformancePercentage)
     }
 
     @Test

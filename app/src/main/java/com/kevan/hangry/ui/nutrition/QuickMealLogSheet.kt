@@ -69,6 +69,7 @@ fun QuickMealLogSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = HangryTokens.Spacing.xl)
                 .verticalScroll(rememberScrollState()),

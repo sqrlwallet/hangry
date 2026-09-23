@@ -64,11 +64,8 @@ fun DashboardScreen(
     onNavigateToSleep: () -> Unit,
     onNavigateToTraining: () -> Unit,
     onNavigateToHeartMetrics: () -> Unit,
-    onNavigateToTrends: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToNutrition: () -> Unit,
-    onNavigateToPosture: () -> Unit,
-    onNavigateToAiCoach: () -> Unit = {},
     onNavigateToBodyFatCalculator: () -> Unit = {},
     onNavigateToBodyMetrics: () -> Unit = onNavigateToBodyFatCalculator,
     breathingStats: BreathingStats = BreathingStats(),
@@ -352,9 +349,13 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val syncTime = uiState.lastSyncFormatted ?: "Just now"
+                val syncTime = uiState.lastSyncFormatted
                 Text(
-                    text = stringResource(R.string.sync_success, syncTime),
+                    text = when {
+                        uiState.isSyncing -> "Syncing…"
+                        syncTime != null -> stringResource(R.string.sync_success, syncTime)
+                        else -> "Not synced yet"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
@@ -443,6 +444,9 @@ private fun HeartMetricsRow(
                 style = MaterialTheme.typography.headlineMedium,
                 color = tokens.chartColors.restingHeartRate
             )
+            if (rhr == null) {
+                Text("No reading yet", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            }
         }
 
         HangryCard(
@@ -466,6 +470,9 @@ private fun HeartMetricsRow(
                 style = MaterialTheme.typography.headlineMedium,
                 color = tokens.chartColors.hrv
             )
+            if (hrv == null) {
+                Text("Not every device reports HRV", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            }
         }
     }
 }

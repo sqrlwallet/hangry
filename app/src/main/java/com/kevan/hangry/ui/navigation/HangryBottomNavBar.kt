@@ -196,13 +196,7 @@ fun HangryBottomNavBar(
                             onClick = {
                                 if (!selected) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    navController.navigate(destination.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                                    navController.navigateToTab(destination.route)
                                 }
                             }
                         )

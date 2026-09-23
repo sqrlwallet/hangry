@@ -46,7 +46,8 @@ fun DateNavigatorBar(
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
-    val today = remember { LocalDate.now() }
+    // Rolls over at midnight, so "Today" never ends up labelling yesterday.
+    val today = rememberToday()
     val isToday = selectedDate == today
     val isYesterday = selectedDate == today.minusDays(1)
     val canGoForward = selectedDate < today

@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand palette — keep in sync with ui/theme/Color.kt -->
-    <color name="brand_pumpkin">#FFFF7E1D</color>
-    <color name="brand_ship_gray">#FF413D45</color>
-    <color name="brand_blue_ribbon">#FF0C6FF9</color>
-    <color name="brand_supernova">#FFFFCE00</color>
-    <color name="brand_azure">#FF00A4FF</color>
-    <color name="brand_green_haze">#FF01A652</color>
     <color name="brand_cream">#FFF9F4F2</color>
 
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
 </resources>

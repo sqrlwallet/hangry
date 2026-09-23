@@ -18,6 +18,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -33,15 +37,31 @@ object HangryWidgetUpdater {
     private const val REQUEST_CODE_OVERVIEW = 105
     private const val REQUEST_CODE_SUPPLEMENTS = 106
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var pending: Job? = null
+
+    /**
+     * Refreshes every widget. Calls that arrive close together (each pinned widget type's
+     * periodic update, leaving the app, a sync finishing) collapse into a single refresh.
+     */
     fun updateAllWidgets(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                updateAllWidgetsInternal(context.applicationContext)
-            } catch (_: Exception) {
-                // Ignore widget update failures to never crash background tasks
+        val appContext = context.applicationContext
+        synchronized(this) {
+            pending?.cancel()
+            pending = scope.launch {
+                delay(DEBOUNCE_MS)
+                try {
+                    updateAllWidgetsInternal(appContext)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // Ignore widget update failures to never crash background tasks
+                }
             }
         }
     }
+
+    private const val DEBOUNCE_MS = 750L
 
     suspend fun updateAllWidgetsInternal(context: Context) {
         val app = context.applicationContext as? HangryApplication ?: return
@@ -49,11 +69,9 @@ object HangryWidgetUpdater {
         val appWidgetManager = AppWidgetManager.getInstance(context) ?: return
 
         val today = LocalDate.now(ZoneId.systemDefault())
+        // Today only: an older day's score or steps would read as today's on the home screen.
         val summary = container.dailySummaryRepository.getSummaryForDateSync(today)
-            ?: container.dailySummaryRepository.getLatestSummary().firstOrNull()
-
         val recovery = container.dailySummaryRepository.getRecoveryScoreForDateSync(today)
-            ?: container.dailySummaryRepository.getLatestRecoveryScore().firstOrNull()
 
         val latestSleep = container.sleepRepository.getLatestSession().firstOrNull()
 

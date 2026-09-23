@@ -72,9 +72,6 @@ fun SettingsScreen(
     onNavigateToHistoricalSync: () -> Unit,
     onNavigateToDataSources: () -> Unit,
     onNavigateToPrivacyPolicy: () -> Unit = {},
-    onNavigateToHomeScreenWidgets: () -> Unit = {},
-    onNavigateToBodyFatCalculator: () -> Unit = {},
-    onNavigateToHealthRecords: () -> Unit = {},
     onResetToWelcome: () -> Unit,
     modifier: Modifier = Modifier,
     /** Opened from an "Open AI Settings" link: start with AI Features expanded and in view. */
@@ -255,32 +252,10 @@ fun SettingsScreen(
                     info = "Age, sex, height, current & goal weight, circumferences",
                     onClick = { showEditGoalsDialog = true }
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-                SettingsActionRow(
-                    icon = Icons.Default.AccessibilityNew,
-                    title = "AI Body Fat & Composition",
-                    subtitle = "Photos & tape measurements",
-                    info = "Calculate body fat % via photos & tape circumferences",
-                    onClick = onNavigateToBodyFatCalculator
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-                SettingsActionRow(
-                    icon = Icons.Default.MonitorHeart,
-                    title = "Health Records",
-                    subtitle = "Blood pressure, labs, allergies & goals",
-                    info = "Track blood pressure, blood sugar, cholesterol and testosterone, set goals, and add allergies and conditions - for your own tracking, not medical advice",
-                    onClick = onNavigateToHealthRecords
-                )
             }
 
+            // Body fat, health records and widgets live in the More tab; only privacy stays here.
             HangryCard {
-                SettingsActionRow(
-                    icon = Icons.Default.Widgets,
-                    title = "Home Screen Widgets",
-                    subtitle = "Pin widgets to your home screen",
-                    onClick = onNavigateToHomeScreenWidgets
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 // Privacy & Legal - kept to a single link rather than duplicating the wellness/
                 // non-medical notice here too; that disclosure already lives on the same screen.
                 SettingsActionRow(
@@ -625,6 +600,9 @@ private fun EditGoalsDialog(
     var heightInput by remember { mutableStateOf(profile?.heightCm?.toInt()?.toString() ?: "") }
     var currentWeightInput by remember { mutableStateOf(initialWeightKg?.toString() ?: profile?.currentWeightKg?.toString() ?: "") }
     var weightGoalInput by remember { mutableStateOf(profile?.weightGoalKg?.toString() ?: "") }
+    var sleepGoalInput by remember {
+        mutableStateOf(((profile?.sleepGoalMinutes ?: 480) / 60.0).let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() })
+    }
     var selectedSex by remember { mutableStateOf(profile?.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() }) }
     var targetDate by remember { mutableStateOf(profile?.goalTargetDate) }
     var neckInput by remember { mutableStateOf(profile?.neckCircumferenceCm?.toString() ?: "") }
@@ -720,6 +698,15 @@ private fun EditGoalsDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                OutlinedTextField(
+                    value = sleepGoalInput,
+                    onValueChange = { sleepGoalInput = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text("Sleep goal (hours)") },
+                    supportingText = { Text("Used for sleep need, debt and your target") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 OutlinedButton(
                     onClick = { showDatePicker = true },
                     modifier = Modifier.fillMaxWidth()
@@ -787,6 +774,8 @@ private fun EditGoalsDialog(
                         heightCm = heightInput.toDoubleOrNull(),
                         currentWeightKg = parsedCurrentWeight,
                         weightGoalKg = weightGoalInput.toDoubleOrNull(),
+                        sleepGoalMinutes = sleepGoalInput.toDoubleOrNull()
+                            ?.let { (it * 60).toInt().coerceIn(240, 720) } ?: (profile?.sleepGoalMinutes ?: 480),
                         goalTargetDate = targetDate,
                         neckCircumferenceCm = neckInput.toDoubleOrNull(),
                         chestCircumferenceCm = chestInput.toDoubleOrNull(),

@@ -39,7 +39,7 @@
             android:paddingVertical="2dp"
             android:text=""
             android:textColor="#F7931E"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 

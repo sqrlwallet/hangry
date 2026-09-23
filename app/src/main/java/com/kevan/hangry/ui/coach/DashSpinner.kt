@@ -8,7 +8,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
@@ -35,13 +37,15 @@ fun DashSpinner(
     contentDescription: String? = "Loading"
 ) {
     val spin = rememberInfiniteTransition(label = "dashSpinner")
-    val step by spin.animateFloat(
+    val step = spin.animateFloat(
         initialValue = 0f,
         targetValue = DASH_SPIN_FRAMES.size.toFloat(),
         animationSpec = infiniteRepeatable(tween(durationMillis = 780, easing = LinearEasing)),
         label = "dashSpinnerStep"
     )
-    val (frame, mirrored) = DASH_SPIN_FRAMES[step.toInt() % DASH_SPIN_FRAMES.size]
+    // Recompose only when the frame changes (~8 times a second), not on every animation tick.
+    val frameIndex by remember { derivedStateOf { step.value.toInt() % DASH_SPIN_FRAMES.size } }
+    val (frame, mirrored) = DASH_SPIN_FRAMES[frameIndex]
     Image(
         painter = painterResource(frame),
         contentDescription = null,

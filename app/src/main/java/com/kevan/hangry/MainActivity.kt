@@ -20,6 +20,7 @@ import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.navigation.rememberDockInset
 import com.kevan.hangry.ui.navigation.Screen
 import com.kevan.hangry.ui.theme.HangryTheme
+import com.kevan.hangry.util.OnboardingFlag
 
 class MainActivity : ComponentActivity() {
 
@@ -35,22 +36,22 @@ class MainActivity : ComponentActivity() {
             quickLogTrigger = true
         }
 
-        // Detail screens opened from a notification/widget sit on top of Today, so Back lands
-        // somewhere sensible instead of closing the app.
-        val requested = getDestinationFromIntent(intent)
-        val deepLinkOnTop = requested?.takeIf { route -> STACKED_DEEP_LINKS.any { route.substringBefore('?') == it } }
-        val initialDestination = requested?.takeIf { deepLinkOnTop == null }
-        val startDestination = initialDestination ?: runCatching {
-            kotlinx.coroutines.runBlocking {
-                if (appContainer.userProfileRepository.getProfileSync()?.onboardingCompleted == true) {
-                    Screen.Dashboard.route
-                } else {
-                    Screen.Welcome.route
-                }
-            }
+        // Start on Today (or Welcome before onboarding) from a cached flag - no waiting on the
+        // database. The database is only consulted once, the first launch after the flag existed.
+        val onboarded = OnboardingFlag.get(this) ?: runCatching {
+            kotlinx.coroutines.runBlocking { appContainer.userProfileRepository.getProfileSync()?.onboardingCompleted == true }
         }.getOrElse {
-            android.util.Log.e("MainActivity", "Failed to determine initial destination, falling back to Welcome", it)
-            Screen.Welcome.route
+            android.util.Log.e("MainActivity", "Couldn't read onboarding state, falling back to Welcome", it)
+            false
+        }.also { OnboardingFlag.set(this, it) }
+        val startDestination = if (onboarded) Screen.Dashboard.route else Screen.Welcome.route
+
+        // A widget/notification destination always opens on top of the start screen, so Back
+        // lands on Today instead of a blank screen. Before onboarding, only the privacy policy
+        // (which Health Connect can ask to show) is allowed through.
+        val requested = getDestinationFromIntent(intent)
+        val deepLinkOnTop = requested?.takeIf { route ->
+            route != Screen.Dashboard.route && (onboarded || route == Screen.PrivacyPolicy.route)
         }
 
         setContent {
@@ -58,7 +59,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 activeNavController = navController
                 LaunchedEffect(Unit) {
-                    if (deepLinkOnTop != null && startDestination == Screen.Dashboard.route) {
+                    if (deepLinkOnTop != null) {
                         navController.navigate(deepLinkOnTop)
                     }
                 }
@@ -106,19 +107,6 @@ class MainActivity : ComponentActivity() {
         if (destination != null) {
             activeNavController?.navigate(destination)
         }
-    }
-
-    private companion object {
-        /** Base routes (before any `?args`) that open on top of Today instead of replacing it. */
-        val STACKED_DEEP_LINKS = setOf(
-            Screen.Supplements.route,
-            "breathing",
-            Screen.HeartMetrics.route,
-            Screen.HealthRecords.route,
-            Screen.Trends.route,
-            Screen.Posture.route,
-            Screen.PostureCapture.route
-        )
     }
 
     private fun getDestinationFromIntent(intent: Intent?): String? {

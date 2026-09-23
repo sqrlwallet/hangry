@@ -34,6 +34,8 @@ data class UserProfileEntity(
     val preferredCoachModel: String? = null,
     val dailyStepGoal: Long = 6000L,
     val dailyActivityMinutesGoal: Int = 90,
+    /** How long the user aims to sleep; drives sleep need, debt and the Sleep screen target. */
+    val sleepGoalMinutes: Int = 480,
     val dailyActiveCaloriesGoal: Int = 500,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now()

@@ -39,6 +39,8 @@ import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.DailySummaryRepository
 import com.kevan.hangry.domain.repository.FoodLogRepository
 import com.kevan.hangry.domain.repository.WorkoutRepository
+import com.kevan.hangry.ui.components.DashEmptyScene
+import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.DayDetailSheet
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoTip
@@ -246,7 +248,7 @@ fun TrendsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Wellness Trends & Past Data") },
+                title = { Text("Trends") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -274,7 +276,11 @@ fun TrendsScreen(
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding())
                 .padding(horizontal = HangryTokens.Spacing.m),
-            contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 32.dp),
+            // Clear of the system navigation bar (3-button nav is 48dp tall).
+            contentPadding = PaddingValues(
+                top = HangryTokens.Spacing.s,
+                bottom = 32.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            ),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             // 1. Timeframe Segmented Switcher
@@ -841,7 +847,7 @@ fun TrendsScreen(
                         )
                         HangryInfoTip(
                             title = "Daily Biometric History",
-                            body = "Tap any day to inspect full telemetry or open in dashboard."
+                            body = "Tap any day to see its details or open it on Today."
                         )
                     }
 
@@ -912,40 +918,13 @@ fun TrendsScreen(
 
             if (filteredHistoryDates.isEmpty()) {
                 item {
-                    HangryCard(
-                        cornerRadius = HangryTokens.CornerRadii.large,
-                        contentPadding = HangryTokens.Spacing.m
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(tokens.chartColors.hrv.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                    contentDescription = null,
-                                    tint = tokens.chartColors.hrv,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "No records matching this filter",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = tokens.textPrimary
-                                )
-                                Text(
-                                    text = "Sync daily to build your history",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = tokens.textMuted
-                                )
-                            }
-                        }
+                    HangryCard(cornerRadius = HangryTokens.CornerRadii.large) {
+                        DashEmptyState(
+                            scene = DashEmptyScene.RECORDS,
+                            title = "No history for this range yet",
+                            body = "Days appear here once they sync from Health Connect.",
+                            modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
+                        )
                     }
                 }
             } else {

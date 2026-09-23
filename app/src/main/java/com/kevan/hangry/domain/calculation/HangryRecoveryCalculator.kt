@@ -81,9 +81,23 @@ class HangryRecoveryCalculator : RecoveryCalculator {
             clampScore(65.0 + (ratio - 1.0) * 90.0)
         } else null
 
-        // 4. Training Load & Consistency Component
-        val consistency = currentDayMetrics.sleepConsistencyPercentage ?: 80
-        val loadScore: Double = clampScore((consistency * 0.7) + 15.0)
+        // A day with no sleep, resting heart rate or HRV has nothing to score. The assumed-HRV
+        // rule below only fills a gap next to real readings - it can't stand in for all of them.
+        if (hrvScore == null && rhrScore == null && sleepScore == null) {
+            return RecoveryResult(
+                score = null,
+                confidence = ScoreConfidence.LOW,
+                state = RecoveryState.BUILDING_BASELINE,
+                supportiveAdvice = "No sleep or heart readings for this day yet.",
+                baselineDaysCount = usableHistory.size,
+                positiveContributors = emptyList(),
+                negativeContributors = emptyList(),
+                algorithmVersion = config.algorithmVersion
+            )
+        }
+
+        // 4. Training Load & Consistency Component - only when consistency is actually known.
+        val loadScore: Double? = currentDayMetrics.sleepConsistencyPercentage?.let { clampScore((it * 0.7) + 15.0) }
 
         // Dynamic re-weighting based on available components (NEVER substitute missing data with zero).
         // HRV is the exception: when it isn't available it counts as an excellent day (config.assumedHrvScore).
@@ -101,9 +115,10 @@ class HangryRecoveryCalculator : RecoveryCalculator {
             weightedSum += sleepScore * config.sleepWeight
             totalWeight += config.sleepWeight
         }
-        // Load weight
-        weightedSum += loadScore * config.loadWeight
-        totalWeight += config.loadWeight
+        if (loadScore != null) {
+            weightedSum += loadScore * config.loadWeight
+            totalWeight += config.loadWeight
+        }
 
         val rawFinalScore = if (totalWeight > 0.0) weightedSum / totalWeight else 50.0
         val finalScore = clampIntScore(rawFinalScore.roundToInt())

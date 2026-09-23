@@ -24,6 +24,7 @@ import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.components.HangryScoreHero
+import com.kevan.hangry.ui.components.PastDayNote
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -91,6 +92,7 @@ fun RecoveryDetailsScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            PastDayNote(date = uiState.selectedDate)
             // Hero Score
             HangryScoreHero(scoreEntity = scoreEntity, isPending = isPending)
 

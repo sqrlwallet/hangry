@@ -106,7 +106,8 @@ fun WelcomeScreen(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.hangry_logo),
-                        contentDescription = stringResource(R.string.app_name),
+                        // The app name is written right next to it; don't read it twice.
+                        contentDescription = null,
                         modifier = Modifier.size(38.dp)
                     )
                     Text(

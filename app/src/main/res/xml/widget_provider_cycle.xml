@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 30 min refresh so "today" rolls over; the app also refreshes widgets when it goes to the background. -->
+<!-- Hourly refresh so "today" rolls over; the app also refreshes widgets after syncs and when it goes to the background. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_cycle_description"
     android:initialLayout="@layout/widget_cycle"
@@ -9,5 +9,5 @@
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
-    android:updatePeriodMillis="1800000"
+    android:updatePeriodMillis="3600000"
     android:widgetCategory="home_screen" />

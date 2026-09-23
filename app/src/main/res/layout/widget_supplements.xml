@@ -30,6 +30,15 @@
             android:textStyle="bold"
             android:letterSpacing="0.05" />
 
+        <ImageView
+            android:id="@+id/iv_supplements_dash"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/dash_mood_happy"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
         <TextView
             android:id="@+id/tv_supplements_count"
             android:layout_width="wrap_content"

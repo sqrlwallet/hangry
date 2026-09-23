@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.domain.model.BodyMetric
 import com.kevan.hangry.domain.model.MetricBand
 import com.kevan.hangry.domain.model.MetricTone
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.MetricBandTable
 import com.kevan.hangry.ui.components.MetricInfoBlock
@@ -86,7 +87,7 @@ fun BodyMetricsScreen(
     ) { innerPadding ->
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                DashSpinner(size = 96.dp)
             }
             return@Scaffold
         }

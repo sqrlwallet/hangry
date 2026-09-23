@@ -274,39 +274,14 @@ fun AiCoachScreen(
                 }
             }
 
-            // Error banner if any
+            // Error banner if any - a worried Dash with what went wrong.
             uiState.errorMessage?.let { err ->
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(HangryTokens.CornerRadii.small),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = HangryTokens.Spacing.m, vertical = 4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = err,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = { viewModel.dismissError() },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Dismiss",
-                                tint = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
+                DashAlertCard(
+                    title = "$MASCOT_NAME couldn't reply",
+                    message = err,
+                    onDismiss = { viewModel.dismissError() },
+                    modifier = Modifier.padding(horizontal = HangryTokens.Spacing.m, vertical = 4.dp)
+                )
             }
 
             // Main chat area

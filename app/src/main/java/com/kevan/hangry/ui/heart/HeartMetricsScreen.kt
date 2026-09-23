@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.heart
 
+import com.kevan.hangry.ui.coach.DashMood
+import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.compose.foundation.background
@@ -122,6 +124,16 @@ fun HeartMetricsScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
+            // Dash holds the beating heart when HRV is at or above your normal.
+            if (hasHrvBaseline && currentHrv != null && currentHrv >= hrvMean) {
+                item {
+                    DashNote(
+                        mood = DashMood.HEART,
+                        text = "Your HRV of ${currentHrv.toInt()} ms is at or above your normal of ${hrvMean.toInt()} ms. Your body is well recovered."
+                    )
+                }
+            }
+
             // Heart Metrics Dual Hero Card
             item {
                 Row(

@@ -1,5 +1,9 @@
 package com.kevan.hangry.ui.healthrecords
 
+import androidx.compose.ui.platform.LocalContext
+import com.kevan.hangry.ui.coach.Celebrations
+import com.kevan.hangry.ui.coach.DashCelebration
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -69,6 +73,23 @@ fun HealthRecordsScreen(
     modifier: Modifier = Modifier
 ) {
     val records by viewModel.records.collectAsState()
+
+    // A marker goal gets one confetti moment when a reading first reaches it.
+    val context = LocalContext.current
+    var celebration by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(records) {
+        val reached = records.goals.filter { goal ->
+            goal.type.isVisibleFor(records.sex) &&
+                HealthMarkerCalculator.progress(goal, records.latest(goal.type)).reached &&
+                Celebrations.claim(context, "marker_goal_${goal.type.id}_${goal.targetValue}_${goal.targetSecondary}")
+        }
+        if (reached.isNotEmpty()) {
+            celebration = "You reached your ${reached.joinToString(" and ") { it.type.label.lowercase() }} goal."
+        }
+    }
+    celebration?.let { message ->
+        DashCelebration(title = "Goal reached!", message = message, onDismiss = { celebration = null })
+    }
     val import by viewModel.import.collectAsState()
     val snackbar = remember { SnackbarHostState() }
 
@@ -246,7 +267,7 @@ private fun HealthConnectCard(state: HealthConnectImportState, onConnect: () -> 
                 )
             }
             when {
-                state.isImporting -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                state.isImporting -> DashSpinner(size = 32.dp, contentDescription = "Importing")
                 state.permissionsToRequest.isNotEmpty() -> TextButton(onClick = onConnect) { Text("Allow") }
                 else -> IconButton(onClick = onImport) { Icon(Icons.Default.Sync, contentDescription = "Import now") }
             }

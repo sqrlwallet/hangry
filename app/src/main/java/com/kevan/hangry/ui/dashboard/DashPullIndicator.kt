@@ -21,22 +21,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.kevan.hangry.R
+import com.kevan.hangry.ui.coach.DASH_SPIN_FRAMES
 import com.kevan.hangry.ui.coach.MASCOT_NAME
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlin.math.PI
 import kotlin.math.min
 import kotlin.math.sin
-
-/** One turn of Dash spinning on the spot: front, turning right, back, then round the other side. */
-private val SPIN_FRAMES = listOf(
-    R.drawable.dash_spin_front to false,
-    R.drawable.dash_spin_quarter to false,
-    R.drawable.dash_spin_side to false,
-    R.drawable.dash_spin_back to false,
-    R.drawable.dash_spin_side to true,
-    R.drawable.dash_spin_quarter to true
-)
 
 private val INDICATOR_SIZE = 64.dp
 private val PULL_TRAVEL = 88.dp
@@ -59,11 +49,11 @@ fun DashPullIndicator(
     val spin = rememberInfiniteTransition(label = "dashSpin")
     val step by spin.animateFloat(
         initialValue = 0f,
-        targetValue = SPIN_FRAMES.size.toFloat(),
+        targetValue = DASH_SPIN_FRAMES.size.toFloat(),
         animationSpec = infiniteRepeatable(tween(durationMillis = 780, easing = LinearEasing)),
         label = "dashSpinStep"
     )
-    val (frame, mirrored) = if (isRefreshing) SPIN_FRAMES[step.toInt() % SPIN_FRAMES.size] else SPIN_FRAMES[0]
+    val (frame, mirrored) = if (isRefreshing) DASH_SPIN_FRAMES[step.toInt() % DASH_SPIN_FRAMES.size] else DASH_SPIN_FRAMES[0]
 
     Surface(
         shape = CircleShape,

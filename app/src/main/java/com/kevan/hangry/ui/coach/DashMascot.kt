@@ -18,12 +18,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -357,3 +363,31 @@ private fun FloatingZs(size: Dp, modifier: Modifier = Modifier) {
 }
 
 // endregion
+
+/** Something went wrong: a worried Dash with what happened and how to fix it. */
+@Composable
+fun DashAlertCard(
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null
+) {
+    val tokens = LocalHangryTokens.current
+    HangryCard(modifier = modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top) {
+            DashExpression(mood = DashMood.CONCERNED, size = 64.dp, contentDescription = null)
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(text = message, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                action?.invoke()
+            }
+            if (onDismiss != null) {
+                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = tokens.textMuted, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+}

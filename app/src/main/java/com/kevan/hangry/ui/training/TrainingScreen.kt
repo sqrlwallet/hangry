@@ -24,6 +24,9 @@ import com.kevan.hangry.domain.model.HeartRateZoneDistribution
 import com.kevan.hangry.domain.model.WorkoutText
 import com.kevan.hangry.domain.repository.HeartRateRepository
 import com.kevan.hangry.domain.repository.WorkoutRepository
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
+import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.WorkoutFormat
 import com.kevan.hangry.ui.components.HangryInfoIconButton
@@ -315,14 +318,32 @@ fun TrainingScreen(
             if (workouts.isEmpty()) {
                 item {
                     HangryCard {
-                        Text(
-                            text = stringResource(R.string.training_load_rest_day),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            DashExpression(mood = DashMood.SLEEPY, size = 72.dp, contentDescription = null)
+                            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+                            Text(
+                                text = stringResource(R.string.training_load_rest_day),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = tokens.textSecondary
+                            )
+                        }
                     }
                 }
             } else {
+                // Dash cheers on the day's training.
+                item {
+                    val totalMinutes = workouts.sumOf { it.durationMinutes }
+                    val kcal = workouts.sumOf { ActiveActivityCalculator.workoutCalories(it, bmr = null) ?: 0.0 }
+                    val count = if (workouts.size == 1) "a workout" else "${workouts.size} workouts"
+                    DashNote(
+                        mood = DashMood.CHEER,
+                        text = if (isToday) {
+                            "Nice work! $count today: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
+                        } else {
+                            "${count.replaceFirstChar { it.uppercase() }} this day: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
+                        }
+                    )
+                }
                 items(workouts, key = { it.id }) { workout ->
                     WorkoutItemCard(workout = workout)
                 }

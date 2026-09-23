@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.domain.model.FoodAnalysisResult
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
@@ -264,11 +265,7 @@ fun QuickMealLogSheet(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (isEstimating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = tokens.scoreColors.primed
-                        )
+                        DashSpinner(size = 26.dp, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Estimating with AI...")
                     } else {

@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.domain.model.SyncProgress
 import com.kevan.hangry.domain.model.SyncStatus
 import com.kevan.hangry.domain.repository.HealthSyncManager
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.onboarding.OnboardingStepIndicator
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -84,11 +85,8 @@ fun SyncProgressScreen(
             ) {
                 when (progress.status) {
                     SyncStatus.IN_PROGRESS -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(72.dp),
-                            strokeWidth = 6.dp,
-                            color = tokens.scoreColors.primed
-                        )
+                        // Dash spins while the history comes in.
+                        DashSpinner(size = 120.dp, contentDescription = "Importing")
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
                             text = "Importing Historical Data",

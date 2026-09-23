@@ -368,7 +368,8 @@ class DashboardViewModel(
 
     fun syncNow(days: Int = 30) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSyncing = true, syncStatusMessage = "Syncing health data…") }
+            // A new attempt clears the last sync error card.
+            _uiState.update { it.copy(isSyncing = true, syncStatusMessage = "Syncing health data…", errorMessage = null) }
             healthSyncManager.syncHistorical(days = days).collect { progress ->
                 when (progress.status) {
                     SyncStatus.IN_PROGRESS -> {

@@ -10,6 +10,9 @@ import android.widget.RemoteViews
 import com.kevan.hangry.HangryApplication
 import com.kevan.hangry.MainActivity
 import com.kevan.hangry.R
+import com.kevan.hangry.domain.model.RecoveryState
+import com.kevan.hangry.ui.coach.DashMood
+import com.kevan.hangry.ui.coach.dashMood
 import com.kevan.hangry.ui.navigation.Screen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -161,6 +164,8 @@ object HangryWidgetUpdater {
             views.setTextViewText(R.id.tv_supplements_count, count)
             views.setTextViewText(R.id.tv_supplements_next, headline)
             views.setTextViewText(R.id.tv_supplements_subtitle, subtitle)
+            val allTaken = doses.isNotEmpty() && snapshot.takenToday >= doses.size
+            views.setViewVisibility(R.id.iv_supplements_dash, if (allTaken) View.VISIBLE else View.GONE)
             val clickIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("destination", Screen.Supplements.route)
@@ -245,12 +250,16 @@ object HangryWidgetUpdater {
             else -> "CALIBRATING"
         }
         val adviceStr = recovery?.supportiveAdvice ?: "Calibrating your physiological baseline"
+        val dashMood = recovery?.state
+            ?.let { runCatching { RecoveryState.valueOf(it.uppercase()) }.getOrNull() }
+            ?.dashMood() ?: DashMood.THINKING
 
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_recovery)
             views.setTextViewText(R.id.tv_recovery_score, scoreStr)
             views.setTextViewText(R.id.tv_recovery_badge, badgeStr)
             views.setTextViewText(R.id.tv_recovery_subtitle, adviceStr)
+            views.setImageViewResource(R.id.iv_recovery_dash, dashMood.imageRes)
 
             val clickIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.DateNavigatorBar
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
@@ -262,7 +263,7 @@ fun NutritionScreen(
             if (uiState.isAnalyzing) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        DashSpinner(size = 44.dp, contentDescription = null)
                         Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
                         Text("Analyzing and logging…", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                     }

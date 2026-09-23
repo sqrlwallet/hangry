@@ -1,3 +1,14 @@
+## 🚀 What's New in Hangry v1.16.0
+
+### 🦊 Dash Everywhere
+- **Spinning Dash** is the loader for meal photos, supplement labels, body fat analysis, health record imports and the first history import; a thinking Dash sits on the Log Meal button while a photo is read.
+- **Goal celebrations**: confetti Dash when you hit your active calories, steps or active time goal (once a day each) or reach a health marker goal.
+- **Reactions**: thumbs up when all supplements are taken (also on the widget), a cheer for the day's workouts, a sleepy Dash on rest days and at the top of Sleep, and Dash with the beating heart when your HRV is at or above normal.
+- **Worried Dash** for allergen alerts, failed syncs (now a card that stays until you retry), Ask Dash errors and a missing Health Connect.
+- **Recovery widget** shows the matching Dash, and reminders show Dash's face.
+
+---
+
 ## 🚀 What's New in Hangry v1.15.1
 
 ### ✨ More Room on Today

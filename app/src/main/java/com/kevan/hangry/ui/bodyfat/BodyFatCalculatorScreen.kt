@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.BodyFatCategory
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.BODY_FAT_POSES
 import com.kevan.hangry.ui.components.HangryInfoTip
@@ -539,11 +540,7 @@ fun BodyFatCalculatorScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (uiState.isAiAnalyzing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
-                            )
+                            DashSpinner(size = 28.dp, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Analyzing physique…")
                         } else {

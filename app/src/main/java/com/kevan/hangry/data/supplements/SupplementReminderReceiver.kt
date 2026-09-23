@@ -16,6 +16,7 @@ import com.kevan.hangry.MainActivity
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.SupplementTimes
 import com.kevan.hangry.ui.widget.HangryWidgetUpdater
+import com.kevan.hangry.util.DashNotificationIcon
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,6 +65,7 @@ class SupplementReminderReceiver : BroadcastReceiver() {
         val title = if (due.size == 1) "Time for ${due.first().supplement.name}" else "Time for ${due.size} supplements"
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_supplement)
+            .setLargeIcon(DashNotificationIcon.get(context))
             .setContentTitle(title)
             .setContentText(lines.joinToString(", "))
             .setStyle(NotificationCompat.InboxStyle().also { style -> lines.forEach(style::addLine) })

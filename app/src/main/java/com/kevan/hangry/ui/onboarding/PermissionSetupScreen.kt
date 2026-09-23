@@ -231,11 +231,7 @@ fun PermissionSetupScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = tokens.scoreColors.balanced
-                            )
+                            DashExpression(mood = DashMood.CONCERNED, size = 56.dp, contentDescription = null)
                             Text(
                                 text = "Health Connect needs an update.",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -264,11 +260,7 @@ fun PermissionSetupScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = tokens.scoreColors.buildingBaseline
-                            )
+                            DashExpression(mood = DashMood.CONCERNED, size = 56.dp, contentDescription = null)
                             Text(
                                 text = "Health Connect isn't installed.",
                                 style = MaterialTheme.typography.bodyMedium,

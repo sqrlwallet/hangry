@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +32,11 @@ import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.domain.model.BreathingStats
 import com.kevan.hangry.ui.breathing.BreathingExercisesCard
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
+import com.kevan.hangry.ui.coach.Celebrations
+import com.kevan.hangry.ui.coach.DashAlertCard
+import com.kevan.hangry.ui.coach.DashCelebration
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.healthrecords.HealthRecordsCard
 import com.kevan.hangry.domain.model.SupplementsSnapshot
 import com.kevan.hangry.ui.navigation.LocalDockInset
@@ -46,6 +52,7 @@ import com.kevan.hangry.ui.theme.CtaGradient
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
+import java.time.LocalDate
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,13 +105,27 @@ fun DashboardScreen(
         }
     }
 
-    LaunchedEffect(uiState.errorMessage) {
-        val message = uiState.errorMessage
-        if (message != null) {
-            snackbarHostState.showSnackbar(message)
-            viewModel.clearError()
+    // Goal celebrations: each activity goal gets one confetti moment the day it's reached.
+    val context = LocalContext.current
+    var celebration by remember { mutableStateOf<String?>(null) }
+    val isTodaySelected = uiState.selectedDate == LocalDate.now()
+    LaunchedEffect(isTodaySelected, uiState.isLoading, uiState.todayActiveCalories, uiState.dailySummary?.steps, uiState.todayActiveMinutes) {
+        if (!isTodaySelected || uiState.isLoading) return@LaunchedEffect
+        val day = LocalDate.now()
+        val reached = buildList {
+            if (uiState.todayActiveCalories >= uiState.dailyActiveCaloriesGoal && Celebrations.claim(context, "activity_kcal_$day")) add("active calories")
+            if ((uiState.dailySummary?.steps ?: 0L) >= uiState.dailyStepGoal && Celebrations.claim(context, "activity_steps_$day")) add("steps")
+            if (uiState.todayActiveMinutes >= uiState.dailyActivityMinutesGoal && Celebrations.claim(context, "activity_minutes_$day")) add("active time")
+        }
+        if (reached.isNotEmpty()) {
+            val goals = if (reached.size == 1) reached[0] else reached.dropLast(1).joinToString(", ") + " and " + reached.last()
+            celebration = "You hit your $goals goal${if (reached.size > 1) "s" else ""} today."
         }
     }
+    celebration?.let { message ->
+        DashCelebration(title = "Goal reached!", message = message, onDismiss = { celebration = null })
+    }
+
 
     LaunchedEffect(nutritionUiState?.lastSavedEntry) {
         val saved = nutritionUiState?.lastSavedEntry ?: return@LaunchedEffect
@@ -162,11 +183,8 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (isAnalyzingMeal) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.White
-                        )
+                        // Dash thinks it over while the photo is read.
+                        DashExpression(mood = DashMood.THINKING, size = 30.dp, contentDescription = null, interactive = false)
                     } else {
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
@@ -222,6 +240,15 @@ fun DashboardScreen(
                 selectedDate = uiState.selectedDate,
                 onDateSelected = { date -> viewModel.selectDate(date) }
             )
+
+            // A failed sync stays visible (with a worried Dash) until you retry or dismiss it.
+            uiState.errorMessage?.let { error ->
+                DashAlertCard(
+                    title = "Sync didn't finish",
+                    message = "$error\nPull down to try again.",
+                    onDismiss = { viewModel.clearError() }
+                )
+            }
 
             // Modular Widget Engine: Render active widgets ordered by user preference
             val activeWidgets = (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets())

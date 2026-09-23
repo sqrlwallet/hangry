@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import com.kevan.hangry.HangryApplication
 import com.kevan.hangry.MainActivity
 import com.kevan.hangry.R
+import com.kevan.hangry.util.DashNotificationIcon
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -96,6 +97,7 @@ class BreathingSessionService : Service() {
     private fun buildNotification(title: String, text: String) =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_breathing)
+            .setLargeIcon(DashNotificationIcon.get(this))
             .setContentTitle(title)
             .setContentText(text)
             .setOngoing(true)

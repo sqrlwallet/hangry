@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.domain.repository.SleepRepository
+import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
@@ -150,6 +151,16 @@ fun SleepScreen(
                     dashMood = DashMood.SLEEPY
                 )
             } else {
+                val performance = analysis?.sleepPerformancePercentage
+                DashNote(
+                    mood = DashMood.SLEEPY,
+                    text = when {
+                        performance == null -> "Here's how last night went."
+                        performance >= 95 -> "You got all the sleep you needed. Well rested!"
+                        performance >= 75 -> "You got $performance% of the sleep you needed. Not bad!"
+                        else -> "Only $performance% of the sleep you needed. An early night would help."
+                    }
+                )
                 // Main Sleep Duration Card
                 HangryCard {
                     Row(

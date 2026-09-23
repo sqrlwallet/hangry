@@ -40,6 +40,9 @@ import coil.compose.AsyncImage
 import com.kevan.hangry.domain.model.Supplement
 import com.kevan.hangry.domain.model.SupplementIngredient
 import com.kevan.hangry.domain.model.SupplementsSnapshot
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
+import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
@@ -195,6 +198,13 @@ internal fun TodayChecklist(
                 color = if (snapshot.todayDoses.isNotEmpty() && snapshot.takenToday == snapshot.todayDoses.size) tokens.scoreColors.primed else tokens.textSecondary
             )
         }
+        if (snapshot.todayDoses.isNotEmpty() && snapshot.takenToday == snapshot.todayDoses.size) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                DashExpression(mood = DashMood.HAPPY, size = 52.dp, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("All taken today. Nice work!", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+            }
+        }
         snapshot.todayDoses.take(maxRows).forEach { dose ->
             Row(
                 modifier = Modifier
@@ -343,7 +353,7 @@ private fun SupplementEditorSheet(
 
             if (state.isAnalyzing) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    DashSpinner(size = 40.dp, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Reading the label…", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                 }

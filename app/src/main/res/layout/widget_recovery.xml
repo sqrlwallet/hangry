@@ -44,16 +44,31 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Score -->
-    <TextView
-        android:id="@+id/tv_recovery_score"
-        android:layout_width="wrap_content"
+    <!-- Score, with Dash showing how the day looks -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="—"
-        android:textColor="#FFFFFF"
-        android:textSize="24sp"
-        android:textStyle="bold" />
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_recovery_score"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="—"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/iv_recovery_dash"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/dash_mood_thinking"
+            android:contentDescription="@null" />
+    </LinearLayout>
 
     <!-- Subtitle / Advice -->
     <TextView

@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kevan.hangry.ui.components.HangryCard
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -151,7 +150,7 @@ fun HomeScreenWidgetsScreen(
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            tint = EmberAccent,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -236,8 +235,8 @@ private fun WidgetPreviewCard(
                 Button(
                     onClick = onPinWidget,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = EmberAccent,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     shape = RoundedCornerShape(12.dp),
@@ -267,8 +266,8 @@ private fun WidgetPreviewCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF14171C))
-                    .border(1.dp, Color(0xFF262B34), RoundedCornerShape(16.dp))
+                    .background(Color(0xFF252329))
+                    .border(1.dp, Color(0xFF3A363F), RoundedCornerShape(16.dp))
                     .padding(14.dp)
             ) {
                 content()
@@ -286,11 +285,11 @@ private fun ActivityWidgetMockup() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF5722), modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF7E1D), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("DAILY ACTIVITY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9E9E9E))
+                Text("DAILY ACTIVITY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
-            Text("Today", fontSize = 11.sp, color = Color(0xFF757575))
+            Text("Today", fontSize = 11.sp, color = Color(0xFF948D98))
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -299,8 +298,8 @@ private fun ActivityWidgetMockup() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            MetricColumn(icon = Icons.Default.DirectionsWalk, tint = Color(0xFF26A69A), value = "6,420", label = "Steps")
-            MetricColumn(icon = Icons.Default.LocalFireDepartment, tint = Color(0xFFFF5722), value = "450", label = "Active kcal")
+            MetricColumn(icon = Icons.Default.DirectionsWalk, tint = Color(0xFF6AA8FF), value = "6,420", label = "Steps")
+            MetricColumn(icon = Icons.Default.LocalFireDepartment, tint = Color(0xFFFF7E1D), value = "450", label = "Active kcal")
         }
     }
 }
@@ -311,14 +310,14 @@ private fun QuickLogWidgetMockup() {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFFF5722))
+            .background(Color(0xFF0C6FF9))
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.PhotoCamera, null, tint = Color.White, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFF9F4F2), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Log Meal", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("Log Meal", color = Color(0xFFF9F4F2), fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
     }
 }
@@ -332,21 +331,21 @@ private fun SleepWidgetMockup() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Bedtime, null, tint = Color(0xFF9575CD), modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Bedtime, null, tint = Color(0xFF00A4FF), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("SLEEP", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9E9E9E))
+                Text("SLEEP", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(
-                color = Color(0xFF20252D),
+                color = Color(0xFF2F2C33),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("96 Quality", color = Color(0xFF9575CD), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Text("96 Quality", color = Color(0xFF00A4FF), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-        Text("7h 30m", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text("94% of sleep need met", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+        Text("7h 30m", color = Color(0xFFF9F4F2), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text("94% of sleep need met", color = Color(0xFFB5AEB8), fontSize = 12.sp)
     }
 }
 
@@ -359,21 +358,21 @@ private fun RecoveryWidgetMockup() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Favorite, null, tint = Color(0xFF00E676), modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Favorite, null, tint = Color(0xFF01A652), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("RECOVERY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9E9E9E))
+                Text("RECOVERY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(
-                color = Color(0xFF20252D),
+                color = Color(0xFF2F2C33),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("PRIMED", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Text("PRIMED", color = Color(0xFF01A652), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-        Text("82%", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text("Physiological markers elevated above baseline", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+        Text("82%", color = Color(0xFFF9F4F2), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text("Physiological markers elevated above baseline", color = Color(0xFFB5AEB8), fontSize = 12.sp)
     }
 }
 
@@ -385,18 +384,18 @@ private fun OverviewWidgetMockup() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("HANGRY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("HANGRY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF9F4F2))
             Surface(
-                color = Color(0xFFFF5722),
+                color = Color(0xFF0C6FF9),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.PhotoCamera, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                    Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFF9F4F2), modifier = Modifier.size(12.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Log Meal", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("Log Meal", color = Color(0xFFF9F4F2), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -408,16 +407,16 @@ private fun OverviewWidgetMockup() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("RECOVERY", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9E9E9E))
-                Text("82%", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("PRIMED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00E676))
+                Text("RECOVERY", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text("82%", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF9F4F2))
+                Text("PRIMED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF01A652))
             }
 
             Box(
                 modifier = Modifier
                     .width(1.dp)
                     .height(36.dp)
-                    .background(Color(0xFF262B34))
+                    .background(Color(0xFF3A363F))
             )
 
             Column(
@@ -426,12 +425,12 @@ private fun OverviewWidgetMockup() {
                     .padding(start = 10.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("6,420 steps", color = Color(0xFF26A69A), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("450 kcal", color = Color(0xFFFF5722), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("6,420 steps", color = Color(0xFF6AA8FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("450 kcal", color = Color(0xFFFF7E1D), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text("Sleep: 7h 30m", color = Color(0xFF9575CD), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Sleep: 7h 30m", color = Color(0xFF00A4FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -448,7 +447,7 @@ private fun MetricColumn(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.height(2.dp))
-        Text(value, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        Text(label, color = Color(0xFF9E9E9E), fontSize = 10.sp)
+        Text(value, color = Color(0xFFF9F4F2), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = Color(0xFFB5AEB8), fontSize = 10.sp)
     }
 }

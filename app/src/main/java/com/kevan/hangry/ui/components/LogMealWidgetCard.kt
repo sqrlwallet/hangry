@@ -17,10 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.local.entity.FoodLogEntity
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import com.kevan.hangry.ui.theme.MintAccent
 
 @Composable
 fun LogMealWidgetCard(
@@ -56,7 +54,7 @@ fun LogMealWidgetCard(
                     Icon(
                         imageVector = Icons.Default.Restaurant,
                         contentDescription = null,
-                        tint = EmberAccent,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -82,7 +80,7 @@ fun LogMealWidgetCard(
                             "0 kcal today"
                         },
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (totalCaloriesToday > 0) EmberAccent else tokens.textMuted,
+                        color = if (totalCaloriesToday > 0) MaterialTheme.colorScheme.primary else tokens.textMuted,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -107,7 +105,7 @@ fun LogMealWidgetCard(
                         .weight(1.3f)
                         .height(44.dp),
                     shape = RoundedCornerShape(HangryTokens.CornerRadii.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = EmberAccent)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CameraAlt,

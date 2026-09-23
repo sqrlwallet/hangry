@@ -24,7 +24,6 @@ import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.ui.components.DateNavigatorBar
 import com.kevan.hangry.ui.components.HangryCard
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryPendingNotice
@@ -396,7 +395,7 @@ fun NutritionScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = EmberAccent)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))

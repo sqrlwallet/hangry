@@ -11,7 +11,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FF7043"
+        android:fillColor="#FF7E1D"
         android:pathData="M54,24.8
             C69.4,40.2 75.5,54 75.5,64.8
             C75.5,77.1 66.3,84.8 54,84.8
@@ -21,7 +21,7 @@
             C57.1,47.8 57.1,38.6 54,24.8
             Z" />
     <path
-        android:strokeColor="#0C1014"
+        android:strokeColor="#F9F4F2"
         android:strokeWidth="5.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"

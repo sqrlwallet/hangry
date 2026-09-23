@@ -34,8 +34,8 @@ fun HangryCard(
             width = 1.dp,
             brush = Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = 0.12f),
-                    Color.White.copy(alpha = 0.03f)
+                    tokens.edgeHighlight,
+                    tokens.edgeHighlight.copy(alpha = tokens.edgeHighlight.alpha * 0.4f)
                 )
             )
         ),

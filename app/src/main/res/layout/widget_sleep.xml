@@ -26,7 +26,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="SLEEP"
-            android:textColor="#9E9E9E"
+            android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -39,7 +39,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:text="—"
-            android:textColor="#9575CD"
+            android:textColor="#00A4FF"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -62,6 +62,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:text="No sleep recorded yet"
-        android:textColor="#9E9E9E"
+        android:textColor="#B5AEB8"
         android:textSize="12sp" />
 </LinearLayout>

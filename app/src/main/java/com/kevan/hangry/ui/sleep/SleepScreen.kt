@@ -280,7 +280,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(deep.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF7E57C2), RoundedCornerShape(topStart = 7.dp, bottomStart = 7.dp))
+                                    .background(Color(0xFF0C6FF9), RoundedCornerShape(topStart = 7.dp, bottomStart = 7.dp))
                             )
                         }
                         if (rem > 0) {
@@ -288,7 +288,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(rem.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF26A69A))
+                                    .background(Color(0xFF00A4FF))
                             )
                         }
                         if (light > 0) {
@@ -296,7 +296,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(light.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF42A5F5))
+                                    .background(Color(0xFF7DBBFF))
                             )
                         }
                         if (awake > 0) {
@@ -304,7 +304,7 @@ fun SleepScreen(
                                 modifier = Modifier
                                     .weight(awake.toFloat() / totalStageMinutes)
                                     .fillMaxHeight()
-                                    .background(Color(0xFFFFA726), RoundedCornerShape(topEnd = 7.dp, bottomEnd = 7.dp))
+                                    .background(Color(0xFFFF7E1D), RoundedCornerShape(topEnd = 7.dp, bottomEnd = 7.dp))
                             )
                         }
                     }
@@ -312,28 +312,28 @@ fun SleepScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     SleepStageRow(
-                        color = Color(0xFF7E57C2),
+                        color = Color(0xFF0C6FF9),
                         name = "Deep Sleep",
                         durationMinutes = deep,
                         percentage = (deep.toDouble() / totalStageMinutes * 100).toInt()
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                     SleepStageRow(
-                        color = Color(0xFF26A69A),
+                        color = Color(0xFF00A4FF),
                         name = "REM Sleep",
                         durationMinutes = rem,
                         percentage = (rem.toDouble() / totalStageMinutes * 100).toInt()
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                     SleepStageRow(
-                        color = Color(0xFF42A5F5),
+                        color = Color(0xFF7DBBFF),
                         name = "Light Sleep",
                         durationMinutes = light,
                         percentage = (light.toDouble() / totalStageMinutes * 100).toInt()
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                     SleepStageRow(
-                        color = Color(0xFFFFA726),
+                        color = Color(0xFFFF7E1D),
                         name = "Awake / Restless",
                         durationMinutes = awake,
                         percentage = (awake.toDouble() / totalStageMinutes * 100).toInt()

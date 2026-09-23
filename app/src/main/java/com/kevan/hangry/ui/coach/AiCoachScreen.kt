@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.sp
 import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.CoachMessageEntity
 import com.kevan.hangry.ui.components.HangryCard
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
@@ -106,7 +105,7 @@ fun AiCoachScreen(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = EmberAccent,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -124,8 +123,8 @@ fun AiCoachScreen(
                         badge = {
                             if (uiState.journalEntries.isNotEmpty()) {
                                 Badge(
-                                    containerColor = EmberAccent,
-                                    contentColor = Color.White
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
                                 ) {
                                     Text("${uiState.journalEntries.size}")
                                 }
@@ -187,7 +186,7 @@ fun AiCoachScreen(
                     Icon(
                         imageVector = Icons.Default.SmartToy,
                         contentDescription = null,
-                        tint = EmberAccent,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -371,14 +370,14 @@ fun AiCoachScreen(
                             .size(48.dp)
                             .clip(CircleShape)
                             .background(
-                                if (inputText.isNotBlank() && !uiState.isLoading) EmberAccent
+                                if (inputText.isNotBlank() && !uiState.isLoading) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.surfaceVariant
                             )
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = if (uiState.isLoading) "Coach is thinking" else "Send message",
-                            tint = if (inputText.isNotBlank() && !uiState.isLoading) Color.White else tokens.textSecondary
+                            tint = if (inputText.isNotBlank() && !uiState.isLoading) MaterialTheme.colorScheme.onPrimary else tokens.textSecondary
                         )
                     }
                 }
@@ -458,7 +457,7 @@ private fun AiNotConfiguredBanner(
             Icon(
                 imageVector = Icons.Default.SmartToy,
                 contentDescription = null,
-                tint = EmberAccent,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
@@ -481,10 +480,10 @@ private fun AiNotConfiguredBanner(
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
             Button(
                 onClick = onNavigateToAiSettings,
-                colors = ButtonDefaults.buttonColors(containerColor = EmberAccent),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Open AI Settings", color = Color.White)
+                Text("Open AI Settings", color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -507,7 +506,7 @@ private fun EmptyConversationView(
         Icon(
             imageVector = Icons.Default.AutoAwesome,
             contentDescription = null,
-            tint = EmberAccent,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(54.dp)
         )
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
@@ -520,13 +519,13 @@ private fun EmptyConversationView(
         Spacer(modifier = Modifier.height(6.dp))
 
         Surface(
-            color = EmberAccent.copy(alpha = 0.12f),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
             shape = RoundedCornerShape(100.dp)
         ) {
             Text(
                 text = "⚡ 7-Day Biometrics & Memories Active",
                 style = MaterialTheme.typography.labelMedium,
-                color = EmberAccent,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
             )
@@ -590,7 +589,7 @@ private fun EmptyConversationView(
 @Composable
 private fun PulsingDotsIndicator(
     modifier: Modifier = Modifier,
-    dotColor: Color = EmberAccent,
+    dotColor: Color = MaterialTheme.colorScheme.primary,
     dotSize: Dp = 6.dp
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulsing_dots")
@@ -656,7 +655,7 @@ private fun FormattedMessageText(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val baseColor = if (isUser) Color.White else tokens.textPrimary
+    val baseColor = if (isUser) MaterialTheme.colorScheme.onPrimary else tokens.textPrimary
 
     val annotatedString = remember(text, isUser) {
         // Pre-clean: convert raw asterisk or dash bullets to clean unicode bullets
@@ -679,7 +678,7 @@ private fun FormattedMessageText(
                 withStyle(
                     SpanStyle(
                         fontWeight = FontWeight.Bold,
-                        color = if (isUser) Color.White else tokens.chartColors.activeCalories
+                        color = if (isUser) baseColor else tokens.chartColors.activeCalories
                     )
                 ) {
                     append(boldContent)
@@ -725,21 +724,21 @@ private fun CoachMessageItem(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = EmberAccent,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Hangry Coach",
                     style = MaterialTheme.typography.labelSmall,
-                    color = EmberAccent,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
 
         Surface(
-            color = if (isUser) EmberAccent else MaterialTheme.colorScheme.surfaceVariant,
+            color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,
@@ -826,7 +825,7 @@ private fun CoachLoadingBubble() {
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PulsingDotsIndicator(dotColor = EmberAccent, dotSize = 7.dp)
+                PulsingDotsIndicator(dotColor = MaterialTheme.colorScheme.primary, dotSize = 7.dp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Analyzing your 7-day health trends…",
@@ -865,7 +864,7 @@ private fun CoachJournalBottomSheet(
                 )
             }
             IconButton(onClick = onAddEntry) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Journal Entry", tint = EmberAccent)
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Journal Entry", tint = MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -908,10 +907,10 @@ private fun JournalEntryCard(
 ) {
     val tokens = LocalHangryTokens.current
     val categoryColor = when (entry.category.uppercase()) {
-        "PROBLEM" -> Color(0xFFE53935)
-        "INJURY" -> Color(0xFFFB8C00)
-        "DIET" -> Color(0xFF43A047)
-        "GOAL" -> Color(0xFF1E88E5)
+        "PROBLEM" -> MaterialTheme.colorScheme.error
+        "INJURY" -> tokens.brandAccent
+        "DIET" -> tokens.scoreColors.primed
+        "GOAL" -> MaterialTheme.colorScheme.primary
         else -> tokens.textSecondary
     }
 
@@ -1023,9 +1022,9 @@ private fun AddJournalEntryDialog(
             Button(
                 onClick = { onConfirm(category, summary, content) },
                 enabled = summary.isNotBlank() && content.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = EmberAccent)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Save to Journal", color = Color.White)
+                Text("Save to Journal", color = MaterialTheme.colorScheme.onPrimary)
             }
         },
         dismissButton = {

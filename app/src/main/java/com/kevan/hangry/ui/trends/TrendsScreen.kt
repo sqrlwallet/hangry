@@ -44,7 +44,6 @@ import com.kevan.hangry.ui.components.DayDetailSheet
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInteractiveTrendChart
 import com.kevan.hangry.ui.components.TrendPoint
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.Instant
@@ -202,7 +201,7 @@ fun TrendsScreen(
         TrendMetricCategory.RHR -> tokens.chartColors.restingHeartRate
         TrendMetricCategory.STEPS -> tokens.chartColors.steps
         TrendMetricCategory.ACTIVE_CALORIES -> tokens.chartColors.activeCalories
-        TrendMetricCategory.NUTRITION_CALORIES -> EmberAccent
+        TrendMetricCategory.NUTRITION_CALORIES -> tokens.macroColors.calories
         TrendMetricCategory.WEIGHT -> tokens.chartColors.sleep
     }
 
@@ -292,8 +291,8 @@ fun TrendsScreen(
                         val isSelected = timeframe == selectedTimeframe
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) EmberAccent.copy(alpha = 0.18f) else Color.Transparent,
-                            border = if (isSelected) BorderStroke(1.dp, EmberAccent) else null,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+                            border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
                             modifier = Modifier
                                 .weight(1f)
                                 .heightIn(min = 40.dp)
@@ -311,7 +310,7 @@ fun TrendsScreen(
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                     ),
-                                    color = if (isSelected) EmberAccent else tokens.textSecondary
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else tokens.textSecondary
                                 )
                             }
                         }
@@ -368,8 +367,8 @@ fun TrendsScreen(
                             val isChosen = metric == selectedMetric
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
-                                color = if (isChosen) EmberAccent.copy(alpha = 0.18f) else tokens.cardBorder.copy(alpha = 0.4f),
-                                border = if (isChosen) BorderStroke(1.dp, EmberAccent) else null,
+                                color = if (isChosen) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else tokens.cardBorder.copy(alpha = 0.4f),
+                                border = if (isChosen) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
                                 modifier = Modifier
                                     .height(34.dp)
                                     .clickable {
@@ -385,7 +384,7 @@ fun TrendsScreen(
                                     Icon(
                                         imageVector = metric.icon,
                                         contentDescription = null,
-                                        tint = if (isChosen) EmberAccent else tokens.textSecondary,
+                                        tint = if (isChosen) MaterialTheme.colorScheme.primary else tokens.textSecondary,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
@@ -393,7 +392,7 @@ fun TrendsScreen(
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = if (isChosen) FontWeight.Bold else FontWeight.Medium
                                         ),
-                                        color = if (isChosen) EmberAccent else tokens.textSecondary
+                                        color = if (isChosen) MaterialTheme.colorScheme.primary else tokens.textSecondary
                                     )
                                 }
                             }
@@ -682,7 +681,7 @@ fun TrendsScreen(
                             Icon(
                                 imageVector = Icons.Default.Restaurant,
                                 contentDescription = null,
-                                tint = EmberAccent,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -717,7 +716,7 @@ fun TrendsScreen(
                             HighlightPill(
                                 label = "Avg Intake",
                                 value = "$avgCaloriesPerDay kcal",
-                                color = EmberAccent,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f)
                             )
                             HighlightPill(
@@ -851,7 +850,7 @@ fun TrendsScreen(
                             Icon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = null,
-                                tint = EmberAccent,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
@@ -876,8 +875,8 @@ fun TrendsScreen(
                         val isSelected = filter == historyFilter
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) EmberAccent.copy(alpha = 0.18f) else tokens.cardBorder.copy(alpha = 0.4f),
-                            border = if (isSelected) BorderStroke(1.dp, EmberAccent) else null,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else tokens.cardBorder.copy(alpha = 0.4f),
+                            border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
                             modifier = Modifier
                                 .height(30.dp)
                                 .clickable {
@@ -894,7 +893,7 @@ fun TrendsScreen(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     ),
-                                    color = if (isSelected) EmberAccent else tokens.textSecondary
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else tokens.textSecondary
                                 )
                             }
                         }
@@ -978,7 +977,7 @@ fun TrendsScreen(
                                     if (dateItem == today) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Surface(
-                                            color = EmberAccent.copy(alpha = 0.2f),
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Text(
@@ -987,7 +986,7 @@ fun TrendsScreen(
                                                     fontSize = 9.sp,
                                                     fontWeight = FontWeight.Bold
                                                 ),
-                                                color = EmberAccent,
+                                                color = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
@@ -1026,7 +1025,7 @@ fun TrendsScreen(
                                         Text(
                                             text = "• $cals kcal in",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = EmberAccent
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }
@@ -1112,7 +1111,7 @@ fun TrendsScreen(
                         showJumpDatePicker = false
                     }
                 ) {
-                    Text("Inspect Day", color = EmberAccent)
+                    Text("Inspect Day", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
@@ -1127,8 +1126,8 @@ fun TrendsScreen(
                     containerColor = tokens.cardBackground,
                     titleContentColor = tokens.textPrimary,
                     headlineContentColor = tokens.textPrimary,
-                    selectedDayContainerColor = EmberAccent,
-                    selectedDayContentColor = Color.White
+                    selectedDayContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedDayContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }

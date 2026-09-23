@@ -338,7 +338,7 @@ fun HangryInteractiveTrendChart(
                     val sx = sIdx * stepX
                     // Vertical guideline
                     drawLine(
-                        color = Color.White.copy(alpha = 0.35f),
+                        color = tokens.textMuted.copy(alpha = 0.55f),
                         start = Offset(sx, 0f),
                         end = Offset(sx, height),
                         strokeWidth = 1.5.dp.toPx(),
@@ -355,7 +355,7 @@ fun HangryInteractiveTrendChart(
                         )
                         // Inner prominent circle
                         drawCircle(
-                            color = Color.White,
+                            color = tokens.cardBackground,
                             radius = 4.5.dp.toPx(),
                             center = Offset(sx, sy)
                         )

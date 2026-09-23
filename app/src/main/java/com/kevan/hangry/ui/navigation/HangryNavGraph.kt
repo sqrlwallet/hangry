@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.navigation
 
+import com.kevan.hangry.ui.theme.HangryTheme
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -154,38 +155,47 @@ fun HangryNavGraph(
     ) {
         // Onboarding Flow
         composable(Screen.Welcome.route) {
-            WelcomeScreen(
-                onGetStarted = {
-                    // Welcome only ever appears as onboarding's first step - a fresh install,
-                    // or "Reset Application" re-entering it mid-session - so this is always the
-                    // correct moment to (re)assert that the step indicator should show.
-                    onboardingInProgress = true
-                    navController.navigate(Screen.PermissionSetup.route)
-                }
-            )
+            // Immersive photo-backed onboarding keeps the warm dark treatment.
+            HangryTheme(darkTheme = true) {
+                WelcomeScreen(
+                    onGetStarted = {
+                        // Welcome only ever appears as onboarding's first step - a fresh install,
+                        // or "Reset Application" re-entering it mid-session - so this is always the
+                        // correct moment to (re)assert that the step indicator should show.
+                        onboardingInProgress = true
+                        navController.navigate(Screen.PermissionSetup.route)
+                    }
+                )
+            }
         }
 
         composable(Screen.PermissionSetup.route) {
-            PermissionSetupScreen(
-                dataSource = appContainer.healthConnectDataSource,
-                providerStatus = appContainer.healthConnectProviderStatus,
-                onProceedToHistoricalSync = {
-                    navController.navigate(Screen.HistoricalSyncSetup.route)
-                }
-            )
+            // Immersive photo-backed onboarding keeps the warm dark treatment.
+            HangryTheme(darkTheme = true) {
+                PermissionSetupScreen(
+                    dataSource = appContainer.healthConnectDataSource,
+                    providerStatus = appContainer.healthConnectProviderStatus,
+                    onProceedToHistoricalSync = {
+                        navController.navigate(Screen.HistoricalSyncSetup.route)
+                    }
+                )
+            }
         }
 
         composable(Screen.HistoricalSyncSetup.route) {
-            HistoricalSyncSetupScreen(
-                onStartSync = { days ->
-                    navController.navigate(Screen.SyncProgress.createRoute(days))
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                dataSource = appContainer.healthConnectDataSource,
-                showStepIndicator = onboardingInProgress
-            )
+            // Immersive photo-backed onboarding keeps the warm dark treatment.
+            HangryTheme(darkTheme = true) {
+                HistoricalSyncSetupScreen(
+                    onStartSync = { days ->
+                        navController.navigate(Screen.SyncProgress.createRoute(days))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    dataSource = appContainer.healthConnectDataSource,
+                    showStepIndicator = onboardingInProgress
+                )
+            }
         }
 
         composable(
@@ -198,21 +208,24 @@ fun HangryNavGraph(
             )
         ) { backStackEntry ->
             val rangeDays = backStackEntry.arguments?.getInt("rangeDays") ?: 30
-            SyncProgressScreen(
-                rangeDays = rangeDays,
-                syncManager = appContainer.healthSyncManager,
-                onComplete = {
-                    coroutineScope.launch {
-                        val existing = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
-                        appContainer.userProfileRepository.saveProfile(existing.copy(onboardingCompleted = true))
-                        onboardingInProgress = false
-                        navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(0) { inclusive = true }
+            // Immersive photo-backed onboarding keeps the warm dark treatment.
+            HangryTheme(darkTheme = true) {
+                SyncProgressScreen(
+                    rangeDays = rangeDays,
+                    syncManager = appContainer.healthSyncManager,
+                    onComplete = {
+                        coroutineScope.launch {
+                            val existing = appContainer.userProfileRepository.getProfileSync() ?: UserProfileEntity()
+                            appContainer.userProfileRepository.saveProfile(existing.copy(onboardingCompleted = true))
+                            onboardingInProgress = false
+                            navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
-                    }
-                },
-                showStepIndicator = onboardingInProgress
-            )
+                    },
+                    showStepIndicator = onboardingInProgress
+                )
+            }
         }
 
         // Main Dashboard

@@ -82,7 +82,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="RECOVERY"
-                android:textColor="#9E9E9E"
+                android:textColor="#B5AEB8"
                 android:textSize="10sp"
                 android:textStyle="bold" />
 
@@ -104,7 +104,7 @@
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="1dp"
                 android:text="CALIBRATING"
-                android:textColor="#00E676"
+                android:textColor="#01A652"
                 android:textSize="9sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -113,7 +113,7 @@
         <View
             android:layout_width="1dp"
             android:layout_height="match_parent"
-            android:background="#262B34" />
+            android:background="#3A363F" />
 
         <!-- Activity & Sleep Section -->
         <LinearLayout
@@ -138,7 +138,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="— steps"
-                    android:textColor="#26A69A"
+                    android:textColor="#6AA8FF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
 
@@ -148,7 +148,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="— kcal"
-                    android:textColor="#FF5722"
+                    android:textColor="#FF7E1D"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -166,7 +166,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Sleep: —"
-                    android:textColor="#9575CD"
+                    android:textColor="#00A4FF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>

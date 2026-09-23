@@ -26,7 +26,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="DAILY ACTIVITY"
-            android:textColor="#9E9E9E"
+            android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -36,7 +36,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Today"
-            android:textColor="#757575"
+            android:textColor="#948D98"
             android:textSize="11sp" />
     </LinearLayout>
 
@@ -77,7 +77,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Steps"
-                android:textColor="#9E9E9E"
+                android:textColor="#B5AEB8"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -109,7 +109,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Active kcal"
-                android:textColor="#9E9E9E"
+                android:textColor="#B5AEB8"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>

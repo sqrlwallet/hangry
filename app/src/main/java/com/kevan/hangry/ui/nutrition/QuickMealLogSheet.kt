@@ -26,10 +26,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.domain.model.FoodAnalysisResult
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import com.kevan.hangry.ui.theme.MintAccent
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -253,7 +251,7 @@ fun QuickMealLogSheet(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Estimating with AI...")
                     } else {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp), tint = MintAccent)
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.tertiary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Auto-Estimate with AI")
                     }
@@ -332,7 +330,7 @@ fun QuickMealLogSheet(
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(HangryTokens.CornerRadii.medium),
-                colors = ButtonDefaults.buttonColors(containerColor = EmberAccent)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))

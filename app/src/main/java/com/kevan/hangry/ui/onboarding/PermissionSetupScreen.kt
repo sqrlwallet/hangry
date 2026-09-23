@@ -92,7 +92,7 @@ fun PermissionSetupScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color(0xFF070A0F))
+            .background(com.kevan.hangry.ui.theme.BackgroundDark)
     ) {
         androidx.compose.foundation.Image(
             painter = androidx.compose.ui.res.painterResource(id = R.drawable.onboarding_ambient_bg),
@@ -107,7 +107,7 @@ fun PermissionSetupScreen(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
                         0.0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f),
                         0.6f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
-                        1.0f to androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f)
+                        1.0f to com.kevan.hangry.ui.theme.BackgroundDark.copy(alpha = 0.95f)
                     )
                 )
         )
@@ -127,7 +127,7 @@ fun PermissionSetupScreen(
                         .fillMaxWidth()
                         .background(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
-                                listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f))
+                                listOf(androidx.compose.ui.graphics.Color.Transparent, com.kevan.hangry.ui.theme.BackgroundDark.copy(alpha = 0.95f))
                             )
                         )
                         .padding(HangryTokens.Spacing.m)
@@ -139,7 +139,7 @@ fun PermissionSetupScreen(
                             .height(54.dp),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = tokens.scoreColors.primed
+                            containerColor = com.kevan.hangry.ui.theme.BlueRibbon
                         )
                     ) {
                         Text(
@@ -151,7 +151,7 @@ fun PermissionSetupScreen(
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             ),
-                            color = androidx.compose.ui.graphics.Color(0xFF051B17)
+                            color = androidx.compose.ui.graphics.Color.White
                         )
                     }
                 }
@@ -267,7 +267,7 @@ fun PermissionSetupScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = tokens.scoreColors.primed)
+                    colors = ButtonDefaults.buttonColors(containerColor = com.kevan.hangry.ui.theme.BlueRibbon, contentColor = androidx.compose.ui.graphics.Color.White)
                 ) {
                     Text(if (hasFullPermissions) "All Permissions Granted" else "Grant Health Connect Permissions")
                 }

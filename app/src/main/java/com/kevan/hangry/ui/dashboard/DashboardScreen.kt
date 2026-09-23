@@ -31,7 +31,7 @@ import com.kevan.hangry.domain.model.WidgetType
 import com.kevan.hangry.ui.components.*
 import com.kevan.hangry.ui.nutrition.NutritionViewModel
 import com.kevan.hangry.ui.nutrition.QuickMealLogSheet
-import com.kevan.hangry.ui.theme.EmberAccent
+import com.kevan.hangry.ui.theme.CtaGradient
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
@@ -164,7 +164,7 @@ fun DashboardScreen(
                     .height(48.dp)
                     .background(
                         brush = Brush.horizontalGradient(
-                            listOf(Color(0xFFFF5722), Color(0xFFFF7043))
+                            CtaGradient
                         ),
                         shape = RoundedCornerShape(26.dp)
                     )
@@ -335,8 +335,8 @@ fun DashboardScreen(
                     width = 1.dp,
                     brush = Brush.verticalGradient(
                         listOf(
-                            Color.White.copy(alpha = 0.10f),
-                            Color.White.copy(alpha = 0.03f)
+                            tokens.edgeHighlight,
+                            tokens.edgeHighlight.copy(alpha = tokens.edgeHighlight.alpha * 0.4f)
                         )
                     )
                 ),
@@ -662,7 +662,7 @@ private fun AiShortcutsRow(
             Text(
                 text = "Ask coach",
                 style = MaterialTheme.typography.titleMedium,
-                color = EmberAccent,
+                color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -856,7 +856,7 @@ private fun DailyCoachBriefingCard(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = EmberAccent,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -867,13 +867,13 @@ private fun DailyCoachBriefingCard(
                 )
             }
             Surface(
-                color = EmberAccent.copy(alpha = 0.14f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = if (isPending) "Calibrating" else if (quality >= 80) "Optimal" else if (quality in 50..79) "Balanced" else "Rebuild",
                     style = MaterialTheme.typography.labelSmall,
-                    color = EmberAccent,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
@@ -914,7 +914,7 @@ private fun DailyCoachBriefingCard(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = EmberAccent
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             )

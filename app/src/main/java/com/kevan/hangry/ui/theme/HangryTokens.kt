@@ -85,72 +85,99 @@ data class HangryCustomTokens(
     val cardBorder: Color,
     val textPrimary: Color,
     val textSecondary: Color,
-    val textMuted: Color
+    val textMuted: Color,
+    /** Signature Pumpkin, shaded per theme so it stays legible as text/icon tint. */
+    val brandAccent: Color,
+    /** Soft tinted fill behind brand-accent content (chips, badges). */
+    val brandAccentContainer: Color,
+    /** Floating chrome (bottom nav, overlays) — slightly translucent surface. */
+    val glassSurface: Color,
+    /** Hairline highlight used on card edges; tuned so it reads on either canvas. */
+    val edgeHighlight: Color
 )
 
 val DarkScoreStateColors = ScoreStateColors(
-    primed = MintAccent,                     // Vitality Mint
-    primedContainer = Color(0xFF0B2925),
-    balanced = AmberAccent,                  // Soft Amber
-    balancedContainer = Color(0xFF332005),
-    rebuild = EmberAccent,                   // Warm Ember
-    rebuildContainer = Color(0xFF33140C),
-    buildingBaseline = Color(0xFF64748B),    // Muted Slate
-    buildingBaselineContainer = Color(0xFF1E293B)
+    primed = GreenHaze,
+    primedContainer = Color(0xFF16301F),
+    balanced = Supernova,
+    balancedContainer = Color(0xFF332A0A),
+    rebuild = Pumpkin,
+    rebuildContainer = Color(0xFF3A2213),
+    buildingBaseline = TextMutedDark,
+    buildingBaselineContainer = SurfaceVariantDark
 )
 
 val LightScoreStateColors = ScoreStateColors(
-    primed = Color(0xFF0D9488),
-    primedContainer = Color(0xFFCCFBF1),
-    balanced = Color(0xFFD97706),
-    balancedContainer = Color(0xFFFEF3C7),
-    rebuild = Color(0xFFEA580C),
-    rebuildContainer = Color(0xFFFFEDD5),
-    buildingBaseline = Color(0xFF475569),
-    buildingBaselineContainer = Color(0xFFF1F5F9)
+    primed = GreenHazeDeep,
+    primedContainer = Color(0xFFE3F5EA),
+    balanced = SupernovaDeep,
+    balancedContainer = Color(0xFFFFF4CC),
+    rebuild = PumpkinDeep,
+    rebuildContainer = Color(0xFFFFEBDC),
+    buildingBaseline = TextSecondaryLight,
+    buildingBaselineContainer = SurfaceVariantLight
 )
 
 val DarkChartMetricColors = ChartMetricColors(
-    sleep = Color(0xFF94A3B8),               // Clean Slate
-    hrv = MintAccent,                        // Vitality Mint
-    restingHeartRate = Color(0xFFF1F5F9),    // Crisp Silver
-    trainingLoad = EmberAccent,              // Warm Ember
-    steps = MintAccent                       // Vitality Mint
+    sleep = AzureRadiance,
+    hrv = GreenHaze,
+    restingHeartRate = Cream,
+    trainingLoad = Pumpkin,
+    steps = BlueRibbonLight
 )
 
 val LightChartMetricColors = ChartMetricColors(
-    sleep = Color(0xFF475569),
-    hrv = Color(0xFF0D9488),
-    restingHeartRate = Color(0xFF0F172A),
-    trainingLoad = Color(0xFFEA580C),
-    steps = Color(0xFF0D9488)
+    sleep = AzureDeep,
+    hrv = GreenHazeDeep,
+    restingHeartRate = ShipGray,
+    trainingLoad = Color(0xFFE0650F),
+    steps = BlueRibbon
 )
 
 val DarkMacroNutrientColors = MacroNutrientColors(
-    protein = Color(0xFF818CF8),             // Soft Indigo
-    carbs = Color(0xFF34D399),               // Emerald Green
-    fat = AmberAccent,                       // Soft Amber
-    calories = EmberAccent,                  // Warm Ember
-    water = Color(0xFF38BDF8)                // Sky Blue
+    protein = BlueRibbonLight,
+    carbs = GreenHaze,
+    fat = Supernova,
+    calories = Pumpkin,
+    water = AzureRadiance
 )
 
 val LightMacroNutrientColors = MacroNutrientColors(
-    protein = Color(0xFF4F46E5),             // Deep Indigo
-    carbs = Color(0xFF059669),               // Forest Green
-    fat = Color(0xFFD97706),                 // Rich Amber
-    calories = Color(0xFFEA580C),            // Deep Ember
-    water = Color(0xFF0284C7)                // Ocean Blue
+    protein = BlueRibbon,
+    carbs = GreenHazeDeep,
+    fat = SupernovaDeep,
+    calories = Color(0xFFE0650F),
+    water = AzureDeep
 )
 
-val LocalHangryTokens = staticCompositionLocalOf {
-    HangryCustomTokens(
-        scoreColors = DarkScoreStateColors,
-        chartColors = DarkChartMetricColors,
-        macroColors = DarkMacroNutrientColors,
-        cardBackground = Color(0xFF1E1E24),
-        cardBorder = Color(0xFF2C2C35),
-        textPrimary = Color(0xFFF1F5F9),
-        textSecondary = Color(0xFF94A3B8),
-        textMuted = Color(0xFF64748B)
-    )
-}
+val LightHangryTokens = HangryCustomTokens(
+    scoreColors = LightScoreStateColors,
+    chartColors = LightChartMetricColors,
+    macroColors = LightMacroNutrientColors,
+    cardBackground = SurfaceLight,
+    cardBorder = OutlineLight,
+    textPrimary = TextPrimaryLight,
+    textSecondary = TextSecondaryLight,
+    textMuted = TextMutedLight,
+    brandAccent = PumpkinDeep,
+    brandAccentContainer = Color(0xFFFFEBDC),
+    glassSurface = Color(0xF2FFFDFC),
+    edgeHighlight = ShipGray.copy(alpha = 0.08f)
+)
+
+val DarkHangryTokens = HangryCustomTokens(
+    scoreColors = DarkScoreStateColors,
+    chartColors = DarkChartMetricColors,
+    macroColors = DarkMacroNutrientColors,
+    cardBackground = SurfaceDark,
+    cardBorder = OutlineDark,
+    textPrimary = TextPrimaryDark,
+    textSecondary = TextSecondaryDark,
+    textMuted = TextMutedDark,
+    brandAccent = Pumpkin,
+    brandAccentContainer = Color(0xFF3A2213),
+    glassSurface = Color(0xF2252329),
+    edgeHighlight = Color.White.copy(alpha = 0.08f)
+)
+
+val LocalHangryTokens = staticCompositionLocalOf { LightHangryTokens }

@@ -66,7 +66,7 @@ fun HistoricalSyncSetupScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color(0xFF070A0F))
+            .background(com.kevan.hangry.ui.theme.BackgroundDark)
     ) {
         androidx.compose.foundation.Image(
             painter = androidx.compose.ui.res.painterResource(id = R.drawable.onboarding_ambient_bg),
@@ -81,7 +81,7 @@ fun HistoricalSyncSetupScreen(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
                         0.0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f),
                         0.6f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
-                        1.0f to androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f)
+                        1.0f to com.kevan.hangry.ui.theme.BackgroundDark.copy(alpha = 0.95f)
                     )
                 )
         )
@@ -108,7 +108,7 @@ fun HistoricalSyncSetupScreen(
                         .fillMaxWidth()
                         .background(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
-                                listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f))
+                                listOf(androidx.compose.ui.graphics.Color.Transparent, com.kevan.hangry.ui.theme.BackgroundDark.copy(alpha = 0.95f))
                             )
                         )
                         .padding(HangryTokens.Spacing.m)
@@ -120,7 +120,7 @@ fun HistoricalSyncSetupScreen(
                             .height(54.dp),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = tokens.scoreColors.primed
+                            containerColor = com.kevan.hangry.ui.theme.BlueRibbon
                         )
                     ) {
                         Text(
@@ -128,7 +128,7 @@ fun HistoricalSyncSetupScreen(
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             ),
-                            color = androidx.compose.ui.graphics.Color(0xFF051B17)
+                            color = androidx.compose.ui.graphics.Color.White
                         )
                     }
                 }
@@ -175,7 +175,7 @@ fun HistoricalSyncSetupScreen(
                                 selected = isSelected,
                                 onClick = { selectedRange = days },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = tokens.scoreColors.primed
+                                    selectedColor = MaterialTheme.colorScheme.primary
                                 )
                             )
                             Spacer(modifier = Modifier.width(12.dp))

@@ -24,7 +24,6 @@ import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
@@ -90,7 +89,7 @@ fun DayDetailSheet(
                         onDismiss()
                         onNavigateToDashboard(date)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = EmberAccent),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                 ) {
@@ -443,7 +442,7 @@ fun DayDetailSheet(
                                     },
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
-                                    Text("Open in Nutrition", color = EmberAccent, fontSize = 12.sp)
+                                    Text("Open in Nutrition", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
                                 }
                             }
                         }

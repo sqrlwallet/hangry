@@ -42,7 +42,7 @@ fun SyncProgressScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color(0xFF070A0F))
+            .background(com.kevan.hangry.ui.theme.BackgroundDark)
     ) {
         androidx.compose.foundation.Image(
             painter = androidx.compose.ui.res.painterResource(id = R.drawable.onboarding_ambient_bg),
@@ -57,7 +57,7 @@ fun SyncProgressScreen(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
                         0.0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f),
                         0.6f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
-                        1.0f to androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f)
+                        1.0f to com.kevan.hangry.ui.theme.BackgroundDark.copy(alpha = 0.95f)
                     )
                 )
         )
@@ -204,7 +204,7 @@ fun SyncProgressScreen(
                     enabled = (progress.status != SyncStatus.IN_PROGRESS),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = tokens.scoreColors.primed,
+                        containerColor = com.kevan.hangry.ui.theme.BlueRibbon,
                         disabledContainerColor = tokens.cardBorder
                     )
                 ) {
@@ -213,7 +213,7 @@ fun SyncProgressScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         ),
-                        color = if (progress.status != SyncStatus.IN_PROGRESS) androidx.compose.ui.graphics.Color(0xFF051B17) else tokens.textMuted
+                        color = if (progress.status != SyncStatus.IN_PROGRESS) androidx.compose.ui.graphics.Color.White else tokens.textMuted
                     )
                 }
             }

@@ -40,10 +40,9 @@ import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.components.HangryRingGauge
-import com.kevan.hangry.ui.theme.EmberAccent
+import com.kevan.hangry.ui.theme.CtaGradient
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import com.kevan.hangry.ui.theme.MintAccent
 
 private val POSTURE_INFO_SECTIONS = listOf(
     HangryInfoSection(
@@ -118,9 +117,9 @@ fun PostureScreen(
                 val score = latest?.score
                 val scoreColor = when {
                     score == null -> tokens.chartColors.hrv
-                    score >= 80 -> MintAccent
-                    score >= 60 -> EmberAccent
-                    else -> Color(0xFFFF5252)
+                    score >= 80 -> tokens.scoreColors.primed
+                    score >= 60 -> tokens.scoreColors.balanced
+                    else -> tokens.scoreColors.rebuild
                 }
                 val statusText = when {
                     score == null -> "Baseline Pending"
@@ -247,7 +246,7 @@ fun PostureScreen(
                             .height(50.dp)
                             .background(
                                 brush = Brush.horizontalGradient(
-                                    listOf(Color(0xFFFF5722), Color(0xFFFF7043))
+                                    CtaGradient
                                 ),
                                 shape = RoundedCornerShape(26.dp)
                             )
@@ -297,7 +296,7 @@ fun PostureScreen(
                         Icon(
                             imageVector = Icons.Default.AccessibilityNew,
                             contentDescription = null,
-                            tint = EmberAccent,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -308,14 +307,14 @@ fun PostureScreen(
                         title = "Cervical Spine & Head",
                         subtitle = "Forward head angle & suboccipital compression",
                         status = "Craniovertebral Axis",
-                        color = MintAccent
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     AlignmentZoneRow(
                         title = "Thoracic & Scapulae",
                         subtitle = "Rounded shoulder posture & upper-crossed pattern",
                         status = "Acromial Balance",
-                        color = EmberAccent
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     AlignmentZoneRow(
@@ -342,7 +341,7 @@ fun PostureScreen(
                             Icon(
                                 imageVector = Icons.Default.Spa,
                                 contentDescription = null,
-                                tint = MintAccent,
+                                tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -354,13 +353,13 @@ fun PostureScreen(
                             )
                         }
                         Surface(
-                            color = MintAccent.copy(alpha = 0.12f),
+                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(100.dp)
                         ) {
                             Text(
                                 text = "Daily Habit",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MintAccent,
+                                color = MaterialTheme.colorScheme.tertiary,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
@@ -421,7 +420,7 @@ fun PostureScreen(
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
-                                        tint = EmberAccent,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -468,13 +467,13 @@ fun PostureScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(EmberAccent.copy(alpha = 0.12f)),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.FitnessCenter,
                                     contentDescription = null,
-                                    tint = EmberAccent,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -600,7 +599,7 @@ private fun PostureDrillItem(
                 Text(
                     text = reps,
                     style = MaterialTheme.typography.labelSmall,
-                    color = EmberAccent,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -619,9 +618,9 @@ private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelet
     val haptic = LocalHapticFeedback.current
     val score = scan.score
     val scoreColor = when {
-        score >= 80 -> MintAccent
-        score >= 60 -> EmberAccent
-        else -> Color(0xFFFF5252)
+        score >= 80 -> tokens.scoreColors.primed
+        score >= 60 -> tokens.scoreColors.balanced
+        else -> tokens.scoreColors.rebuild
     }
 
     HangryCard(

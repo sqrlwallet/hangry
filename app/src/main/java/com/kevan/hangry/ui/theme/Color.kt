@@ -2,36 +2,44 @@ package com.kevan.hangry.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Brand Accents: Ember (Energy) & Mint (Vitality)
-val EmberAccent = Color(0xFFFF6B4A)
-val MintAccent = Color(0xFF2DD4BF)
-val AmberAccent = Color(0xFFF59E0B)
-val CoralAccent = Color(0xFFF87171)
+// ── Brand palette (raw values) ──────────────────────────────────────────────
+// Use these directly only for fills, illustrations and large graphics. For text
+// and icons, use the theme-aware tokens (MaterialTheme.colorScheme / LocalHangryTokens),
+// which switch to contrast-safe shades per theme.
+val Pumpkin = Color(0xFFFF7E1D)        // Signature brand color — energy, approachability
+val ShipGray = Color(0xFF413D45)       // Primary typography — softer than pure black
+val BlueRibbon = Color(0xFF0C6FF9)     // Primary CTA — buttons and key highlights
+val Supernova = Color(0xFFFFCE00)      // Warmth — illustrations and highlights
+val AzureRadiance = Color(0xFF00A4FF)  // Calm accent
+val GreenHaze = Color(0xFF01A652)      // Success states
+val Cream = Color(0xFFF9F4F2)          // Warm canvas — used instead of stark white
 
-val EmberPrimaryLight = Color(0xFFE65100)
-val EmberPrimaryDark = EmberAccent
+// ── Contrast-safe shades for text/icons on light surfaces (≥4.5:1 on white) ──
+val PumpkinDeep = Color(0xFFB8520A)
+val GreenHazeDeep = Color(0xFF00833F)
+val SupernovaDeep = Color(0xFF8F6A00)
+val AzureDeep = Color(0xFF0079C2)
 
-val EmberPrimaryContainerLight = Color(0xFFFFE0B2)
-val EmberPrimaryContainerDark = Color(0xFF33140C)
+// ── Lifted shades for text/icons on dark surfaces ───────────────────────────
+val BlueRibbonLight = Color(0xFF6AA8FF)
 
-val TealSecondaryLight = Color(0xFF00897B)
-val TealSecondaryDark = MintAccent
+// ── Light theme (default): warm cream canvas ────────────────────────────────
+val BackgroundLight = Cream
+val SurfaceLight = Color(0xFFFFFDFC)
+val SurfaceVariantLight = Color(0xFFF2ECE8)
+val OutlineLight = Color(0xFFE7DFDA)
+val TextPrimaryLight = ShipGray
+val TextSecondaryLight = Color(0xFF6E6873)
+val TextMutedLight = Color(0xFF7D7681)
 
-val TealSecondaryContainerLight = Color(0xFFE0F2F1)
-val TealSecondaryContainerDark = Color(0xFF0B2925)
+// ── Dark theme: warm charcoal derived from Ship Gray (no cold blue-blacks) ──
+val BackgroundDark = Color(0xFF1C1A1F)
+val SurfaceDark = Color(0xFF252329)
+val SurfaceVariantDark = Color(0xFF2F2C33)
+val OutlineDark = Color(0xFF3A363F)
+val TextPrimaryDark = Cream
+val TextSecondaryDark = Color(0xFFB5AEB8)
+val TextMutedDark = Color(0xFF948D98)
 
-val SlateTertiaryLight = Color(0xFF475569)
-val SlateTertiaryDark = Color(0xFF94A3B8)
-
-// Backgrounds & Surfaces (Clean, Deep Minimalist Theme)
-val BackgroundDark = Color(0xFF0C0D11)
-val SurfaceDark = Color(0xFF15161C)
-val SurfaceVariantDark = Color(0xFF1E1F27)
-
-val BackgroundLight = Color(0xFFF8F9FA)
-val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceVariantLight = Color(0xFFF1F3F5)
-
-// Borders & Outlines
-val OutlineDark = Color(0xFF262833)
-val OutlineLight = Color(0xFFE2E8F0)
+// Primary CTA gradient (hero buttons / FAB). White label stays ≥4.5:1 across the whole ramp.
+val CtaGradient = listOf(BlueRibbon, Color(0xFF0A5FD6))

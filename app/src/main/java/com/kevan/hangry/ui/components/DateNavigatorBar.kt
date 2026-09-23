@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.Instant
@@ -99,8 +98,8 @@ fun DateNavigatorBar(
                     showDatePicker = true
                 },
                 shape = RoundedCornerShape(12.dp),
-                color = if (!isToday) EmberAccent.copy(alpha = 0.12f) else Color.Transparent,
-                border = if (!isToday) BorderStroke(1.dp, EmberAccent.copy(alpha = 0.35f)) else null,
+                color = if (!isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                border = if (!isToday) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) else null,
                 modifier = Modifier.height(36.dp)
             ) {
                 Row(
@@ -111,7 +110,7 @@ fun DateNavigatorBar(
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = "Select Date",
-                        tint = if (!isToday) EmberAccent else tokens.textSecondary,
+                        tint = if (!isToday) MaterialTheme.colorScheme.primary else tokens.textSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -120,7 +119,7 @@ fun DateNavigatorBar(
                             fontWeight = if (!isToday) FontWeight.SemiBold else FontWeight.Medium,
                             fontSize = 13.5.sp
                         ),
-                        color = if (!isToday) EmberAccent else tokens.textPrimary
+                        color = if (!isToday) MaterialTheme.colorScheme.primary else tokens.textPrimary
                     )
                 }
             }
@@ -254,7 +253,7 @@ fun DateNavigatorBar(
                         showDatePicker = false
                     }
                 ) {
-                    Text("Select", color = EmberAccent)
+                    Text("Select", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
@@ -270,9 +269,9 @@ fun DateNavigatorBar(
                     titleContentColor = tokens.textPrimary,
                     headlineContentColor = tokens.textPrimary,
                     weekdayContentColor = tokens.textSecondary,
-                    selectedDayContainerColor = EmberAccent,
-                    selectedDayContentColor = Color.White,
-                    todayDateBorderColor = EmberAccent
+                    selectedDayContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
+                    todayDateBorderColor = MaterialTheme.colorScheme.primary
                 )
             )
         }

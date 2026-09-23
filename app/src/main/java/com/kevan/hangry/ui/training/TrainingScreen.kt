@@ -34,11 +34,11 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 // 5-Zone Cardio Palette
-private val Zone1Color = Color(0xFF64B5F6) // Slate / Soft Blue (Active Recovery)
-private val Zone2Color = Color(0xFF4CAF50) // Emerald Green (Aerobic Base)
-private val Zone3Color = Color(0xFFFFB300) // Amber (Aerobic Tempo)
-private val Zone4Color = Color(0xFFFF7043) // Coral Orange (Threshold)
-private val Zone5Color = Color(0xFFE53935) // High Intensity Crimson (Peak VO2)
+private val Zone1Color = Color(0xFF00A4FF) // Azure Radiance (Active Recovery)
+private val Zone2Color = Color(0xFF01A652) // Green Haze (Aerobic Base)
+private val Zone3Color = Color(0xFFFFCE00) // Supernova (Aerobic Tempo)
+private val Zone4Color = Color(0xFFFF7E1D) // Pumpkin (Threshold)
+private val Zone5Color = Color(0xFFE5484D) // Crimson (Peak VO2)
 
 private val TRAINING_INFO_SECTIONS = listOf(
     HangryInfoSection(

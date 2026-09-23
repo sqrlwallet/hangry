@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import com.kevan.hangry.ui.theme.EmberAccent
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
 sealed class BottomNavDestination(
@@ -142,15 +141,15 @@ fun HangryBottomNavBar(
         ) {
             Surface(
                 shape = RoundedCornerShape(32.dp),
-                color = Color(0xF214151B), // Deep translucent obsidian glass
+                color = LocalHangryTokens.current.glassSurface,
                 tonalElevation = 8.dp,
                 shadowElevation = 18.dp,
                 border = BorderStroke(
                     width = 1.dp,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.20f), // Luminous top edge highlight
-                            Color.White.copy(alpha = 0.04f)  // Subtle bottom ambient fade
+                            LocalHangryTokens.current.edgeHighlight.copy(alpha = LocalHangryTokens.current.edgeHighlight.alpha * 1.6f),
+                            LocalHangryTokens.current.edgeHighlight.copy(alpha = LocalHangryTokens.current.edgeHighlight.alpha * 0.4f)
                         )
                     )
                 ),
@@ -210,13 +209,13 @@ private fun RowScope.FloatingNavItem(
     )
 
     val iconTint by animateColorAsState(
-        targetValue = if (selected) EmberAccent else Color(0xFF8E8E98),
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else LocalHangryTokens.current.textMuted,
         animationSpec = tween(durationMillis = 200),
         label = "nav_icon_tint_${destination.label}"
     )
 
     val textColor by animateColorAsState(
-        targetValue = if (selected) EmberAccent else Color(0xFF8E8E98),
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else LocalHangryTokens.current.textMuted,
         animationSpec = tween(durationMillis = 200),
         label = "nav_text_tint_${destination.label}"
     )
@@ -238,7 +237,7 @@ private fun RowScope.FloatingNavItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        // Active indicator: glowing ember gradient capsule
+        // Active indicator: soft brand-blue capsule
         if (animatedPillAlpha > 0.01f) {
             Box(
                 modifier = Modifier
@@ -248,14 +247,14 @@ private fun RowScope.FloatingNavItem(
                     .background(
                         brush = Brush.verticalGradient(
                             listOf(
-                                EmberAccent.copy(alpha = 0.20f * animatedPillAlpha),
-                                EmberAccent.copy(alpha = 0.08f * animatedPillAlpha)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f * animatedPillAlpha),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.06f * animatedPillAlpha)
                             )
                         )
                     )
                     .border(
                         width = 1.dp,
-                        color = EmberAccent.copy(alpha = 0.32f * animatedPillAlpha),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f * animatedPillAlpha),
                         shape = RoundedCornerShape(18.dp)
                     )
             )

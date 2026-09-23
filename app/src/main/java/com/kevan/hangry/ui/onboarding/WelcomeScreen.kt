@@ -36,7 +36,7 @@ fun WelcomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF070A0F))
+            .background(com.kevan.hangry.ui.theme.BackgroundDark)
     ) {
         // 1. Full-bleed AI-generated bioluminescent hero wallpaper
         Image(
@@ -55,8 +55,8 @@ fun WelcomeScreen(
                         0.0f to Color.Black.copy(alpha = 0.65f),
                         0.25f to Color.Black.copy(alpha = 0.20f),
                         0.60f to Color.Black.copy(alpha = 0.55f),
-                        0.85f to Color(0xFF080C14).copy(alpha = 0.92f),
-                        1.0f to Color(0xFF06090F)
+                        0.85f to com.kevan.hangry.ui.theme.BackgroundDark.copy(alpha = 0.92f),
+                        1.0f to com.kevan.hangry.ui.theme.BackgroundDark
                     )
                 )
         )
@@ -156,7 +156,7 @@ fun WelcomeScreen(
             ) {
                 // Frosted Glass Local-First Capsule
                 Surface(
-                    color = Color(0xFF0F172A).copy(alpha = 0.65f),
+                    color = com.kevan.hangry.ui.theme.ShipGray.copy(alpha = 0.72f),
                     shape = CircleShape,
                     border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
                 ) {
@@ -190,7 +190,7 @@ fun WelcomeScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = tokens.scoreColors.primed
+                        containerColor = com.kevan.hangry.ui.theme.BlueRibbon
                     ),
                     elevation = ButtonDefaults.buttonElevation(
                         defaultElevation = 6.dp,
@@ -203,7 +203,7 @@ fun WelcomeScreen(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         ),
-                        color = Color(0xFF051B17)
+                        color = androidx.compose.ui.graphics.Color.White
                     )
                 }
             }

@@ -26,7 +26,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="RECOVERY"
-            android:textColor="#9E9E9E"
+            android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -39,7 +39,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:text="CALIBRATING"
-            android:textColor="#00E676"
+            android:textColor="#01A652"
             android:textSize="10sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -64,6 +64,6 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:text="Calibrating your baseline"
-        android:textColor="#9E9E9E"
+        android:textColor="#B5AEB8"
         android:textSize="12sp" />
 </LinearLayout>

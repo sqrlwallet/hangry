@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.heart
 
+import com.kevan.hangry.ui.components.DashEmptyState
+import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -190,30 +192,14 @@ fun HeartMetricsScreen(
             if (!hasAnyHrvData) {
                 item {
                     HangryCard {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.GraphicEq,
-                                contentDescription = null,
-                                tint = tokens.textMuted,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "No HRV Data Yet",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = tokens.textPrimary
-                            )
-                            HangryInfoTip(
-                                title = "No HRV Data Yet",
-                                body = "No RMSSD records from Health Connect yet - not every connected app reports this metric.\n\n" +
-                                    "Continuous and resting heart rate can come through even when HRV doesn't - it depends on whether a connected app reports RMSSD to Health Connect. Oura, Whoop, Garmin, and Polar commonly do; Samsung Health currently does not."
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                        Text(
-                            text = "Not every app reports HRV.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary
+                        DashEmptyState(
+                            scene = DashEmptyScene.HRV,
+                            title = "No HRV data yet",
+                            body = "Not every app reports HRV.",
+                            infoTitle = "No HRV Data Yet",
+                            infoBody = "No RMSSD records from Health Connect yet - not every connected app reports this metric.\n\n" +
+                                    "Continuous and resting heart rate can come through even when HRV doesn't - it depends on whether a connected app reports RMSSD to Health Connect. Oura, Whoop, Garmin, and Polar commonly do; Samsung Health currently does not.",
+                            modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
                 }

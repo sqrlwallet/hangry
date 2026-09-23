@@ -23,8 +23,12 @@ import coil.compose.AsyncImage
 import com.kevan.hangry.data.local.entity.exercises
 import com.kevan.hangry.data.local.entity.findings
 import com.kevan.hangry.data.local.entity.photoPaths
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoTip
+import com.kevan.hangry.ui.components.POSTURE_POSES
+import com.kevan.hangry.ui.components.PoseGuide
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
@@ -97,17 +101,19 @@ fun PostureCaptureScreen(
             HangryCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Add 1–$MAX_POSTURE_PHOTOS photos, standing naturally",
+                        text = "Add 1–$MAX_POSTURE_PHOTOS photos, one per pose below",
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     HangryInfoTip(
                         title = "Photo tips",
-                        body = "Take 1–$MAX_POSTURE_PHOTOS photos (side, front, or back) standing naturally. Athletic or casual clothing is fine. We'll analyze your alignment and save results automatically."
+                        body = "Take up to one photo per pose: front, side, back, arms overhead, and an optional biceps flex. Stand naturally, full body in frame. Athletic or casual clothing is fine. We'll analyze your alignment and save results automatically."
                     )
                 }
             }
+
+            PoseGuide(poses = POSTURE_POSES)
 
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -172,7 +178,7 @@ fun PostureCaptureScreen(
 
             if (uiState.isAnalyzing) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    DashExpression(mood = DashMood.THINKING, size = 56.dp, contentDescription = null)
                     Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
                     Text("Analyzing and saving…", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                 }
@@ -210,8 +216,21 @@ private fun PostureResultContent(
         verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
     ) {
         HangryCard {
-            Text(text = "Score", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
-            Text(text = "$score", style = MaterialTheme.typography.displayMedium, color = tokens.chartColors.hrv)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "Score", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
+                    Text(text = "$score", style = MaterialTheme.typography.displayMedium, color = tokens.chartColors.hrv)
+                }
+                DashExpression(
+                    mood = when {
+                        score >= 85 -> DashMood.CELEBRATE
+                        score >= 70 -> DashMood.HAPPY
+                        score >= 55 -> DashMood.CHEER
+                        else -> DashMood.CONCERNED
+                    },
+                    size = 104.dp
+                )
+            }
         }
 
         if (findings.isNotEmpty()) {

@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.healthrecords
 
+import com.kevan.hangry.ui.components.DashEmptyState
+import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -451,11 +453,11 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
 
     HangryCard(modifier = Modifier.fillMaxWidth()) {
         if (stats.lastPeriodStart == null) {
-            Text("No periods logged yet", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-            Text(
-                "Log your periods here, or allow Health Connect on the Markers tab to import them from another app. Predictions start after two periods.",
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
+            DashEmptyState(
+                scene = DashEmptyScene.RECORDS,
+                title = "No periods logged yet",
+                body = "Log your periods here, or allow Health Connect on the Markers tab to import them from another app. Predictions start after two periods.",
+                imageSize = 130.dp
             )
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {

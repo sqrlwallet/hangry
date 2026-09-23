@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.nutrition
 
+import com.kevan.hangry.ui.components.DashEmptyState
+import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,7 +19,6 @@ import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.domain.repository.MealPlanRepository
 import com.kevan.hangry.ui.components.HangryCard
-import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
@@ -58,18 +59,12 @@ fun MealPlanScreen(
                 modifier = modifier.fillMaxSize().padding(innerPadding).padding(HangryTokens.Spacing.m)
             ) {
                 HangryCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "No saved meals yet.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        HangryInfoTip(
-                            title = "Meal Plan",
-                            body = "No saved meals yet. Add one to quick-log it without the AI each time."
-                        )
-                    }
+                    DashEmptyState(
+                        scene = DashEmptyScene.MEALS,
+                        title = "No saved meals yet",
+                        body = "Add one to quick-log it without the AI each time.",
+                        modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
+                    )
                 }
             }
         } else {

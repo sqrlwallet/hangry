@@ -1,5 +1,9 @@
 package com.kevan.hangry.ui.recovery
 
+import com.kevan.hangry.domain.model.RecoveryState
+import com.kevan.hangry.ui.coach.DashMood
+import com.kevan.hangry.ui.coach.DashNote
+import com.kevan.hangry.ui.coach.dashMood
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -93,9 +97,14 @@ fun RecoveryDetailsScreen(
             if (isPending) {
                 HangryPendingNotice(
                     message = "Waiting for today's sleep.",
-                    details = "Recovery is calculated once today's sleep is recorded. Log it manually from the Sleep screen, or sync after waking."
+                    details = "Recovery is calculated once today's sleep is recorded. Log it manually from the Sleep screen, or sync after waking.",
+                    dashMood = DashMood.SLEEPY
                 )
                 return@Column
+            }
+
+            scoreEntity?.state?.let { RecoveryState.valueOf(it) }?.let { state ->
+                DashNote(mood = state.dashMood(), text = state.dashLine())
             }
 
             Text(
@@ -207,4 +216,11 @@ private fun RecoveryComponentRow(
             )
         }
     }
+}
+
+private fun RecoveryState.dashLine(): String = when (this) {
+    RecoveryState.PRIMED -> "You're primed. A great day to push."
+    RecoveryState.BALANCED -> "Nicely balanced. Train as planned."
+    RecoveryState.REBUILD -> "Recovery is low today. Go easy and prioritise sleep."
+    RecoveryState.BUILDING_BASELINE -> "Still learning your baseline. Keep syncing and I'll sharpen up."
 }

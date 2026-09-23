@@ -26,7 +26,9 @@ import coil.compose.AsyncImage
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.BodyFatCategory
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.BODY_FAT_POSES
 import com.kevan.hangry.ui.components.HangryInfoTip
+import com.kevan.hangry.ui.components.PoseGuide
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
@@ -424,12 +426,13 @@ fun BodyFatCalculatorScreen(
                 Text(text = "4. AI Photo Analysis", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 HangryInfoTip(
                     title = "AI Photo Analysis",
-                    body = "Upload or capture 1 to 3 physique photos (front, side, or back). Wear fitted gym clothes, shorts, or swimwear for optimal visual evaluation."
+                    body = "Take up to 3 photos following the pose guide: front, side, and back. Use even lighting with your full body in frame, and wear fitted gym clothes, shorts, or swimwear so your silhouette is clear."
                 )
             }
+            PoseGuide(poses = BODY_FAT_POSES)
             HangryCard {
                 Text(
-                    text = "Add 1–3 physique photos",
+                    text = "Add 1–3 photos, one per pose above",
                     style = MaterialTheme.typography.bodyMedium,
                     color = tokens.textSecondary
                 )

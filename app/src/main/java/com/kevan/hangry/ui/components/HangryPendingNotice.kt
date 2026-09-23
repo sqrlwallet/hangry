@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.components
 
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,17 +28,22 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 fun HangryPendingNotice(
     message: String,
     modifier: Modifier = Modifier,
-    details: String? = null
+    details: String? = null,
+    dashMood: DashMood? = null
 ) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Bedtime,
-                contentDescription = null,
-                tint = tokens.scoreColors.buildingBaseline,
-                modifier = Modifier.size(22.dp)
-            )
+            if (dashMood != null) {
+                DashExpression(mood = dashMood, size = 64.dp, contentDescription = null)
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Bedtime,
+                    contentDescription = null,
+                    tint = tokens.scoreColors.buildingBaseline,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

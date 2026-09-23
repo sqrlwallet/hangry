@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.coach
 
+import com.kevan.hangry.ui.components.DashEmptyState
+import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -1044,7 +1046,7 @@ private fun CoachLoadingBubble() {
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                DashAvatar(size = 24.dp)
+                DashExpression(mood = DashMood.THINKING, size = 44.dp, contentDescription = null)
                 Spacer(modifier = Modifier.width(10.dp))
                 PulsingDotsIndicator(dotColor = MaterialTheme.colorScheme.primary, dotSize = 7.dp)
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1095,19 +1097,12 @@ private fun CoachJournalBottomSheet(
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
 
         if (journalEntries.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No memories yet. Mention an issue in chat.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tokens.textSecondary,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
+            DashEmptyState(
+                scene = DashEmptyScene.MEMORIES,
+                title = "No memories yet",
+                body = "Mention an issue in chat and $MASCOT_NAME will remember it.",
+                modifier = Modifier.padding(vertical = HangryTokens.Spacing.m)
+            )
         } else {
             LazyColumn(
                 modifier = Modifier

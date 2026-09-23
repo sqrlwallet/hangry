@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.posture
 
+import com.kevan.hangry.ui.components.DashEmptyState
+import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +18,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -53,7 +54,7 @@ private val ALIGNMENT_ZONE_SECTIONS = listOf(
 private val POSTURE_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "How it works",
-        "Submit 1–5 photos (front, side, or back) standing or sitting naturally. Athletic or casual clothing is fine. The AI evaluates posture alignment and suggests corrective exercises."
+        "Submit 1–5 photos following the pose guide: front, side, back, arms overhead, and an optional biceps flex. Athletic or casual clothing is fine. The AI evaluates posture alignment and suggests corrective exercises."
     ),
     HangryInfoSection(
         "Your photos",
@@ -459,42 +460,12 @@ fun PostureScreen(
             if (uiState.scans.isEmpty()) {
                 item {
                     HangryCard {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.FitnessCenter,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "No Scans Recorded Yet",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = tokens.textPrimary
-                                    )
-                                    HangryInfoTip(
-                                        title = "Scan History",
-                                        body = "Your before-and-after posture timeline will be tracked here privately on your device."
-                                    )
-                                }
-                            }
-                        }
+                        DashEmptyState(
+                            scene = DashEmptyScene.POSTURE,
+                            title = "No scans yet",
+                            body = "Your posture timeline appears here, kept privately on this device.",
+                            modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
+                        )
                     }
                 }
             } else {

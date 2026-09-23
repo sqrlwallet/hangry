@@ -27,6 +27,8 @@ import androidx.health.connect.client.PermissionController
 import com.kevan.hangry.R
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.LocalFirstBanner
@@ -168,6 +170,12 @@ fun PermissionSetupScreen(
                 verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
                 OnboardingStepIndicator(currentStep = 1, totalSteps = 3)
+
+            DashExpression(
+                mood = DashMood.HEART,
+                size = 150.dp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

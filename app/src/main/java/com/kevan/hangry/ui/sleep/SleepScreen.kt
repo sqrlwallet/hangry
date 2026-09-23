@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.sleep
 
+import com.kevan.hangry.ui.coach.DashMood
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -145,7 +146,8 @@ fun SleepScreen(
             if (uiState.isPendingSleepData) {
                 HangryPendingNotice(
                     message = "Log last night's sleep to see today's insights.",
-                    details = "Log last night's sleep to see your sleep score, architecture, and insights for today."
+                    details = "Log last night's sleep to see your sleep score, architecture, and insights for today.",
+                    dashMood = DashMood.SLEEPY
                 )
             } else {
                 // Main Sleep Duration Card

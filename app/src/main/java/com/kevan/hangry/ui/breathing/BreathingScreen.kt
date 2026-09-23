@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
@@ -48,6 +47,8 @@ import com.kevan.hangry.data.breathing.BreathingSessionState
 import com.kevan.hangry.data.local.entity.BreathingSessionEntity
 import com.kevan.hangry.domain.model.BreathPhaseType
 import com.kevan.hangry.domain.model.BreathingPattern
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
@@ -473,19 +474,32 @@ private fun ActiveSession(
                     shape = CircleShape
                 )
         )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        DashBreathing(
+            phase = phaseType,
+            phaseProgress = position.phaseProgress,
+            fill = easedFill,
+            isPaused = state.isPaused,
+            modifier = Modifier.fillMaxSize(0.6f)
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (state.isPaused) "Paused" else phaseType.label,
+            style = MaterialTheme.typography.headlineSmall,
+            color = tokens.textPrimary
+        )
+        if (!state.isPaused) {
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
             Text(
-                text = if (state.isPaused) "Paused" else phaseType.label,
-                style = MaterialTheme.typography.headlineSmall,
-                color = tokens.textPrimary
+                text = "${position.phaseSecondsRemaining}",
+                style = MaterialTheme.typography.displaySmall,
+                color = accent
             )
-            if (!state.isPaused) {
-                Text(
-                    text = "${position.phaseSecondsRemaining}",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = tokens.textPrimary
-                )
-            }
         }
     }
 
@@ -573,11 +587,15 @@ private fun SessionSummary(
     ) {
         Box(
             modifier = Modifier
-                .size(88.dp)
+                .size(132.dp)
                 .background(accent.copy(alpha = 0.15f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Air, contentDescription = null, tint = accent, modifier = Modifier.size(44.dp))
+            DashExpression(
+                mood = if (state.completed) DashMood.CELEBRATE else DashMood.CHEER,
+                size = 116.dp,
+                contentDescription = null
+            )
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
         Text(

@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -23,6 +22,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kevan.hangry.R
+import com.kevan.hangry.ui.coach.DashExpression
+import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -85,7 +86,7 @@ fun WelcomeScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(190.dp)
+                            .size(220.dp)
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
@@ -95,13 +96,7 @@ fun WelcomeScreen(
                                 )
                             )
                     )
-                    Image(
-                        painter = painterResource(id = R.drawable.hangry_energy_sphere),
-                        contentDescription = "Hangry Vitality Core",
-                        modifier = Modifier
-                            .size(150.dp)
-                            .clip(CircleShape)
-                    )
+                    DashExpression(mood = DashMood.WAVE, size = 190.dp)
                 }
 
                 // App Title with luxury letter spacing

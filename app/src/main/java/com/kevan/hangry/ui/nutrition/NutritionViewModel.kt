@@ -13,6 +13,7 @@ import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.domain.ai.FoodAnalyzer
+import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.domain.repository.FoodLogRepository
 import com.kevan.hangry.domain.repository.MealPlanRepository
@@ -46,8 +47,13 @@ class NutritionViewModel(
     private val mealPlanRepository: MealPlanRepository,
     private val foodAnalyzer: FoodAnalyzer,
     private val healthConnectDataSource: HealthConnectDataSource,
-    private val userProfileRepository: UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
+    /** Source of the user's allergies for meal allergen alerts; none recorded means no check. */
+    private val healthRecordsRepository: HealthRecordsRepository? = null
 ) : ViewModel() {
+
+    private suspend fun allergies(): List<String> =
+        healthRecordsRepository?.current()?.allergies?.map { it.name }.orEmpty()
 
     private val zone = ZoneId.systemDefault()
     private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
@@ -129,7 +135,7 @@ class NutritionViewModel(
         }
         _uiState.update { it.copy(isAnalyzing = true) }
         viewModelScope.launch {
-            foodAnalyzer.analyzePhoto(base64, note).fold(
+            foodAnalyzer.analyzePhoto(base64, note, allergies()).fold(
                 onSuccess = { result -> autoSave(result, FoodLogSource.PHOTO, uri) },
                 onFailure = { e ->
                     _uiState.update { it.copy(isAnalyzing = false) }
@@ -151,7 +157,7 @@ class NutritionViewModel(
         if (text.isBlank()) return
         _uiState.update { it.copy(isAnalyzing = true) }
         viewModelScope.launch {
-            foodAnalyzer.analyzeDescription(text).fold(
+            foodAnalyzer.analyzeDescription(text, allergies()).fold(
                 onSuccess = { result -> autoSave(result, FoodLogSource.MANUAL, photoUri = null) },
                 onFailure = { e ->
                     _uiState.update { it.copy(isAnalyzing = false, errorMessage = e.messageOrDefault()) }
@@ -202,7 +208,7 @@ class NutritionViewModel(
     suspend fun estimateFood(photoUri: Uri?, note: String?): Result<FoodAnalysisResult> {
         val base64 = photoUri?.let { context.readImageAsBase64Jpeg(it) }
         return if (base64 != null) {
-            foodAnalyzer.analyzePhoto(base64, note)
+            foodAnalyzer.analyzePhoto(base64, note, allergies())
         } else if (!note.isNullOrBlank()) {
             foodAnalyzer.analyzeDescription(note)
         } else {
@@ -235,9 +241,14 @@ class NutritionViewModel(
             it.copy(
                 isAnalyzing = false,
                 lastSavedEntry = saved,
-                errorMessage = if (!synced) "Logged, but couldn't sync to Health Connect." else null
+                errorMessage = if (!synced) "Logged, but couldn't sync to Health Connect." else null,
+                allergenAlert = analysis.allergenWarnings.takeIf { w -> w.isNotEmpty() }?.let { w -> AllergenAlert(saved, w) }
             )
         }
+    }
+
+    fun dismissAllergenAlert() {
+        _uiState.update { it.copy(allergenAlert = null) }
     }
 
     fun clearLastSaved() {
@@ -311,7 +322,8 @@ class NutritionViewModel(
             mealPlanRepository: MealPlanRepository,
             foodAnalyzer: FoodAnalyzer,
             healthConnectDataSource: HealthConnectDataSource,
-            userProfileRepository: UserProfileRepository
+            userProfileRepository: UserProfileRepository,
+            healthRecordsRepository: HealthRecordsRepository? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -321,7 +333,8 @@ class NutritionViewModel(
                     mealPlanRepository = mealPlanRepository,
                     foodAnalyzer = foodAnalyzer,
                     healthConnectDataSource = healthConnectDataSource,
-                    userProfileRepository = userProfileRepository
+                    userProfileRepository = userProfileRepository,
+                    healthRecordsRepository = healthRecordsRepository
                 ) as T
             }
         }

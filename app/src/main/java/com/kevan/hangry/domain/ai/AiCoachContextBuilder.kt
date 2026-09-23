@@ -14,10 +14,13 @@ import com.kevan.hangry.domain.model.GoalDirection
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
+import com.kevan.hangry.domain.repository.SupplementRepository
+import com.kevan.hangry.domain.model.SupplementsSnapshot
 import com.kevan.hangry.domain.model.EnergyBalanceResult
 import com.kevan.hangry.domain.repository.BodyMetricsRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import java.util.Locale
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -39,7 +42,9 @@ class AiCoachContextBuilder(
     /** Body metrics + 7-day maintenance/goal calories. Optional so tests can omit it. */
     private val bodyMetricsRepository: BodyMetricsRepository? = null,
     /** Labs, vitals, goals, allergies, conditions, pregnancy and cycle. Optional for tests. */
-    private val healthRecordsRepository: HealthRecordsRepository? = null
+    private val healthRecordsRepository: HealthRecordsRepository? = null,
+    /** Daily supplements, schedule and adherence. Optional for tests. */
+    private val supplementRepository: SupplementRepository? = null
 ) {
 
     suspend fun build7DayContext(): String {
@@ -61,6 +66,15 @@ class AiCoachContextBuilder(
         val journalMemories = coachJournalDao.getAllSync()
 
         val sb = StringBuilder()
+        // Dash has no clock of its own: without this it can't tell "before bed" from "after lunch".
+        val now = java.time.ZonedDateTime.now(zone)
+        sb.appendLine("=== NOW ===")
+        sb.appendLine(
+            "Local time: " + now.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, h:mm a", java.util.Locale.US)) +
+                " (${zone.id}). Use this for anything time-related (\"tonight\", \"today\", dose times, meal timing)."
+        )
+        sb.appendLine()
+
         sb.appendLine("=== USER PROFILE ===")
         if (profile != null) {
             val sex = profile.biologicalSex ?: "Not specified"
@@ -87,10 +101,12 @@ class AiCoachContextBuilder(
 
         bodyMetricsRepository?.current()?.let { snapshot ->
             appendEnergyBalance(sb, snapshot.input.energy)
+            appendToday(sb, snapshot, foodLogs.filter { it.date == today })
             appendBodyMetrics(sb, snapshot)
         }
 
         healthRecordsRepository?.current()?.let { appendHealthRecords(sb, it, today) }
+        supplementRepository?.current()?.let { appendSupplements(sb, it) }
 
         sb.appendLine("=== USER'S PERSONAL JOURNAL & KNOWN PROBLEMS / MEMORIES ===")
         if (journalMemories.isEmpty()) {
@@ -119,6 +135,15 @@ class AiCoachContextBuilder(
                 sb.appendLine("• $dateStr: Recovery: $rec | Sleep: $sleepDur | Strain: $strain | Steps: $steps | Burn: $actCal | $rhr | $hrv")
             }
         }
+        sb.appendLine()
+
+        // Longer view so Dash can talk about direction, not just last week's raw numbers.
+        val trendSummaries = dailyHealthSummaryDao.getSummariesBetweenList(today.minusDays(28), today.minusDays(1))
+        val trendScores = recoveryScoreDao.getScoresBetweenList(today.minusDays(28), today.minusDays(1)).associate { it.date to it.score }
+        val weights = runCatching { weightDao.getAllWeights().first() }.getOrDefault(emptyList())
+        val trends = DashInsights.trendLines(trendSummaries, trendScores, weights, today, zone)
+        sb.appendLine("=== TRENDS (last 7 full days vs the 3 weeks before) ===")
+        if (trends.isEmpty()) sb.appendLine("Not enough history yet for trends.") else trends.forEach { sb.appendLine(it) }
         sb.appendLine()
 
         sb.appendLine("=== 7-DAY WORKOUTS & EXERCISE SESSIONS ===")
@@ -174,10 +199,11 @@ class AiCoachContextBuilder(
             return
         }
         sb.appendLine("Maintenance calories: ${f(e.maintenanceKcal)} kcal/day (averaged over ${e.daysWithData} days with data, ${e.windowStart} to ${e.windowEnd})")
-        sb.appendLine("• BMR (Mifflin-St Jeor): ${f(e.bmrKcal)} kcal")
+        sb.appendLine("• BMR (${e.bmrMethod}): ${f(e.bmrKcal)} kcal")
         sb.appendLine("• NEAT: avg ${f(e.avgTotalSteps)} steps/day ÷ 3 = ${f(e.avgNeatSteps)} counted steps × ${"%.3f".format(Locale.US, e.kcalPerStep)} kcal/step = ${f(e.neatKcal)} kcal (a third is counted as a rough allowance for steps already covered by workout calories - an estimate)")
         sb.appendLine("• Workouts: ${e.workoutsCounted} sessions, avg ${f(e.avgWorkoutKcal)} kcal/day" +
             if (e.workoutsWithoutCalories > 0) " (${e.workoutsWithoutCalories} had no calorie data)" else "")
+        sb.appendLine("• Thermic effect of food (10%): ${f(e.tefKcal)} kcal")
         val goal = e.goal
         when {
             e.goalWeightKg == null || e.goalDate == null ->
@@ -190,6 +216,20 @@ class AiCoachContextBuilder(
                 sb.appendLine("Goal: ${"%.1f".format(Locale.US, e.goalWeightKg)} kg by ${e.goalDate} → eat ${goal.dailyCalorieTarget} kcal/day (${f(kotlin.math.abs(adj))} kcal/day $kind, ~${"%.2f".format(Locale.US, kotlin.math.abs(goal.weeklyPaceKg))} kg/week). ${goal.guidance}")
             }
         }
+        sb.appendLine()
+    }
+
+    /** Where today stands against the calorie target, so "what should I eat tonight?" has an answer. */
+    private fun appendToday(sb: StringBuilder, snapshot: BodyMetricsSnapshot, todayFood: List<com.kevan.hangry.data.local.entity.FoodLogEntity>) {
+        val e = snapshot.input.energy?.estimate
+        val target = e?.goal?.dailyCalorieTarget ?: e?.maintenanceKcal?.toInt()
+        val eaten = todayFood.sumOf { it.calories }
+        val protein = todayFood.sumOf { it.proteinG }
+        sb.appendLine("=== TODAY SO FAR ===")
+        sb.appendLine(
+            "Eaten: $eaten kcal, ${"%.0f".format(Locale.US, protein)} g protein across ${todayFood.size} logged item(s)" +
+                (target?.let { " | target $it kcal | ${it - eaten} kcal left" } ?: " | no calorie target yet")
+        )
         sb.appendLine()
     }
 
@@ -224,7 +264,7 @@ class AiCoachContextBuilder(
                 sb.appendLine("Menstrual cycle: " + parts.joinToString(", "))
             }
         }
-        val tracked = MarkerType.entries.filter { records.latest(it) != null || records.goal(it) != null }
+        val tracked = records.visibleMarkers.filter { records.latest(it) != null || records.goal(it) != null }
         if (tracked.isEmpty()) {
             sb.appendLine("Lab/vital markers: none recorded yet.")
         } else {
@@ -245,6 +285,31 @@ class AiCoachContextBuilder(
                 } ?: ""
                 sb.appendLine("• ${type.label}: $readings" + (status?.let { " [$it]" } ?: "") + goal)
             }
+        }
+        sb.appendLine()
+    }
+
+    private fun appendSupplements(sb: StringBuilder, snapshot: SupplementsSnapshot) {
+        sb.appendLine("=== DAILY SUPPLEMENTS ===")
+        if (snapshot.supplements.isEmpty()) {
+            sb.appendLine("None recorded. The user can add one by sending you a photo of the bottle/label.")
+            sb.appendLine()
+            return
+        }
+        snapshot.supplements.forEach { s ->
+            val dose = (if (s.doseAmount % 1.0 == 0.0) s.doseAmount.toInt().toString() else s.doseAmount.toString()) + " " + s.doseUnit
+            val times = s.times.joinToString(", ").ifEmpty { "no set time" }
+            val ingredients = s.ingredients.joinToString(", ") { i ->
+                listOfNotNull(i.name, i.amount?.let { a -> (if (a % 1.0 == 0.0) a.toInt().toString() else a.toString()) + (i.unit?.let { " $it" } ?: "") }).joinToString(" ")
+            }
+            val adherence = snapshot.weekAdherence[s.id]?.takeIf { it.second > 0 }?.let { " | last 7 days: ${it.first}/${it.second} doses taken" } ?: ""
+            val status = if (s.active) "" else " [PAUSED]"
+            sb.appendLine("• ${s.name}${s.brand?.let { " ($it)" } ?: ""}$status: $dose at $times" +
+                (if (ingredients.isNotEmpty()) " | per serving: $ingredients" else "") + adherence)
+        }
+        if (snapshot.todayDoses.isNotEmpty()) {
+            sb.appendLine("Today: ${snapshot.takenToday} of ${snapshot.todayDoses.size} doses taken" +
+                (snapshot.nextDose?.let { " | next: ${it.supplement.name} at ${it.time}" } ?: ""))
         }
         sb.appendLine()
     }

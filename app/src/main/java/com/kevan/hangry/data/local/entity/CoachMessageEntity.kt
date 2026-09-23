@@ -18,5 +18,9 @@ data class CoachMessageEntity(
     val timestamp: Instant = Instant.now(),
     val role: String, // "user" or "assistant"
     val content: String,
-    val journalEntrySummary: String? = null
+    val journalEntrySummary: String? = null,
+    /** Comma-separated paths of photos the user attached to this message. */
+    val imagePaths: String? = null,
+    /** JSON list of CoachAction Dash proposed with this reply (with each one's status). */
+    val actionsJson: String? = null
 )

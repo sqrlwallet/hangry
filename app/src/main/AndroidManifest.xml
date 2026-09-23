@@ -10,6 +10,10 @@
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
+        <!-- Voice input for Ask Dash via the system speech recogniser. -->
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
     </queries>
 
     <!-- Required only for the opt-in AI features (Settings > AI Features): calling OpenRouter
@@ -29,6 +33,11 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Shows the ongoing breathing-session notification (with its End button) on Android 13+. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Supplement reminders: on-time alarms where Android allows them (otherwise they arrive
+         within a few minutes), re-armed after a reboot. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Comprehensive Health Connect Permissions -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
@@ -61,11 +70,14 @@
     <!-- Health records (read-only): home glucose readings, period tracking (shown only when sex
          is set to female), and Health Connect medical records on devices that support them. -->
     <uses-permission android:name="android.permission.health.READ_BLOOD_GLUCOSE" />
+    <uses-permission android:name="android.permission.health.WRITE_BLOOD_PRESSURE" />
+    <uses-permission android:name="android.permission.health.WRITE_BLOOD_GLUCOSE" />
     <uses-permission android:name="android.permission.health.READ_MENSTRUATION" />
     <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_LABORATORY_RESULTS" />
     <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_VITAL_SIGNS" />
     <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_CONDITIONS" />
     <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES" />
+    <uses-permission android:name="android.permission.health.READ_MEDICAL_DATA_PREGNANCY" />
 
     <application
         android:name=".HangryApplication"
@@ -123,6 +135,17 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <receiver
+            android:name=".data.supplements.SupplementReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Home Screen AppWidgets -->
         <receiver
             android:name=".ui.widget.ActivityWidgetProvider"
@@ -170,6 +193,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_provider_recovery" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.SupplementsWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Supplements">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_supplements" />
         </receiver>
 
         <receiver

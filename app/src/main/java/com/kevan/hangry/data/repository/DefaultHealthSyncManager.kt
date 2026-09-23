@@ -340,6 +340,8 @@ class DefaultHealthSyncManager(
                 deleteAllProfileItems()
                 deleteAllPeriods()
             }
+            database.supplementDao().deleteAllSupplements()
+            database.supplementDao().deleteAllIntakes()
         }
     }
 

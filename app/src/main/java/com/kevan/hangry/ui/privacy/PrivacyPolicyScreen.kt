@@ -106,7 +106,7 @@ fun PrivacyPolicyScreen(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                 PrivacyPermissionRow(category = "Body Weight", purpose = "Body mass trend over time")
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Blood Pressure & Blood Sugar", purpose = "Health Records tracking & goals")
+                PrivacyPermissionRow(category = "Blood Pressure & Blood Sugar", purpose = "Health Records tracking & goals; readings you enter are also written back for other apps")
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
                 PrivacyPermissionRow(category = "Menstruation (female only)", purpose = "Cycle tracking & predictions")
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
@@ -147,10 +147,11 @@ fun PrivacyPolicyScreen(
             HangryCard {
                 Text(
                     text = "Off by default. When you enable it and add your own OpenRouter key, " +
-                        "photos/text you submit for food or posture analysis are sent directly " +
+                        "photos/text you submit for food, supplement or posture analysis - and photos " +
+                        "you send to Ask Dash - are sent directly " +
                         "from your device to OpenRouter - never through a Hangry server. When you " +
                         "chat with Ask Dash, your recent health data (including Health Records such " +
-                        "as lab results, allergies, conditions, pregnancy and cycle) is included so " +
+                        "as lab results, allergies, conditions, pregnancy and cycle, plus your supplements) is included so " +
                         "answers use your real numbers. Turn it off anytime in Settings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary

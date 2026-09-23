@@ -102,7 +102,12 @@ class DefaultBodyMetricsRepository(
             goalWeightKg = profile?.weightGoalKg,
             goalDate = profile?.goalTargetDate,
             today = today,
-            zone = zone
+            zone = zone,
+            // Only a real measurement (tape or photo) within ~3 months is good enough for Katch-McArdle.
+            measuredBodyFatPercent = m.scan
+                ?.takeIf { it.method in setOf("NAVY_CIRCUMFERENCE", "AI_MULTIMODAL", "REPORTED") }
+                ?.takeIf { !it.date.isBefore(today.minusDays(90)) }
+                ?.bodyFatPercentage
         )
         val input = BodyMetricsInput(
             heightCm = heightCm,
@@ -130,6 +135,7 @@ class DefaultBodyMetricsRepository(
         fun scanMethodLabel(method: String): String = when (method) {
             "AI_MULTIMODAL" -> "AI photo"
             "BIOMETRIC_HISTORY" -> "health-history"
+            "REPORTED" -> "reported"
             else -> "tape-measure"
         }
     }

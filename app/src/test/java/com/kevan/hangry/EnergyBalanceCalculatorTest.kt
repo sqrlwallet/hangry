@@ -54,7 +54,9 @@ class EnergyBalanceCalculatorTest {
         assertEquals(10_000.0 / 3, e.avgNeatSteps, 0.01)
         // 0.5 x 80 kg x (180 cm x 0.415 stride) = 0.02988 kcal per step
         assertEquals(99.6, e.neatKcal, 0.5)
-        assertEquals(e.bmrKcal + e.neatKcal, e.maintenanceKcal, 0.01)
+        // Plus 10% thermic effect of food.
+        assertEquals((e.bmrKcal + e.neatKcal) * 1.10, e.maintenanceKcal, 0.01)
+        assertEquals("Mifflin-St Jeor", e.bmrMethod)
     }
 
     @Test
@@ -69,7 +71,7 @@ class EnergyBalanceCalculatorTest {
         val e = estimate(week, listOf(run(today.minusDays(2), 30, 350.0, 4_900))).estimate!!
         assertEquals(10_000.0 / 3, e.avgNeatSteps, 0.01)
         assertEquals(350.0 / 7, e.avgWorkoutKcal, 0.01)
-        assertEquals(e.bmrKcal + e.neatKcal + 50.0, e.maintenanceKcal, 0.01)
+        assertEquals((e.bmrKcal + e.neatKcal + 50.0) * 1.10, e.maintenanceKcal, 0.01)
     }
 
     @Test
@@ -80,8 +82,21 @@ class EnergyBalanceCalculatorTest {
     }
 
     @Test
+    fun `a measured body fat scan switches BMR to Katch-McArdle`() {
+        val e = calculator.estimate(
+            weightKg = 80.0, heightCm = 180.0, age = 30, sex = BiologicalSex.MALE,
+            summaries = week, workouts = emptyList(), goalWeightKg = null, goalDate = null,
+            today = today, zone = zone, measuredBodyFatPercent = 15.0
+        ).estimate!!
+        // 370 + 21.6 x 68 kg lean
+        assertEquals(1838.8, e.bmrKcal, 0.1)
+        assertEquals("Katch-McArdle", e.bmrMethod)
+    }
+
+    @Test
     fun `too little step data leaves it blank`() {
-        val result = estimate(listOf(day(1, 8_000), day(2, 9_000)))
+        // Four days is below the five-day minimum.
+        val result = estimate((1L..4L).map { day(it, 8_000) })
         assertNull(result.estimate)
         assertTrue(result.missing.any { it.startsWith("Step data") })
     }

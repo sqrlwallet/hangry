@@ -32,6 +32,9 @@ enum class MarkerType(
     TRIGLYCERIDES("triglycerides", "Triglycerides", "mg/dL", listOf(MarkerUnit("mg/dL", 1.0), MarkerUnit("mmol/L", 88.57)), 0, GoalDirection.LOWER),
     TESTOSTERONE("testosterone", "Testosterone (total)", "ng/dL", listOf(MarkerUnit("ng/dL", 1.0), MarkerUnit("nmol/L", 28.84)), 0, GoalDirection.RAISE);
 
+    /** Testosterone is only tracked for users whose sex is set to male. */
+    fun isVisibleFor(sex: BiologicalSex?): Boolean = this != TESTOSTERONE || sex == BiologicalSex.MALE
+
     companion object {
         fun fromId(id: String): MarkerType? = entries.firstOrNull { it.id == id }
     }
@@ -136,6 +139,9 @@ data class HealthRecordsSnapshot(
     /** Pregnancy and cycle tracking are only offered when sex is set to female. */
     val showsFemaleHealth: Boolean get() = sex == BiologicalSex.FEMALE
 
+    /** Markers offered to this user - testosterone only when sex is set to male. */
+    val visibleMarkers: List<MarkerType> get() = MarkerType.entries.filter { it.isVisibleFor(sex) }
+
     fun latest(type: MarkerType): MarkerReading? = readings.firstOrNull { it.type == type }
     fun history(type: MarkerType): List<MarkerReading> = readings.filter { it.type == type }
     fun goal(type: MarkerType): MarkerGoal? = goals.firstOrNull { it.type == type }
@@ -147,7 +153,9 @@ data class HealthRecordsImportResult(
     val newReadings: Int,
     val newProfileItems: Int,
     val newPeriods: Int,
-    val medicalRecordsSupported: Boolean
+    val medicalRecordsSupported: Boolean,
+    /** True when a current pregnancy (or its due date) was taken from medical records. */
+    val pregnancyUpdated: Boolean = false
 ) {
-    val total: Int get() = newReadings + newProfileItems + newPeriods
+    val total: Int get() = newReadings + newProfileItems + newPeriods + if (pregnancyUpdated) 1 else 0
 }

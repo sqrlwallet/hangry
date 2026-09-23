@@ -95,5 +95,6 @@
     <string name="widget_quick_log_description">One-tap shortcut to snap and log meals instantly.</string>
     <string name="widget_sleep_description">Track your latest sleep duration, quality score, and debt.</string>
     <string name="widget_recovery_description">Check your daily autonomic recovery score and readiness band.</string>
+    <string name="widget_supplements_description">Your next supplement dose and how many you\'ve taken today.</string>
     <string name="widget_overview_description">Comprehensive daily overview with recovery, activity, sleep, and quick-log.</string>
 </resources>

@@ -38,9 +38,11 @@ import com.kevan.hangry.data.local.entity.*
         HealthMarkerEntity::class,
         MarkerGoalEntity::class,
         HealthProfileItemEntity::class,
-        MenstrualPeriodEntity::class
+        MenstrualPeriodEntity::class,
+        SupplementEntity::class,
+        SupplementIntakeEntity::class
     ],
-    version = 17,
+    version = 20,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -69,6 +71,7 @@ abstract class HangryDatabase : RoomDatabase() {
     abstract fun breathingSessionDao(): BreathingSessionDao
     abstract fun hrvFeelingDao(): HrvFeelingDao
     abstract fun healthRecordsDao(): HealthRecordsDao
+    abstract fun supplementDao(): SupplementDao
 
     open fun checkpointAndOptimize() {
         openHelper.writableDatabase.let { db ->
@@ -399,6 +402,56 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS supplements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        brand TEXT,
+                        form TEXT,
+                        doseAmount REAL NOT NULL,
+                        doseUnit TEXT NOT NULL,
+                        times TEXT NOT NULL,
+                        ingredientsJson TEXT NOT NULL,
+                        remindersEnabled INTEGER NOT NULL,
+                        notes TEXT,
+                        photoPath TEXT,
+                        active INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS supplement_intakes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        supplementId INTEGER NOT NULL,
+                        date INTEGER NOT NULL,
+                        scheduledTime TEXT NOT NULL,
+                        takenAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_supplement_intakes_supplementId_date_scheduledTime ON supplement_intakes(supplementId, date, scheduledTime)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_supplement_intakes_date ON supplement_intakes(date)")
+            }
+        }
+
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE coach_messages ADD COLUMN imagePaths TEXT")
+                db.execSQL("ALTER TABLE coach_messages ADD COLUMN actionsJson TEXT")
+            }
+        }
+
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE health_markers ADD COLUMN healthConnectSynced INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -410,7 +463,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20
                     )
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {

@@ -29,10 +29,14 @@ import com.kevan.hangry.domain.model.BreathingStats
 import com.kevan.hangry.ui.bodymetrics.BodyMetricsScreen
 import com.kevan.hangry.ui.bodymetrics.BodyMetricsViewModel
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
+import com.kevan.hangry.domain.model.SupplementsSnapshot
+import com.kevan.hangry.ui.supplements.SupplementsScreen
+import com.kevan.hangry.ui.supplements.SupplementsViewModel
 import com.kevan.hangry.ui.breathing.BreathingScreen
 import com.kevan.hangry.ui.healthrecords.HealthRecordsScreen
 import com.kevan.hangry.ui.healthrecords.HealthRecordsViewModel
 import com.kevan.hangry.ui.breathing.BreathingViewModel
+import com.kevan.hangry.domain.ai.DashInsights
 import com.kevan.hangry.ui.coach.AiCoachScreen
 import com.kevan.hangry.ui.coach.AiCoachViewModel
 import com.kevan.hangry.ui.dashboard.DashboardScreen
@@ -87,6 +91,7 @@ sealed class Screen(val route: String) {
     data object BodyFatCalculator : Screen("body_fat_calculator")
     data object BodyMetrics : Screen("body_metrics")
     data object HealthRecords : Screen("health_records")
+    data object Supplements : Screen("supplements")
     data object Breathing : Screen("breathing?pattern={pattern}") {
         /** A null pattern opens the screen as-is, e.g. to return to a running session. */
         fun createRoute(patternId: String? = null) =
@@ -149,7 +154,8 @@ fun HangryNavGraph(
             mealPlanRepository = appContainer.mealPlanRepository,
             foodAnalyzer = appContainer.foodAnalyzer,
             healthConnectDataSource = appContainer.healthConnectDataSource,
-            userProfileRepository = appContainer.userProfileRepository
+            userProfileRepository = appContainer.userProfileRepository,
+            healthRecordsRepository = appContainer.healthRecordsRepository
         )
     )
 
@@ -157,7 +163,14 @@ fun HangryNavGraph(
         factory = AiCoachViewModel.provideFactory(
             coachRepository = appContainer.coachRepository,
             userProfileRepository = appContainer.userProfileRepository,
-            secureKeyStore = appContainer.secureKeyStore
+            secureKeyStore = appContainer.secureKeyStore,
+            suggestionSource = {
+                DashInsights.suggestions(
+                    supplements = appContainer.supplementRepository.current(),
+                    records = appContainer.healthRecordsRepository.current(),
+                    bodyMetrics = appContainer.bodyMetricsRepository.current()
+                )
+            }
         )
     )
 
@@ -252,6 +265,8 @@ fun HangryNavGraph(
             val breathingSession by appContainer.breathingSessionController.state.collectAsState()
             val healthRecords by appContainer.healthRecordsRepository.observe()
                 .collectAsState(initial = HealthRecordsSnapshot())
+            val supplements by appContainer.supplementRepository.observe()
+                .collectAsState(initial = SupplementsSnapshot())
             DashboardScreen(
                 viewModel = dashboardViewModel,
                 nutritionViewModel = nutritionViewModel,
@@ -291,6 +306,11 @@ fun HangryNavGraph(
                 breathingStats = breathingStats,
                 breathingSession = breathingSession,
                 healthRecords = healthRecords,
+                supplements = supplements,
+                onToggleSupplementDose = { id, time, taken ->
+                    coroutineScope.launch { appContainer.supplementRepository.setTaken(id, time, taken) }
+                },
+                onNavigateToSupplements = { navController.navigate(Screen.Supplements.route) },
                 onNavigateToHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
                 onNavigateToBreathing = { pattern ->
                     navController.navigate(Screen.Breathing.createRoute(pattern?.id)) {
@@ -493,7 +513,26 @@ fun HangryNavGraph(
             AiCoachScreen(
                 viewModel = aiCoachViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToAiSettings = { navController.navigate(Screen.Settings.route) },
+                onOpenScreen = { screen, pattern ->
+                    val route = when (screen) {
+                        "breathing" -> Screen.Breathing.createRoute(pattern)
+                        "supplements" -> Screen.Supplements.route
+                        "health_records" -> Screen.HealthRecords.route
+                        "body_metrics" -> Screen.BodyMetrics.route
+                        "body_fat" -> Screen.BodyFatCalculator.route
+                        "nutrition" -> Screen.Nutrition.route
+                        "sleep" -> Screen.Sleep.route
+                        "recovery" -> Screen.RecoveryDetails.route
+                        "heart" -> Screen.HeartMetrics.route
+                        "training" -> Screen.Training.route
+                        "trends" -> Screen.Trends.route
+                        "posture" -> Screen.Posture.route
+                        "settings" -> Screen.Settings.route
+                        else -> null
+                    }
+                    route?.let { navController.navigate(it) }
+                }
             )
         }
 
@@ -503,6 +542,22 @@ fun HangryNavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        // Daily supplements: photo-first add, schedule, reminders
+        composable(Screen.Supplements.route) {
+            val context = LocalContext.current
+            val supplementsViewModel: SupplementsViewModel = viewModel(
+                factory = SupplementsViewModel.provideFactory(
+                    context = context,
+                    repository = appContainer.supplementRepository,
+                    userProfileRepository = appContainer.userProfileRepository
+                )
+            )
+            SupplementsScreen(
+                viewModel = supplementsViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

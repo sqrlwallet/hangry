@@ -39,13 +39,13 @@ import java.time.ZoneOffset
 import java.util.Locale
 
 @Composable
-internal fun MarkerPickerDialog(onDismiss: () -> Unit, onPick: (MarkerType) -> Unit) {
+internal fun MarkerPickerDialog(markers: List<MarkerType>, onDismiss: () -> Unit, onPick: (MarkerType) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add a reading") },
         text = {
             Column {
-                MarkerType.entries.forEach { type ->
+                markers.forEach { type ->
                     Text(
                         type.label,
                         style = MaterialTheme.typography.bodyLarge,

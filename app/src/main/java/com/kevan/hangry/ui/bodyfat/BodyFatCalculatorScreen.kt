@@ -690,6 +690,7 @@ fun BodyFatCalculatorScreen(
                                         val methodLabel = when (scan.method) {
                                             "AI_MULTIMODAL" -> "AI Vision"
                                             "BIOMETRIC_HISTORY" -> "Health History"
+                                            "REPORTED" -> "Reported"
                                             else -> "US Navy"
                                         }
                                         Text(

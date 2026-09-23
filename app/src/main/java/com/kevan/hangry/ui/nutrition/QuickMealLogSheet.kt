@@ -56,6 +56,7 @@ fun QuickMealLogSheet(
 
     var isEstimating by remember { mutableStateOf(false) }
     var estimateError by remember { mutableStateOf<String?>(null) }
+    var allergenWarnings by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val quickMealTypes = listOf("Breakfast", "Lunch", "Dinner", "Snack")
 
@@ -249,6 +250,7 @@ fun QuickMealLogSheet(
                                     proteinText = result.proteinG.toInt().toString()
                                     carbsText = result.carbsG.toInt().toString()
                                     fatText = result.fatG.toInt().toString()
+                                    allergenWarnings = result.allergenWarnings
                                     showMacros = true
                                 },
                                 onFailure = { err ->
@@ -273,6 +275,17 @@ fun QuickMealLogSheet(
                         Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.tertiary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Auto-Estimate with AI")
+                    }
+                }
+
+                if (allergenWarnings.isNotEmpty()) {
+                    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(HangryTokens.CornerRadii.small), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Possible allergen", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer)
+                            allergenWarnings.forEach {
+                                Text("• $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                            }
+                        }
                     }
                 }
 

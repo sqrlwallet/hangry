@@ -5,8 +5,18 @@ import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiCoachContextBuilder
 import com.kevan.hangry.domain.ai.AiCoachService
 import com.kevan.hangry.domain.ai.AiDefaults
+import com.kevan.hangry.domain.ai.StreamingReply
 import com.kevan.hangry.domain.ai.extractJsonPayload
+import com.kevan.hangry.domain.model.CoachAction
+import com.kevan.hangry.domain.model.CoachActionStatus
 import com.kevan.hangry.domain.model.CoachResponse
+import com.kevan.hangry.domain.model.ExtractedJournalEntry
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.json.Json
 
@@ -17,11 +27,13 @@ class OpenRouterAiCoachService(
     private val contextBuilder: AiCoachContextBuilder
 ) : AiCoachService {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
     override suspend fun askCoach(
         userMessage: String,
-        recentMessages: List<CoachMessageEntity>
+        recentMessages: List<CoachMessageEntity>,
+        imagesBase64: List<String>,
+        onPartialReply: ((String) -> Unit)?
     ): Result<CoachResponse> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
         val model = userProfileRepository.getProfileSync()
@@ -73,7 +85,18 @@ class OpenRouterAiCoachService(
                - If the user is pregnant, keep all exercise, nutrition and supplement suggestions pregnancy-appropriate and suggest checking changes with their midwife or doctor; don't recommend calorie deficits for weight loss.
                - Hangry is an open-source app that keeps this data on the user's phone for their own tracking.
 
-            5. CRITICAL FORMATTING RULES (STRICT COMPLIANCE REQUIRED):
+            5. PHOTOS & IN-APP ACTIONS:
+               - The user may attach photos: supplement bottles/labels, meals, lab reports, blood pressure monitor screens, etc. Read them carefully and only use values you can actually see.
+               - You can propose in-app actions in the "actions" array. The app shows each as a card and the user taps to confirm - you never change anything yourself. So say "Tap Add below to save it", never "I've added it".
+               - Propose an action when the user asks you to add, log, save, track or remind them of something, or clearly implies it (e.g. sends a supplement photo saying "I take this every morning", or a lab report saying "save these"). Don't propose actions for general questions.
+               - One action per item: a lab report with LDL, HDL and triglycerides becomes three ADD_READING actions.
+               - If something needed is missing (e.g. what time they take a supplement), make a sensible default, say what you assumed in the reply, and mention they can edit it later.
+               - Action types and payloads (these cover everything a user can enter in Hangry - if they want to record or change something, there's an action for it):
+$DASH_ACTION_GUIDE
+               - Every action needs "type" and a short "title" for its card, e.g. "Add Vitamin D3 · 1 softgel at 8:00 AM".
+               - Supplement cautions: if a new supplement overlaps with one they already take, exceeds common upper limits, or conflicts with pregnancy, allergies or conditions, say so plainly and suggest checking with a pharmacist or doctor.
+
+            6. CRITICAL FORMATTING RULES (STRICT COMPLIANCE REQUIRED):
                - NEVER USE ASTERISKS (`*`) ANYWHERE IN YOUR OUTPUT.
                - DO NOT use `*` for bullet points. Use the unicode bullet character `•` instead.
                - DO NOT use `**bold**` or `*italics*`. To emphasize headings or key terms, use ALL CAPS or write clear labels (e.g. "SUMMARY:", "ACTION PLAN:").
@@ -89,12 +112,15 @@ class OpenRouterAiCoachService(
                 "category": "PROBLEM" | "DIET" | "INJURY" | "HABIT" | "GOAL" | "HEALTH" | "NOTE",
                 "summary": "Concise title in 3-6 words",
                 "content": "Clear description of the problem or detail (1-2 sentences)"
-              }
+              },
+              "actions": [ { "type": "ADD_SUPPLEMENT", "title": "...", "supplement": { ... } } ]
             }
+            "actions" is an empty array when you aren't proposing anything.
             If no personal problem or health detail was mentioned by the user:
             {
               "reply": "Your expert coaching reply (WITHOUT ANY ASTERISKS)...",
-              "journalEntry": null
+              "journalEntry": null,
+              "actions": []
             }
         """.trimIndent()
 
@@ -102,24 +128,47 @@ class OpenRouterAiCoachService(
         messagesList.add(OpenRouterMessage(role = "system", content = systemPrompt))
 
         // Include up to last 10 conversational turns for continuity
+        // Earlier photos aren't re-sent (cost); a note keeps the thread readable, and past
+        // action outcomes let Dash know what the user actually saved.
         recentMessages.takeLast(10).forEach { msg ->
-            messagesList.add(OpenRouterMessage(role = msg.role, content = msg.content))
+            val photoCount = msg.imagePaths?.split(',')?.count { it.isNotBlank() } ?: 0
+            val actions = msg.actionsJson?.let { raw ->
+                runCatching { json.decodeFromString(ListSerializer(CoachAction.serializer()), raw) }.getOrNull()
+            }.orEmpty()
+            val content = buildString {
+                append(msg.content)
+                if (photoCount > 0) append("\n[attached $photoCount photo(s)]")
+                if (actions.isNotEmpty()) {
+                    append("\n[proposed actions: " + actions.joinToString("; ") { "${it.title} - ${it.status.lowercase()}" } + "]")
+                }
+            }
+            messagesList.add(OpenRouterMessage(role = msg.role, content = content))
         }
 
-        // Add current user prompt
-        messagesList.add(OpenRouterMessage(role = "user", content = userMessage))
+        // Add current user prompt, with any photos attached to it
+        messagesList.add(OpenRouterMessage(role = "user", content = userMessage, imagesBase64 = imagesBase64))
 
-        return client.chatCompletionMessages(apiKey, model, messagesList).mapCatching { raw ->
-            val parsed = try {
-                json.decodeFromString(CoachResponse.serializer(), extractJsonPayload(raw))
-            } catch (e: Exception) {
-                // Fallback: If model returned conversational text instead of JSON, display it gracefully
-                CoachResponse(
-                    reply = raw.trim(),
-                    journalEntry = null
-                )
+        val completion = if (onPartialReply == null) {
+            client.chatCompletionMessages(apiKey, model, messagesList)
+        } else {
+            val soFar = StringBuilder()
+            var shown = ""
+            client.streamChatCompletionMessages(apiKey, model, messagesList) { delta ->
+                soFar.append(delta)
+                val visible = StreamingReply.visibleText(soFar.toString())
+                if (visible != shown) {
+                    shown = visible
+                    onPartialReply(visible)
+                }
             }
-            parsed.copy(reply = sanitizeCoachReply(parsed.reply))
+        }
+        return completion.mapCatching { raw ->
+            val parsed = parseCoachResponse(raw)
+            parsed.copy(
+                reply = sanitizeCoachReply(parsed.reply),
+                // Unknown types can't be executed, so they're dropped rather than shown.
+                actions = parsed.actions.filter { it.type in CoachAction.ALL }.map { it.copy(status = CoachActionStatus.PENDING) }
+            )
         }.recoverCatching { e ->
             if (e is OpenRouterException) throw e
             throw OpenRouterException.MalformedResponse(e)
@@ -140,3 +189,48 @@ class OpenRouterAiCoachService(
             .trim()
     }
 }
+
+private val coachJson = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+
+/**
+ * Field by field, so one malformed action or journal entry can't turn the whole reply into
+ * raw JSON on screen. Plain-text replies (model ignored the schema) are shown as-is.
+ */
+internal fun parseCoachResponse(raw: String): CoachResponse {
+    val obj = runCatching { coachJson.parseToJsonElement(extractJsonPayload(raw)).jsonObject }.getOrNull()
+        ?: return CoachResponse(reply = raw.trim())
+    val reply = (obj["reply"] as? JsonPrimitive)?.contentOrNull ?: return CoachResponse(reply = raw.trim())
+    val journal = obj["journalEntry"]?.takeIf { it !is JsonNull }?.let {
+        runCatching { coachJson.decodeFromJsonElement(ExtractedJournalEntry.serializer(), it) }.getOrNull()
+    }
+    val actions = (obj["actions"] as? JsonArray).orEmpty().mapNotNull {
+        runCatching { coachJson.decodeFromJsonElement(CoachAction.serializer(), it) }.getOrNull()
+    }
+    return CoachResponse(reply = reply, journalEntry = journal, actions = actions)
+}
+
+/**
+ * Every action Dash can propose, with its payload. One entry per CoachAction type - a unit test
+ * checks nothing in CoachAction.ALL is missing, so new data-entry points can't be forgotten here.
+ */
+internal val DASH_ACTION_GUIDE = listOf(
+    "ADD_SUPPLEMENT" to "\"supplement\": {\"name\", \"brand\", \"form\" (capsule|tablet|softgel|gummy|powder|liquid|other), \"doseAmount\" (units per dose), \"doseUnit\" (e.g. \"capsules\"), \"times\" ([\"HH:mm\"] 24-hour, one per daily dose), \"reminders\" (true/false), \"ingredients\" ([{\"name\",\"amount\",\"unit\",\"dailyValuePercent\"}]), \"notes\"}",
+    "UPDATE_SUPPLEMENT" to "\"supplementName\" (one they already take) + \"supplementUpdate\": {\"doseAmount\", \"doseUnit\", \"times\" ([\"HH:mm\"]), \"reminders\", \"active\" (false pauses it), \"notes\"} - only what changes",
+    "MARK_SUPPLEMENT_TAKEN" to "\"supplementName\" (one they already take)",
+    "LOG_MEAL" to "\"meal\": {\"foodName\", \"calories\" (integer), \"proteinG\", \"carbsG\", \"fatG\", \"fiberG\", \"sugarG\", \"sodiumMg\"} - estimate like a nutrition specialist, including hidden oils",
+    "UPDATE_MEAL" to "\"mealName\" (a meal logged in the last 3 days) + \"meal\": the full corrected values (same fields as LOG_MEAL)",
+    "ADD_MEAL_PLAN" to "\"mealPlan\": {\"name\", \"mealType\" (BREAKFAST|LUNCH|DINNER|SNACK|OTHER), \"calories\", \"proteinG\", \"carbsG\", \"fatG\"} - a saved meal they eat often, for one-tap logging",
+    "ADD_READING" to "\"reading\": {\"marker\" (blood_pressure|blood_glucose|hba1c|total_cholesterol|ldl|hdl|triglycerides|testosterone - testosterone only if their sex is male), \"value\" (systolic for blood pressure), \"secondaryValue\" (diastolic, blood pressure only), \"unit\" (mmHg|mg/dL|mmol/L|%|ng/dL|nmol/L), \"context\" (FASTING|BEFORE_MEAL|AFTER_MEAL|RANDOM, blood sugar only), \"date\" (\"YYYY-MM-DD\", from the report if shown)}",
+    "SET_GOAL" to "\"goal\": {\"marker\", \"targetValue\", \"targetSecondary\" (diastolic, blood pressure only), \"unit\", \"targetDate\" (\"YYYY-MM-DD\" or null)}",
+    "ADD_ALLERGY" to "\"item\": {\"name\", \"note\" (e.g. the reaction)}",
+    "ADD_CONDITION" to "\"item\": {\"name\", \"note\"}",
+    "SET_PREGNANCY" to "\"pregnancy\": {\"pregnant\" (true/false), \"dueDate\" (\"YYYY-MM-DD\")} - only if their sex is female",
+    "LOG_PERIOD" to "\"period\": {\"startDate\" (\"YYYY-MM-DD\"), \"endDate\" (or null if ongoing)} - only if their sex is female",
+    "UPDATE_GOALS" to "\"goals\": {\"weightGoalKg\", \"goalDate\" (\"YYYY-MM-DD\"), \"dailySteps\", \"dailyActiveCalories\", \"sleepHours\"} - only what changes",
+    "UPDATE_PROFILE" to "\"profile\": {\"age\", \"sex\" (MALE|FEMALE|OTHER), \"height\", \"neck\", \"chest\", \"waist\", \"hip\", \"lengthUnit\" (cm|in)} - only what changes; tape measurements unlock more body metrics",
+    "LOG_WEIGHT" to "\"weight\": {\"value\", \"unit\" (kg|lb)}",
+    "LOG_BODY_FAT" to "\"bodyFat\": {\"percentage\", \"source\" (e.g. \"DEXA scan\", \"smart scale\")} - a measured body fat % they tell you or show you",
+    "LOG_SLEEP" to "\"sleep\": {\"durationMinutes\", \"endTime\" (\"YYYY-MM-DDTHH:mm\" wake time, or null for now)} - when their device missed a night",
+    "SET_HRV_FEELING" to "\"feeling\" (EXCELLENT|GOOD|OKAY|TIRED|DRAINED) - how they feel today; only changes recovery on days their device didn't report HRV",
+    "OPEN_SCREEN" to "\"screen\" (breathing|supplements|health_records|body_metrics|body_fat|nutrition|sleep|recovery|heart|training|trends|posture|settings), plus \"breathingPattern\" (box_4|bpm_6|bpm_5|bpm_3) for breathing - e.g. offer a 6 BPM session when they're stressed before bed"
+).joinToString("\n") { (type, payload) -> "                 • $type: $payload" }

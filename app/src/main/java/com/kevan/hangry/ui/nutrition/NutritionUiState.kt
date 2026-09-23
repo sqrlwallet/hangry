@@ -23,7 +23,11 @@ data class NutritionUiState(
      */
     val manualReviewPhoto: Uri? = null,
     /** Why the photo landed in manual review, shown at the top of that sheet. */
-    val manualReviewNotice: String? = null
+    val manualReviewNotice: String? = null,
+    /** A just-logged meal that may contain one of the user's allergies. */
+    val allergenAlert: AllergenAlert? = null
 ) {
     val isViewingToday: Boolean get() = selectedDate == LocalDate.now()
 }
+
+data class AllergenAlert(val entry: FoodLogEntity, val warnings: List<String>)

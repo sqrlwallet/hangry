@@ -72,6 +72,37 @@ object FhirHealthRecordParser {
         return marker(target.type, canonical, null, measuredAt, target.context, sourceId, zone)
     }
 
+    /** What a pregnancy resource says: a due date, a pregnant/not-pregnant status, or both. */
+    data class PregnancyInfo(val dueDate: LocalDate?, val pregnant: Boolean?, val observedAt: Instant?)
+
+    private val LOINC_DUE_DATES = setOf("11778-8", "11779-6", "11780-4", "53692-0")
+    private const val LOINC_PREGNANCY_STATUS = "82810-3"
+    private const val SNOMED_PREGNANT = "77386006"
+    private const val SNOMED_NOT_PREGNANT = "60001007"
+
+    fun parsePregnancy(data: String, zone: ZoneId = ZoneId.systemDefault()): PregnancyInfo? {
+        val obs = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull() ?: return null
+        if (obs.str("status") == "entered-in-error") return null
+        val codes = loincCodes(obs["code"])
+        val observedAt = effectiveInstant(obs, zone)
+        if (codes.any { it in LOINC_DUE_DATES }) {
+            val raw = obs.str("valueDateTime") ?: obs.str("valueDate") ?: return null
+            val due = runCatching { LocalDate.parse(raw.take(10)) }.getOrNull() ?: return null
+            return PregnancyInfo(dueDate = due, pregnant = null, observedAt = observedAt)
+        }
+        if (LOINC_PREGNANCY_STATUS in codes) {
+            val coding = ((obs["valueCodeableConcept"] as? JsonObject)?.get("coding") as? JsonArray).orEmpty()
+                .mapNotNull { it.jsonObject.str("code") }
+            val pregnant = when {
+                SNOMED_PREGNANT in coding -> true
+                SNOMED_NOT_PREGNANT in coding -> false
+                else -> return null
+            }
+            return PregnancyInfo(dueDate = null, pregnant = pregnant, observedAt = observedAt)
+        }
+        return null
+    }
+
     fun parseCondition(data: String, resourceId: String): HealthProfileItemEntity? {
         val obj = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull() ?: return null
         val clinical = firstCode(obj["clinicalStatus"])

@@ -30,10 +30,13 @@ import com.kevan.hangry.domain.model.BreathingStats
 import com.kevan.hangry.ui.breathing.BreathingExercisesCard
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.ui.healthrecords.HealthRecordsCard
+import com.kevan.hangry.domain.model.SupplementsSnapshot
+import com.kevan.hangry.ui.supplements.SupplementsDashboardCard
 import com.kevan.hangry.domain.calculation.HangryStrainCalculator
 import com.kevan.hangry.domain.model.DashboardWidget
 import com.kevan.hangry.domain.model.WidgetType
 import com.kevan.hangry.ui.components.*
+import com.kevan.hangry.ui.nutrition.AllergenAlertDialog
 import com.kevan.hangry.ui.nutrition.NutritionViewModel
 import com.kevan.hangry.ui.nutrition.QuickMealLogSheet
 import com.kevan.hangry.ui.theme.CtaGradient
@@ -62,6 +65,9 @@ fun DashboardScreen(
     breathingSession: BreathingSessionState = BreathingSessionState.Idle,
     onNavigateToBreathing: (BreathingPattern?) -> Unit = {},
     healthRecords: HealthRecordsSnapshot = HealthRecordsSnapshot(),
+    supplements: SupplementsSnapshot = SupplementsSnapshot(),
+    onToggleSupplementDose: (Long, java.time.LocalTime, Boolean) -> Unit = { _, _, _ -> },
+    onNavigateToSupplements: () -> Unit = {},
     onNavigateToHealthRecords: () -> Unit = {},
     autoOpenQuickLog: Boolean = false,
     onAutoOpenQuickLogHandled: () -> Unit = {},
@@ -325,6 +331,14 @@ fun DashboardScreen(
                         )
                     }
 
+                    WidgetType.SUPPLEMENTS -> {
+                        SupplementsDashboardCard(
+                            snapshot = supplements,
+                            onToggle = onToggleSupplementDose,
+                            onOpen = onNavigateToSupplements
+                        )
+                    }
+
                     WidgetType.HEALTH_RECORDS -> {
                         HealthRecordsCard(records = healthRecords, onClick = onNavigateToHealthRecords)
                     }
@@ -427,6 +441,18 @@ fun DashboardScreen(
             // Bottom clearance
             Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+
+    nutritionUiState?.allergenAlert?.let { alert ->
+        AllergenAlertDialog(
+            alert = alert,
+            onDismiss = { nutritionViewModel?.dismissAllergenAlert() },
+            onEdit = {
+                nutritionViewModel?.dismissAllergenAlert()
+                nutritionViewModel?.startEdit(alert.entry)
+                onNavigateToNutrition()
+            }
+        )
     }
 
     val manualReviewPhoto = nutritionUiState?.manualReviewPhoto

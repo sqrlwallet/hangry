@@ -134,6 +134,16 @@ fun HomeScreenWidgetsScreen(
                 RecoveryWidgetMockup()
             }
 
+            // Supplements Widget
+            WidgetPreviewCard(
+                title = "Supplements",
+                sizeLabel = "2 × 2",
+                description = "Your next supplement dose and how many you've taken today.",
+                onPinWidget = { pinWidget(context, SupplementsWidgetProvider::class.java) }
+            ) {
+                SupplementsWidgetMockup()
+            }
+
             // 5. Daily Overview Widget
             WidgetPreviewCard(
                 title = "Daily Overview",
@@ -334,6 +344,29 @@ private fun SleepWidgetMockup() {
         Spacer(modifier = Modifier.height(6.dp))
         Text("7h 30m", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("94% of sleep need met", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun SupplementsWidgetMockup() {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Medication, null, tint = Color(0xFFF7931E), modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("SUPPLEMENTS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+            }
+            Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
+                Text("2/4", color = Color(0xFFF7931E), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text("Magnesium Glycinate", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("Next at 9:00 PM · 2 left today", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
     }
 }
 

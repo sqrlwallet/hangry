@@ -54,6 +54,12 @@ interface HealthConnectDataSource {
     /** True when Health Connect on this device supports medical records (Android 16+). */
     suspend fun supportsMedicalRecords(): Boolean
 
+    /** Writes a manual blood pressure or blood glucose reading (other types are ignored). */
+    suspend fun writeHealthMarker(marker: HealthMarkerEntity): Boolean
+
+    /** Removes a reading this app wrote earlier, e.g. when the user deletes it. */
+    suspend fun deleteHealthMarker(marker: HealthMarkerEntity): Boolean
+
     /** Reads whatever health-record data is granted. Never throws; missing access just yields less. */
     suspend fun fetchHealthRecords(since: Instant, includeCycle: Boolean): ImportedHealthRecords
 }
@@ -61,5 +67,7 @@ interface HealthConnectDataSource {
 data class ImportedHealthRecords(
     val markers: List<HealthMarkerEntity> = emptyList(),
     val profileItems: List<HealthProfileItemEntity> = emptyList(),
-    val periods: List<MenstrualPeriodEntity> = emptyList()
+    val periods: List<MenstrualPeriodEntity> = emptyList(),
+    /** From medical records (female users only); applied by the repository. */
+    val pregnancy: List<com.kevan.hangry.data.healthrecords.FhirHealthRecordParser.PregnancyInfo> = emptyList()
 )

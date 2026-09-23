@@ -29,6 +29,16 @@ interface HealthRecordsDao {
     @Query("DELETE FROM health_markers WHERE id = :id")
     suspend fun deleteMarker(id: Long)
 
+    @Query("SELECT * FROM health_markers WHERE id = :id")
+    suspend fun getMarker(id: Long): HealthMarkerEntity?
+
+    @Query("UPDATE health_markers SET healthConnectSynced = 1 WHERE id = :id")
+    suspend fun markMarkerSynced(id: Long)
+
+    /** Manual BP/glucose readings saved before Health Connect write access was granted. */
+    @Query("SELECT * FROM health_markers WHERE source = 'MANUAL' AND healthConnectSynced = 0 AND type IN ('blood_pressure', 'blood_glucose')")
+    suspend fun getUnsyncedManualVitals(): List<HealthMarkerEntity>
+
     // Goals
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertGoal(goal: MarkerGoalEntity)

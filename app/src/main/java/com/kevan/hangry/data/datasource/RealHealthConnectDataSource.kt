@@ -44,6 +44,8 @@ class RealHealthConnectDataSource(
         val PERMISSION_READ_BLOOD_PRESSURE = HealthPermission.getReadPermission(BloodPressureRecord::class)
         val PERMISSION_READ_BLOOD_GLUCOSE = HealthPermission.getReadPermission(BloodGlucoseRecord::class)
         val PERMISSION_READ_MENSTRUATION = HealthPermission.getReadPermission(MenstruationPeriodRecord::class)
+        val PERMISSION_WRITE_BLOOD_PRESSURE = HealthPermission.getWritePermission(BloodPressureRecord::class)
+        val PERMISSION_WRITE_BLOOD_GLUCOSE = HealthPermission.getWritePermission(BloodGlucoseRecord::class)
         val MEDICAL_RECORD_PERMISSIONS = setOf(
             HealthPermission.PERMISSION_READ_MEDICAL_DATA_LABORATORY_RESULTS,
             HealthPermission.PERMISSION_READ_MEDICAL_DATA_VITAL_SIGNS,
@@ -739,8 +741,72 @@ class RealHealthConnectDataSource(
         return buildSet {
             add(PERMISSION_READ_BLOOD_PRESSURE)
             add(PERMISSION_READ_BLOOD_GLUCOSE)
+            // So readings entered in Hangry show up in other health apps too.
+            add(PERMISSION_WRITE_BLOOD_PRESSURE)
+            add(PERMISSION_WRITE_BLOOD_GLUCOSE)
             if (includeCycle) add(PERMISSION_READ_MENSTRUATION)
-            if (supportsMedicalRecords()) addAll(MEDICAL_RECORD_PERMISSIONS)
+            if (supportsMedicalRecords()) {
+                addAll(MEDICAL_RECORD_PERMISSIONS)
+                if (includeCycle) add(HealthPermission.PERMISSION_READ_MEDICAL_DATA_PREGNANCY)
+            }
+        }
+    }
+
+    private fun markerClientId(marker: HealthMarkerEntity) = "hangry-marker-${marker.id}"
+
+    override suspend fun writeHealthMarker(marker: HealthMarkerEntity): Boolean {
+        val activeClient = client ?: return false
+        val offset = ZoneId.systemDefault().rules.getOffset(marker.measuredAt)
+        // Stable client id: a retry replaces rather than duplicates, and delete can find it.
+        val metadata = androidx.health.connect.client.records.metadata.Metadata.manualEntry(clientRecordId = markerClientId(marker))
+        val record: Record = when (marker.type) {
+            com.kevan.hangry.domain.model.MarkerType.BLOOD_PRESSURE.id -> BloodPressureRecord(
+                time = marker.measuredAt,
+                zoneOffset = offset,
+                metadata = metadata,
+                systolic = androidx.health.connect.client.units.Pressure.millimetersOfMercury(marker.value),
+                diastolic = androidx.health.connect.client.units.Pressure.millimetersOfMercury(marker.secondaryValue ?: return false),
+                bodyPosition = BloodPressureRecord.BODY_POSITION_UNKNOWN,
+                measurementLocation = BloodPressureRecord.MEASUREMENT_LOCATION_UNKNOWN
+            )
+            com.kevan.hangry.domain.model.MarkerType.BLOOD_GLUCOSE.id -> BloodGlucoseRecord(
+                time = marker.measuredAt,
+                zoneOffset = offset,
+                metadata = metadata,
+                level = androidx.health.connect.client.units.BloodGlucose.milligramsPerDeciliter(marker.value),
+                specimenSource = BloodGlucoseRecord.SPECIMEN_SOURCE_UNKNOWN,
+                mealType = MealType.MEAL_TYPE_UNKNOWN,
+                relationToMeal = when (com.kevan.hangry.domain.model.GlucoseContext.fromName(marker.glucoseContext)) {
+                    com.kevan.hangry.domain.model.GlucoseContext.FASTING -> BloodGlucoseRecord.RELATION_TO_MEAL_FASTING
+                    com.kevan.hangry.domain.model.GlucoseContext.BEFORE_MEAL -> BloodGlucoseRecord.RELATION_TO_MEAL_BEFORE_MEAL
+                    com.kevan.hangry.domain.model.GlucoseContext.AFTER_MEAL -> BloodGlucoseRecord.RELATION_TO_MEAL_AFTER_MEAL
+                    else -> BloodGlucoseRecord.RELATION_TO_MEAL_GENERAL
+                }
+            )
+            else -> return false
+        }
+        return try {
+            activeClient.insertRecords(listOf(record))
+            true
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed writing ${marker.type}: ${e.message}")
+            false
+        }
+    }
+
+    override suspend fun deleteHealthMarker(marker: HealthMarkerEntity): Boolean {
+        val activeClient = client ?: return false
+        val type = when (marker.type) {
+            com.kevan.hangry.domain.model.MarkerType.BLOOD_PRESSURE.id -> BloodPressureRecord::class
+            com.kevan.hangry.domain.model.MarkerType.BLOOD_GLUCOSE.id -> BloodGlucoseRecord::class
+            else -> return false
+        }
+        return try {
+            activeClient.deleteRecords(type, recordIdsList = emptyList(), clientRecordIdsList = listOf(markerClientId(marker)))
+            true
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed deleting ${marker.type}: ${e.message}")
+            false
         }
     }
 
@@ -752,9 +818,12 @@ class RealHealthConnectDataSource(
         val markers = mutableListOf<HealthMarkerEntity>()
         val items = mutableListOf<HealthProfileItemEntity>()
         val periods = mutableListOf<MenstrualPeriodEntity>()
+        val pregnancy = mutableListOf<FhirHealthRecordParser.PregnancyInfo>()
 
         if (PERMISSION_READ_BLOOD_PRESSURE in granted) {
-            runCatching { readAllRecords(BloodPressureRecord::class, filter) }.getOrDefault(emptyList()).forEach { r ->
+            runCatching { readAllRecords(BloodPressureRecord::class, filter) }.getOrDefault(emptyList())
+                .filterNot { it.metadata.dataOrigin.packageName == context.packageName } // our own writes
+                .forEach { r ->
                 markers += HealthMarkerEntity(
                     type = com.kevan.hangry.domain.model.MarkerType.BLOOD_PRESSURE.id,
                     value = r.systolic.inMillimetersOfMercury,
@@ -767,7 +836,9 @@ class RealHealthConnectDataSource(
             }
         }
         if (PERMISSION_READ_BLOOD_GLUCOSE in granted) {
-            runCatching { readAllRecords(BloodGlucoseRecord::class, filter) }.getOrDefault(emptyList()).forEach { r ->
+            runCatching { readAllRecords(BloodGlucoseRecord::class, filter) }.getOrDefault(emptyList())
+                .filterNot { it.metadata.dataOrigin.packageName == context.packageName } // our own writes
+                .forEach { r ->
                 val context = when (r.relationToMeal) {
                     BloodGlucoseRecord.RELATION_TO_MEAL_FASTING -> com.kevan.hangry.domain.model.GlucoseContext.FASTING
                     BloodGlucoseRecord.RELATION_TO_MEAL_BEFORE_MEAL -> com.kevan.hangry.domain.model.GlucoseContext.BEFORE_MEAL
@@ -811,8 +882,13 @@ class RealHealthConnectDataSource(
             readMedical(MedicalResource.MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES, granted).forEach { res ->
                 FhirHealthRecordParser.parseAllergy(res.fhirResource.data, res.fhirResource.id)?.let { items += it }
             }
+            if (includeCycle) {
+                readMedical(MedicalResource.MEDICAL_RESOURCE_TYPE_PREGNANCY, granted).forEach { res ->
+                    FhirHealthRecordParser.parsePregnancy(res.fhirResource.data, zone)?.let { pregnancy += it }
+                }
+            }
         }
-        return ImportedHealthRecords(markers, items, periods)
+        return ImportedHealthRecords(markers, items, periods, pregnancy)
     }
 
     private suspend fun readMedical(type: Int, granted: Set<String>): List<MedicalResource> {
@@ -820,6 +896,7 @@ class RealHealthConnectDataSource(
             MedicalResource.MEDICAL_RESOURCE_TYPE_LABORATORY_RESULTS -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_LABORATORY_RESULTS
             MedicalResource.MEDICAL_RESOURCE_TYPE_VITAL_SIGNS -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_VITAL_SIGNS
             MedicalResource.MEDICAL_RESOURCE_TYPE_CONDITIONS -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_CONDITIONS
+            MedicalResource.MEDICAL_RESOURCE_TYPE_PREGNANCY -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_PREGNANCY
             else -> HealthPermission.PERMISSION_READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES
         }
         if (needed !in granted) return emptyList()

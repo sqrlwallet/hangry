@@ -26,7 +26,9 @@ data class HealthMarkerEntity(
     val source: String,
     /** Health Connect / medical-record id, so re-imports don't duplicate. Null for manual entries. */
     val sourceRecordId: String? = null,
-    val note: String? = null
+    val note: String? = null,
+    /** Manual blood pressure / glucose readings are also written to Health Connect for other apps. */
+    val healthConnectSynced: Boolean = false
 )
 
 @Entity(tableName = "marker_goals")

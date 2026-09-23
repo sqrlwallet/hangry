@@ -152,14 +152,7 @@ object HealthMarkerCalculator {
                     MetricBand("High", null, NEUTRAL)
                 ), 100.0, 1200.0
             )
-            BiologicalSex.FEMALE -> Ranges(
-                listOf(
-                    MetricBand("Low", 15.0, NEUTRAL),
-                    MetricBand("Typical", 70.0, GOOD),
-                    MetricBand("High", null, CAUTION)
-                ), 0.0, 120.0
-            )
-            // Ranges differ several-fold by sex; without it there's no honest band to show.
+            // Only tracked for men (see MarkerType.isVisibleFor).
             else -> Ranges(emptyList(), 0.0, 1.0)
         }
     }
@@ -173,7 +166,7 @@ object HealthMarkerCalculator {
         MarkerType.LDL -> 100.0 to null
         MarkerType.HDL -> 60.0 to null
         MarkerType.TRIGLYCERIDES -> 150.0 to null
-        MarkerType.TESTOSTERONE -> (if (sex == BiologicalSex.FEMALE) 30.0 else 500.0) to null
+        MarkerType.TESTOSTERONE -> 500.0 to null
     }
 
     fun progress(goal: MarkerGoal, latest: MarkerReading?): GoalProgress {
@@ -267,10 +260,10 @@ object HealthMarkerCalculator {
                 source = "NCEP Adult Treatment Panel III."
             )
             MarkerType.TESTOSTERONE -> MetricInfo(
-                whatItIs = "The main male sex hormone, also present in smaller amounts in women.",
-                howCalculated = reading + if (sex == null || sex == BiologicalSex.OTHER) " Typical ranges differ several-fold by sex, so ranges only show once your sex is set to male or female." else " Best measured in the morning, when it peaks.",
+                whatItIs = "The main male sex hormone.",
+                howCalculated = "$reading Best measured in the morning, when it peaks.",
                 whyItMatters = "It affects energy, muscle, libido, mood and bone density. Sleep, body fat, stress and training load all influence it, and levels naturally drift down with age.",
-                source = "American Urological Association (2018) for men; typical adult female reference range."
+                source = "American Urological Association (2018)."
             )
         }
     }

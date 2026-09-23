@@ -143,7 +143,7 @@ fun HealthRecordsScreen(
                             onConnect = { permissionLauncher.launch(import.permissionsToRequest) },
                             onImport = viewModel::importFromHealthConnect
                         )
-                        MarkerType.entries.forEach { type ->
+                        records.visibleMarkers.forEach { type ->
                             MarkerCard(records = records, type = type, onClick = { detailFor = type })
                         }
                         Spacer(Modifier.height(72.dp)) // clear the FAB
@@ -160,6 +160,7 @@ fun HealthRecordsScreen(
 
     if (showAddPicker) {
         MarkerPickerDialog(
+            markers = records.visibleMarkers,
             onDismiss = { showAddPicker = false },
             onPick = {
                 showAddPicker = false

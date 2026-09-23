@@ -12,6 +12,15 @@ interface CoachMessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(message: CoachMessageEntity): Long
 
+    @Query("DELETE FROM coach_messages WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("SELECT * FROM coach_messages WHERE id = :id")
+    suspend fun getById(id: Long): CoachMessageEntity?
+
+    @Query("UPDATE coach_messages SET actionsJson = :actionsJson WHERE id = :id")
+    suspend fun updateActions(id: Long, actionsJson: String)
+
     @Query("SELECT * FROM coach_messages ORDER BY timestamp ASC")
     fun getAll(): Flow<List<CoachMessageEntity>>
 

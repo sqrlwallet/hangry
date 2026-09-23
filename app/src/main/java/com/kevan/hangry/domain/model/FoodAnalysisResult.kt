@@ -10,5 +10,7 @@ data class FoodAnalysisResult(
     val fiberG: Double,
     val sugarG: Double,
     val sodiumMg: Double,
-    val confidenceNote: String
+    val confidenceNote: String,
+    /** Which of the user's allergies this food may contain. Only checked when they've added allergies. */
+    val allergenWarnings: List<String> = emptyList()
 )

@@ -51,8 +51,8 @@ class DefaultHealthRecordsRepository(
         type: MarkerType, value: Double, secondaryValue: Double?, measuredAt: Instant,
         glucoseContext: GlucoseContext?, note: String?
     ) {
-        dao.insertMarker(
-            HealthMarkerEntity(
+        requireVisible(type)
+        val entity = HealthMarkerEntity(
                 type = type.id,
                 value = value,
                 secondaryValue = secondaryValue.takeIf { type.hasSecondaryValue },
@@ -62,12 +62,25 @@ class DefaultHealthRecordsRepository(
                 source = RecordSource.MANUAL.name,
                 note = note?.trim()?.takeIf { it.isNotEmpty() }
             )
-        )
+        val id = dao.insertMarker(entity)
+        writeToHealthConnect(entity.copy(id = id))
     }
 
-    override suspend fun deleteReading(id: Long) = dao.deleteMarker(id)
+    override suspend fun deleteReading(id: Long) {
+        val marker = dao.getMarker(id)
+        dao.deleteMarker(id)
+        // Take our copy out of Health Connect too, so other apps don't keep a deleted reading.
+        if (marker != null && marker.healthConnectSynced) healthConnectDataSource.deleteHealthMarker(marker)
+    }
+
+    /** Blood pressure and glucose entered in Hangry are shared with other apps via Health Connect. */
+    private suspend fun writeToHealthConnect(marker: HealthMarkerEntity) {
+        if (marker.type != MarkerType.BLOOD_PRESSURE.id && marker.type != MarkerType.BLOOD_GLUCOSE.id) return
+        if (healthConnectDataSource.writeHealthMarker(marker)) dao.markMarkerSynced(marker.id)
+    }
 
     override suspend fun setGoal(type: MarkerType, targetValue: Double, targetSecondary: Double?, targetDate: LocalDate?) {
+        requireVisible(type)
         // Progress is measured from where you stood when the goal was set.
         val latest = dao.getMarkers().firstOrNull { it.type == type.id }
         dao.upsertGoal(
@@ -122,14 +135,40 @@ class DefaultHealthRecordsRepository(
         val includeCycle = sex == BiologicalSex.FEMALE
         val since = Instant.now().minus(IMPORT_WINDOW_DAYS, ChronoUnit.DAYS)
         val imported = healthConnectDataSource.fetchHealthRecords(since, includeCycle)
+        // Readings entered before write access was granted go out now.
+        dao.getUnsyncedManualVitals().forEach { writeToHealthConnect(it) }
         // Insert-ignore on the source record id: already-imported records are skipped, and
         // anything the user deleted locally stays deleted until it changes upstream.
+        val pregnancyUpdated = includeCycle && applyPregnancy(imported.pregnancy)
         return HealthRecordsImportResult(
-            newReadings = dao.insertMarkersIgnoringDuplicates(imported.markers).count { it != -1L },
+            newReadings = dao.insertMarkersIgnoringDuplicates(
+                imported.markers.filter { m -> MarkerType.fromId(m.type)?.isVisibleFor(sex) == true }
+            ).count { it != -1L },
             newProfileItems = dao.insertProfileItems(imported.profileItems).count { it != -1L },
             newPeriods = dao.insertPeriods(imported.periods).count { it != -1L },
-            medicalRecordsSupported = healthConnectDataSource.supportsMedicalRecords()
+            medicalRecordsSupported = healthConnectDataSource.supportsMedicalRecords(),
+            pregnancyUpdated = pregnancyUpdated
         )
+    }
+
+    /**
+     * Only ever turns pregnancy on (never off): a record of a past pregnancy mustn't flip the
+     * current status. Counts when there's an upcoming due date, or a "pregnant" status from the
+     * last 10 months. The user can always change it on the Profile tab.
+     */
+    internal suspend fun applyPregnancy(infos: List<com.kevan.hangry.data.healthrecords.FhirHealthRecordParser.PregnancyInfo>): Boolean {
+        val today = LocalDate.now(zone)
+        val dueDate = infos.mapNotNull { it.dueDate }
+            .filter { !it.isBefore(today) && !it.isAfter(today.plusDays(300)) }
+            .maxOrNull()
+        val recentlyPregnant = infos.any { info ->
+            info.pregnant == true && info.observedAt?.atZone(zone)?.toLocalDate()?.isAfter(today.minusDays(300)) == true
+        }
+        if (dueDate == null && !recentlyPregnant) return false
+        val profile = userProfileRepository.getProfileSync() ?: UserProfileEntity()
+        if (profile.isPregnant && (dueDate == null || profile.pregnancyDueDate == dueDate)) return false
+        setPregnancy(true, dueDate ?: profile.pregnancyDueDate)
+        return true
     }
 
     private fun snapshot(
@@ -143,7 +182,7 @@ class DefaultHealthRecordsRepository(
         val female = sex == BiologicalSex.FEMALE
         return HealthRecordsSnapshot(
             readings = markers.mapNotNull { m ->
-                val type = MarkerType.fromId(m.type) ?: return@mapNotNull null
+                val type = MarkerType.fromId(m.type)?.takeIf { it.isVisibleFor(sex) } ?: return@mapNotNull null
                 MarkerReading(
                     id = m.id, type = type, value = m.value, secondaryValue = m.secondaryValue,
                     measuredAt = m.measuredAt, date = m.date,
@@ -152,7 +191,7 @@ class DefaultHealthRecordsRepository(
                 )
             },
             goals = goals.mapNotNull { g ->
-                val type = MarkerType.fromId(g.type) ?: return@mapNotNull null
+                val type = MarkerType.fromId(g.type)?.takeIf { it.isVisibleFor(sex) } ?: return@mapNotNull null
                 MarkerGoal(
                     type = type, targetValue = g.targetValue, targetSecondary = g.targetSecondary,
                     direction = runCatching { GoalDirection.valueOf(g.direction) }.getOrDefault(type.defaultGoalDirection),
@@ -168,6 +207,12 @@ class DefaultHealthRecordsRepository(
             isPregnant = female && profile?.isPregnant == true,
             pregnancyDueDate = profile?.pregnancyDueDate.takeIf { female }
         )
+    }
+
+    private suspend fun requireVisible(type: MarkerType) {
+        require(type.isVisibleFor(sexOf(userProfileRepository.getProfileSync()))) {
+            "Testosterone tracking is only available when your sex is set to male."
+        }
     }
 
     private fun sexOf(profile: UserProfileEntity?): BiologicalSex? =

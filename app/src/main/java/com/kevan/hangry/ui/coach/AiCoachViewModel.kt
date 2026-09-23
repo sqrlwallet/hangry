@@ -14,11 +14,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import com.kevan.hangry.domain.model.CoachAction
+import kotlinx.serialization.builtins.ListSerializer
 
 class AiCoachViewModel(
     private val coachRepository: CoachRepository,
     private val userProfileRepository: UserProfileRepository,
-    private val secureKeyStore: SecureKeyStore
+    private val secureKeyStore: SecureKeyStore,
+    /** Builds data-aware suggestion chips; null falls back to the fixed starters. */
+    private val suggestionSource: (suspend () -> List<String>)? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiCoachUiState())
@@ -30,7 +34,16 @@ class AiCoachViewModel(
         refreshState()
     }
 
+    fun refreshSuggestions() {
+        val source = suggestionSource ?: return
+        viewModelScope.launch {
+            val chips = runCatching { source() }.getOrDefault(emptyList())
+            _uiState.update { it.copy(suggestions = chips) }
+        }
+    }
+
     fun refreshState() {
+        refreshSuggestions()
         observeJob?.cancel()
         observeJob = viewModelScope.launch {
             combine(
@@ -55,23 +68,67 @@ class AiCoachViewModel(
 
     fun sendMessage(text: String) {
         val trimmed = text.trim()
-        if (trimmed.isBlank() || _uiState.value.isLoading) return
+        val images = _uiState.value.pendingImages
+        if ((trimmed.isBlank() && images.isEmpty()) || _uiState.value.isLoading) return
 
-        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, pendingImages = emptyList()) }
         viewModelScope.launch {
-            coachRepository.askCoach(trimmed).fold(
+            val result = coachRepository.askCoach(trimmed, images) { partial ->
+                _uiState.update { it.copy(streamingReply = partial) }
+            }
+            _uiState.update { it.copy(streamingReply = null) }
+            result.fold(
                 onSuccess = {
                     _uiState.update { it.copy(isLoading = false) }
+                    refreshSuggestions()
                 },
                 onFailure = { e ->
                     val errorMsg = when (e) {
                         is OpenRouterException -> e.message ?: "Couldn't reach Dash. Try again."
                         else -> e.localizedMessage ?: "Something went wrong. Please try again."
                     }
-                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = errorMsg, draftToRestore = trimmed, pendingImages = images)
+                    }
                 }
             )
         }
+    }
+
+    fun attachImages(uris: List<android.net.Uri>) {
+        _uiState.update { it.copy(pendingImages = (it.pendingImages + uris).distinct().take(MAX_IMAGES)) }
+    }
+
+    fun removeImage(uri: android.net.Uri) {
+        _uiState.update { it.copy(pendingImages = it.pendingImages - uri) }
+    }
+
+    /** The user tapped an action card Dash proposed - this is the only way it runs. */
+    fun executeAction(messageId: Long, index: Int) {
+        val action = _uiState.value.messages.firstOrNull { it.id == messageId }?.actionsJson
+            ?.let { raw -> runCatching { actionsJson.decodeFromString(ListSerializer(CoachAction.serializer()), raw) }.getOrNull() }
+            ?.getOrNull(index)
+        viewModelScope.launch {
+            val result = coachRepository.executeAction(messageId, index)
+            if (result.isSuccess && action?.type == CoachAction.OPEN_SCREEN && action.screen != null) {
+                _uiState.update { it.copy(openScreen = action.screen to action.breathingPattern) }
+            } else {
+                _uiState.update { it.copy(actionMessage = result.fold({ msg -> msg }, { e -> e.message ?: "Couldn't do that." })) }
+                refreshSuggestions()
+            }
+        }
+    }
+
+    fun consumeOpenScreen() = _uiState.update { it.copy(openScreen = null) }
+
+    fun consumeDraft() = _uiState.update { it.copy(draftToRestore = null) }
+
+    fun dismissAction(messageId: Long, index: Int) {
+        viewModelScope.launch { coachRepository.dismissAction(messageId, index) }
+    }
+
+    fun clearActionMessage() {
+        _uiState.update { it.copy(actionMessage = null) }
     }
 
     fun deleteJournalEntry(id: Long) {
@@ -107,17 +164,23 @@ class AiCoachViewModel(
     }
 
     companion object {
+        const val MAX_IMAGES = 3
+
+        private val actionsJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
         fun provideFactory(
             coachRepository: CoachRepository,
             userProfileRepository: UserProfileRepository,
-            secureKeyStore: SecureKeyStore
+            secureKeyStore: SecureKeyStore,
+            suggestionSource: (suspend () -> List<String>)? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 return AiCoachViewModel(
                     coachRepository = coachRepository,
                     userProfileRepository = userProfileRepository,
-                    secureKeyStore = secureKeyStore
+                    secureKeyStore = secureKeyStore,
+                    suggestionSource = suggestionSource
                 ) as T
             }
         }

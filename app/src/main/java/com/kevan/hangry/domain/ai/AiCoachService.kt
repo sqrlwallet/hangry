@@ -10,6 +10,10 @@ interface AiCoachService {
      */
     suspend fun askCoach(
         userMessage: String,
-        recentMessages: List<CoachMessageEntity> = emptyList()
+        recentMessages: List<CoachMessageEntity> = emptyList(),
+        /** Photos attached to this message, base64 JPEG. */
+        imagesBase64: List<String> = emptyList(),
+        /** When set, the reply is streamed and this gets the readable text so far. */
+        onPartialReply: ((String) -> Unit)? = null
     ): Result<CoachResponse>
 }

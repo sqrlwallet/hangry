@@ -398,6 +398,17 @@ fun NutritionScreen(
         }
     }
 
+    uiState.allergenAlert?.let { alert ->
+        AllergenAlertDialog(
+            alert = alert,
+            onDismiss = viewModel::dismissAllergenAlert,
+            onEdit = {
+                viewModel.dismissAllergenAlert()
+                viewModel.startEdit(alert.entry)
+            }
+        )
+    }
+
     if (showDescribeDialog) {
         DescribeFoodDialog(
             onDismiss = { showDescribeDialog = false },

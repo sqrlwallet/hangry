@@ -28,6 +28,7 @@ object HangryWidgetUpdater {
     private const val REQUEST_CODE_SLEEP = 103
     private const val REQUEST_CODE_RECOVERY = 104
     private const val REQUEST_CODE_OVERVIEW = 105
+    private const val REQUEST_CODE_SUPPLEMENTS = 106
 
     fun updateAllWidgets(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -67,6 +68,9 @@ object HangryWidgetUpdater {
 
         // 5. Update Overview Widgets
         updateOverviewWidgets(context, appWidgetManager, summary, recovery, latestSleep)
+
+        // 6. Update Supplements Widgets
+        updateSupplementsWidgets(context, appWidgetManager, container.supplementRepository.current())
     }
 
     private fun updateActivityWidgets(
@@ -126,6 +130,43 @@ object HangryWidgetUpdater {
             views.setOnClickPendingIntent(R.id.btn_widget_log_meal, pendingIntent)
             views.setOnClickPendingIntent(R.id.widget_quick_log_root, pendingIntent)
 
+            manager.updateAppWidget(id, views)
+        }
+    }
+
+    private fun updateSupplementsWidgets(
+        context: Context,
+        manager: AppWidgetManager,
+        snapshot: com.kevan.hangry.domain.model.SupplementsSnapshot
+    ) {
+        val ids = manager.getAppWidgetIds(ComponentName(context, SupplementsWidgetProvider::class.java))
+        if (ids.isEmpty()) return
+
+        val doses = snapshot.todayDoses
+        val next = snapshot.nextDose
+        val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
+        val count = if (doses.isEmpty()) "—" else "${snapshot.takenToday}/${doses.size}"
+        val (headline, subtitle) = when {
+            snapshot.supplements.isEmpty() -> "Add your supplements" to "Tap to snap your first bottle"
+            doses.isEmpty() -> "No doses today" to "Set a time on a supplement for reminders"
+            next == null -> "All taken today" to "${doses.size} dose${if (doses.size == 1) "" else "s"} done"
+            else -> next.supplement.name to "Next at ${next.time.format(timeFormat)} · ${doses.size - snapshot.takenToday} left today"
+        }
+
+        for (id in ids) {
+            val views = RemoteViews(context.packageName, R.layout.widget_supplements)
+            views.setTextViewText(R.id.tv_supplements_count, count)
+            views.setTextViewText(R.id.tv_supplements_next, headline)
+            views.setTextViewText(R.id.tv_supplements_subtitle, subtitle)
+            val clickIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("destination", Screen.Supplements.route)
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                context, REQUEST_CODE_SUPPLEMENTS, clickIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_supplements_root, pendingIntent)
             manager.updateAppWidget(id, views)
         }
     }

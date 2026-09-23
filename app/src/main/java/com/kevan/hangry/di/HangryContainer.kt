@@ -7,6 +7,10 @@ import com.kevan.hangry.data.ai.OpenRouterBodyFatAnalyzer
 import com.kevan.hangry.data.ai.OpenRouterClient
 import com.kevan.hangry.data.ai.OpenRouterFoodAnalyzer
 import com.kevan.hangry.data.ai.OpenRouterPostureAnalyzer
+import com.kevan.hangry.data.ai.OpenRouterSupplementAnalyzer
+import com.kevan.hangry.data.coach.CoachActionExecutor
+import com.kevan.hangry.data.supplements.SupplementReminderScheduler
+import com.kevan.hangry.domain.ai.SupplementAnalyzer
 import com.kevan.hangry.data.breathing.BreathingSessionController
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
@@ -35,6 +39,8 @@ interface AppContainer {
     val energyBalanceCalculator: EnergyBalanceCalculator
     val bodyMetricsRepository: BodyMetricsRepository
     val healthRecordsRepository: HealthRecordsRepository
+    val supplementAnalyzer: SupplementAnalyzer
+    val supplementRepository: SupplementRepository
     val stressCalculator: StressCalculator
     val dashboardWidgetRepository: DashboardWidgetRepository
 
@@ -132,6 +138,20 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val healthRecordsRepository: HealthRecordsRepository by lazy {
         DefaultHealthRecordsRepository(database.healthRecordsDao(), userProfileRepository, healthConnectDataSource)
+    }
+
+    override val supplementAnalyzer: SupplementAnalyzer by lazy {
+        OpenRouterSupplementAnalyzer(openRouterClient, secureKeyStore, userProfileRepository)
+    }
+
+    override val supplementRepository: SupplementRepository by lazy {
+        DefaultSupplementRepository(
+            context = context,
+            dao = database.supplementDao(),
+            analyzer = supplementAnalyzer,
+            healthRecordsRepository = healthRecordsRepository,
+            scheduler = SupplementReminderScheduler(context)
+        )
     }
 
     override val stressCalculator: StressCalculator by lazy {
@@ -251,7 +271,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             postureScanDao = database.postureScanDao(),
             coachJournalDao = database.coachJournalDao(),
             bodyMetricsRepository = bodyMetricsRepository,
-            healthRecordsRepository = healthRecordsRepository
+            healthRecordsRepository = healthRecordsRepository,
+            supplementRepository = supplementRepository
         )
     }
 
@@ -268,7 +289,20 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         DefaultCoachRepository(
             coachJournalDao = database.coachJournalDao(),
             coachMessageDao = database.coachMessageDao(),
-            aiCoachService = aiCoachService
+            aiCoachService = aiCoachService,
+            context = context,
+            actionExecutor = CoachActionExecutor(
+                supplementRepository = supplementRepository,
+                healthRecordsRepository = healthRecordsRepository,
+                foodLogRepository = foodLogRepository,
+                writeNutritionRecord = healthConnectDataSource::writeNutritionRecord,
+                userProfileRepository = userProfileRepository,
+                weightDao = database.weightDao(),
+                mealPlanRepository = mealPlanRepository,
+                sleepRepository = sleepRepository,
+                bodyFatRepository = bodyFatRepository,
+                healthSyncManager = healthSyncManager
+            )
         )
     }
 }

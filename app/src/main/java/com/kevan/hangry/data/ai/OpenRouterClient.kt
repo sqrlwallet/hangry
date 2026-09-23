@@ -24,6 +24,22 @@ sealed class OpenRouterException(message: String, cause: Throwable? = null) : Ex
     class MalformedResponse(cause: Throwable) : OpenRouterException("Couldn't read the model's response.", cause)
 }
 
+/** One server-sent event from a streamed completion. */
+@Serializable
+private data class StreamChunk(
+    val choices: List<Choice> = emptyList(),
+    val error: StreamError? = null
+) {
+    @Serializable
+    data class Choice(val delta: Delta? = null)
+
+    @Serializable
+    data class Delta(val content: String? = null)
+
+    @Serializable
+    data class StreamError(val code: Int? = null, val message: String? = null)
+}
+
 @Serializable
 private data class ChatCompletionResponse(
     val choices: List<Choice> = emptyList()
@@ -37,7 +53,9 @@ private data class ChatCompletionResponse(
 
 data class OpenRouterMessage(
     val role: String,
-    val content: String
+    val content: String,
+    /** Raw base64 JPEGs attached to this turn (user messages only). */
+    val imagesBase64: List<String> = emptyList()
 )
 
 /**
@@ -103,53 +121,115 @@ class OpenRouterClient {
         model: String,
         messages: List<OpenRouterMessage>
     ): Result<String> = withContext(Dispatchers.IO) {
-        val requestBody = buildJsonObject {
-            put("model", model)
-            putJsonArray("messages") {
-                messages.forEach { msg ->
-                    addJsonObject {
-                        put("role", msg.role)
+        executeRequest(apiKey, messagesBody(model, messages, stream = false).toString())
+    }
+
+    /**
+     * Same as [chatCompletionMessages] but streamed: [onDelta] receives each text fragment as
+     * the model writes it (on the IO thread). Returns the full text once the stream ends.
+     */
+    suspend fun streamChatCompletionMessages(
+        apiKey: String,
+        model: String,
+        messages: List<OpenRouterMessage>,
+        onDelta: (String) -> Unit
+    ): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = try {
+                httpClient.newCall(buildRequest(apiKey, messagesBody(model, messages, stream = true).toString())).execute()
+            } catch (e: IOException) {
+                throw OpenRouterException.NoNetwork(e)
+            }
+            response.use {
+                throwForStatus(it.code, it.isSuccessful)
+                val source = it.body?.source() ?: throw OpenRouterException.EmptyResponse()
+                val full = StringBuilder()
+                try {
+                    while (true) {
+                        val line = source.readUtf8Line() ?: break
+                        // SSE: "data: {...}" chunks; ":" lines are keep-alive comments.
+                        if (!line.startsWith("data:")) continue
+                        val payload = line.removePrefix("data:").trim()
+                        if (payload == "[DONE]") break
+                        val chunk = runCatching { json.decodeFromString(StreamChunk.serializer(), payload) }.getOrNull() ?: continue
+                        if (chunk.error != null) throw OpenRouterException.ServerError(chunk.error.code ?: 500)
+                        val delta = chunk.choices.firstOrNull()?.delta?.content ?: continue
+                        if (delta.isNotEmpty()) {
+                            full.append(delta)
+                            onDelta(delta)
+                        }
+                    }
+                } catch (e: IOException) {
+                    throw OpenRouterException.NoNetwork(e)
+                }
+                full.toString().takeIf { text -> text.isNotBlank() } ?: throw OpenRouterException.EmptyResponse()
+            }
+        }
+    }
+
+    private fun messagesBody(model: String, messages: List<OpenRouterMessage>, stream: Boolean) = buildJsonObject {
+        put("model", model)
+        if (stream) put("stream", true)
+        putJsonArray("messages") {
+            messages.forEach { msg ->
+                addJsonObject {
+                    put("role", msg.role)
+                    if (msg.imagesBase64.isEmpty()) {
                         put("content", msg.content)
+                    } else {
+                        putJsonArray("content") {
+                            addJsonObject {
+                                put("type", "text")
+                                put("text", msg.content)
+                            }
+                            msg.imagesBase64.forEach { base64 ->
+                                addJsonObject {
+                                    put("type", "image_url")
+                                    putJsonObject("image_url") { put("url", "data:image/jpeg;base64,$base64") }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        executeRequest(apiKey, requestBody.toString())
+    }
+
+    private fun buildRequest(apiKey: String, requestBodyJson: String): Request = Request.Builder()
+        .url("https://openrouter.ai/api/v1/chat/completions")
+        .header("Authorization", "Bearer $apiKey")
+        .header("Content-Type", "application/json")
+        .header("HTTP-Referer", "https://github.com/hangry-app")
+        .header("X-Title", "Hangry")
+        .post(requestBodyJson.toRequestBody("application/json".toMediaType()))
+        .build()
+
+    private fun throwForStatus(code: Int, successful: Boolean) {
+        when {
+            code == 401 || code == 403 -> throw OpenRouterException.InvalidApiKey()
+            code == 429 -> throw OpenRouterException.RateLimited()
+            !successful -> throw OpenRouterException.ServerError(code)
+        }
     }
 
     private fun executeRequest(apiKey: String, requestBodyJson: String): Result<String> {
         return runCatching {
-            val request = Request.Builder()
-                .url("https://openrouter.ai/api/v1/chat/completions")
-                .header("Authorization", "Bearer $apiKey")
-                .header("Content-Type", "application/json")
-                .header("HTTP-Referer", "https://github.com/hangry-app")
-                .header("X-Title", "Hangry")
-                .post(requestBodyJson.toRequestBody("application/json".toMediaType()))
-                .build()
-
             val response = try {
-                httpClient.newCall(request).execute()
+                httpClient.newCall(buildRequest(apiKey, requestBodyJson)).execute()
             } catch (e: IOException) {
                 throw OpenRouterException.NoNetwork(e)
             }
 
             response.use {
                 val bodyText = it.body?.string().orEmpty()
-                when {
-                    it.code == 401 || it.code == 403 -> throw OpenRouterException.InvalidApiKey()
-                    it.code == 429 -> throw OpenRouterException.RateLimited()
-                    !it.isSuccessful -> throw OpenRouterException.ServerError(it.code)
-                    else -> {
-                        val parsed = try {
-                            json.decodeFromString(ChatCompletionResponse.serializer(), bodyText)
-                        } catch (e: Exception) {
-                            throw OpenRouterException.MalformedResponse(e)
-                        }
-                        parsed.choices.firstOrNull()?.message?.content?.takeIf { text -> text.isNotBlank() }
-                            ?: throw OpenRouterException.EmptyResponse()
-                    }
+                throwForStatus(it.code, it.isSuccessful)
+                val parsed = try {
+                    json.decodeFromString(ChatCompletionResponse.serializer(), bodyText)
+                } catch (e: Exception) {
+                    throw OpenRouterException.MalformedResponse(e)
                 }
+                parsed.choices.firstOrNull()?.message?.content?.takeIf { text -> text.isNotBlank() }
+                    ?: throw OpenRouterException.EmptyResponse()
             }
         }
     }

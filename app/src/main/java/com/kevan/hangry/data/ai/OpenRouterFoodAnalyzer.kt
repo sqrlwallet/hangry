@@ -33,8 +33,15 @@ private data class FoodAnalysisJson(
     val fiberG: Double = 0.0,
     val sugarG: Double = 0.0,
     val sodiumMg: Double = 0.0,
-    val confidenceNote: String = ""
+    val confidenceNote: String = "",
+    val allergenWarnings: List<String> = emptyList()
 )
+
+internal fun allergenInstructions(allergies: List<String>): String = """
+
+ALLERGEN CHECK:
+The user has these allergies: ${allergies.joinToString(", ")}.
+Add "allergenWarnings": a list of short warnings, one per allergy this food likely or possibly contains, naming the allergen and where it's likely hiding (e.g. "Peanuts - satay sauce usually contains peanuts", "Shellfish - possible shrimp in the fried rice"). Include hidden and cross-contamination risks common for the dish. Use an empty list if none apply. Never list allergies that aren't in the user's list."""
 
 class OpenRouterFoodAnalyzer(
     private val client: OpenRouterClient,
@@ -44,23 +51,25 @@ class OpenRouterFoodAnalyzer(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun analyzePhoto(imageBase64: String, note: String?): Result<FoodAnalysisResult> {
+    override suspend fun analyzePhoto(imageBase64: String, note: String?, allergies: List<String>): Result<FoodAnalysisResult> {
         val userText = note?.takeIf { it.isNotBlank() }
             ?.let { "Estimate the nutrition of the food in this photo. Additional context from the user: $it" }
             ?: "Estimate the nutrition of the food in this photo."
-        return runAnalysis(userText, imagesBase64 = listOf(imageBase64))
+        return runAnalysis(userText, allergies, imagesBase64 = listOf(imageBase64))
     }
 
-    override suspend fun analyzeDescription(text: String): Result<FoodAnalysisResult> {
-        return runAnalysis("Estimate the nutrition of this food: $text")
+    override suspend fun analyzeDescription(text: String, allergies: List<String>): Result<FoodAnalysisResult> {
+        return runAnalysis("Estimate the nutrition of this food: $text", allergies)
     }
 
-    private suspend fun runAnalysis(userText: String, imagesBase64: List<String> = emptyList()): Result<FoodAnalysisResult> {
+    private suspend fun runAnalysis(userText: String, allergies: List<String>, imagesBase64: List<String> = emptyList()): Result<FoodAnalysisResult> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
         val model = userProfileRepository.getProfileSync()?.preferredAiModel?.takeIf { it.isNotBlank() }
             ?: AiDefaults.DEFAULT_MODEL
 
-        return client.chatCompletion(apiKey, model, SYSTEM_PROMPT, userText, imagesBase64).mapCatching { raw ->
+        // The allergen check is only asked for when the user has allergies on record.
+        val systemPrompt = if (allergies.isEmpty()) SYSTEM_PROMPT else SYSTEM_PROMPT + allergenInstructions(allergies)
+        return client.chatCompletion(apiKey, model, systemPrompt, userText, imagesBase64).mapCatching { raw ->
             val parsed = json.decodeFromString(FoodAnalysisJson.serializer(), extractJsonPayload(raw))
             FoodAnalysisResult(
                 foodName = parsed.foodName,
@@ -71,7 +80,8 @@ class OpenRouterFoodAnalyzer(
                 fiberG = parsed.fiberG,
                 sugarG = parsed.sugarG,
                 sodiumMg = parsed.sodiumMg,
-                confidenceNote = parsed.confidenceNote
+                confidenceNote = parsed.confidenceNote,
+                allergenWarnings = if (allergies.isEmpty()) emptyList() else parsed.allergenWarnings.filter { it.isNotBlank() }
             )
         }.recoverCatching { e ->
             if (e is OpenRouterException) throw e

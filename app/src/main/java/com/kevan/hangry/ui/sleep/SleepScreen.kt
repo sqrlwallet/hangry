@@ -145,7 +145,7 @@ fun SleepScreen(
             if (uiState.isPendingSleepData) {
                 HangryPendingNotice(
                     message = "Log last night's sleep to see today's insights.",
-                    details = "Log last night's sleep to see your sleep score, architecture, and coaching insights for today."
+                    details = "Log last night's sleep to see your sleep score, architecture, and insights for today."
                 )
             } else {
                 // Main Sleep Duration Card
@@ -222,11 +222,11 @@ fun SleepScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Sleep Coach",
+                                text = "Sleep Guidance",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
-                            HangryInfoIconButton(title = "Sleep Coach", sections = SLEEP_COACH_SECTIONS, compact = true)
+                            HangryInfoIconButton(title = "Sleep Guidance", sections = SLEEP_COACH_SECTIONS, compact = true)
                         }
                         val quality = analysis?.sleepQualityScore ?: 70
                         val qualityColor = when {

@@ -46,6 +46,30 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.CoachMessageEntity
+import com.kevan.hangry.domain.model.CoachAction
+import com.kevan.hangry.domain.model.CoachActionStatus
+import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+import java.io.File
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -59,7 +83,8 @@ private val QUICK_STARTERS = listOf(
     "🥗 How's my calorie & protein balance?",
     "💤 How did sleep affect my recovery?",
     "🧘 Stretches for my posture scan?",
-    "📝 Tight hamstrings & lower back"
+    "📝 Tight hamstrings & lower back",
+    "💊 Review my supplements"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +93,8 @@ fun AiCoachScreen(
     viewModel: AiCoachViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAiSettings: () -> Unit,
+    /** Dash's OPEN_SCREEN action: (screen name, optional breathing pattern). */
+    onOpenScreen: (String, String?) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
@@ -79,6 +106,46 @@ fun AiCoachScreen(
     val clipboardManager = LocalClipboardManager.current
 
     var inputText by remember { mutableStateOf("") }
+    var showAttachMenu by remember { mutableStateOf(false) }
+    val photoLauncher = rememberMultiPhotoCaptureLauncher(maxItems = AiCoachViewModel.MAX_IMAGES) { uris ->
+        viewModel.attachImages(uris)
+    }
+    val canSend = (inputText.isNotBlank() || uiState.pendingImages.isNotEmpty()) && !uiState.isLoading
+    val starters = uiState.suggestions.ifEmpty { QUICK_STARTERS }
+    val context = LocalContext.current
+
+    // Talk to Dash: the system speech recogniser, no microphone permission needed.
+    val speechIntent = remember {
+        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask $MASCOT_NAME")
+    }
+    val canDictate = remember { speechIntent.resolveActivity(context.packageManager) != null }
+    val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { spoken ->
+            inputText = listOf(inputText.trim(), spoken).filter { it.isNotEmpty() }.joinToString(" ")
+        }
+    }
+
+    LaunchedEffect(uiState.draftToRestore) {
+        uiState.draftToRestore?.let {
+            if (inputText.isBlank()) inputText = it
+            viewModel.consumeDraft()
+        }
+    }
+    LaunchedEffect(uiState.openScreen) {
+        uiState.openScreen?.let { (screen, pattern) ->
+            viewModel.consumeOpenScreen()
+            onOpenScreen(screen, pattern)
+        }
+    }
+
+    LaunchedEffect(uiState.actionMessage) {
+        uiState.actionMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            viewModel.clearActionMessage()
+        }
+    }
     var showClearDialog by remember { mutableStateOf(false) }
     var showAddJournalDialog by remember { mutableStateOf(false) }
 
@@ -86,6 +153,14 @@ fun AiCoachScreen(
     LaunchedEffect(uiState.messages.size, uiState.isLoading) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
+        }
+    }
+
+    // Keep a streaming reply in view as it grows (jump, not animate - it updates many times a second).
+    val streamedLines = (uiState.streamingReply?.length ?: 0) / 120
+    LaunchedEffect(streamedLines) {
+        if (uiState.streamingReply != null && uiState.messages.isNotEmpty()) {
+            listState.scrollToItem(uiState.messages.size)
         }
     }
 
@@ -231,6 +306,7 @@ fun AiCoachScreen(
                 if (uiState.messages.isEmpty()) {
                     // Empty welcome screen
                     EmptyConversationView(
+                        starters = starters,
                         onSelectStarter = { starter ->
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             inputText = starter
@@ -250,6 +326,8 @@ fun AiCoachScreen(
                         items(uiState.messages, key = { it.id }) { message ->
                             CoachMessageItem(
                                 message = message,
+                                onExecuteAction = { index -> viewModel.executeAction(message.id, index) },
+                                onDismissAction = { index -> viewModel.dismissAction(message.id, index) },
                                 onCopy = { text ->
                                     clipboardManager.setText(AnnotatedString(text))
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -265,7 +343,8 @@ fun AiCoachScreen(
 
                         if (uiState.isLoading) {
                             item {
-                                CoachLoadingBubble()
+                                val partial = uiState.streamingReply
+                                if (partial.isNullOrBlank()) CoachLoadingBubble() else StreamingReplyBubble(partial)
                             }
                         }
                     }
@@ -280,7 +359,7 @@ fun AiCoachScreen(
                         .padding(horizontal = HangryTokens.Spacing.m, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(QUICK_STARTERS) { starter ->
+                    items(starters) { starter ->
                         SuggestionChip(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -300,17 +379,65 @@ fun AiCoachScreen(
                 color = MaterialTheme.colorScheme.background,
                 modifier = Modifier.fillMaxWidth()
             ) {
+              Column {
+                if (uiState.pendingImages.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(start = HangryTokens.Spacing.m, end = HangryTokens.Spacing.m, top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.pendingImages) { uri ->
+                            Box(Modifier.size(64.dp)) {
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = "Attached photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+                                )
+                                IconButton(
+                                    onClick = { viewModel.removeImage(uri) },
+                                    modifier = Modifier.align(Alignment.TopEnd).size(22.dp)
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Remove photo", modifier = Modifier.size(14.dp))
+                                }
+                            }
+                        }
+                    }
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = HangryTokens.Spacing.m, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Box {
+                        IconButton(
+                            onClick = { showAttachMenu = true },
+                            enabled = !uiState.isLoading && uiState.pendingImages.size < AiCoachViewModel.MAX_IMAGES
+                        ) {
+                            Icon(Icons.Default.AddAPhoto, contentDescription = "Attach a photo", tint = tokens.textSecondary)
+                        }
+                        DropdownMenu(expanded = showAttachMenu, onDismissRequest = { showAttachMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Take a photo") },
+                                leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                                onClick = { showAttachMenu = false; photoLauncher.takePhoto() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Choose from gallery") },
+                                leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) },
+                                onClick = { showAttachMenu = false; photoLauncher.pickFromGallery() }
+                            )
+                        }
+                    }
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
                         placeholder = {
-                            Text("Ask $MASCOT_NAME or share a problem...", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                if (uiState.pendingImages.isEmpty()) "Ask $MASCOT_NAME or send a photo..." else "What should $MASCOT_NAME do with it?",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         },
                         trailingIcon = if (inputText.isNotEmpty()) {
                             {
@@ -328,6 +455,12 @@ fun AiCoachScreen(
                                     )
                                 }
                             }
+                        } else if (canDictate) {
+                            {
+                                IconButton(onClick = { runCatching { speechLauncher.launch(speechIntent) } }, enabled = !uiState.isLoading) {
+                                    Icon(Icons.Default.Mic, contentDescription = "Speak to $MASCOT_NAME", tint = tokens.textSecondary)
+                                }
+                            }
                         } else null,
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Sentences,
@@ -335,7 +468,7 @@ fun AiCoachScreen(
                         ),
                         keyboardActions = KeyboardActions(
                             onSend = {
-                                if (inputText.isNotBlank() && !uiState.isLoading) {
+                                if (canSend) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     val textToSend = inputText
                                     inputText = ""
@@ -358,22 +491,23 @@ fun AiCoachScreen(
                             inputText = ""
                             viewModel.sendMessage(textToSend)
                         },
-                        enabled = inputText.isNotBlank() && !uiState.isLoading,
+                        enabled = canSend,
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
                             .background(
-                                if (inputText.isNotBlank() && !uiState.isLoading) MaterialTheme.colorScheme.primary
+                                if (canSend) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.surfaceVariant
                             )
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = if (uiState.isLoading) "$MASCOT_NAME is thinking" else "Send message",
-                            tint = if (inputText.isNotBlank() && !uiState.isLoading) MaterialTheme.colorScheme.onPrimary else tokens.textSecondary
+                            tint = if (canSend) MaterialTheme.colorScheme.onPrimary else tokens.textSecondary
                         )
                     }
                 }
+              }
             }
         }
     }
@@ -487,6 +621,7 @@ private fun AiNotConfiguredBanner(
 
 @Composable
 private fun EmptyConversationView(
+    starters: List<String>,
     onSelectStarter: (String) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
@@ -545,7 +680,7 @@ private fun EmptyConversationView(
             modifier = Modifier.align(Alignment.Start)
         )
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-        QUICK_STARTERS.forEach { starter ->
+        starters.forEach { starter ->
             HangryCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -698,6 +833,8 @@ private fun FormattedMessageText(
 @Composable
 private fun CoachMessageItem(
     message: CoachMessageEntity,
+    onExecuteAction: (Int) -> Unit,
+    onDismissAction: (Int) -> Unit,
     onCopy: (String) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
@@ -737,6 +874,20 @@ private fun CoachMessageItem(
             modifier = Modifier.widthIn(max = 330.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                val photos = remember(message.imagePaths) { message.imagePaths?.split(',')?.filter { it.isNotBlank() }.orEmpty() }
+                if (photos.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        photos.forEach { path ->
+                            AsyncImage(
+                                model = File(path),
+                                contentDescription = "Attached photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(96.dp).clip(RoundedCornerShape(10.dp))
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
                 FormattedMessageText(
                     text = message.content,
                     isUser = isUser
@@ -765,6 +916,13 @@ private fun CoachMessageItem(
             }
         }
 
+        // Actions Dash proposed - each runs only when tapped
+        val actions = remember(message.actionsJson) { decodeActions(message.actionsJson) }
+        actions.forEachIndexed { index, action ->
+            Spacer(modifier = Modifier.height(6.dp))
+            CoachActionCard(action = action, onDo = { onExecuteAction(index) }, onDismiss = { onDismissAction(index) })
+        }
+
         // Attached journal entry badge if created
         message.journalEntrySummary?.let { summary ->
             Spacer(modifier = Modifier.height(4.dp))
@@ -791,6 +949,78 @@ private fun CoachMessageItem(
                         fontWeight = FontWeight.Medium
                     )
                 }
+            }
+        }
+    }
+}
+
+private val actionJson = Json { ignoreUnknownKeys = true }
+
+private fun decodeActions(raw: String?): List<CoachAction> =
+    raw?.let { runCatching { actionJson.decodeFromString(ListSerializer(CoachAction.serializer()), it) }.getOrNull() }.orEmpty()
+
+@Composable
+private fun CoachActionCard(action: CoachAction, onDo: () -> Unit, onDismiss: () -> Unit) {
+    val tokens = LocalHangryTokens.current
+    val (icon, verb) = when (action.type) {
+        CoachAction.ADD_SUPPLEMENT -> Icons.Default.Medication to "Add"
+        CoachAction.UPDATE_SUPPLEMENT -> Icons.Default.Medication to "Update"
+        CoachAction.MARK_SUPPLEMENT_TAKEN -> Icons.Default.CheckCircle to "Mark taken"
+        CoachAction.LOG_MEAL -> Icons.Default.Restaurant to "Log"
+        CoachAction.UPDATE_MEAL -> Icons.Default.Restaurant to "Update"
+        CoachAction.ADD_MEAL_PLAN -> Icons.Default.Restaurant to "Add"
+        CoachAction.ADD_READING -> Icons.Default.MonitorHeart to "Save"
+        CoachAction.SET_GOAL, CoachAction.UPDATE_GOALS -> Icons.Default.Flag to "Set"
+        CoachAction.LOG_WEIGHT, CoachAction.LOG_BODY_FAT, CoachAction.UPDATE_PROFILE -> Icons.Default.MonitorHeart to "Save"
+        CoachAction.LOG_SLEEP -> Icons.Default.Bedtime to "Log"
+        CoachAction.SET_HRV_FEELING -> Icons.Default.Favorite to "Save"
+        CoachAction.SET_PREGNANCY, CoachAction.LOG_PERIOD -> Icons.Default.Favorite to "Save"
+        CoachAction.OPEN_SCREEN -> Icons.AutoMirrored.Filled.ArrowForward to "Open"
+        else -> Icons.Default.Add to "Add"
+    }
+    Surface(
+        color = tokens.cardBackground,
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, tokens.cardBorder),
+        modifier = Modifier.widthIn(max = 330.dp).fillMaxWidth()
+    ) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(action.title.ifBlank { verb }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = tokens.textPrimary)
+                when (action.status) {
+                    CoachActionStatus.DONE -> Text("✓ " + (action.resultMessage ?: "Done"), style = MaterialTheme.typography.labelSmall, color = tokens.scoreColors.primed)
+                    CoachActionStatus.FAILED -> Text(action.resultMessage ?: "Couldn't do that", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    CoachActionStatus.DISMISSED -> Text("Dismissed", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                }
+            }
+            if (action.status == CoachActionStatus.PENDING || action.status == CoachActionStatus.FAILED) {
+                TextButton(onClick = onDismiss) { Text("Skip", color = tokens.textMuted) }
+                Button(onClick = onDo, contentPadding = PaddingValues(horizontal = 14.dp)) {
+                    Text(if (action.status == CoachActionStatus.FAILED) "Retry" else verb)
+                }
+            }
+        }
+    }
+}
+
+/** Dash's reply while it's still being written - replaced by the full message when done. */
+@Composable
+private fun StreamingReplyBubble(text: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalAlignment = Alignment.Start) {
+        Row(modifier = Modifier.padding(start = 6.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            DashAvatar(size = 24.dp)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(MASCOT_NAME, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+        }
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp),
+            modifier = Modifier.widthIn(max = 330.dp)
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                FormattedMessageText(text = text, isUser = false)
             }
         }
     }

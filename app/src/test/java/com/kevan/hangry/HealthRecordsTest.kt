@@ -143,4 +143,28 @@ class HealthRecordsTest {
         assertEquals("Peanut", item.name)
         assertEquals("Hives", item.note)
     }
+
+    @Test
+    fun `testosterone is only offered to men`() {
+        assertTrue(MarkerType.TESTOSTERONE in com.kevan.hangry.domain.model.HealthRecordsSnapshot(sex = BiologicalSex.MALE).visibleMarkers)
+        assertFalse(MarkerType.TESTOSTERONE in com.kevan.hangry.domain.model.HealthRecordsSnapshot(sex = BiologicalSex.FEMALE).visibleMarkers)
+        assertFalse(MarkerType.TESTOSTERONE in com.kevan.hangry.domain.model.HealthRecordsSnapshot(sex = null).visibleMarkers)
+    }
+
+    @Test
+    fun `pregnancy records give a due date or a status`() {
+        val due = """{"resourceType":"Observation","code":{"coding":[{"system":"http://loinc.org","code":"11778-8"}]},"valueDateTime":"2027-03-14"}"""
+        assertEquals(LocalDate.of(2027, 3, 14), FhirHealthRecordParser.parsePregnancy(due)!!.dueDate)
+        val status = """{"resourceType":"Observation","code":{"coding":[{"system":"http://loinc.org","code":"82810-3"}]},
+            "effectiveDateTime":"2026-09-01","valueCodeableConcept":{"coding":[{"system":"http://snomed.info/sct","code":"77386006"}]}}"""
+        assertEquals(true, FhirHealthRecordParser.parsePregnancy(status)!!.pregnant)
+        assertNull(FhirHealthRecordParser.parsePregnancy("""{"code":{"coding":[{"code":"2093-3"}]}}"""))
+    }
+
+    @Test
+    fun `allergen check is only added to the meal prompt when there are allergies`() {
+        val instructions = com.kevan.hangry.data.ai.allergenInstructions(listOf("Peanuts", "Shellfish"))
+        assertTrue(instructions.contains("Peanuts, Shellfish"))
+        assertTrue(instructions.contains("allergenWarnings"))
+    }
 }

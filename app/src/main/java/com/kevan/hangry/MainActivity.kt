@@ -33,7 +33,11 @@ class MainActivity : ComponentActivity() {
             quickLogTrigger = true
         }
 
-        val initialDestination = getDestinationFromIntent(intent)
+        // Detail screens opened from a notification/widget sit on top of Today, so Back lands
+        // somewhere sensible instead of closing the app.
+        val requested = getDestinationFromIntent(intent)
+        val deepLinkOnTop = requested?.takeIf { it in STACKED_DEEP_LINKS }
+        val initialDestination = requested?.takeIf { deepLinkOnTop == null }
         val startDestination = initialDestination ?: runCatching {
             kotlinx.coroutines.runBlocking {
                 if (appContainer.userProfileRepository.getProfileSync()?.onboardingCompleted == true) {
@@ -51,6 +55,11 @@ class MainActivity : ComponentActivity() {
             HangryTheme {
                 val navController = rememberNavController()
                 activeNavController = navController
+                LaunchedEffect(Unit) {
+                    if (deepLinkOnTop != null && startDestination == Screen.Dashboard.route) {
+                        navController.navigate(deepLinkOnTop)
+                    }
+                }
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
@@ -90,6 +99,10 @@ class MainActivity : ComponentActivity() {
         if (destination != null) {
             activeNavController?.navigate(destination)
         }
+    }
+
+    private companion object {
+        val STACKED_DEEP_LINKS = setOf(Screen.Supplements.route)
     }
 
     private fun getDestinationFromIntent(intent: Intent?): String? {

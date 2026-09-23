@@ -11,7 +11,12 @@ import java.time.ZoneId
 /**
  * Estimates maintenance calories from real behaviour over the 7 full days before today:
  *
- *   maintenance = BMR + NEAT + average workout calories
+ *   maintenance = (BMR + NEAT + average workout calories) × 1.10
+ *
+ * - BMR uses Katch-McArdle (from lean mass) when there's a measured body-fat scan, since it's
+ *   more accurate for lean or muscular people; otherwise Mifflin-St Jeor.
+ * - The extra 10% is the thermic effect of food - energy spent digesting - which neither BMR
+ *   formula includes.
  *
  * - NEAT (non-exercise activity) is the calorie cost of one third of your average daily steps.
  *   Counting only a third is a deliberate rough allowance for steps already covered by workout
@@ -34,7 +39,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         goalWeightKg: Double?,
         goalDate: LocalDate?,
         today: LocalDate,
-        zone: ZoneId = ZoneId.systemDefault()
+        zone: ZoneId = ZoneId.systemDefault(),
+        /** From a recent tape or photo scan only - not an estimate derived from BMI. */
+        measuredBodyFatPercent: Double? = null
     ): EnergyBalanceResult {
         val windowStart = today.minusDays(WINDOW_DAYS.toLong())
         val windowEnd = today.minusDays(1)
@@ -54,7 +61,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
             return EnergyBalanceResult(estimate = null, missing = missing)
         }
 
-        val bmr = calorieCalculator.calculateBmr(weightKg, heightCm, age, sex)
+        val leanKg = measuredBodyFatPercent?.takeIf { it in 3.0..65.0 }?.let { weightKg * (1 - it / 100.0) }
+        val bmr = leanKg?.let { 370 + 21.6 * it } ?: calorieCalculator.calculateBmr(weightKg, heightCm, age, sex)
+        val bmrMethod = if (leanKg != null) "Katch-McArdle" else "Mifflin-St Jeor"
         val workoutsByDay = workouts.groupBy { it.startTime.atZone(zone).toLocalDate() }
 
         var totalSteps = 0L
@@ -81,7 +90,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         val kcalPerStep = kcalPerStep(weightKg, heightCm)
         val neatKcal = avgNeatSteps * kcalPerStep
         val avgWorkoutKcal = totalWorkoutKcal / days
-        val maintenance = bmr + neatKcal + avgWorkoutKcal
+        val beforeFood = bmr + neatKcal + avgWorkoutKcal
+        val tefKcal = beforeFood * TEF_FRACTION
+        val maintenance = beforeFood + tefKcal
 
         val goal = if (goalWeightKg != null && goalDate != null) {
             calorieCalculator.recommendDailyCalorieGoal(
@@ -99,6 +110,7 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
                 windowEnd = windowEnd,
                 daysWithData = stepsByDay.size,
                 bmrKcal = bmr,
+                bmrMethod = bmrMethod,
                 avgTotalSteps = avgTotalSteps,
                 avgNeatSteps = avgNeatSteps,
                 kcalPerStep = kcalPerStep,
@@ -106,6 +118,7 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
                 avgWorkoutKcal = avgWorkoutKcal,
                 workoutsCounted = workoutsCounted,
                 workoutsWithoutCalories = workoutsWithoutCalories,
+                tefKcal = tefKcal,
                 maintenanceKcal = maintenance,
                 goalWeightKg = goalWeightKg,
                 goalDate = goalDate,
@@ -125,7 +138,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
 
     companion object {
         const val WINDOW_DAYS = 7
-        const val MIN_DAYS_WITH_DATA = 3
+        const val MIN_DAYS_WITH_DATA = 5
+        /** Thermic effect of food - ~10% of daily energy goes to digesting what you eat. */
+        const val TEF_FRACTION = 0.10
         /** Only a third of average daily steps counts toward NEAT - see the class docs. */
         const val NEAT_STEP_DIVISOR = 3.0
         private const val MINUTES_PER_DAY = 1440.0

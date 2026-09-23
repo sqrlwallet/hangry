@@ -24,10 +24,14 @@ class PhotoCaptureLauncher internal constructor(
     val pickFromGallery: () -> Unit
 )
 
+/** Multi-photo capture launcher for batch photo selection from the gallery or sequential camera shots. */
+class MultiPhotoCaptureLauncher internal constructor(
+    val takePhoto: () -> Unit,
+    val pickFromGallery: () -> Unit
+)
+
 /**
- * Shared camera/gallery capture entry point for the food and posture AI features. Photos land
- * in the app's private cache dir (see res/xml/file_paths.xml) - callers decide whether to
- * discard, encode-and-send, or move a photo to permanent private storage.
+ * Shared camera/gallery capture entry point for single photo capture (e.g. food photos).
  */
 @Composable
 fun rememberPhotoCaptureLauncher(onPhotoCaptured: (Uri) -> Unit): PhotoCaptureLauncher {
@@ -48,6 +52,48 @@ fun rememberPhotoCaptureLauncher(onPhotoCaptured: (Uri) -> Unit): PhotoCaptureLa
 
     return remember(context) {
         PhotoCaptureLauncher(
+            takePhoto = {
+                val uri = createTempImageUri(context)
+                pendingCameraUri = uri
+                cameraLauncher.launch(uri)
+            },
+            pickFromGallery = {
+                galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+        )
+    }
+}
+
+/**
+ * Multi-photo camera/gallery capture entry point for posture analysis (up to 5 photos) and
+ * body fat analysis (up to 3 photos). Photos selected in a single gallery interaction are returned together.
+ */
+@Composable
+fun rememberMultiPhotoCaptureLauncher(
+    maxItems: Int = 5,
+    onPhotosCaptured: (List<Uri>) -> Unit
+): MultiPhotoCaptureLauncher {
+    val context = LocalContext.current
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val uri = pendingCameraUri
+        pendingCameraUri = null
+        if (success && uri != null) {
+            onPhotosCaptured(listOf(uri))
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems.coerceAtLeast(2))
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            onPhotosCaptured(uris)
+        }
+    }
+
+    return remember(context, maxItems) {
+        MultiPhotoCaptureLauncher(
             takePhoto = {
                 val uri = createTempImageUri(context)
                 pendingCameraUri = uri

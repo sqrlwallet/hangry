@@ -28,6 +28,7 @@ data class UserProfileEntity(
     // stored here; see data/security/SecureKeyStore.
     val aiFeaturesEnabled: Boolean = false,
     val preferredAiModel: String? = null,
+    val preferredCoachModel: String? = null,
     val dailyStepGoal: Long = 6000L,
     val dailyActivityMinutesGoal: Int = 90,
     val dailyActiveCaloriesGoal: Int = 500,

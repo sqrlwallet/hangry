@@ -19,6 +19,13 @@ interface BodyFatCalculator {
         biologicalSex: BiologicalSex
     ): BodyFatCalculationResult?
 
+    fun calculateBiometricHistoryBodyFat(
+        heightCm: Double,
+        weightKg: Double,
+        age: Int,
+        biologicalSex: BiologicalSex
+    ): BodyFatCalculationResult?
+
     fun classifyCategory(
         bodyFatPercentage: Double,
         biologicalSex: BiologicalSex
@@ -77,6 +84,43 @@ class HangryBodyFatCalculator : BodyFatCalculator {
             waistToHeightRatio = whtr,
             chestToWaistRatio = ctwr,
             methodDescription = "U.S. Navy Circumference Standard"
+        )
+    }
+
+    override fun calculateBiometricHistoryBodyFat(
+        heightCm: Double,
+        weightKg: Double,
+        age: Int,
+        biologicalSex: BiologicalSex
+    ): BodyFatCalculationResult? {
+        if (heightCm <= 0.0 || weightKg <= 0.0 || age <= 0) return null
+
+        val heightMeters = heightCm / 100.0
+        val bmi = weightKg / (heightMeters * heightMeters)
+
+        val sexFactor = when (biologicalSex) {
+            BiologicalSex.MALE -> 1.0
+            BiologicalSex.FEMALE -> 0.0
+            BiologicalSex.OTHER -> 0.5
+        }
+
+        // Deurenberg clinical formula: (1.20 * BMI) + (0.23 * age) - (10.8 * sex) - 5.4
+        val rawBf = (1.20 * bmi) + (0.23 * age) - (10.8 * sexFactor) - 5.4
+        val clampedBf = min(65.0, max(3.0, roundToOneDecimal(rawBf)))
+        val category = classifyCategory(clampedBf, biologicalSex)
+
+        val fatMassKg = roundToOneDecimal(weightKg * (clampedBf / 100.0))
+        val leanMassKg = roundToOneDecimal(max(0.0, weightKg - fatMassKg))
+
+        return BodyFatCalculationResult(
+            bodyFatPercentage = clampedBf,
+            category = category,
+            fatMassKg = fatMassKg,
+            leanMassKg = leanMassKg,
+            waistToHipRatio = null,
+            waistToHeightRatio = null,
+            chestToWaistRatio = null,
+            methodDescription = "Biometric Health History (BMI & Demographics)"
         )
     }
 

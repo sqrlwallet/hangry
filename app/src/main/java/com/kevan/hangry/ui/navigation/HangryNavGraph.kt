@@ -109,7 +109,8 @@ fun HangryNavGraph(
             strainCalculator = appContainer.strainCalculator,
             calorieCalculator = appContainer.calorieCalculator,
             stressCalculator = appContainer.stressCalculator,
-            dashboardWidgetRepository = appContainer.dashboardWidgetRepository
+            dashboardWidgetRepository = appContainer.dashboardWidgetRepository,
+            bodyFatRepository = appContainer.bodyFatRepository
         )
     )
 
@@ -246,6 +247,9 @@ fun HangryNavGraph(
                 onNavigateToAiCoach = {
                     navController.navigate(Screen.AiCoach.route)
                 },
+                onNavigateToBodyFatCalculator = {
+                    navController.navigate(Screen.BodyFatCalculator.route)
+                },
                 autoOpenQuickLog = quickLogTrigger,
                 onAutoOpenQuickLogHandled = onQuickLogTriggerHandled
             )
@@ -299,6 +303,7 @@ fun HangryNavGraph(
                 weightDao = appContainer.database.weightDao(),
                 workoutRepository = appContainer.workoutRepository,
                 foodLogRepository = appContainer.foodLogRepository,
+                bodyFatRepository = appContainer.bodyFatRepository,
                 onNavigateBack = {
                     navController.popBackStack()
                 },

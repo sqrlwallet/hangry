@@ -1,7 +1,9 @@
 package com.kevan.hangry.ui.sync
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import com.kevan.hangry.R
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -61,120 +63,168 @@ fun HistoricalSyncSetupScreen(
         Pair(7, "Last 7 days (Fastest setup)")
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Historical Import") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        },
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(HangryTokens.Spacing.m)
-            ) {
-                Button(
-                    onClick = { onStartSync(selectedRange) },
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color(0xFF070A0F))
+    ) {
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = R.drawable.onboarding_ambient_bg),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        0.0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f),
+                        0.6f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
+                        1.0f to androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f)
+                    )
+                )
+        )
+
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Historical Import", color = androidx.compose.ui.graphics.Color.White) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = androidx.compose.ui.graphics.Color.White
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
+                )
+            },
+            bottomBar = {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
-                    shape = MaterialTheme.shapes.medium
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f))
+                            )
+                        )
+                        .padding(HangryTokens.Spacing.m)
                 ) {
-                    Text("Start Historical Import", style = MaterialTheme.typography.titleMedium)
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-        ) {
-            if (showStepIndicator) {
-                OnboardingStepIndicator(currentStep = 2, totalSteps = 3)
-            }
-
-            Text(
-                text = "Choose Historical Range",
-                style = MaterialTheme.typography.headlineMedium,
-                color = tokens.textPrimary
-            )
-
-            Text(
-                text = "Importing your past health records allows Hangry to calculate your personalized 7-day and 28-day baselines immediately upon launch.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = tokens.textSecondary
-            )
-
-            HangryCard {
-                ranges.forEachIndexed { index, (days, label) ->
-                    Row(
+                    Button(
+                        onClick = { onStartSync(selectedRange) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { selectedRange = days }
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (selectedRange == days),
-                            onClick = { selectedRange = days }
+                            .height(54.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = tokens.scoreColors.primed
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = tokens.textPrimary
-                            )
-                            if (days == -1) {
-                                Text(
-                                    text = "Imports your entire Health Connect history without date cutoffs.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.scoreColors.primed
-                                )
-                            }
-                        }
-                    }
-                    if (index < ranges.size - 1) {
-                        HorizontalDivider(color = tokens.cardBorder)
+                    ) {
+                        Text(
+                            text = "Start Historical Import",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            ),
+                            color = androidx.compose.ui.graphics.Color(0xFF051B17)
+                        )
                     }
                 }
-            }
-
-            Surface(
-                color = tokens.scoreColors.buildingBaselineContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth()
+            },
+            containerColor = androidx.compose.ui.graphics.Color.Transparent
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
-                Row(
-                    modifier = Modifier.padding(HangryTokens.Spacing.m),
-                    verticalAlignment = Alignment.Top
+                if (showStepIndicator) {
+                    OnboardingStepIndicator(currentStep = 2, totalSteps = 3)
+                }
+
+                Text(
+                    text = "Choose Historical Range",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    ),
+                    color = androidx.compose.ui.graphics.Color.White
+                )
+
+                Text(
+                    text = "Importing your past health records allows Hangry to calculate your personalized 7-day and 28-day baselines immediately upon launch.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f)
+                )
+
+                HangryCard {
+                    ranges.forEachIndexed { index, (days, label) ->
+                        val isSelected = selectedRange == days
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedRange = days }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { selectedRange = days },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = tokens.scoreColors.primed
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal
+                                    ),
+                                    color = if (isSelected) androidx.compose.ui.graphics.Color.White else tokens.textPrimary
+                                )
+                                if (days == -1) {
+                                    Text(
+                                        text = "Imports your entire Health Connect history without date cutoffs.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = tokens.scoreColors.primed
+                                    )
+                                }
+                            }
+                        }
+                        if (index < ranges.size - 1) {
+                            HorizontalDivider(color = tokens.cardBorder)
+                        }
+                    }
+                }
+
+                Surface(
+                    color = tokens.scoreColors.buildingBaselineContainer.copy(alpha = 0.5f),
+                    shape = MaterialTheme.shapes.medium,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = tokens.scoreColors.buildingBaseline,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Safe Memory Batching: Hangry processes historical records in 14-day bounded batches with duplicate suppression. You can cancel or re-sync at any time.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textPrimary
-                    )
+                    Row(
+                        modifier = Modifier.padding(HangryTokens.Spacing.m),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = tokens.scoreColors.buildingBaseline,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Safe Memory Batching: Hangry processes historical records in 14-day bounded batches with duplicate suppression. You can cancel or re-sync at any time.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textPrimary
+                        )
+                    }
                 }
             }
         }

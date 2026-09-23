@@ -51,6 +51,7 @@ fun DashboardScreen(
     onNavigateToNutrition: () -> Unit,
     onNavigateToPosture: () -> Unit,
     onNavigateToAiCoach: () -> Unit = {},
+    onNavigateToBodyFatCalculator: () -> Unit = {},
     autoOpenQuickLog: Boolean = false,
     onAutoOpenQuickLogHandled: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -285,7 +286,16 @@ fun DashboardScreen(
                         AiShortcutsRow(
                             onNavigateToAiCoach = onNavigateToAiCoach,
                             onNavigateToNutrition = onNavigateToNutrition,
-                            onNavigateToPosture = onNavigateToPosture
+                            onNavigateToPosture = onNavigateToPosture,
+                            onNavigateToBodyFat = onNavigateToBodyFatCalculator
+                        )
+                    }
+
+                    WidgetType.BODY_FAT_COMPOSITION -> {
+                        val scan = uiState.latestBodyFatScan
+                        BodyFatCompositionWidget(
+                            scan = scan,
+                            onClick = onNavigateToBodyFatCalculator
                         )
                     }
 
@@ -627,7 +637,8 @@ private fun HeartMetricsRow(
 private fun AiShortcutsRow(
     onNavigateToAiCoach: () -> Unit,
     onNavigateToNutrition: () -> Unit,
-    onNavigateToPosture: () -> Unit
+    onNavigateToPosture: () -> Unit,
+    onNavigateToBodyFat: () -> Unit = {}
 ) {
     val tokens = LocalHangryTokens.current
     Row(
@@ -696,6 +707,28 @@ private fun AiShortcutsRow(
                 text = "Check posture",
                 style = MaterialTheme.typography.titleMedium,
                 color = tokens.chartColors.hrv,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        HangryCard(
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onNavigateToBodyFat() },
+            contentPadding = 12.dp
+        ) {
+            Text(
+                text = "Body Fat",
+                style = MaterialTheme.typography.titleSmall,
+                color = tokens.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
+            Text(
+                text = "Measure",
+                style = MaterialTheme.typography.titleMedium,
+                color = tokens.scoreColors.primed,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -904,3 +937,103 @@ private fun DailyCoachBriefingCard(
     }
 }
 
+
+@Composable
+private fun BodyFatCompositionWidget(
+    scan: com.kevan.hangry.data.local.entity.BodyFatScanEntity?,
+    onClick: () -> Unit
+) {
+    val tokens = LocalHangryTokens.current
+    HangryCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.FitnessCenter,
+                    contentDescription = null,
+                    tint = tokens.scoreColors.primed,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Body Composition",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = tokens.textPrimary
+                )
+            }
+            Text(
+                text = "Tap to measure →",
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.textMuted
+            )
+        }
+        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+        if (scan != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column {
+                    Text(
+                        text = String.format(java.util.Locale.US, "%.1f%%", scan.bodyFatPercentage),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = tokens.scoreColors.primed
+                    )
+                    Text(
+                        text = "Body Fat",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textMuted
+                    )
+                }
+                if (scan.leanMassKg != null) {
+                    Column {
+                        Text(
+                            text = String.format(java.util.Locale.US, "%.1f kg", scan.leanMassKg),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tokens.textPrimary
+                        )
+                        Text(
+                            text = "Lean Mass",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.textMuted
+                        )
+                    }
+                }
+                if (scan.fatMassKg != null) {
+                    Column {
+                        Text(
+                            text = String.format(java.util.Locale.US, "%.1f kg", scan.fatMassKg),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tokens.textSecondary
+                        )
+                        Text(
+                            text = "Fat Mass",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.textMuted
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = scan.category ?: "Tap to run your first assessment",
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textSecondary
+            )
+        } else {
+            Text(
+                text = "No scan yet — tap to run your first body fat assessment.",
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textSecondary
+            )
+        }
+    }
+}

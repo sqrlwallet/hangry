@@ -2,6 +2,7 @@ package com.kevan.hangry.ui.sync
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import com.kevan.hangry.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
@@ -38,142 +39,184 @@ fun SyncProgressScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(HangryTokens.Spacing.l),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+            .background(androidx.compose.ui.graphics.Color(0xFF070A0F))
     ) {
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.xl))
-
-        if (showStepIndicator) {
-            OnboardingStepIndicator(currentStep = 3, totalSteps = 3)
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
-        }
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = R.drawable.onboarding_ambient_bg),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        0.0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f),
+                        0.6f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
+                        1.0f to androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f)
+                    )
+                )
+        )
 
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-        ) {
-            when (progress.status) {
-                SyncStatus.IN_PROGRESS -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(72.dp),
-                        strokeWidth = 6.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                    Text(
-                        text = "Importing Historical Data",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = tokens.textPrimary
-                    )
-                    Text(
-                        text = "Reading ${progress.currentDataType}…",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textSecondary
-                    )
-                }
-                SyncStatus.SUCCESS -> {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Success",
-                        tint = tokens.scoreColors.primed,
-                        modifier = Modifier.size(72.dp)
-                    )
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                    Text(
-                        text = "Import Complete",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = tokens.textPrimary
-                    )
-                    Text(
-                        text = "Your historical baselines and summaries have been computed.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                SyncStatus.FAILED -> {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Warning",
-                        tint = tokens.scoreColors.balanced,
-                        modifier = Modifier.size(72.dp)
-                    )
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                    Text(
-                        text = "Sync Incomplete",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = tokens.textPrimary
-                    )
-                    Text(
-                        text = progress.errorMessage ?: "We could not sync all historical data yet.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                SyncStatus.IDLE -> Unit
-            }
-
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-
-            // Sync metrics card
-            HangryCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = "Records Read", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    Text(text = "${progress.recordsRead}", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = "Records Inserted", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    Text(text = "${progress.recordsInserted}", style = MaterialTheme.typography.titleMedium, color = tokens.scoreColors.primed)
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = "Duplicates Skipped", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    Text(text = "${progress.recordsSkipped}", style = MaterialTheme.typography.titleMedium, color = tokens.textMuted)
-                }
-            }
-        }
-
-        if (progress.status == SyncStatus.FAILED) {
-            OutlinedButton(
-                onClick = { retryCount++ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text("Retry Sync", style = MaterialTheme.typography.titleMedium)
-            }
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-        }
-
-        Button(
-            onClick = onComplete,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            enabled = (progress.status != SyncStatus.IN_PROGRESS),
-            shape = MaterialTheme.shapes.medium
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(HangryTokens.Spacing.l),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = if (progress.status == SyncStatus.SUCCESS) "Enter Hangry" else "Continue to Dashboard",
-                style = MaterialTheme.typography.titleMedium
-            )
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+
+            if (showStepIndicator) {
+                OnboardingStepIndicator(currentStep = 3, totalSteps = 3)
+                Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            ) {
+                when (progress.status) {
+                    SyncStatus.IN_PROGRESS -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(72.dp),
+                            strokeWidth = 6.dp,
+                            color = tokens.scoreColors.primed
+                        )
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        Text(
+                            text = "Importing Historical Data",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            ),
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                        Text(
+                            text = "Reading ${progress.currentDataType}…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f)
+                        )
+                    }
+                    SyncStatus.SUCCESS -> {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Success",
+                            tint = tokens.scoreColors.primed,
+                            modifier = Modifier.size(72.dp)
+                        )
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        Text(
+                            text = "Import Complete",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            ),
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                        Text(
+                            text = "Your historical baselines and summaries have been computed.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    SyncStatus.FAILED -> {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Warning",
+                            tint = tokens.scoreColors.balanced,
+                            modifier = Modifier.size(72.dp)
+                        )
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        Text(
+                            text = "Sync Incomplete",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            ),
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                        Text(
+                            text = progress.errorMessage ?: "We could not sync all historical data yet.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    SyncStatus.IDLE -> Unit
+                }
+
+                Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+
+                // Sync metrics card
+                HangryCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Records Read", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = "${progress.recordsRead}", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Records Inserted", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = "${progress.recordsInserted}", style = MaterialTheme.typography.titleMedium, color = tokens.scoreColors.primed)
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Duplicates Skipped", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = "${progress.recordsSkipped}", style = MaterialTheme.typography.titleMedium, color = tokens.textMuted)
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
+            ) {
+                if (progress.status == SyncStatus.FAILED) {
+                    OutlinedButton(
+                        onClick = { retryCount++ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp)
+                    ) {
+                        Text("Retry Sync", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+
+                Button(
+                    onClick = onComplete,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    enabled = (progress.status != SyncStatus.IN_PROGRESS),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = tokens.scoreColors.primed,
+                        disabledContainerColor = tokens.cardBorder
+                    )
+                ) {
+                    Text(
+                        text = if (progress.status == SyncStatus.SUCCESS) "Enter Hangry" else "Continue to Dashboard",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        ),
+                        color = if (progress.status != SyncStatus.IN_PROGRESS) androidx.compose.ui.graphics.Color(0xFF051B17) else tokens.textMuted
+                    )
+                }
+            }
         }
     }
 }

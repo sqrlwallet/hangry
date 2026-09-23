@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -88,48 +89,84 @@ fun PermissionSetupScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Connect Health Data") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        },
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(HangryTokens.Spacing.m)
-            ) {
-                Button(
-                    onClick = onProceedToHistoricalSync,
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color(0xFF070A0F))
+    ) {
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = R.drawable.onboarding_ambient_bg),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        0.0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f),
+                        0.6f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
+                        1.0f to androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f)
+                    )
+                )
+        )
+
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Connect Health Data", color = androidx.compose.ui.graphics.Color.White) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent
+                    )
+                )
+            },
+            bottomBar = {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
-                    shape = MaterialTheme.shapes.medium
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color(0xFF070A0F).copy(alpha = 0.95f))
+                            )
+                        )
+                        .padding(HangryTokens.Spacing.m)
                 ) {
-                    Text(
-                        text = when {
-                            hasFullPermissions -> "Continue"
-                            !isAvailable -> "Continue Without Health Connect"
-                            else -> "Continue with Available Permissions"
-                        },
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Button(
+                        onClick = onProceedToHistoricalSync,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = tokens.scoreColors.primed
+                        )
+                    ) {
+                        Text(
+                            text = when {
+                                hasFullPermissions -> "Continue"
+                                !isAvailable -> "Continue Without Health Connect"
+                                else -> "Continue with Available Permissions"
+                            },
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            ),
+                            color = androidx.compose.ui.graphics.Color(0xFF051B17)
+                        )
+                    }
                 }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-        ) {
-            OnboardingStepIndicator(currentStep = 1, totalSteps = 3)
+            },
+            containerColor = androidx.compose.ui.graphics.Color.Transparent
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            ) {
+                OnboardingStepIndicator(currentStep = 1, totalSteps = 3)
 
             Text(
                 text = "Connect Your Health Data",
@@ -264,6 +301,7 @@ fun PermissionSetupScreen(
             LocalFirstBanner()
         }
     }
+}
 }
 
 @Composable

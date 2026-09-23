@@ -16,6 +16,7 @@ data class BodyFatCalculatorUiState(
     val waistCm: String = "",
     val hipCm: String = "",
     val photos: List<Uri> = emptyList(),
+    val historyResult: BodyFatCalculationResult? = null,
     val algorithmicResult: BodyFatCalculationResult? = null,
     val isAiAnalyzing: Boolean = false,
     val aiAnalysisResult: BodyFatAnalysisResult? = null,

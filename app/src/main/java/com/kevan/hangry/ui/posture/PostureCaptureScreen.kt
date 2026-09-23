@@ -26,7 +26,7 @@ import com.kevan.hangry.data.local.entity.photoPaths
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import com.kevan.hangry.util.rememberPhotoCaptureLauncher
+import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +40,11 @@ fun PostureCaptureScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val photoLauncher = rememberPhotoCaptureLauncher { uri: Uri -> viewModel.addPhoto(uri) }
+    val photoLauncher = rememberMultiPhotoCaptureLauncher(
+        maxItems = (MAX_POSTURE_PHOTOS - uiState.capturedPhotos.size).coerceAtLeast(2)
+    ) { uris: List<Uri> ->
+        viewModel.addPhotos(uris)
+    }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
@@ -136,11 +140,26 @@ fun PostureCaptureScreen(
                 }
             }
 
-            TextButton(
-                onClick = { photoLauncher.pickFromGallery() },
-                enabled = uiState.capturedPhotos.size < MAX_POSTURE_PHOTOS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Or choose from gallery")
+                OutlinedButton(
+                    onClick = { photoLauncher.takePhoto() },
+                    enabled = uiState.capturedPhotos.size < MAX_POSTURE_PHOTOS,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Take Photo")
+                }
+                Button(
+                    onClick = { photoLauncher.pickFromGallery() },
+                    enabled = uiState.capturedPhotos.size < MAX_POSTURE_PHOTOS,
+                    modifier = Modifier.weight(1.3f)
+                ) {
+                    Text("Select from Gallery")
+                }
             }
 
             if (uiState.isAnalyzing) {

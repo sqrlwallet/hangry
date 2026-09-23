@@ -15,6 +15,7 @@ import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.BodyFatAnalyzer
 import com.kevan.hangry.domain.calculation.BodyFatCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
+import com.kevan.hangry.domain.model.BodyFatCalculationResult
 import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.util.clearCapturedImageCache
@@ -94,17 +95,7 @@ class BodyFatCalculatorViewModel(
                             latestSavedScan = latestScan
                         )
                     }
-                    updated.copy(
-                        algorithmicResult = calculateNavyResult(
-                            updated.heightCm,
-                            updated.neckCm,
-                            updated.waistCm,
-                            updated.hipCm,
-                            updated.weightKg,
-                            updated.chestCm,
-                            updated.biologicalSex
-                        )
-                    )
+                    updateCalculatedResults(updated)
                 }
             }.collect { }
         }
@@ -112,138 +103,58 @@ class BodyFatCalculatorViewModel(
 
     fun onHeightChanged(value: String) {
         val filtered = value.filter { it.isDigit() || it == '.' }
-        _uiState.update { state ->
-            val updated = state.copy(heightCm = filtered)
-            updated.copy(
-                algorithmicResult = calculateNavyResult(
-                    updated.heightCm,
-                    updated.neckCm,
-                    updated.waistCm,
-                    updated.hipCm,
-                    updated.weightKg,
-                    updated.chestCm,
-                    updated.biologicalSex
-                )
-            )
-        }
+        _uiState.update { state -> updateCalculatedResults(state.copy(heightCm = filtered)) }
     }
 
     fun onWeightChanged(value: String) {
         val filtered = value.filter { it.isDigit() || it == '.' }
-        _uiState.update { state ->
-            val updated = state.copy(weightKg = filtered)
-            updated.copy(
-                algorithmicResult = calculateNavyResult(
-                    updated.heightCm,
-                    updated.neckCm,
-                    updated.waistCm,
-                    updated.hipCm,
-                    updated.weightKg,
-                    updated.chestCm,
-                    updated.biologicalSex
-                )
-            )
-        }
+        _uiState.update { state -> updateCalculatedResults(state.copy(weightKg = filtered)) }
     }
 
     fun onAgeChanged(value: String) {
         val filtered = value.filter { it.isDigit() }
-        _uiState.update { it.copy(age = filtered) }
+        _uiState.update { state -> updateCalculatedResults(state.copy(age = filtered)) }
     }
 
     fun onSexSelected(sex: BiologicalSex) {
-        _uiState.update { state ->
-            val updated = state.copy(biologicalSex = sex)
-            updated.copy(
-                algorithmicResult = calculateNavyResult(
-                    updated.heightCm,
-                    updated.neckCm,
-                    updated.waistCm,
-                    updated.hipCm,
-                    updated.weightKg,
-                    updated.chestCm,
-                    updated.biologicalSex
-                )
-            )
-        }
+        _uiState.update { state -> updateCalculatedResults(state.copy(biologicalSex = sex)) }
     }
 
     fun onNeckChanged(value: String) {
         val filtered = value.filter { it.isDigit() || it == '.' }
-        _uiState.update { state ->
-            val updated = state.copy(neckCm = filtered)
-            updated.copy(
-                algorithmicResult = calculateNavyResult(
-                    updated.heightCm,
-                    updated.neckCm,
-                    updated.waistCm,
-                    updated.hipCm,
-                    updated.weightKg,
-                    updated.chestCm,
-                    updated.biologicalSex
-                )
-            )
-        }
+        _uiState.update { state -> updateCalculatedResults(state.copy(neckCm = filtered)) }
     }
 
     fun onChestChanged(value: String) {
         val filtered = value.filter { it.isDigit() || it == '.' }
-        _uiState.update { state ->
-            val updated = state.copy(chestCm = filtered)
-            updated.copy(
-                algorithmicResult = calculateNavyResult(
-                    updated.heightCm,
-                    updated.neckCm,
-                    updated.waistCm,
-                    updated.hipCm,
-                    updated.weightKg,
-                    updated.chestCm,
-                    updated.biologicalSex
-                )
-            )
-        }
+        _uiState.update { state -> updateCalculatedResults(state.copy(chestCm = filtered)) }
     }
 
     fun onWaistChanged(value: String) {
         val filtered = value.filter { it.isDigit() || it == '.' }
-        _uiState.update { state ->
-            val updated = state.copy(waistCm = filtered)
-            updated.copy(
-                algorithmicResult = calculateNavyResult(
-                    updated.heightCm,
-                    updated.neckCm,
-                    updated.waistCm,
-                    updated.hipCm,
-                    updated.weightKg,
-                    updated.chestCm,
-                    updated.biologicalSex
-                )
-            )
-        }
+        _uiState.update { state -> updateCalculatedResults(state.copy(waistCm = filtered)) }
     }
 
     fun onHipChanged(value: String) {
         val filtered = value.filter { it.isDigit() || it == '.' }
-        _uiState.update { state ->
-            val updated = state.copy(hipCm = filtered)
-            updated.copy(
-                algorithmicResult = calculateNavyResult(
-                    updated.heightCm,
-                    updated.neckCm,
-                    updated.waistCm,
-                    updated.hipCm,
-                    updated.weightKg,
-                    updated.chestCm,
-                    updated.biologicalSex
-                )
-            )
-        }
+        _uiState.update { state -> updateCalculatedResults(state.copy(hipCm = filtered)) }
     }
 
     fun addPhoto(uri: Uri) {
         _uiState.update {
             if (it.photos.size >= 3) it
             else it.copy(photos = it.photos + uri)
+        }
+    }
+
+    fun addPhotos(uris: List<Uri>) {
+        _uiState.update { current ->
+            val remaining = 3 - current.photos.size
+            if (remaining <= 0) current
+            else {
+                val toAdd = uris.take(remaining)
+                current.copy(photos = current.photos + toAdd)
+            }
         }
     }
 
@@ -255,6 +166,46 @@ class BodyFatCalculatorViewModel(
             }
             it.copy(photos = list)
         }
+    }
+
+    private fun updateCalculatedResults(state: BodyFatCalculatorUiState): BodyFatCalculatorUiState {
+        val navy = calculateNavyResult(
+            state.heightCm,
+            state.neckCm,
+            state.waistCm,
+            state.hipCm,
+            state.weightKg,
+            state.chestCm,
+            state.biologicalSex
+        )
+        val history = calculateHistoryResult(
+            state.heightCm,
+            state.weightKg,
+            state.age,
+            state.biologicalSex
+        )
+        return state.copy(
+            algorithmicResult = navy,
+            historyResult = history
+        )
+    }
+
+    private fun calculateHistoryResult(
+        heightStr: String,
+        weightStr: String,
+        ageStr: String,
+        sex: BiologicalSex?
+    ): BodyFatCalculationResult? {
+        if (sex == null) return null
+        val height = heightStr.toDoubleOrNull() ?: return null
+        val weight = weightStr.toDoubleOrNull() ?: return null
+        val age = ageStr.toIntOrNull() ?: return null
+        return bodyFatCalculator.calculateBiometricHistoryBodyFat(
+            heightCm = height,
+            weightKg = weight,
+            age = age,
+            biologicalSex = sex
+        )
     }
 
     private fun calculateNavyResult(
@@ -358,7 +309,7 @@ class BodyFatCalculatorViewModel(
         }
     }
 
-    fun saveAssessment(useAiResult: Boolean) {
+    fun saveAssessment(useAiResult: Boolean, useHistoryResult: Boolean = false) {
         val state = _uiState.value
         val today = LocalDate.now(ZoneId.systemDefault())
 
@@ -378,6 +329,21 @@ class BodyFatCalculatorViewModel(
                     observationsJson,
                     insightsJson,
                     ai.circumferenceConsistencyNote
+                )
+            } else if (useHistoryResult && state.historyResult != null) {
+                val hist = state.historyResult
+                val insightsJson = Json.encodeToString(listOf("Calculated from recorded biometric history (BMI & age demographics)."))
+                AnalysisTuple(
+                    hist.bodyFatPercentage,
+                    hist.category.displayName,
+                    null,
+                    null,
+                    "BIOMETRIC_HISTORY",
+                    hist.leanMassKg,
+                    hist.fatMassKg,
+                    "[]",
+                    insightsJson,
+                    hist.methodDescription
                 )
             } else if (state.algorithmicResult != null) {
                 val alg = state.algorithmicResult

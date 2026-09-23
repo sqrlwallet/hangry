@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
@@ -39,7 +40,8 @@ class DashboardViewModel(
     private val strainCalculator: StrainCalculator,
     private val calorieCalculator: CalorieCalculator,
     private val stressCalculator: StressCalculator,
-    private val dashboardWidgetRepository: DashboardWidgetRepository
+    private val dashboardWidgetRepository: DashboardWidgetRepository,
+    private val bodyFatRepository: BodyFatRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -70,7 +72,8 @@ class DashboardViewModel(
     private data class SecondarySources(
         val profile: UserProfileEntity?,
         val latestWeight: WeightMeasurementEntity?,
-        val widgets: List<DashboardWidget>
+        val widgets: List<DashboardWidget>,
+        val latestBodyFatScan: BodyFatScanEntity?
     )
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -93,9 +96,10 @@ class DashboardViewModel(
                 val secondaryFlow = combine(
                     userProfileRepository.getProfile(),
                     weightDao.getLatestWeight(),
-                    dashboardWidgetRepository.getWidgets()
-                ) { profile, latestWeight, widgets ->
-                    SecondarySources(profile, latestWeight, widgets)
+                    dashboardWidgetRepository.getWidgets(),
+                    bodyFatRepository.getLatestScan()
+                ) { profile, latestWeight, widgets, latestBodyFatScan ->
+                    SecondarySources(profile, latestWeight, widgets, latestBodyFatScan)
                 }
 
                 combine(coreFlow, secondaryFlow) { core, secondary ->
@@ -103,7 +107,7 @@ class DashboardViewModel(
                 }
             }.collect { (core, secondary) ->
                 val (date, summary, score, sleepSessions, allWorkouts, recentSummaries) = core
-                val (profile, latestWeight, widgets) = secondary
+                val (profile, latestWeight, widgets, latestBodyFatScan) = secondary
 
                 // Sorted newest-first: the most recent session is "current", the rest is real
                 // baseline history (fixes the previous bug of always passing an empty history).
@@ -213,6 +217,7 @@ class DashboardViewModel(
                         todayActiveCalories = activeCalories,
                         widgets = widgets,
                         latestWeightKg = latestWeight?.weightKg,
+                        latestBodyFatScan = latestBodyFatScan,
                         aiFeaturesEnabled = profile?.aiFeaturesEnabled ?: false,
                         isPendingSleepData = isToday && !sleepRecordedForDate
                     )
@@ -377,7 +382,8 @@ class DashboardViewModel(
             strainCalculator: StrainCalculator,
             calorieCalculator: CalorieCalculator,
             stressCalculator: StressCalculator,
-            dashboardWidgetRepository: DashboardWidgetRepository
+            dashboardWidgetRepository: DashboardWidgetRepository,
+            bodyFatRepository: BodyFatRepository
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -393,7 +399,8 @@ class DashboardViewModel(
                     strainCalculator = strainCalculator,
                     calorieCalculator = calorieCalculator,
                     stressCalculator = stressCalculator,
-                    dashboardWidgetRepository = dashboardWidgetRepository
+                    dashboardWidgetRepository = dashboardWidgetRepository,
+                    bodyFatRepository = bodyFatRepository
                 ) as T
             }
         }

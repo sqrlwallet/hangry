@@ -11,6 +11,7 @@ enum class WidgetType {
     SLEEP_STRAIN_RINGS,
     HEART_METRICS,
     VITALS_CARD,
+    BODY_FAT_COMPOSITION,
     SLEEP_SUMMARY,
     CALORIE_BURN,
     AI_SHORTCUTS,
@@ -109,18 +110,25 @@ data class DashboardWidget(
                 order = 7
             ),
             DashboardWidget(
-                id = "ai_shortcuts",
-                type = WidgetType.AI_SHORTCUTS,
-                title = "Nutrition & Posture",
+                id = "body_fat_composition",
+                type = WidgetType.BODY_FAT_COMPOSITION,
+                title = "Body Fat & Composition",
                 isVisible = true,
                 order = 8
+            ),
+            DashboardWidget(
+                id = "ai_shortcuts",
+                type = WidgetType.AI_SHORTCUTS,
+                title = "Nutrition, Posture & Body Fat",
+                isVisible = true,
+                order = 9
             ),
             DashboardWidget(
                 id = "calorie_burn",
                 type = WidgetType.CALORIE_BURN,
                 title = "Calorie Expenditure Breakdown",
                 isVisible = false, // disabled by default since DailyActivityRings shows active calories, user can enable
-                order = 9
+                order = 10
             )
         )
     }

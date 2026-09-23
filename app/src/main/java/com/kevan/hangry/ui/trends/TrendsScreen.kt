@@ -31,10 +31,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
+import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.DailySummaryRepository
 import com.kevan.hangry.domain.repository.FoodLogRepository
 import com.kevan.hangry.domain.repository.WorkoutRepository
@@ -92,6 +94,7 @@ fun TrendsScreen(
     weightDao: WeightDao,
     workoutRepository: WorkoutRepository,
     foodLogRepository: FoodLogRepository,
+    bodyFatRepository: BodyFatRepository? = null,
     onNavigateBack: () -> Unit,
     onNavigateToDashboardForDate: (LocalDate) -> Unit = {},
     onNavigateToNutritionForDate: (LocalDate) -> Unit = {},
@@ -132,6 +135,8 @@ fun TrendsScreen(
     val foodLogs by foodLogsFlow.collectAsState(initial = emptyList())
     val allWorkouts by workoutRepository.getAllSessions().collectAsState(initial = emptyList())
     val allWeights by weightDao.getAllWeights().collectAsState(initial = emptyList())
+    val allBodyFatScans by (bodyFatRepository?.getAllScans() ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .collectAsState(initial = emptyList())
 
     // Weight tracking metrics
     val latestWeight by weightDao.getLatestWeight().collectAsState(initial = null)
@@ -586,6 +591,69 @@ fun TrendsScreen(
                                 color = tokens.chartColors.sleep,
                                 unit = "kg",
                                 formatValue = { String.format(Locale.US, "%.1f", it) }
+                            )
+                        }
+                    }
+
+                    // Body Fat % over time chart (if any scans exist in the selected timeframe)
+                    val bodyFatPoints = remember(allBodyFatScans, queryStartDate) {
+                        allBodyFatScans
+                            .filter { !it.date.isBefore(queryStartDate) && !it.date.isAfter(today) }
+                            .sortedBy { it.date }
+                            .map { TrendPoint(date = it.date, value = it.bodyFatPercentage) }
+                    }
+                    if (bodyFatPoints.size >= 2) {
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+                        HorizontalDivider(color = tokens.cardBorder.copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Body Fat % Trend",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = tokens.textMuted
+                            )
+                            val latestBf = bodyFatPoints.last().value
+                            if (latestBf != null) {
+                                Text(
+                                    text = String.format(Locale.US, "%.1f%%", latestBf),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = tokens.scoreColors.primed
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HangryInteractiveTrendChart(
+                            points = bodyFatPoints,
+                            color = tokens.scoreColors.primed,
+                            unit = "%",
+                            formatValue = { String.format(Locale.US, "%.1f", it) }
+                        )
+                    } else if (bodyFatPoints.size == 1) {
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        HorizontalDivider(color = tokens.cardBorder.copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        val bf = bodyFatPoints.first().value
+                        if (bf != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Latest Body Fat: ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = tokens.textSecondary
+                                )
+                                Text(
+                                    text = String.format(Locale.US, "%.1f%%", bf),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = tokens.scoreColors.primed
+                                )
+                            }
+                            Text(
+                                text = "Track more scans over time to see your trend.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = tokens.textMuted
                             )
                         }
                     }

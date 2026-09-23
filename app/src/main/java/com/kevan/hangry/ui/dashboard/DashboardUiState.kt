@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.dashboard
 
+import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.domain.model.CalorieBurnResult
@@ -32,6 +33,7 @@ data class DashboardUiState(
     val widgets: List<DashboardWidget> = emptyList(),
     val showCustomizeSheet: Boolean = false,
     val latestWeightKg: Double? = null,
+    val latestBodyFatScan: BodyFatScanEntity? = null,
     val syncStatusMessage: String? = null,
     val lastSyncFormatted: String? = null,
     val isOfflineMode: Boolean = false,

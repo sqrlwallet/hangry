@@ -24,7 +24,9 @@ class OpenRouterAiCoachService(
         recentMessages: List<CoachMessageEntity>
     ): Result<CoachResponse> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
-        val model = AiDefaults.COACH_MODEL
+        val model = userProfileRepository.getProfileSync()
+            ?.preferredCoachModel?.takeIf { it.isNotBlank() }
+            ?: AiDefaults.COACH_MODEL
 
         val context7Days = contextBuilder.build7DayContext()
 

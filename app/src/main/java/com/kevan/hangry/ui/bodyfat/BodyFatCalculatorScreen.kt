@@ -28,7 +28,7 @@ import com.kevan.hangry.domain.model.BodyFatCategory
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import com.kevan.hangry.util.rememberPhotoCaptureLauncher
+import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
 import kotlinx.serialization.json.Json
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -45,8 +45,10 @@ fun BodyFatCalculatorScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val photoLauncher = rememberPhotoCaptureLauncher { uri ->
-        viewModel.addPhoto(uri)
+    val photoLauncher = rememberMultiPhotoCaptureLauncher(
+        maxItems = (3 - uiState.photos.size).coerceAtLeast(2)
+    ) { uris ->
+        viewModel.addPhotos(uris)
     }
 
     LaunchedEffect(uiState.saveSuccessMessage) {
@@ -243,8 +245,90 @@ fun BodyFatCalculatorScreen(
                 }
             }
 
-            // 2. U.S. Navy Circumference Estimate
-            Text(text = "2. U.S. Navy Standard Calculation", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            // 2. Dedicated Calculation from Personal Biometric History
+            Text(text = "2. Personal Biometric History Estimate", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            HangryCard {
+                val hist = uiState.historyResult
+                if (hist != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "${hist.bodyFatPercentage}%",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = tokens.scoreColors.primed
+                            )
+                            Text(
+                                text = "Biometric History Estimate",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = tokens.textSecondary
+                            )
+                        }
+                        CategoryChip(category = hist.category)
+                    }
+
+                    if (hist.leanMassKg != null && hist.fatMassKg != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text(text = "Lean Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                Text(
+                                    text = "${hist.leanMassKg} kg",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = tokens.scoreColors.primed
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(text = "Fat Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                Text(
+                                    text = "${hist.fatMassKg} kg",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = tokens.textPrimary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Calculated automatically from your recorded height, weight history, age, and sex using the clinical Deurenberg body composition model. No measuring tape or photos required.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = tokens.textMuted
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { viewModel.saveAssessment(useAiResult = false, useHistoryResult = true) },
+                        enabled = !uiState.isSaving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save History Estimate to Profile")
+                    }
+                } else {
+                    val missing = buildList {
+                        if (uiState.heightCm.isBlank()) add("Height")
+                        if (uiState.weightKg.isBlank()) add("Weight")
+                        if (uiState.age.isBlank()) add("Age")
+                        if (uiState.biologicalSex == null) add("Sex")
+                    }
+                    Text(
+                        text = "Enter ${missing.joinToString(", ")} above to estimate body fat percentage from your recorded biometrics.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = tokens.textSecondary
+                    )
+                }
+            }
+
+            // 3. U.S. Navy Standard Calculation
+            Text(text = "3. U.S. Navy Standard Calculation (Tape Circumferences)", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
             HangryCard {
                 val alg = uiState.algorithmicResult
                 if (alg != null) {
@@ -323,8 +407,8 @@ fun BodyFatCalculatorScreen(
                 }
             }
 
-            // 3. AI Multimodal Vision Analysis
-            Text(text = "3. AI Multimodal Vision Analysis", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            // 4. AI Multimodal Vision Analysis
+            Text(text = "4. AI Multimodal Vision Analysis", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
             HangryCard {
                 Text(
                     text = "Upload or capture 1 to 3 physique photos (front, side, or back). Wear fitted gym clothes, shorts, or swimwear for optimal visual evaluation.",
@@ -561,9 +645,9 @@ fun BodyFatCalculatorScreen(
                 }
             }
 
-            // 4. Past Composition Scans History
+            // 5. Past Composition Scans History
             if (uiState.savedScans.isNotEmpty()) {
-                Text(text = "Scan History", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = "5. Scan History", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 HangryCard {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         uiState.savedScans.take(10).forEachIndexed { index, scan ->
@@ -580,14 +664,24 @@ fun BodyFatCalculatorScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
+                                        val methodColor = when (scan.method) {
+                                            "AI_MULTIMODAL" -> tokens.scoreColors.primed
+                                            "BIOMETRIC_HISTORY" -> tokens.scoreColors.rebuild
+                                            else -> tokens.chartColors.trainingLoad
+                                        }
+                                        val methodLabel = when (scan.method) {
+                                            "AI_MULTIMODAL" -> "AI Vision"
+                                            "BIOMETRIC_HISTORY" -> "Health History"
+                                            else -> "US Navy"
+                                        }
                                         Text(
                                             text = "${scan.bodyFatPercentage}%",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (scan.method == "AI_MULTIMODAL") tokens.scoreColors.primed else tokens.chartColors.trainingLoad
+                                            color = methodColor
                                         )
                                         Text(
-                                            text = if (scan.method == "AI_MULTIMODAL") "AI Vision" else "US Navy",
+                                            text = methodLabel,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = tokens.textMuted
                                         )

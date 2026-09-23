@@ -61,6 +61,17 @@ class PostureViewModel(
         }
     }
 
+    fun addPhotos(uris: List<Uri>) {
+        _uiState.update { current ->
+            val remaining = MAX_POSTURE_PHOTOS - current.capturedPhotos.size
+            if (remaining <= 0) current
+            else {
+                val toAdd = uris.take(remaining)
+                current.copy(capturedPhotos = current.capturedPhotos + toAdd)
+            }
+        }
+    }
+
     fun removePhoto(index: Int) {
         _uiState.update { it.copy(capturedPhotos = it.capturedPhotos.filterIndexed { i, _ -> i != index }) }
     }

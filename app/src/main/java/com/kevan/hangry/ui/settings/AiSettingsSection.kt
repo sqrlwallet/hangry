@@ -67,6 +67,7 @@ fun AiFeaturesSection(
     var showConsentDialog by remember { mutableStateOf(false) }
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var showModelDialog by remember { mutableStateOf(false) }
+    var showCoachModelDialog by remember { mutableStateOf(false) }
 
     Text(text = "AI Features", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary, modifier = modifier)
     HangryCard {
@@ -127,6 +128,13 @@ fun AiFeaturesSection(
                 subtitle = profile?.preferredAiModel?.takeIf { it.isNotBlank() } ?: AiDefaults.DEFAULT_MODEL,
                 onClick = { showModelDialog = true }
             )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+            SettingsActionRow(
+                icon = Icons.Default.SmartToy,
+                title = "AI Coach Model",
+                subtitle = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
+                onClick = { showCoachModelDialog = true }
+            )
         }
     }
 
@@ -165,6 +173,20 @@ fun AiFeaturesSection(
                     val current = profile ?: com.kevan.hangry.data.local.entity.UserProfileEntity()
                     userProfileRepository.saveProfile(current.copy(preferredAiModel = newModel))
                     showModelDialog = false
+                }
+            }
+        )
+    }
+
+    if (showCoachModelDialog) {
+        ModelDialog(
+            currentModel = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
+            onDismiss = { showCoachModelDialog = false },
+            onSave = { newModel ->
+                coroutineScope.launch {
+                    val current = profile ?: com.kevan.hangry.data.local.entity.UserProfileEntity()
+                    userProfileRepository.saveProfile(current.copy(preferredCoachModel = newModel))
+                    showCoachModelDialog = false
                 }
             }
         )

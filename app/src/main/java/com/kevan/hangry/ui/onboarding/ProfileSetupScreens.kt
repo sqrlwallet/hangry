@@ -46,9 +46,10 @@ object OnboardingSteps {
     const val ABOUT_YOU = 1
     const val EXTRAS = 2
     const val CONNECT = 3
-    const val HISTORY = 4
-    const val SYNC = 5
-    const val TOTAL = 5
+    const val BACKGROUND = 4
+    const val HISTORY = 5
+    const val SYNC = 6
+    const val TOTAL = 6
 }
 
 /** What "About you" collects; everything is already metric. */
@@ -341,14 +342,14 @@ fun ProfileExtrasScreen(
 /** The dark photo-backed frame shared by the onboarding screens. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OnboardingProfileScaffold(
+internal fun OnboardingProfileScaffold(
     title: String,
     step: Int,
     onNavigateBack: () -> Unit,
     primaryLabel: String,
     primaryEnabled: Boolean,
     onPrimary: () -> Unit,
-    secondaryLabel: String,
+    secondaryLabel: String?,
     onSecondary: () -> Unit,
     dashMood: DashMood,
     heading: String,
@@ -405,8 +406,10 @@ private fun OnboardingProfileScaffold(
                     ) {
                         Text(primaryLabel, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     }
-                    TextButton(onClick = onSecondary) {
-                        Text(secondaryLabel, color = tokens.textSecondary)
+                    if (secondaryLabel != null) {
+                        TextButton(onClick = onSecondary) {
+                            Text(secondaryLabel, color = tokens.textSecondary)
+                        }
                     }
                 }
             },

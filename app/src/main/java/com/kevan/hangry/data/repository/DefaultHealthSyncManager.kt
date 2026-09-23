@@ -10,6 +10,13 @@ import com.kevan.hangry.data.local.entity.HrvFeelingEntity
 import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.data.local.entity.SUMMARY_CALCULATION_VERSION
 import com.kevan.hangry.data.local.entity.SyncStateEntity
+import com.kevan.hangry.data.local.entity.SleepSessionEntity
+import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
+import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.data.local.entity.FoodLogSource
+import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.NutritionRecord
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.DayMetrics
@@ -28,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -46,7 +54,9 @@ class DefaultHealthSyncManager(
     private val sleepCalculator: SleepCalculator,
     private val trainingLoadCalculator: TrainingLoadCalculator,
     private val strainCalculator: StrainCalculator,
-    private val calorieCalculator: CalorieCalculator
+    private val calorieCalculator: CalorieCalculator,
+    /** Remembers one-time data fixes that have run; null in tests. */
+    private val prefs: android.content.SharedPreferences? = null
 ) : HealthSyncManager {
 
     // Every "what day is it" / day-boundary computation in this class uses the device's local
@@ -87,6 +97,14 @@ class DefaultHealthSyncManager(
         var totalRead = 0
         var totalInserted = 0
         var totalSkipped = 0
+        // Without full-history access Health Connect hides older data, so "not returned" only
+        // means "deleted" for the last 30 days - older local history is left alone.
+        val granted = runCatching { dataSource.grantedPermissions() }.getOrDefault(emptySet())
+        val canSeeAllHistory = RealHealthConnectDataSource.PERMISSION_READ_HEALTH_DATA_HISTORY in granted
+        // The nutrition read returns nothing on failure, so only trust an empty-looking window
+        // when access is there and something came back.
+        val canReadMeals = HealthPermission.getReadPermission(NutritionRecord::class) in granted
+        val fullyVisibleFrom = today.minusDays(29)
 
         try {
             for ((chunkIndex, chunk) in chunks.withIndex()) {
@@ -140,6 +158,13 @@ class DefaultHealthSyncManager(
                 // Perform all database writes for this chunk in an atomic transaction
                 var chunkInserted = 0
                 database.withTransaction {
+                    // Drop what's no longer in Health Connect for this window: records deleted or
+                    // edited at the source, and copies another app already reported (the fetch
+                    // keeps one copy per event - see HealthDedup).
+                    if (canSeeAllHistory || !chunkStart.isBefore(fullyVisibleFrom)) {
+                        removeStale(chunkStartInstant, chunkEndInstant, sleepSessions, workouts, weightRecords,
+                            nutritionRecords.takeIf { canReadMeals && it.isNotEmpty() })
+                    }
                     val sleepInserted = database.sleepSessionDao().insertOrIgnore(sleepSessions)
                     chunkInserted += sleepInserted.count { it != -1L }
 
@@ -154,7 +179,10 @@ class DefaultHealthSyncManager(
                     val hrvInserted = database.hrvDao().insertOrIgnore(hrvRecords)
                     chunkInserted += hrvInserted.count { it != -1L }
 
-                    database.stepsDao().deleteBetween(chunkStart, chunkEnd)
+                    // Older days Health Connect can't show (no full-history access) keep what's stored.
+                    if (canSeeAllHistory || !chunkStart.isBefore(fullyVisibleFrom)) {
+                        database.stepsDao().deleteBetween(chunkStart, chunkEnd)
+                    }
                     val stepsInserted = database.stepsDao().insertOrIgnore(stepsRecords)
                     chunkInserted += stepsInserted.count { it != -1L }
 
@@ -261,6 +289,29 @@ class DefaultHealthSyncManager(
       }
     }.flowOn(Dispatchers.IO)
 
+    private suspend fun removeStale(
+        from: Instant,
+        to: Instant,
+        sleep: List<SleepSessionEntity>,
+        workouts: List<ExerciseSessionEntity>,
+        weights: List<WeightMeasurementEntity>,
+        meals: List<FoodLogEntity>?
+    ) {
+        val sleepDao = database.sleepSessionDao()
+        (sleepDao.getImportedFingerprintsStartingBetween(from, to) - sleep.map { it.recordFingerprint }.toSet())
+            .chunked(500).forEach { sleepDao.deleteByFingerprints(it) }
+        val workoutDao = database.exerciseSessionDao()
+        (workoutDao.getImportedFingerprintsStartingBetween(from, to) - workouts.map { it.recordFingerprint }.toSet())
+            .chunked(500).forEach { workoutDao.deleteByFingerprints(it) }
+        val weightDao = database.weightDao()
+        (weightDao.getImportedFingerprintsBetween(from, to) - weights.map { it.recordFingerprint }.toSet())
+            .chunked(500).forEach { weightDao.deleteByFingerprints(it) }
+        if (meals == null) return
+        val foodDao = database.foodLogDao()
+        (foodDao.getImportedIdsBetween(FoodLogSource.HEALTH_CONNECT, from, to) - meals.mapNotNull { it.sourceRecordId }.toSet())
+            .chunked(500).forEach { foodDao.deleteBySourceRecordIds(it) }
+    }
+
     /** Average and peak heart rate during a workout, from the continuous samples already saved. */
     private suspend fun applyWorkoutHeartRate(workout: ExerciseSessionEntity) {
         val hr = database.heartRateDao()
@@ -295,7 +346,34 @@ class DefaultHealthSyncManager(
         return true
     }
 
+    /**
+     * Once per [DEDUP_VERSION]: re-read everything already imported, so days saved before
+     * duplicate handling (a phone and a watch both counted, the same workout from two apps)
+     * are corrected, not just new ones. Returns true if it ran - it recomputes summaries too.
+     */
+    private suspend fun reimportForDedupIfNeeded(): Boolean {
+        val prefs = prefs ?: return false
+        if (prefs.getInt(KEY_DEDUP_VERSION, 0) >= DEDUP_VERSION) return false
+        val today = LocalDate.now(zone)
+        val oldest = listOfNotNull(
+            database.stepsDao().getEarliestDate(),
+            database.sleepSessionDao().getOldestSession()?.startTime?.atZone(zone)?.toLocalDate(),
+            database.exerciseSessionDao().getOldestSession()?.startTime?.atZone(zone)?.toLocalDate()
+        ).minOrNull()
+        if (oldest == null) {
+            // Nothing imported yet: the first import already uses the new rules.
+            prefs.edit().putInt(KEY_DEDUP_VERSION, DEDUP_VERSION).apply()
+            return false
+        }
+        val days = ChronoUnit.DAYS.between(oldest, today).toInt().coerceAtLeast(1)
+        val result = syncHistorical(days).lastOrNull()
+        // No access right now (permission, Health Connect missing): try again next launch.
+        if (result?.status == SyncStatus.SUCCESS) prefs.edit().putInt(KEY_DEDUP_VERSION, DEDUP_VERSION).apply()
+        return true
+    }
+
     override suspend fun recalculateIfScoringChanged() {
+        if (runCatching { reimportForDedupIfNeeded() }.getOrDefault(false)) return
         // Workout types feed training load and strain, so refreshed workouts mean a recalculation.
         val workoutsRefreshed = runCatching { refreshWorkoutDetailsIfNeeded() }.getOrDefault(false)
         val scoringChanged = database.recoveryScoreDao().getLatestScoreSync()
@@ -651,5 +729,11 @@ class DefaultHealthSyncManager(
             database.dailyHealthSummaryDao().insertOrReplaceAll(summariesToInsert)
             database.recoveryScoreDao().insertOrReplaceAll(scoresToInsert)
         }
+    }
+
+    private companion object {
+        const val KEY_DEDUP_VERSION = "dedup_version"
+        /** Bump when duplicate handling changes, to clean up already-imported history once more. */
+        const val DEDUP_VERSION = 1
     }
 }

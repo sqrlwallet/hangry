@@ -270,6 +270,7 @@ fun SettingsScreen(
             }
 
             // Everything below is tucked into collapsed sections so the screen stays short.
+            BackgroundSection()
             RemindersSection()
 
             SettingsCollapsibleSection(

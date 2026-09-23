@@ -194,7 +194,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             sleepCalculator = sleepCalculator,
             trainingLoadCalculator = trainingLoadCalculator,
             strainCalculator = strainCalculator,
-            calorieCalculator = calorieCalculator
+            calorieCalculator = calorieCalculator,
+            prefs = context.getSharedPreferences("hangry_sync", android.content.Context.MODE_PRIVATE)
         )
     }
 

@@ -30,6 +30,8 @@ class AiCoachContextBuilderTest {
         override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)
         override suspend fun getCount(): Int = 0
         override suspend fun deleteAll() {}
+        override suspend fun getImportedFingerprintsBetween(start: java.time.Instant, end: java.time.Instant): List<String> = emptyList()
+        override suspend fun deleteByFingerprints(fingerprints: List<String>) {}
     }
 
     private class FakeDailyHealthSummaryDao(var summaries: List<DailyHealthSummaryEntity> = emptyList()) : DailyHealthSummaryDao {
@@ -79,6 +81,8 @@ class AiCoachContextBuilderTest {
         override suspend fun getCount(): Int = workouts.size
         override suspend fun getOldestSession(): ExerciseSessionEntity? = null
         override suspend fun deleteAll() {}
+        override suspend fun getImportedFingerprintsStartingBetween(start: java.time.Instant, end: java.time.Instant): List<String> = emptyList()
+        override suspend fun deleteByFingerprints(fingerprints: List<String>) {}
     }
 
     private class FakeSleepSessionDao(var sleepSessions: List<SleepSessionEntity> = emptyList()) : SleepSessionDao {
@@ -89,6 +93,8 @@ class AiCoachContextBuilderTest {
         override suspend fun getOldestSession(): SleepSessionEntity? = null
         override suspend fun getCount(): Int = sleepSessions.size
         override suspend fun deleteAll() {}
+        override suspend fun getImportedFingerprintsStartingBetween(start: java.time.Instant, end: java.time.Instant): List<String> = emptyList()
+        override suspend fun deleteByFingerprints(fingerprints: List<String>) {}
     }
 
     private class FakeFoodLogDao(var foodLogs: List<FoodLogEntity> = emptyList()) : FoodLogDao {
@@ -104,6 +110,8 @@ class AiCoachContextBuilderTest {
         override suspend fun getAllPhotoPaths(): List<String> = foodLogs.mapNotNull { it.photoPath }
         override suspend fun deleteBySource(source: String) {}
         override suspend fun deleteAll() {}
+        override suspend fun getImportedIdsBetween(source: String, start: java.time.Instant, end: java.time.Instant): List<String> = emptyList()
+        override suspend fun deleteBySourceRecordIds(ids: List<String>) {}
     }
 
     private class FakePostureScanDao(var latest: PostureScanEntity? = null) : PostureScanDao {

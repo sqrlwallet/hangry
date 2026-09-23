@@ -121,6 +121,8 @@ class DashboardViewModelTest {
             override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)
             override suspend fun getCount(): Int = 0
             override suspend fun deleteAll() {}
+            override suspend fun getImportedFingerprintsBetween(start: java.time.Instant, end: java.time.Instant): List<String> = emptyList()
+            override suspend fun deleteByFingerprints(fingerprints: List<String>) {}
         }
 
         val widgetFlow = MutableStateFlow(DashboardWidget.createDefaultWidgets())

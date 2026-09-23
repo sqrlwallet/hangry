@@ -244,3 +244,21 @@ Health Connect does not expose a native `StressRecord`. Commercial wearables cal
 | Body composition | Body-fat scan if within 180 days, else BMI | Healthy −1 (BMI −0.5), high +1, very high +2.5 |
 
 Zero workouts only counts as "no exercise" when the person's apps have recorded workouts before; otherwise exercise and strength are left out. Body Age for the 30 days before is also computed to show the month-over-month change. It's a motivational estimate, not a medical measurement.
+
+## 11. Duplicate data from several apps
+
+Health Connect keeps a separate copy from every app that records the same thing, such as a watch and its phone app, or one run that Strava, Samsung Health and Fit all save. Hangry counts each real-world event once (`HealthDedup`, `RealHealthConnectDataSource`).
+
+| Data | How it's counted once |
+|---|---|
+| Daily steps, distance, active calories, water | Health Connect's own aggregate totals, which count each minute once using the app priority order in Health Connect settings. Raw records are not added up. |
+| Workouts | Copies from different apps that overlap by at least 50% of the shorter one are the same workout. Hangry keeps the copy with the most detail (calories, distance, steps, sets, laps, power, title, a specific type), then the longer one. The same app's copies are merged only if they start and end within 2 minutes. |
+| A workout's calories, steps, distance, elevation, power | Taken from one app: the one that recorded the workout, otherwise the app with the most. |
+| Sleep | The same overlap rule. Hangry keeps the copy with sleep stages, then the longer one. A nap and the night's sleep don't overlap, so both are kept. |
+| Weigh-ins, meals | A reading from another app with the same value (weight to 0.1 kg, or a meal's name and calories) within 2 minutes is a copy. Entries from the same app are all kept, so two identical snacks count as two. |
+
+Each sync also removes imported records in the synced window that Health Connect no longer returns: records deleted or edited at the source, and duplicates the rules above dropped. Anything entered in Hangry itself is never removed. Without full-history access, this applies only to the last 30 days.
+
+Heart-rate strain needs no special handling. It adds up the time between consecutive samples, so interleaved samples from two devices don't double the minutes.
+
+After an update that changes these rules, all imported history is re-read once, so earlier days are corrected too (`DEDUP_VERSION`).

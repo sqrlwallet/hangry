@@ -18,7 +18,7 @@
 - [x] Health Connect availability and provider status check (`SDK_AVAILABLE`, `SDK_UNAVAILABLE`, `SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED` now shown distinctly with an update CTA).
 - [x] Pre-permission education UI explaining Sleep, Steps, HR, and HRV data needs.
 - [x] Standard permission request contracts (`PermissionController.createRequestPermissionResultContract`) with per-category (sleep/RHR/HRV/exercise/steps) grant status, and revoked-permission detection surfaced as a distinct sync state (`PERMISSION_REVOKED`) instead of a silent zero-record success.
-- [x] Background sync activated via `HealthSyncWorker.schedule()` on app start (6-hour periodic `WorkManager` job).
+- [x] Background sync activated via `HealthSyncWorker.schedule()` on app start (hourly periodic `WorkManager` job; needs Health Connect background-read permission, asked for in onboarding and Settings → Background updates).
 - [ ] Data sources status screen displaying connected third-party health apps (screen exists; still lists locally-seen packages only, no live Health Connect "connected apps" query).
 
 ---

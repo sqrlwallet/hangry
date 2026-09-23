@@ -7,6 +7,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.kevan.hangry.HangryApplication
+import com.kevan.hangry.data.background.BackgroundAccess
+import com.kevan.hangry.data.background.BackgroundReadStatus
 import kotlinx.coroutines.flow.lastOrNull
 import java.util.concurrent.TimeUnit
 
@@ -21,7 +23,11 @@ class DailyNudgeWorker(appContext: Context, params: WorkerParameters) : Coroutin
         val app = context as? HangryApplication ?: return Result.success()
         runCatching {
             if (NudgePrefs.morningEnabled(context) && MorningReadiness.inWindow() && !MorningReadiness.alreadySentToday(context)) {
-                app.container.healthSyncManager.syncRecent().lastOrNull()
+                // Only Health Connect's background permission lets this sync; otherwise the brief
+                // goes out from whatever the last in-app sync stored.
+                if (BackgroundAccess.healthRead(context) == BackgroundReadStatus.GRANTED) {
+                    app.container.healthSyncManager.syncRecent().lastOrNull()
+                }
                 MorningReadiness.maybeNotify(context)
             }
             BedtimeReminder.rescheduleNow(context)

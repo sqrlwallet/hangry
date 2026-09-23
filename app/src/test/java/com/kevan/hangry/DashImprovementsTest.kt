@@ -143,5 +143,7 @@ class DashImprovementsTest {
         override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)
         override suspend fun getCount(): Int = inserted.size
         override suspend fun deleteAll() { inserted.clear() }
+        override suspend fun getImportedFingerprintsBetween(start: java.time.Instant, end: java.time.Instant): List<String> = emptyList()
+        override suspend fun deleteByFingerprints(fingerprints: List<String>) {}
     }
 }

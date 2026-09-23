@@ -10,13 +10,17 @@ import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.feature.ExperimentalMindfulnessSessionApi
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
+import androidx.health.connect.client.aggregate.AggregateMetric
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.kevan.hangry.data.healthrecords.FhirHealthRecordParser
 import com.kevan.hangry.data.local.entity.*
+import com.kevan.hangry.domain.calculation.HealthDedup
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDate
+import java.time.Period
 import java.time.ZoneId
 import kotlin.reflect.KClass
 
@@ -55,7 +59,7 @@ class RealHealthConnectDataSource(
 
         val PERMISSIONS = setOf(
             PERMISSION_READ_HEALTH_DATA_HISTORY,
-            PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND,
+            // Background reads are asked for separately, with their own explanation - see BackgroundAccess.
             HealthPermission.getReadPermission(SleepSessionRecord::class),
             HealthPermission.getReadPermission(StepsRecord::class),
             HealthPermission.getReadPermission(DistanceRecord::class),
@@ -183,7 +187,12 @@ class RealHealthConnectDataSource(
 
     override suspend fun fetchSleepSessions(start: Instant, end: Instant): List<SleepSessionEntity> {
         val records = readAllRecords(SleepSessionRecord::class, TimeRangeFilter.between(start, end))
-        return records.map { record ->
+        // A watch and a phone app often both record the same night: keep one, preferring the
+        // copy with sleep stages, then the longer one.
+        val oneCopyPerNight = HealthDedup.keepOnePerEvent(records.map {
+            HealthDedup.Span(it, it.startTime, it.endTime, it.metadata.dataOrigin.packageName, if (it.stages.isNotEmpty()) 1.0 else 0.0)
+        })
+        return oneCopyPerNight.map { record ->
             val durationMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
             val pkg = record.metadata.dataOrigin.packageName
             val recordId = record.metadata.id
@@ -255,29 +264,34 @@ class RealHealthConnectDataSource(
         val elevationRecords = runCatching { readAllRecords(ElevationGainedRecord::class, filter) }.getOrDefault(emptyList())
         val powerRecords = runCatching { readAllRecords(PowerRecord::class, filter) }.getOrDefault(emptyList())
 
-        return records.map { record ->
+        val sessions = records.map { record ->
             val durationMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
             val pkg = record.metadata.dataOrigin.packageName
             val recordId = record.metadata.id
             val fingerprint = sha256("EXERCISE|$pkg|$recordId|${record.startTime.toEpochMilli()}")
+            // Several apps write calories, steps and distance for the same minutes; take each
+            // from one app so the workout isn't counted two or three times over.
+            fun <R : Record> oneSource(list: List<R>, amount: (R) -> Double) =
+                HealthDedup.fromOneSource(list, pkg, { it.metadata.dataOrigin.packageName }, amount)
 
-            val matchingActiveCals = activeCalRecords.filter {
+            val matchingActiveCals = oneSource(activeCalRecords.filter {
                 !it.startTime.isBefore(record.startTime) && !it.endTime.isAfter(record.endTime)
-            }
+            }) { it.energy.inKilocalories }
             val activeCalories = if (matchingActiveCals.isNotEmpty()) {
                 matchingActiveCals.sumOf { it.energy.inKilocalories }
             } else null
 
-            val matchingTotalCals = totalCalRecords.filter {
+            val matchingTotalCals = oneSource(totalCalRecords.filter {
                 !it.startTime.isBefore(record.startTime) && !it.endTime.isAfter(record.endTime)
-            }
+            }) { it.energy.inKilocalories }
             val totalCalories = if (matchingTotalCals.isNotEmpty()) {
                 matchingTotalCals.sumOf { it.energy.inKilocalories }
             } else null
 
             // Same raw-record summing as the daily step total, pro-rated for records that only
             // partly overlap the session, so workout steps can be subtracted from it cleanly.
-            val sessionSteps = stepRecords.sumOf { steps ->
+            val overlappingSteps = oneSource(stepRecords.filter { it.endTime.isAfter(record.startTime) && it.startTime.isBefore(record.endTime) }) { it.count.toDouble() }
+            val sessionSteps = overlappingSteps.sumOf { steps ->
                 val overlapStart = maxOf(steps.startTime, record.startTime)
                 val overlapEnd = minOf(steps.endTime, record.endTime)
                 val recordMs = java.time.Duration.between(steps.startTime, steps.endTime).toMillis()
@@ -289,13 +303,14 @@ class RealHealthConnectDataSource(
                 }
             }.toLong().takeIf { stepRecords.isNotEmpty() }
 
-            val distance = distanceRecords.sumOf {
+            val distance = oneSource(distanceRecords.filter { it.endTime.isAfter(record.startTime) && it.startTime.isBefore(record.endTime) }) { it.distance.inMeters }.sumOf {
                 it.distance.inMeters * overlapFraction(it.startTime, it.endTime, record.startTime, record.endTime)
             }.takeIf { it > 0 }
-            val elevation = elevationRecords.sumOf {
+            val elevation = oneSource(elevationRecords.filter { it.endTime.isAfter(record.startTime) && it.startTime.isBefore(record.endTime) }) { it.elevation.inMeters }.sumOf {
                 it.elevation.inMeters * overlapFraction(it.startTime, it.endTime, record.startTime, record.endTime)
             }.takeIf { it > 0 }
-            val powerSamples = powerRecords.flatMap { it.samples }
+            val powerSamples = oneSource(powerRecords.filter { it.endTime.isAfter(record.startTime) && it.startTime.isBefore(record.endTime) }) { it.samples.size.toDouble() }
+                .flatMap { it.samples }
                 .filter { !it.time.isBefore(record.startTime) && !it.time.isAfter(record.endTime) }
                 .map { it.power.inWatts }
             // Rests and pauses are segments too; they aren't sets.
@@ -329,7 +344,15 @@ class RealHealthConnectDataSource(
                 detailVersion = WORKOUT_DETAIL_VERSION
             )
         }
+        // The same workout from several apps (a watch, Strava, Samsung Health, Fit...): keep the
+        // copy with the most detail.
+        return HealthDedup.keepOnePerEvent(sessions.map { HealthDedup.Span(it, it.startTime, it.endTime, it.sourcePackageName ?: "", workoutDetail(it)) })
     }
+
+    private fun workoutDetail(w: ExerciseSessionEntity): Double = listOf(
+        w.activeCalories, w.totalCalories, w.distanceMeters, w.steps, w.elevationGainMeters, w.avgPowerWatts,
+        w.setCount, w.lapCount, w.title
+    ).count { it != null }.toDouble() + if (w.exerciseType != com.kevan.hangry.domain.model.WorkoutType.OTHER_WORKOUT.name) 1.0 else 0.0
 
     override suspend fun fetchRestingHeartRates(start: LocalDate, end: LocalDate): List<RestingHeartRateEntity> {
         val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
@@ -374,58 +397,57 @@ class RealHealthConnectDataSource(
     }
 
     override suspend fun fetchStepsSummaries(start: LocalDate, end: LocalDate): List<StepsSummaryEntity> {
-        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val filter = TimeRangeFilter.between(startInstant, endInstant)
+        // Health Connect's aggregate totals count each minute once, using the app priority order
+        // in Health Connect settings - adding up raw records instead would count a phone and a
+        // watch both walking the same steps twice.
+        val steps = dailyTotals(start, end, StepsRecord.COUNT_TOTAL, required = true).mapValues { it.value.first.toDouble() to it.value.second }
+        val distance = dailyTotals(start, end, DistanceRecord.DISTANCE_TOTAL).mapValues { it.value.first.inMeters to it.value.second }
+        val activeCal = dailyTotals(start, end, ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL).mapValues { it.value.first.inKilocalories to it.value.second }
 
-        // 1. Steps
-        val stepRecords = readAllRecords(StepsRecord::class, filter)
-        val stepsByDate = stepRecords.groupBy { it.startTime.atZone(ZoneId.systemDefault()).toLocalDate() }
-
-        // 2. Real Distance
-        val distanceRecords = readAllRecords(DistanceRecord::class, filter)
-        val distanceByDate = distanceRecords.groupBy { it.startTime.atZone(ZoneId.systemDefault()).toLocalDate() }
-
-        // 3. Real Active Calories
-        val activeCalRecords = readAllRecords(ActiveCaloriesBurnedRecord::class, filter)
-        val activeCalByDate = activeCalRecords.groupBy { it.startTime.atZone(ZoneId.systemDefault()).toLocalDate() }
-
-        val allDates = (stepsByDate.keys + distanceByDate.keys + activeCalByDate.keys).distinct()
-
-        return allDates.map { date ->
-            val dateSteps = stepsByDate[date] ?: emptyList()
-            val totalSteps = dateSteps.sumOf { it.count }
-
-            val dateDistances = distanceByDate[date] ?: emptyList()
-            val totalDistanceMeters = if (dateDistances.isNotEmpty()) {
-                dateDistances.sumOf { it.distance.inMeters }
-            } else {
-                null
-            }
-
-            val dateCalories = activeCalByDate[date] ?: emptyList()
-            val totalActiveCal = if (dateCalories.isNotEmpty()) {
-                dateCalories.sumOf { it.energy.inKilocalories }
-            } else {
-                null
-            }
-
-            val pkg = dateSteps.firstOrNull()?.metadata?.dataOrigin?.packageName
-                ?: dateDistances.firstOrNull()?.metadata?.dataOrigin?.packageName
-                ?: dateCalories.firstOrNull()?.metadata?.dataOrigin?.packageName
+        return (steps.keys + distance.keys + activeCal.keys).distinct().sorted().map { date ->
+            val totalSteps = steps[date]?.first?.toLong() ?: 0L
+            val totalDistanceMeters = distance[date]?.first
+            val pkg = (steps[date]?.second ?: distance[date]?.second ?: activeCal[date]?.second)
+                ?.sorted()?.joinToString(",")?.takeIf { it.isNotEmpty() }
                 ?: "com.google.android.health"
-            val fingerprint = sha256("STEPS|$pkg|${date.toEpochDay()}|$totalSteps|${totalDistanceMeters?.toInt() ?: 0}")
-
             StepsSummaryEntity(
                 sourceRecordId = "steps-$date",
                 sourcePackageName = pkg,
-                recordFingerprint = fingerprint,
+                recordFingerprint = sha256("STEPS|$pkg|${date.toEpochDay()}|$totalSteps|${totalDistanceMeters?.toInt() ?: 0}"),
                 recordDate = date,
                 stepCount = totalSteps,
                 distanceMeters = totalDistanceMeters,
-                activeCalories = totalActiveCal,
+                activeCalories = activeCal[date]?.first,
                 dataQualityState = "VALID"
             )
+        }
+    }
+
+    /**
+     * One de-duplicated total per local day for [metric], with the apps it came from. Days with
+     * nothing recorded are left out. Missing permission for an optional metric means no totals.
+     */
+    private suspend fun <T : Any> dailyTotals(
+        start: LocalDate,
+        end: LocalDate,
+        metric: AggregateMetric<T>,
+        required: Boolean = false
+    ): Map<LocalDate, Pair<T, Set<String>>> {
+        val activeClient = client ?: return emptyMap()
+        return try {
+            activeClient.aggregateGroupByPeriod(
+                AggregateGroupByPeriodRequest(
+                    metrics = setOf(metric),
+                    timeRangeFilter = TimeRangeFilter.between(start.atStartOfDay(), end.plusDays(1).atStartOfDay()),
+                    timeRangeSlicer = Period.ofDays(1)
+                )
+            ).mapNotNull { group ->
+                val value = group.result[metric] ?: return@mapNotNull null
+                group.startTime.toLocalDate() to (value to group.result.dataOrigins.map { it.packageName }.toSet())
+            }.toMap()
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed aggregating daily totals: ${e.message}")
+            if (required) throw e else emptyMap()
         }
     }
 
@@ -449,7 +471,11 @@ class RealHealthConnectDataSource(
     }
 
     override suspend fun fetchWeightMeasurements(start: Instant, end: Instant): List<WeightMeasurementEntity> {
-        val records = readAllRecords(WeightRecord::class, TimeRangeFilter.between(start, end))
+        val all = readAllRecords(WeightRecord::class, TimeRangeFilter.between(start, end))
+        // A scale's app and Fit/Samsung Health often both store the same weigh-in.
+        val records = HealthDedup.dropCrossAppCopies(all.map {
+            HealthDedup.Point(it, it.time, it.metadata.dataOrigin.packageName, String.format(java.util.Locale.US, "%.1f", it.weight.inKilograms))
+        })
         return records.map { record ->
             val pkg = record.metadata.dataOrigin.packageName
             val recordId = record.metadata.id
@@ -549,20 +575,9 @@ class RealHealthConnectDataSource(
             }
     }
 
-    override suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
-        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val records = try {
-            readAllRecords(HydrationRecord::class, TimeRangeFilter.between(startInstant, endInstant))
-        } catch (e: Exception) {
-            Log.w("HangryHealthConnect", "Failed reading hydration records: ${e.message}")
-            emptyList<HydrationRecord>()
-        }
-        return records.groupBy { it.startTime.atZone(ZoneId.systemDefault()).toLocalDate() }
-            .mapValues { (_, dayRecords) ->
-                dayRecords.sumOf { it.volume.inLiters }
-            }
-    }
+    override suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double> =
+        // Aggregated so a drink logged in one app and mirrored to another counts once.
+        dailyTotals(start, end, HydrationRecord.VOLUME_TOTAL).mapValues { it.value.first.inLiters }.filterValues { it > 0 }
 
     override suspend fun fetchBodyFat(start: Instant, end: Instant): Map<LocalDate, Double> {
         val records = try {
@@ -585,9 +600,12 @@ class RealHealthConnectDataSource(
             emptyList<NutritionRecord>()
         }
         val appPackage = context.packageName
-        return records
-            // Never re-import entries written by Hangry itself to avoid duplication
-            .filter { it.metadata.dataOrigin.packageName != appPackage }
+        // Never re-import entries written by Hangry itself, and take a meal another app mirrored once.
+        val external = records.filter { it.metadata.dataOrigin.packageName != appPackage }
+        return HealthDedup.dropCrossAppCopies(external.map {
+            HealthDedup.Point(it, it.startTime, it.metadata.dataOrigin.packageName,
+                "${it.name?.trim()?.lowercase()}|${it.energy?.inKilocalories?.toInt()}")
+        })
             .map { record ->
                 val date = record.startTime.atZone(ZoneId.systemDefault()).toLocalDate()
                 val calories = record.energy?.inKilocalories?.toInt() ?: 0

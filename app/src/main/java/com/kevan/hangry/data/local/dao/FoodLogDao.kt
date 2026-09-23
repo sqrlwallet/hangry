@@ -42,6 +42,13 @@ interface FoodLogDao {
     @Query("SELECT photoPath FROM food_log WHERE photoPath IS NOT NULL")
     suspend fun getAllPhotoPaths(): List<String>
 
+    /** Meals imported from Health Connect in a synced window. */
+    @Query("SELECT sourceRecordId FROM food_log WHERE source = :source AND timestamp >= :start AND timestamp < :end AND sourceRecordId IS NOT NULL")
+    suspend fun getImportedIdsBetween(source: String, start: java.time.Instant, end: java.time.Instant): List<String>
+
+    @Query("DELETE FROM food_log WHERE sourceRecordId IN (:ids)")
+    suspend fun deleteBySourceRecordIds(ids: List<String>)
+
     @Query("DELETE FROM food_log WHERE source = :source")
     suspend fun deleteBySource(source: String)
 

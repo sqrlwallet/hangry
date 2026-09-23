@@ -15,9 +15,8 @@ class HangryApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
-        // Activates the documented 6-hour periodic sync (SYNC_DESIGN.md §4); enqueueUniquePeriodicWork
-        // with KEEP is idempotent, so this is safe to call on every process start, including before
-        // onboarding completes (an unauthorized sync is simply a harmless no-op).
+        // Hourly background sync (skipped until Health Connect grants background reads - see
+        // BackgroundAccess); idempotent, so safe on every process start, even before onboarding.
         HealthSyncWorker.schedule(this)
         // Morning readiness brief + bedtime reminder (both can be switched off in Settings).
         DailyNudgeWorker.schedule(this)

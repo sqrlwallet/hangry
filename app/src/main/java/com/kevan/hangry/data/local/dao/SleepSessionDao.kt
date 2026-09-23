@@ -28,6 +28,14 @@ interface SleepSessionDao {
     @Query("SELECT COUNT(*) FROM sleep_sessions")
     suspend fun getCount(): Int
 
+    /** Sessions starting in a synced window, to find ones that are gone from Health Connect.
+     * Only imported rows: sessions logged in Hangry itself are never touched. */
+    @Query("SELECT recordFingerprint FROM sleep_sessions WHERE startTime >= :start AND startTime < :end AND sourcePackageName NOT LIKE 'com.kevan.hangry%' AND sourcePackageName != 'manual' AND recordFingerprint NOT LIKE 'manual%'")
+    suspend fun getImportedFingerprintsStartingBetween(start: Instant, end: Instant): List<String>
+
+    @Query("DELETE FROM sleep_sessions WHERE recordFingerprint IN (:fingerprints)")
+    suspend fun deleteByFingerprints(fingerprints: List<String>)
+
     @Query("DELETE FROM sleep_sessions")
     suspend fun deleteAll()
 }

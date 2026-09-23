@@ -26,7 +26,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
 /**
- * Segmented progress bar shared across the onboarding flow (About you -> Extras -> Connect -> History -> Sync) so the
+ * Segmented progress bar shared across the onboarding flow (About you -> Extras -> Connect -> Background -> History -> Sync) so the
  * user always knows how many steps remain - deliberately excludes the Welcome screen, which is
  * an intro rather than a step toward a decision.
  */

@@ -312,7 +312,7 @@ class DashboardViewModel(
             }
         }
 
-        // Refresh from Health Connect when the app starts, not just on the periodic 6h background
+        // Refresh from Health Connect when the app starts, not just on the hourly background
         // sync - a full historical import if the database is still empty (first run), otherwise a
         // quick recent-days catch-up. Coming back to a running app is handled by onAppResumed().
         viewModelScope.launch {

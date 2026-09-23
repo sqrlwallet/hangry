@@ -1,3 +1,20 @@
+## 🚀 What's New in Hangry v1.20.0
+
+### 🧮 No More Double Counting
+- Steps, distance, active calories and water are counted once even when your phone and watch both record them. Hangry now uses Health Connect's own totals, following the app order in Health Connect settings.
+- The same workout saved by several apps (watch, Strava, Samsung Health, Fit) counts once, keeping the most detailed copy. Its calories, steps and distance come from one app.
+- The same night's sleep from two apps counts once; the copy with sleep stages wins. Naps are still kept.
+- Weigh-ins and meals mirrored between apps show once.
+- Records you delete or edit in another app are now removed or updated in Hangry. Things you entered in Hangry are never touched.
+- Your existing history is re-read once after updating, so past days are corrected too.
+
+### 🔄 Background Sync
+- Hangry can sync every hour while closed, so your recovery, widgets and morning brief are ready before you open it.
+- A new onboarding step (and **Settings → Background updates**) asks for background access, no battery limits and notifications, each explained and optional. Existing users are asked once on Today.
+- The morning brief goes out as soon as last night's sleep syncs.
+
+---
+
 ## 🚀 What's New in Hangry v1.19.0
 
 ### 👋 Get Set Up Right

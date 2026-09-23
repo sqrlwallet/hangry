@@ -62,6 +62,14 @@ interface ExerciseSessionDao {
     @Query("SELECT * FROM exercise_sessions ORDER BY startTime ASC LIMIT 1")
     suspend fun getOldestSession(): ExerciseSessionEntity?
 
+    /** Workouts starting in a synced window, to find ones that are gone from Health Connect.
+     * Only imported rows: sessions logged in Hangry itself are never touched. */
+    @Query("SELECT recordFingerprint FROM exercise_sessions WHERE startTime >= :start AND startTime < :end AND sourcePackageName NOT LIKE 'com.kevan.hangry%' AND sourcePackageName != 'manual' AND recordFingerprint NOT LIKE 'manual%'")
+    suspend fun getImportedFingerprintsStartingBetween(start: Instant, end: Instant): List<String>
+
+    @Query("DELETE FROM exercise_sessions WHERE recordFingerprint IN (:fingerprints)")
+    suspend fun deleteByFingerprints(fingerprints: List<String>)
+
     @Query("DELETE FROM exercise_sessions")
     suspend fun deleteAll()
 }

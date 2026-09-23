@@ -72,6 +72,8 @@ import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.ui.onboarding.AboutYouScreen
+import com.kevan.hangry.ui.background.BackgroundAccessPrompt
+import com.kevan.hangry.ui.onboarding.BackgroundSetupScreen
 import com.kevan.hangry.ui.onboarding.ProfileExtrasScreen
 import java.time.Instant
 
@@ -80,6 +82,7 @@ sealed class Screen(val route: String) {
     data object AboutYou : Screen("about_you")
     data object ProfileExtras : Screen("profile_extras")
     data object PermissionSetup : Screen("permission_setup")
+    data object BackgroundSetup : Screen("background_setup")
     data object HistoricalSyncSetup : Screen("historical_sync_setup")
     data object SyncProgress : Screen("sync_progress/{rangeDays}") {
         fun createRoute(rangeDays: Int) = "sync_progress/$rangeDays"
@@ -346,8 +349,17 @@ fun HangryNavGraph(
                     dataSource = appContainer.healthConnectDataSource,
                     providerStatus = appContainer.healthConnectProviderStatus,
                     onProceedToHistoricalSync = {
-                        navController.navigate(Screen.HistoricalSyncSetup.route)
+                        navController.navigate(Screen.BackgroundSetup.route)
                     }
+                )
+            }
+        }
+
+        composable(Screen.BackgroundSetup.route) {
+            HangryTheme(darkTheme = true) {
+                BackgroundSetupScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onContinue = { navController.navigate(Screen.HistoricalSyncSetup.route) }
                 )
             }
         }
@@ -408,6 +420,7 @@ fun HangryNavGraph(
                 .collectAsState(initial = HealthRecordsSnapshot())
             val supplements by appContainer.supplementRepository.observe()
                 .collectAsState(initial = SupplementsSnapshot())
+            BackgroundAccessPrompt()
             DashboardScreen(
                 onNavigateToBodyAge = { navController.navigate(Screen.BodyAge.route) },
                 viewModel = dashboardViewModel,

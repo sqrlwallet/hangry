@@ -12,6 +12,9 @@ import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
+import com.kevan.hangry.data.local.entity.portionedName
+import com.kevan.hangry.data.local.entity.savedMealKey
+import com.kevan.hangry.domain.model.CommonFood
 import com.kevan.hangry.domain.ai.FoodAnalyzer
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.model.FoodAnalysisResult
@@ -32,6 +35,7 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToInt
 
 /**
  * Photo/description in, logged entry out - no confirmation tap in between. The AI's estimate is
@@ -269,24 +273,70 @@ class NutritionViewModel(
         }
     }
 
-    fun logFromMealPlan(plan: MealPlanEntity) {
-        viewModelScope.launch {
-            val entry = FoodLogEntity(
+    fun logFromMealPlan(plan: MealPlanEntity, portion: Double = 1.0) {
+        logFoodInstantly(
+            FoodLogEntity(
                 date = _selectedDate.value,
                 timestamp = Instant.now(),
                 source = FoodLogSource.MEAL_PLAN,
-                foodName = plan.name,
-                calories = plan.calories,
-                proteinG = plan.proteinG,
-                carbsG = plan.carbsG,
-                fatG = plan.fatG
+                foodName = portionedName(plan.name, portion),
+                calories = (plan.calories * portion).roundToInt(),
+                proteinG = plan.proteinG * portion,
+                carbsG = plan.carbsG * portion,
+                fatG = plan.fatG * portion,
+                fiberG = plan.fiberG * portion,
+                sugarG = plan.sugarG * portion,
+                sodiumMg = plan.sodiumMg * portion
             )
+        )
+    }
+
+    /** One tap on a built-in food (banana, egg, ...) logs [portion] standard servings of it. */
+    fun logCommonFood(food: CommonFood, portion: Double = 1.0) {
+        logFoodInstantly(
+            FoodLogEntity(
+                date = _selectedDate.value,
+                timestamp = Instant.now(),
+                source = FoodLogSource.MANUAL,
+                foodName = portionedName(food.name, portion),
+                calories = (food.calories * portion).roundToInt(),
+                proteinG = food.proteinG * portion,
+                carbsG = food.carbsG * portion,
+                fatG = food.fatG * portion,
+                fiberG = food.fiberG * portion,
+                sugarG = food.sugarG * portion,
+                sodiumMg = food.sodiumMg * portion
+            )
+        )
+    }
+
+    private fun logFoodInstantly(entry: FoodLogEntity) {
+        viewModelScope.launch {
             val id = foodLogRepository.insert(entry)
             if (healthConnectDataSource.writeNutritionRecord(entry)) {
                 foodLogRepository.markSyncedToHealthConnect(id)
             }
             _uiState.update { it.copy(lastSavedEntry = entry.copy(id = id)) }
         }
+    }
+
+    /** Adds a saved meal by hand, or saves changes to one (a rename replaces the old entry). */
+    fun saveMeal(meal: MealPlanEntity, replacing: MealPlanEntity? = null) {
+        viewModelScope.launch {
+            if (replacing != null && savedMealKey(replacing.name) != savedMealKey(meal.name)) {
+                mealPlanRepository.delete(replacing)
+            }
+            mealPlanRepository.upsert(meal)
+        }
+    }
+
+    fun deleteSavedMeal(meal: MealPlanEntity) {
+        viewModelScope.launch { mealPlanRepository.delete(meal) }
+    }
+
+    /** Puts back a saved meal removed a moment ago, stats and all. */
+    fun restoreSavedMeal(meal: MealPlanEntity) {
+        viewModelScope.launch { mealPlanRepository.upsert(meal.copy(id = 0)) }
     }
 
     fun deleteEntry(entry: FoodLogEntity) {

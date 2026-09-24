@@ -47,7 +47,7 @@ import com.kevan.hangry.ui.coach.AiCoachViewModel
 import com.kevan.hangry.ui.dashboard.DashboardScreen
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.heart.HeartMetricsScreen
-import com.kevan.hangry.ui.nutrition.MealPlanScreen
+import com.kevan.hangry.ui.nutrition.SavedMealsScreen
 import com.kevan.hangry.ui.nutrition.NutritionScreen
 import com.kevan.hangry.ui.nutrition.NutritionViewModel
 import com.kevan.hangry.ui.onboarding.PermissionSetupScreen
@@ -598,8 +598,8 @@ fun HangryNavGraph(
         }
 
         composable(Screen.MealPlan.route) {
-            MealPlanScreen(
-                mealPlanRepository = appContainer.mealPlanRepository,
+            SavedMealsScreen(
+                viewModel = nutritionViewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

@@ -249,7 +249,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val foodLogRepository: FoodLogRepository by lazy {
-        DefaultFoodLogRepository(database.foodLogDao())
+        DefaultFoodLogRepository(database.foodLogDao(), mealPlanRepository)
     }
 
     override val mealPlanRepository: MealPlanRepository by lazy {

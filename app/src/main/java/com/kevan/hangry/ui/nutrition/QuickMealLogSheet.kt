@@ -25,6 +25,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.data.local.entity.MealPlanEntity
+import com.kevan.hangry.data.local.entity.savedMealKey
+import com.kevan.hangry.domain.model.CommonFoods
 import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -60,6 +62,19 @@ fun QuickMealLogSheet(
     var allergenWarnings by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val quickMealTypes = listOf("Breakfast", "Lunch", "Dinner", "Snack")
+
+    fun applyPick(pick: FoodPick) {
+        foodName = pick.name
+        caloriesText = pick.calories.toString()
+        proteinText = pick.proteinG.toInt().toString()
+        carbsText = pick.carbsG.toInt().toString()
+        fatText = pick.fatG.toInt().toString()
+        showMacros = true
+    }
+
+    // Foods the user has saved (and everyday basics) matching what's being typed - picking one
+    // fills in its numbers instead of retyping them.
+    val suggestions = remember(foodName, mealPlans) { foodSuggestions(foodName, mealPlans) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -141,11 +156,12 @@ fun QuickMealLogSheet(
                 }
             }
 
-            // Quick Meal Plan Chips
+            // Saved meals: one tap logs it, or - with a photo attached - fills the form so the
+            // photo is kept with the entry.
             if (mealPlans.isNotEmpty() && onLogMealPlan != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "From your Meal Plan",
+                        text = if (photoUri != null) "Fill from a saved meal" else "Log a saved meal",
                         style = MaterialTheme.typography.labelMedium,
                         color = tokens.textMuted
                     )
@@ -155,11 +171,15 @@ fun QuickMealLogSheet(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        mealPlans.forEach { plan ->
+                        mealPlans.take(12).forEach { plan ->
                             SuggestionChip(
                                 onClick = {
-                                    onLogMealPlan(plan)
-                                    onDismiss()
+                                    if (photoUri != null) {
+                                        applyPick(FoodPick(plan.name, plan.calories, plan.proteinG, plan.carbsG, plan.fatG))
+                                    } else {
+                                        onLogMealPlan(plan)
+                                        onDismiss()
+                                    }
                                 },
                                 label = { Text("${plan.name} (${plan.calories} kcal)") },
                                 colors = SuggestionChipDefaults.suggestionChipColors(
@@ -203,6 +223,40 @@ fun QuickMealLogSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (suggestions.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    suggestions.forEach { pick ->
+                        Surface(
+                            onClick = { applyPick(pick) },
+                            color = tokens.cardBackground,
+                            shape = RoundedCornerShape(HangryTokens.CornerRadii.small),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (pick.saved) Icons.Default.History else Icons.Default.Restaurant,
+                                    contentDescription = null,
+                                    tint = tokens.textMuted,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(pick.name, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                                    Text(
+                                        text = listOfNotNull(pick.serving, "${pick.calories} kcal").joinToString(" · "),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = tokens.textMuted
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Calories Field with quick add buttons
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -372,4 +426,25 @@ fun QuickMealLogSheet(
             }
         }
     }
+}
+
+private data class FoodPick(
+    val name: String,
+    val calories: Int,
+    val proteinG: Double,
+    val carbsG: Double,
+    val fatG: Double,
+    val serving: String? = null,
+    val saved: Boolean = true
+)
+
+private fun foodSuggestions(typed: String, saved: List<MealPlanEntity>): List<FoodPick> {
+    val q = savedMealKey(typed)
+    if (q.length < 2) return emptyList()
+    val fromSaved = saved.filter { it.nameKey.contains(q) && it.nameKey != q }
+        .map { FoodPick(it.name, it.calories, it.proteinG, it.carbsG, it.fatG) }
+    val savedKeys = saved.map { it.nameKey }.toSet()
+    val fromCommon = CommonFoods.all.filter { it.key.contains(q) && it.key !in savedKeys && it.key != q }
+        .map { FoodPick(it.name, it.calories, it.proteinG, it.carbsG, it.fatG, serving = it.serving, saved = false) }
+    return (fromSaved + fromCommon).take(4)
 }

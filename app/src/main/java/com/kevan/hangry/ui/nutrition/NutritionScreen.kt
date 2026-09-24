@@ -21,6 +21,16 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.data.local.entity.MealPlanEntity
+import com.kevan.hangry.data.local.entity.PORTIONS
+import com.kevan.hangry.data.local.entity.portionLabel
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.graphics.Color
+import kotlin.math.roundToInt
+import com.kevan.hangry.domain.model.CommonFood
+import com.kevan.hangry.domain.model.CommonFoods
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.coach.DashSpinner
@@ -68,8 +78,8 @@ private val NUTRITION_INFO_SECTIONS = listOf(
         "Take or choose a food photo, or describe a meal in text - the AI estimates calories and macros and logs it immediately. Got it wrong? Tap the entry to fix it."
     ),
     HangryInfoSection(
-        "Meal Plan",
-        "Save your usual meals once, then log them instantly without calling the AI each time."
+        "Saved Meals",
+        "Every food you log is saved automatically. Log it again in one tap from Quick add or Saved Meals - no retyping, no AI call. Common foods like a banana or an egg are there from day one."
     ),
     HangryInfoSection(
         "Health Connect",
@@ -140,7 +150,7 @@ fun NutritionScreen(
                 actions = {
                     HangryInfoIconButton(title = "About Nutrition", sections = NUTRITION_INFO_SECTIONS)
                     IconButton(onClick = onNavigateToMealPlan) {
-                        Icon(imageVector = Icons.Default.RestaurantMenu, contentDescription = "Meal Plan")
+                        Icon(imageVector = Icons.Default.RestaurantMenu, contentDescription = "Saved meals")
                     }
                     // Typing a meal in by hand is deliberately tucked away here: the photo is the
                     // default path everywhere, and AI fills in the details.
@@ -258,6 +268,13 @@ fun NutritionScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    LogActionButton(
+                        icon = Icons.Default.Bookmarks,
+                        label = "Saved",
+                        enabled = true,
+                        onClick = onNavigateToMealPlan,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
@@ -271,23 +288,19 @@ fun NutritionScreen(
                 }
             }
 
-            if (uiState.mealPlans.isNotEmpty()) {
-                item {
-                    Text(text = "Meal Plan", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                }
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
-                    ) {
-                        uiState.mealPlans.take(4).forEach { plan ->
-                            AssistChip(
-                                onClick = { viewModel.logFromMealPlan(plan) },
-                                label = { Text(plan.name) }
-                            )
-                        }
-                    }
-                }
+            item {
+                QuickAddRow(
+                    savedMeals = uiState.mealPlans,
+                    onLogSaved = { meal, portion ->
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.logFromMealPlan(meal, portion)
+                    },
+                    onLogCommon = { food, portion ->
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.logCommonFood(food, portion)
+                    },
+                    onSeeAll = onNavigateToMealPlan
+                )
             }
 
             item {
@@ -300,7 +313,7 @@ fun NutritionScreen(
                         DashEmptyState(
                             scene = DashEmptyScene.MEALS,
                             title = "Nothing logged yet",
-                            body = "Tap Log Meal to snap a photo, or use the meal plan for a quick log.",
+                            body = "Snap a photo, or tap a food in Quick add to log it in one go.",
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
@@ -425,6 +438,101 @@ fun NutritionScreen(
             } else null,
             onLogMealPlan = { plan -> viewModel.logFromMealPlan(plan) }
         )
+    }
+}
+
+/**
+ * One-tap logging for what the user eats most: their most recent saved meals first, topped up
+ * with everyday basics so there's something to tap before anything has been saved.
+ */
+@Composable
+private fun QuickAddRow(
+    savedMeals: List<MealPlanEntity>,
+    onLogSaved: (MealPlanEntity, Double) -> Unit,
+    onLogCommon: (CommonFood, Double) -> Unit,
+    onSeeAll: () -> Unit
+) {
+    val tokens = LocalHangryTokens.current
+    val recent = savedMeals.take(QUICK_ADD_COUNT)
+    val savedKeys = savedMeals.map { it.nameKey }.toSet()
+    val starters = CommonFoods.starters.filter { it.key !in savedKeys }.take((QUICK_ADD_COUNT - recent.size).coerceAtLeast(0))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(text = "Quick add", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = "Hold for ½× or 2×", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            }
+            TextButton(onClick = onSeeAll) { Text("All saved meals") }
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(recent, key = { "saved_${it.id}" }) { meal ->
+                QuickAddChip(name = meal.name, calories = meal.calories, onLog = { portion -> onLogSaved(meal, portion) })
+            }
+            items(starters, key = { "common_${it.name}" }) { food ->
+                QuickAddChip(name = food.name, calories = food.calories, onLog = { portion -> onLogCommon(food, portion) })
+            }
+        }
+    }
+}
+
+private const val QUICK_ADD_COUNT = 10
+
+/** Tap logs one portion; a long press offers the other portion sizes. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -> Unit) {
+    val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
+    var menuOpen by remember { mutableStateOf(false) }
+    Box {
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = Color.Transparent,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier
+                .heightIn(min = 32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .combinedClickable(
+                    onClickLabel = "Log $name",
+                    onLongClickLabel = "Choose portion",
+                    onClick = { onLog(1.0) },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        menuOpen = true
+                    }
+                )
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "$name · $calories",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = tokens.textPrimary,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 200.dp)
+                )
+            }
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            PORTIONS.forEach { portion ->
+                DropdownMenuItem(
+                    text = { Text("${portionLabel(portion)}× · ${(calories * portion).roundToInt()} kcal") },
+                    onClick = {
+                        menuOpen = false
+                        onLog(portion)
+                    }
+                )
+            }
+        }
     }
 }
 

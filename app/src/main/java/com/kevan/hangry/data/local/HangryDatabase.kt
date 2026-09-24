@@ -42,7 +42,7 @@ import com.kevan.hangry.data.local.entity.*
         SupplementEntity::class,
         SupplementIntakeEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -480,6 +480,40 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Meal plan becomes the saved-meals library: one row per food name, with usage stats,
+         * seeded from the foods the user has already logged so their history is reusable at once.
+         */
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "fiberG REAL NOT NULL DEFAULT 0", "sugarG REAL NOT NULL DEFAULT 0",
+                    "sodiumMg REAL NOT NULL DEFAULT 0", "nameKey TEXT NOT NULL DEFAULT ''",
+                    "useCount INTEGER NOT NULL DEFAULT 0", "lastUsedAt INTEGER"
+                ).forEach { db.execSQL("ALTER TABLE meal_plan ADD COLUMN $it") }
+                db.execSQL("UPDATE meal_plan SET name = trim(name), nameKey = lower(trim(name))")
+                db.execSQL("DELETE FROM meal_plan WHERE id NOT IN (SELECT MAX(id) FROM meal_plan GROUP BY nameKey)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_meal_plan_nameKey ON meal_plan (nameKey)")
+                // With a single MAX() in the group, SQLite fills the bare columns from that row: the
+                // latest numbers logged for each food win.
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO meal_plan
+                        (name, mealType, calories, proteinG, carbsG, fatG, fiberG, sugarG, sodiumMg, createdAt, nameKey, useCount, lastUsedAt)
+                    SELECT name, 'OTHER', calories, proteinG, carbsG, fatG, fiberG, sugarG, sodiumMg, lastTs, nameKey, n, lastTs
+                    FROM (
+                        SELECT trim(foodName) AS name, calories, proteinG, carbsG, fatG, fiberG, sugarG, sodiumMg,
+                            lower(trim(foodName)) AS nameKey, COUNT(*) AS n, MAX(timestamp) AS lastTs
+                        FROM food_log
+                        WHERE source != 'HEALTH_CONNECT' AND trim(foodName) != ''
+                            AND lower(trim(foodName)) NOT IN ('meal', 'breakfast', 'lunch', 'dinner', 'snack')
+                        GROUP BY lower(trim(foodName))
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -491,7 +525,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25
                     )
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {

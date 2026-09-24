@@ -99,7 +99,7 @@ fun HomeScreenWidgetsScreen(
                         )
                         HangryInfoTip(
                             title = "Home Screen Widgets",
-                            body = "Add widgets to your Android home screen for activity, sleep, recovery, heart, health markers, goals, weight, posture, cycle, breathing, supplements and one-tap meal logging."
+                            body = "Add widgets to your Android home screen for activity, calories, nutrition, sleep, recovery, heart, health markers, goals, weight, posture, cycle, breathing, supplements and one-tap meal logging."
                         )
                     }
                 }
@@ -123,6 +123,24 @@ fun HomeScreenWidgetsScreen(
                 onPinWidget = { pinWidget(context, QuickLogWidgetProvider::class.java) }
             ) {
                 QuickLogWidgetMockup()
+            }
+
+            WidgetPreviewCard(
+                title = "Calories",
+                sizeLabel = "2 × 2",
+                description = "Calories eaten today as a ring against your daily target, with how much is left.",
+                onPinWidget = { pinWidget(context, CaloriesWidgetProvider::class.java) }
+            ) {
+                CaloriesWidgetMockup()
+            }
+
+            WidgetPreviewCard(
+                title = "Nutrition",
+                sizeLabel = "4 × 2",
+                description = "Calories, protein, carbs and fat today. The buttons log your most recent saved meals in one tap, without opening the app.",
+                onPinWidget = { pinWidget(context, NutritionWidgetProvider::class.java) }
+            ) {
+                NutritionWidgetMockup()
             }
 
             // 3. Sleep Insights Widget
@@ -447,6 +465,120 @@ private fun SupplementsWidgetMockup() {
 }
 
 @Composable
+private fun MockRing(fraction: Float, size: androidx.compose.ui.unit.Dp, value: String, valueStyle: androidx.compose.ui.text.TextStyle) {
+    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = this.size.minDimension * 0.1f
+            val inset = stroke / 2
+            val arcSize = androidx.compose.ui.geometry.Size(this.size.width - stroke, this.size.height - stroke)
+            val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+            drawArc(Color(0xFF2F2C33), 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            drawArc(Color(0xFFFF7E1D), -90f, 360f * fraction, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(value, color = Color(0xFFF9F4F2), style = valueStyle, fontWeight = FontWeight.Bold)
+            Text("kcal", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun CaloriesWidgetMockup() {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF7E1D), modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("EATEN TODAY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+            }
+            Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
+                Text("62%", color = Color(0xFFFF7E1D), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            MockRing(0.62f, 84.dp, "1,240", MaterialTheme.typography.titleMedium)
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            "760 left of 2,000",
+            color = Color(0xFFB5AEB8),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+    }
+}
+
+@Composable
+private fun NutritionWidgetMockup() {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Restaurant, null, tint = Color(0xFFFF7E1D), modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("NUTRITION TODAY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+            }
+            Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
+                Text("62%", color = Color(0xFFFF7E1D), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MockRing(0.62f, 72.dp, "1,240", MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("760 left of 2,000", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.bodySmall)
+                listOf(
+                    Triple("Protein", "82 / 125 g", 0.66f) to Color(0xFF6AA8FF),
+                    Triple("Carbs", "140 / 250 g", 0.56f) to Color(0xFF01A652),
+                    Triple("Fat", "40 / 56 g", 0.71f) to Color(0xFFFFCE00)
+                ).forEach { (row, color) ->
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(row.first, color = Color(0xFFB5AEB8), style = MaterialTheme.typography.labelSmall)
+                            Text(row.second, color = Color(0xFFF9F4F2), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+                        LinearProgressIndicator(
+                            progress = { row.third },
+                            color = color,
+                            trackColor = Color(0xFF2F2C33),
+                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp))
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            listOf("Oats · 166", "Banana · 105", "Latte · 150").forEach { label ->
+                Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f)) {
+                    Text(
+                        label,
+                        color = Color(0xFFF9F4F2),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        modifier = Modifier.padding(vertical = 6.dp).fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+            Surface(color = Color(0xFF0C6FF9), shape = RoundedCornerShape(15.dp), modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFF9F4F2), modifier = Modifier.padding(6.dp))
+            }
+        }
+    }
+}
+
+@Composable
 private fun RecoveryWidgetMockup() {
     Column {
         Row(
@@ -566,7 +698,7 @@ private fun HideValuesCard() {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Hide values on widgets", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
-                    "Heart, markers, goals, weight, posture and cycle show no numbers until you open the app.",
+                    "Calories, nutrition, heart, markers, goals, weight, posture and cycle show no numbers until you open the app.",
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )

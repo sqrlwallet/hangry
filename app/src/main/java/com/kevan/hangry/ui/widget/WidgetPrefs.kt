@@ -7,7 +7,7 @@ object WidgetPrefs {
     private const val FILE = "hangry_widget_prefs"
     private const val KEY_HIDE_VALUES = "hide_health_values"
 
-    /** When on, health widgets (heart, markers, goals, weight, posture, cycle) show no numbers. */
+    /** When on, health widgets (calories, nutrition, heart, markers, goals, weight, posture, cycle) show no numbers. */
     fun hideValues(context: Context): Boolean =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_HIDE_VALUES, false)
 

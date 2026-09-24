@@ -56,4 +56,6 @@
     <string name="widget_weight_description">Latest weight, 30-day change, and a trend line.</string>
     <string name="widget_posture_description">Your last posture score and a shortcut to a new check.</string>
     <string name="widget_cycle_description">Cycle day and when your next period is predicted.</string>
+    <string name="widget_calories_description">Calories eaten today against your daily target.</string>
+    <string name="widget_nutrition_description">Calories, protein, carbs and fat today, with one-tap buttons to log your usual foods.</string>
 </resources>

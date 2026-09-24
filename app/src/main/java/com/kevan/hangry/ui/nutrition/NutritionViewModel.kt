@@ -12,7 +12,7 @@ import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
-import com.kevan.hangry.data.local.entity.portionedName
+import com.kevan.hangry.data.local.entity.toLogEntry
 import com.kevan.hangry.data.local.entity.savedMealKey
 import com.kevan.hangry.domain.model.CommonFood
 import com.kevan.hangry.domain.ai.FoodAnalyzer
@@ -21,6 +21,7 @@ import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.domain.repository.FoodLogRepository
 import com.kevan.hangry.domain.repository.MealPlanRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
+import com.kevan.hangry.ui.widget.HangryWidgetUpdater
 import com.kevan.hangry.util.clearCapturedImageCache
 import com.kevan.hangry.util.readImageAsBase64Jpeg
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +29,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,7 +38,6 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.math.roundToInt
 
 /**
  * Photo/description in, logged entry out - no confirmation tap in between. The AI's estimate is
@@ -110,6 +112,21 @@ class NutritionViewModel(
                     )
                 }
             }
+        }
+    }
+
+    init {
+        // Keeps the Calories / Nutrition home screen widgets in step with anything logged,
+        // edited or removed while the app is open (the first emission is the current state).
+        viewModelScope.launch {
+            val today = LocalDate.now(zone)
+            combine(
+                foodLogRepository.getBetween(today.minusDays(1), today.plusDays(1)),
+                mealPlanRepository.getAll()
+            ) { entries, meals -> entries to meals }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { HangryWidgetUpdater.updateAllWidgets(context) }
         }
     }
 
@@ -274,40 +291,12 @@ class NutritionViewModel(
     }
 
     fun logFromMealPlan(plan: MealPlanEntity, portion: Double = 1.0) {
-        logFoodInstantly(
-            FoodLogEntity(
-                date = _selectedDate.value,
-                timestamp = Instant.now(),
-                source = FoodLogSource.MEAL_PLAN,
-                foodName = portionedName(plan.name, portion),
-                calories = (plan.calories * portion).roundToInt(),
-                proteinG = plan.proteinG * portion,
-                carbsG = plan.carbsG * portion,
-                fatG = plan.fatG * portion,
-                fiberG = plan.fiberG * portion,
-                sugarG = plan.sugarG * portion,
-                sodiumMg = plan.sodiumMg * portion
-            )
-        )
+        logFoodInstantly(plan.toLogEntry(_selectedDate.value, portion))
     }
 
     /** One tap on a built-in food (banana, egg, ...) logs [portion] standard servings of it. */
     fun logCommonFood(food: CommonFood, portion: Double = 1.0) {
-        logFoodInstantly(
-            FoodLogEntity(
-                date = _selectedDate.value,
-                timestamp = Instant.now(),
-                source = FoodLogSource.MANUAL,
-                foodName = portionedName(food.name, portion),
-                calories = (food.calories * portion).roundToInt(),
-                proteinG = food.proteinG * portion,
-                carbsG = food.carbsG * portion,
-                fatG = food.fatG * portion,
-                fiberG = food.fiberG * portion,
-                sugarG = food.sugarG * portion,
-                sodiumMg = food.sodiumMg * portion
-            )
-        )
+        logFoodInstantly(food.toLogEntry(_selectedDate.value, portion))
     }
 
     private fun logFoodInstantly(entry: FoodLogEntity) {

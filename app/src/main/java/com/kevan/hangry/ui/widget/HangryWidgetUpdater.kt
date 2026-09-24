@@ -95,6 +95,9 @@ object HangryWidgetUpdater {
 
         // 7. Breathe, Heart, Health Markers, Goals, Weight, Posture and Cycle
         HealthWidgets.updateAll(context, appWidgetManager, container, today)
+
+        // 8. Calories and Nutrition
+        NutritionWidgets.updateAll(context, appWidgetManager, container, today, WidgetPrefs.hideValues(context))
     }
 
     private fun updateActivityWidgets(

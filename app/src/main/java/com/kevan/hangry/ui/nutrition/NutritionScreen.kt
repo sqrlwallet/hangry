@@ -29,6 +29,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.graphics.Color
 import kotlin.math.roundToInt
+import com.kevan.hangry.domain.calculation.NutritionTargets
 import com.kevan.hangry.domain.model.CommonFood
 import com.kevan.hangry.domain.model.CommonFoods
 import com.kevan.hangry.ui.coach.DashMood
@@ -107,9 +108,10 @@ fun NutritionScreen(
     val totalProtein = uiState.todayEntries.sumOf { it.proteinG }
     val totalCarbs = uiState.todayEntries.sumOf { it.carbsG }
     val totalFat = uiState.todayEntries.sumOf { it.fatG }
-    val proteinGoal = calorieTarget?.let { (it * 0.25 / 4.0).coerceAtLeast(50.0) }
-    val carbsGoal = calorieTarget?.let { (it * 0.50 / 4.0).coerceAtLeast(100.0) }
-    val fatGoal = calorieTarget?.let { (it * 0.25 / 9.0).coerceAtLeast(30.0) }
+    val macroGoals = NutritionTargets.macros(calorieTarget)
+    val proteinGoal = macroGoals?.proteinG
+    val carbsGoal = macroGoals?.carbsG
+    val fatGoal = macroGoals?.fatG
 
     var showDescribeDialog by remember { mutableStateOf(false) }
     var showQuickLogSheet by remember { mutableStateOf(false) }

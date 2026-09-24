@@ -357,13 +357,13 @@ fun TrainingScreen(
                     }
                 }
             } else {
-                // Dash cheers on the day's training.
+                // Dash cheers on the day's training with his running gear.
                 item {
                     val totalMinutes = workouts.sumOf { it.durationMinutes }
                     val kcal = workouts.sumOf { ActiveActivityCalculator.workoutCalories(it, bmr = null) ?: 0.0 }
                     val count = if (workouts.size == 1) "a workout" else "${workouts.size} workouts"
                     DashNote(
-                        mood = DashMood.CHEER,
+                        mood = DashMood.WORKOUT,
                         text = if (isToday) {
                             "Nice work! $count today: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
                         } else {

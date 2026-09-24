@@ -273,7 +273,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             coachJournalDao = database.coachJournalDao(),
             bodyMetricsRepository = bodyMetricsRepository,
             healthRecordsRepository = healthRecordsRepository,
-            supplementRepository = supplementRepository
+            supplementRepository = supplementRepository,
+            bodyAgeLoader = BodyAgeLoader(database),
+            streaksLoader = StreaksLoader(database),
+            strainCalculator = strainCalculator
         )
     }
 
@@ -302,7 +305,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
                 mealPlanRepository = mealPlanRepository,
                 sleepRepository = sleepRepository,
                 bodyFatRepository = bodyFatRepository,
-                healthSyncManager = healthSyncManager
+                healthSyncManager = healthSyncManager,
+                exerciseSessionDao = database.exerciseSessionDao(),
+                coachJournalDao = database.coachJournalDao(),
+                context = context
             )
         )
     }

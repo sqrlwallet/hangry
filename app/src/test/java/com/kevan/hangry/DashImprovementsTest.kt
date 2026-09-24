@@ -1,17 +1,23 @@
 package com.kevan.hangry
 
 import com.kevan.hangry.data.coach.CoachActionExecutor
+import com.kevan.hangry.data.local.dao.CoachJournalDao
+import com.kevan.hangry.data.local.dao.ExerciseSessionDao
 import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
+import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.domain.ai.DashInsights
 import com.kevan.hangry.domain.model.CoachAction
 import com.kevan.hangry.domain.model.GoalsActionPayload
+import com.kevan.hangry.domain.model.ResolveJournalActionPayload
 import com.kevan.hangry.domain.model.Supplement
 import com.kevan.hangry.domain.model.SupplementDose
 import com.kevan.hangry.domain.model.SupplementsSnapshot
 import com.kevan.hangry.domain.model.WeightActionPayload
+import com.kevan.hangry.domain.model.WorkoutActionPayload
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,13 +73,17 @@ class DashImprovementsTest {
 
     private val profiles = FakeProfiles()
     private val weights = FakeWeightDao()
+    private val exerciseSessions = FakeExerciseSessionDao()
+    private val coachJournals = FakeCoachJournalDao()
     private val executor = CoachActionExecutor(
         supplementRepository = FakeSupplementRepository(),
         healthRecordsRepository = FakeHealthRecordsRepository(),
         foodLogRepository = FakeFoodLogRepository(),
         writeNutritionRecord = { true },
         userProfileRepository = profiles,
-        weightDao = weights
+        weightDao = weights,
+        exerciseSessionDao = exerciseSessions,
+        coachJournalDao = coachJournals
     )
 
     @Test
@@ -127,6 +137,60 @@ class DashImprovementsTest {
         assertEquals(86.4, profiles.flow.value!!.waistCircumferenceCm!!, 0.1)
     }
 
+    @Test
+    fun `dash moods cover workout and nutrition with valid resources`() {
+        com.kevan.hangry.ui.coach.DashMood.entries.forEach { mood ->
+            assertTrue(mood.name, mood.imageRes != 0)
+            assertTrue(mood.description, mood.description.contains(com.kevan.hangry.ui.coach.MASCOT_NAME))
+        }
+        assertTrue(com.kevan.hangry.ui.coach.DashMood.WORKOUT.popsIn)
+    }
+
+    @Test
+    fun `logging a workout saves session with type, duration, calories, distance and notes`() = runTest {
+        val result = executor.execute(
+            CoachAction(
+                type = CoachAction.LOG_WORKOUT,
+                workout = WorkoutActionPayload(
+                    exerciseType = "RUNNING",
+                    durationMinutes = 45,
+                    calories = 420.0,
+                    distanceKm = 5.2,
+                    notes = "Morning tempo run"
+                )
+            )
+        )
+        assertTrue(result.isSuccess)
+        val saved = exerciseSessions.inserted.single()
+        assertEquals("RUNNING", saved.exerciseType)
+        assertEquals(45, saved.durationMinutes)
+        assertEquals(420.0, saved.totalCalories!!, 0.1)
+        assertEquals(5200.0, saved.distanceMeters!!, 1.0)
+        assertEquals("Morning tempo run", saved.notes)
+    }
+
+    @Test
+    fun `resolving a journal entry removes matching memory`() = runTest {
+        val entry = CoachJournalEntity(
+            id = 42L,
+            date = today,
+            category = "INJURY",
+            summary = "Left knee pain after squats",
+            content = "User reported patellar tendon irritation."
+        )
+        coachJournals.entries.add(entry)
+        val result = executor.execute(
+            CoachAction(
+                type = CoachAction.RESOLVE_JOURNAL_ENTRY,
+                resolveJournal = ResolveJournalActionPayload(
+                    entryId = 42L
+                )
+            )
+        )
+        assertTrue(result.isSuccess)
+        assertTrue(coachJournals.entries.isEmpty())
+    }
+
     private class FakeProfiles : UserProfileRepository {
         val flow = MutableStateFlow<UserProfileEntity?>(UserProfileEntity())
         override fun getProfile(): Flow<UserProfileEntity?> = flow
@@ -145,5 +209,44 @@ class DashImprovementsTest {
         override suspend fun deleteAll() { inserted.clear() }
         override suspend fun getImportedFingerprintsBetween(start: java.time.Instant, end: java.time.Instant): List<String> = emptyList()
         override suspend fun deleteByFingerprints(fingerprints: List<String>) {}
+    }
+
+    private class FakeExerciseSessionDao : ExerciseSessionDao {
+        val inserted = mutableListOf<ExerciseSessionEntity>()
+        override suspend fun insertOrIgnore(sessions: List<ExerciseSessionEntity>): List<Long> { inserted += sessions; return sessions.map { 1L } }
+        override suspend fun updateDetails(
+            fingerprint: String, exerciseType: String, title: String?, notes: String?,
+            activeCalories: Double?, totalCalories: Double?, steps: Long?,
+            distanceMeters: Double?, elevationGainMeters: Double?, avgPowerWatts: Double?,
+            setCount: Int?, repCount: Int?, segmentSummary: String?, lapCount: Int?, detailVersion: Int
+        ) {}
+        override suspend fun updateHeartRate(fingerprint: String, avg: Double?, max: Double?) {}
+        override suspend fun markDetailVersion(version: Int) {}
+        override suspend fun getOldestStartNeedingDetails(version: Int): Instant? = null
+        override fun getSessionsBetween(start: Instant, end: Instant): Flow<List<ExerciseSessionEntity>> = flowOf(inserted)
+        override suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<ExerciseSessionEntity> = inserted
+        override fun getAllSessions(): Flow<List<ExerciseSessionEntity>> = flowOf(inserted)
+        override suspend fun getCount(): Int = inserted.size
+        override suspend fun getOldestSession(): ExerciseSessionEntity? = null
+        override suspend fun deleteAll() { inserted.clear() }
+        override suspend fun getImportedFingerprintsStartingBetween(start: Instant, end: Instant): List<String> = emptyList()
+        override suspend fun deleteByFingerprints(fingerprints: List<String>) {}
+    }
+
+    private class FakeCoachJournalDao : CoachJournalDao {
+        val entries = mutableListOf<CoachJournalEntity>()
+        override suspend fun insert(entry: CoachJournalEntity): Long {
+            val id = if (entry.id == 0L) (entries.size + 1).toLong() else entry.id
+            entries.add(entry.copy(id = id))
+            return id
+        }
+        override suspend fun delete(id: Long) {
+            entries.removeAll { it.id == id }
+        }
+        override fun getAll(): Flow<List<CoachJournalEntity>> = flowOf(entries)
+        override suspend fun getAllSync(): List<CoachJournalEntity> = entries.toList()
+        override suspend fun deleteAll() {
+            entries.clear()
+        }
     }
 }

@@ -48,7 +48,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -104,10 +107,12 @@ enum class DashMood(@DrawableRes val imageRes: Int, val description: String) {
     SLEEPY(R.drawable.dash_mood_sleepy, "$MASCOT_NAME sleepy in pajamas"),
     THINKING(R.drawable.dash_mood_thinking, "$MASCOT_NAME thinking"),
     WAVE(R.drawable.dash_wave, "$MASCOT_NAME waving hello"),
-    HEART(R.drawable.dash_heart, "$MASCOT_NAME holding a glowing heart");
+    HEART(R.drawable.dash_heart, "$MASCOT_NAME holding a glowing heart"),
+    WORKOUT(R.drawable.dash_mood_workout, "$MASCOT_NAME running and working out"),
+    NUTRITION(R.drawable.dash_mood_nutrition, "$MASCOT_NAME holding a fresh apple");
 
     /** Moods that mark a win spring in when they appear. */
-    val popsIn: Boolean get() = this == CELEBRATE || this == CHEER
+    val popsIn: Boolean get() = this == CELEBRATE || this == CHEER || this == WORKOUT
 }
 
 fun RecoveryState.dashMood(): DashMood = when (this) {
@@ -133,6 +138,9 @@ fun DashExpression(
     // Animated values are read only inside graphicsLayer/draw blocks, so the idle motion
     // redraws the image each frame without recomposing the card around it.
     val bob = rememberIdleBob(durationMillis = 1800)
+    val runBob = rememberRunBob(durationMillis = 420)
+    val waveSway = rememberWaveSway(durationMillis = 750)
+    val jitter = rememberConcernJitter(durationMillis = 160)
     val tap = rememberDashTap()
     val entrance = remember(mood) { Animatable(if (mood.popsIn) 0.55f else 1f) }
     LaunchedEffect(mood) {
@@ -163,11 +171,32 @@ fun DashExpression(
                 modifier = Modifier
                     .size(size)
                     .graphicsLayer {
-                        translationY = -size.toPx() * (0.025f * bob.value + HOP_HEIGHT * tap.hop.value)
+                        val currentMood = shown
+                        val isRunning = currentMood == DashMood.WORKOUT
+                        val isWaving = currentMood == DashMood.WAVE
+                        val isConcerned = currentMood == DashMood.CONCERNED
+
+                        val bobTravel = if (isRunning) {
+                            -size.toPx() * (0.045f * runBob.value + HOP_HEIGHT * tap.hop.value)
+                        } else {
+                            -size.toPx() * (0.025f * bob.value + HOP_HEIGHT * tap.hop.value)
+                        }
+                        translationY = bobTravel + if (isConcerned) (jitter.value * size.toPx() * 0.008f) else 0f
+                        translationX = if (isConcerned) (jitter.value * size.toPx() * 0.006f) else 0f
+
+                        rotationZ = when {
+                            isWaving -> waveSway.value * 5f
+                            isRunning -> -3.5f + (runBob.value * 2f)
+                            currentMood == DashMood.HAPPY -> sin(bob.value * PI.toFloat()) * 2f
+                            else -> 0f
+                        }
+                        rotationY = tap.spin.value * 360f
+
                         val scale = entrance.value * beat.value
                         scaleX = scale
                         scaleY = scale
                         transformOrigin = TransformOrigin(0.5f, 1f)
+                        cameraDistance = 12f * density
                     }
             )
         }
@@ -176,6 +205,24 @@ fun DashExpression(
         }
         if (shown == DashMood.SLEEPY) {
             FloatingZs(size = size, modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.CHEER) {
+            TwinklingSparkles(modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.THINKING) {
+            FloatingThoughtBubbles(size = size, modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.CONCERNED) {
+            NervousSweatDrop(size = size, modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.WORKOUT) {
+            RunningDustPuffs(size = size, modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.NUTRITION) {
+            HealthyGleam(size = size, modifier = Modifier.matchParentSize())
+        }
+        if (tap.showHearts) {
+            TapHeartsBurst(size = size, modifier = Modifier.matchParentSize())
         }
     }
 }
@@ -203,7 +250,7 @@ fun DashNote(
 private const val HOP_HEIGHT = 0.12f
 
 @Composable
-private fun rememberIdleBob(durationMillis: Int): State<Float> {
+internal fun rememberIdleBob(durationMillis: Int): State<Float> {
     val transition = rememberInfiniteTransition(label = "dashIdle")
     return transition.animateFloat(
         initialValue = 0f,
@@ -213,6 +260,48 @@ private fun rememberIdleBob(durationMillis: Int): State<Float> {
             repeatMode = RepeatMode.Reverse
         ),
         label = "dashBob"
+    )
+}
+
+@Composable
+private fun rememberRunBob(durationMillis: Int): State<Float> {
+    val transition = rememberInfiniteTransition(label = "dashRun")
+    return transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMillis, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dashRunBob"
+    )
+}
+
+@Composable
+private fun rememberWaveSway(durationMillis: Int): State<Float> {
+    val transition = rememberInfiniteTransition(label = "dashWave")
+    return transition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMillis, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dashWaveSway"
+    )
+}
+
+@Composable
+private fun rememberConcernJitter(durationMillis: Int): State<Float> {
+    val transition = rememberInfiniteTransition(label = "dashJitter")
+    return transition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dashConcernJitter"
     )
 }
 
@@ -240,7 +329,9 @@ private fun rememberHeartbeat(): State<Float> {
 private class DashTapState(
     val modifier: Modifier,
     val hop: Animatable<Float, *>,
-    val reacting: Boolean
+    val spin: Animatable<Float, *>,
+    val reacting: Boolean,
+    val showHearts: Boolean
 )
 
 @Composable
@@ -248,26 +339,45 @@ private fun rememberDashTap(): DashTapState {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val hop = remember { Animatable(0f) }
+    val spin = remember { Animatable(0f) }
     var reacting by remember { mutableStateOf(false) }
+    var showHearts by remember { mutableStateOf(false) }
+    var lastTapTime by remember { mutableStateOf(0L) }
     var resetJob by remember { mutableStateOf<Job?>(null) }
+
     val modifier = Modifier.clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
         onClickLabel = "Pet $MASCOT_NAME"
     ) {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        scope.launch {
-            hop.animateTo(1f, tween(durationMillis = 140, easing = FastOutSlowInEasing))
-            hop.animateTo(0f, spring(dampingRatio = 0.4f, stiffness = 420f))
+        val now = System.currentTimeMillis()
+        val isDoubleTap = (now - lastTapTime) < 380L
+        lastTapTime = now
+
+        if (isDoubleTap) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            scope.launch {
+                spin.snapTo(0f)
+                spin.animateTo(1f, tween(durationMillis = 520, easing = FastOutSlowInEasing))
+                spin.snapTo(0f)
+            }
+        } else {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            scope.launch {
+                hop.animateTo(1f, tween(durationMillis = 140, easing = FastOutSlowInEasing))
+                hop.animateTo(0f, spring(dampingRatio = 0.4f, stiffness = 420f))
+            }
         }
         reacting = true
+        showHearts = true
         resetJob?.cancel()
         resetJob = scope.launch {
             delay(1200)
             reacting = false
+            showHearts = false
         }
     }
-    return DashTapState(modifier, hop, reacting)
+    return DashTapState(modifier, hop, spin, reacting, showHearts)
 }
 
 /** Warm glow behind the heart that brightens with each beat. */
@@ -377,6 +487,214 @@ private fun FloatingZs(size: Dp, modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+/** Golden sparkles that twinkle and rotate around Dash's raised paw and head. */
+@Composable
+private fun TwinklingSparkles(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "dashSparkles")
+    val time = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 2000, easing = LinearEasing)),
+        label = "sparkleTime"
+    )
+    Canvas(modifier = modifier) {
+        val t = time.value
+        val span = this.size.minDimension
+        val sparkles = listOf(
+            Triple(this.size.width * 0.82f, this.size.height * 0.16f, 0f),
+            Triple(this.size.width * 0.88f, this.size.height * 0.28f, 0.33f),
+            Triple(this.size.width * 0.65f, this.size.height * 0.12f, 0.66f)
+        )
+        sparkles.forEach { (cx, cy, phaseOffset) ->
+            val p = (t + phaseOffset) % 1f
+            val alpha = sin(p * PI.toFloat()).coerceIn(0f, 1f)
+            val r = alpha * span * 0.075f
+            if (r > 0.5f) {
+                rotate(degrees = p * 180f, pivot = Offset(cx, cy)) {
+                    drawSparkleStar(center = Offset(cx, cy), radius = r)
+                }
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawSparkleStar(center: Offset, radius: Float) {
+    val inner = radius * 0.28f
+    val path = Path().apply {
+        moveTo(center.x, center.y - radius)
+        lineTo(center.x + inner, center.y - inner)
+        lineTo(center.x + radius, center.y)
+        lineTo(center.x + inner, center.y + inner)
+        lineTo(center.x, center.y + radius)
+        lineTo(center.x - inner, center.y + inner)
+        lineTo(center.x - radius, center.y)
+        lineTo(center.x - inner, center.y - inner)
+        close()
+    }
+    drawPath(path, color = Color(0xFFFFC145))
+    drawCircle(color = Color(0xFFFFF7D6), radius = inner * 0.8f, center = center)
+}
+
+/** 3 thought bubbles drifting up from Dash's head while pondering. */
+@Composable
+private fun FloatingThoughtBubbles(size: Dp, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "dashThoughts")
+    val time = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 2400, easing = LinearEasing)),
+        label = "thoughtTime"
+    )
+    Canvas(modifier = modifier) {
+        val t = time.value
+        val span = this.size.minDimension
+        val origin = Offset(this.size.width * 0.66f, this.size.height * 0.30f)
+        repeat(3) { i ->
+            val p = (t + i / 3f) % 1f
+            val travel = span * 0.22f * p
+            val x = origin.x + travel * 0.45f + span * 0.02f * sin(p * 2 * PI.toFloat())
+            val y = origin.y - travel
+            val radius = span * (0.025f + 0.03f * p)
+            val alpha = (sin(p * PI.toFloat()) * 0.75f).coerceIn(0f, 1f)
+            drawCircle(
+                color = Color(0xFF93C5FD).copy(alpha = alpha * 0.4f),
+                radius = radius,
+                center = Offset(x, y)
+            )
+            drawCircle(
+                color = Color(0xFF3B82F6).copy(alpha = alpha * 0.75f),
+                radius = radius,
+                center = Offset(x, y),
+                style = Stroke(width = 1.5f)
+            )
+        }
+    }
+}
+
+/** A nervous sweat drop beading on Dash's temple and sliding down. */
+@Composable
+private fun NervousSweatDrop(size: Dp, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "dashSweat")
+    val time = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 1800, easing = LinearEasing)),
+        label = "sweatTime"
+    )
+    Canvas(modifier = modifier) {
+        val t = time.value
+        val span = this.size.minDimension
+        val startY = this.size.height * 0.24f
+        val dropDistance = span * 0.16f
+        val p = (t * 1.35f).coerceIn(0f, 1f)
+        if (p < 0.05f || p > 0.95f) return@Canvas
+        val y = startY + dropDistance * p * p
+        val x = this.size.width * 0.34f
+        val r = span * 0.024f
+        val alpha = sin(p * PI.toFloat()).coerceIn(0f, 1f)
+        val path = Path().apply {
+            moveTo(x, y - r * 1.8f)
+            cubicTo(x + r, y - r * 0.5f, x + r, y + r, x, y + r)
+            cubicTo(x - r, y + r, x - r, y - r * 0.5f, x, y - r * 1.8f)
+            close()
+        }
+        drawPath(path, color = Color(0xFF60A5FA).copy(alpha = alpha * 0.85f))
+    }
+}
+
+/** Playful dust puffs billowing behind Dash's sneakers while running. */
+@Composable
+private fun RunningDustPuffs(size: Dp, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "dashDust")
+    val time = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 850, easing = LinearEasing)),
+        label = "dustTime"
+    )
+    Canvas(modifier = modifier) {
+        val t = time.value
+        val span = this.size.minDimension
+        val origin = Offset(this.size.width * 0.22f, this.size.height * 0.88f)
+        repeat(2) { i ->
+            val p = (t + i * 0.5f) % 1f
+            val x = origin.x - span * 0.18f * p
+            val y = origin.y - span * 0.035f * sin(p * PI.toFloat())
+            val radius = span * (0.02f + 0.038f * p)
+            val alpha = (1f - p).coerceIn(0f, 1f) * 0.5f
+            drawCircle(
+                color = Color(0xFFCBD5E1).copy(alpha = alpha),
+                radius = radius,
+                center = Offset(x, y)
+            )
+        }
+    }
+}
+
+/** A gentle sparkle gleam on Dash's crisp apple. */
+@Composable
+private fun HealthyGleam(size: Dp, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "dashGleam")
+    val time = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 2200, easing = LinearEasing)),
+        label = "gleamTime"
+    )
+    Canvas(modifier = modifier) {
+        val t = time.value
+        if (t < 0.25f || t > 0.75f) return@Canvas
+        val p = (t - 0.25f) / 0.5f
+        val alpha = sin(p * PI.toFloat()).coerceIn(0f, 1f)
+        val center = Offset(this.size.width * 0.67f, this.size.height * 0.62f)
+        val radius = this.size.minDimension * 0.045f * alpha
+        rotate(degrees = p * 90f, pivot = center) {
+            drawSparkleStar(center = center, radius = radius)
+        }
+    }
+}
+
+/** Floating hearts that flutter up when Dash is petted. */
+@Composable
+private fun TapHeartsBurst(size: Dp, modifier: Modifier = Modifier) {
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        progress.animateTo(1f, tween(durationMillis = 1100, easing = FastOutSlowInEasing))
+    }
+    if (progress.value >= 1f) return
+    Canvas(modifier = modifier) {
+        val p = progress.value
+        val span = this.size.minDimension
+        val origin = Offset(this.size.width * 0.5f, this.size.height * 0.35f)
+        val alpha = (1f - p * p).coerceIn(0f, 1f)
+
+        val hearts = listOf(
+            Triple(-span * 0.18f * p, -span * 0.32f * p, span * 0.038f),
+            Triple(0f, -span * 0.40f * p, span * 0.046f),
+            Triple(span * 0.20f * p, -span * 0.30f * p, span * 0.036f)
+        )
+        hearts.forEach { (dx, dy, r) ->
+            val cx = origin.x + dx
+            val cy = origin.y + dy
+            drawHeart(center = Offset(cx, cy), radius = r, color = Color(0xFFFF5277).copy(alpha = alpha))
+        }
+    }
+}
+
+private fun DrawScope.drawHeart(center: Offset, radius: Float, color: Color) {
+    val path = Path().apply {
+        val x = center.x
+        val y = center.y
+        val w = radius * 2
+        val h = radius * 2
+        moveTo(x, y + h * 0.35f)
+        cubicTo(x - w * 0.55f, y, x - w * 0.6f, y - h * 0.5f, x, y - h * 0.3f)
+        cubicTo(x + w * 0.6f, y - h * 0.5f, x + w * 0.55f, y, x, y + h * 0.35f)
+        close()
+    }
+    drawPath(path, color = color)
 }
 
 // endregion

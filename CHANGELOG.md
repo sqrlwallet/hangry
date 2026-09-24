@@ -1,3 +1,16 @@
+## 🚀 What's New in Hangry v1.21.0
+
+### 🤖 Dash AI Coach Superpowers
+- **Workout Logging**: Dash can now log workouts for you directly in conversation with exercise type, duration, calories, distance, and notes.
+- **Journal Memory Resolution**: Healed from an injury or resolved a past health complaint? Ask Dash to resolve or remove it, and he will update your personal health memories.
+- **Reminders Toggle**: Manage your morning readiness brief and bedtime reminder nudges right from chat with Dash.
+- **Deeper Health Context**: Dash is now grounded in your 30-day Body Age trajectory and factors, habit streaks (steps, meals, sleep, supplements), 7-day sleep architecture (deep/REM/light percentages and sleep quality), and recovery strain target recommendations.
+
+### 🏃 Dash Everywhere: New Animations
+- Added dedicated animated workout runner and nutrition apple mascot graphics to training and nutrition empty states and Dash mascot views.
+
+---
+
 ## 🚀 What's New in Hangry v1.20.0
 
 ### 🧮 No More Double Counting

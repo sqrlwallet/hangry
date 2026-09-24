@@ -46,6 +46,9 @@ data class CoachAction(
     /** SET_HRV_FEELING: an HrvFeeling name. */
     val feeling: String? = null,
     val bodyFat: BodyFatActionPayload? = null,
+    val workout: WorkoutActionPayload? = null,
+    val resolveJournal: ResolveJournalActionPayload? = null,
+    val reminders: RemindersActionPayload? = null,
     /** OPEN_SCREEN target - see [Screens]. */
     val screen: String? = null,
     /** OPEN_SCREEN with screen = "breathing": a BreathingPattern id. */
@@ -73,6 +76,9 @@ data class CoachAction(
         const val LOG_SLEEP = "LOG_SLEEP"
         const val SET_HRV_FEELING = "SET_HRV_FEELING"
         const val LOG_BODY_FAT = "LOG_BODY_FAT"
+        const val LOG_WORKOUT = "LOG_WORKOUT"
+        const val RESOLVE_JOURNAL_ENTRY = "RESOLVE_JOURNAL_ENTRY"
+        const val UPDATE_REMINDERS = "UPDATE_REMINDERS"
 
         /** Every action Dash can propose - one for each thing a user can enter in the app. */
         val ALL = setOf(
@@ -80,7 +86,8 @@ data class CoachAction(
             LOG_MEAL, UPDATE_MEAL, ADD_MEAL_PLAN,
             ADD_READING, SET_GOAL, ADD_ALLERGY, ADD_CONDITION, SET_PREGNANCY, LOG_PERIOD,
             UPDATE_GOALS, UPDATE_PROFILE, LOG_WEIGHT, LOG_BODY_FAT,
-            LOG_SLEEP, SET_HRV_FEELING, OPEN_SCREEN
+            LOG_SLEEP, SET_HRV_FEELING, OPEN_SCREEN,
+            LOG_WORKOUT, RESOLVE_JOURNAL_ENTRY, UPDATE_REMINDERS
         )
     }
 
@@ -221,3 +228,29 @@ data class BodyFatActionPayload(
     /** Where it came from, e.g. "DEXA scan", "smart scale". */
     val source: String? = null
 )
+
+@Serializable
+data class WorkoutActionPayload(
+    /** Health Connect exercise type name or label, e.g. "RUNNING", "WEIGHTLIFTING", "WALKING", "SWIMMING", "CYCLING", "YOGA", etc. */
+    val exerciseType: String = "OTHER_WORKOUT",
+    val title: String? = null,
+    val durationMinutes: Int,
+    val calories: Double? = null,
+    val distanceKm: Double? = null,
+    /** "YYYY-MM-DDTHH:mm" ISO timestamp or null for ending now */
+    val startTime: String? = null,
+    val notes: String? = null
+)
+
+@Serializable
+data class ResolveJournalActionPayload(
+    val entryId: Long? = null,
+    val summary: String? = null
+)
+
+@Serializable
+data class RemindersActionPayload(
+    val morningReadinessEnabled: Boolean? = null,
+    val bedtimeReminderEnabled: Boolean? = null
+)
+

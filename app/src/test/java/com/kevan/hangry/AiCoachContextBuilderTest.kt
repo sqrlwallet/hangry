@@ -240,4 +240,69 @@ class AiCoachContextBuilderTest {
         assertTrue("Contains food name", context.contains("Grilled Salmon and Quinoa"))
         assertTrue("Contains calorie total", context.contains("650 kcal"))
     }
+
+    @Test
+    fun `context includes sleep architecture and recovery strain recommendation`() = runBlocking {
+        val today = LocalDate.now()
+        val sleepSession = SleepSessionEntity(
+            recordFingerprint = "sleep_1",
+            startTime = Instant.now().minusSeconds(8 * 3600),
+            endTime = Instant.now(),
+            durationMinutes = 480,
+            deepSleepMinutes = 90,
+            remSleepMinutes = 110,
+            lightSleepMinutes = 240,
+            awakeMinutes = 40,
+            sleepQualityScore = 88
+        )
+        val recovery = RecoveryScoreEntity(
+            date = today,
+            score = 78,
+            confidence = "HIGH",
+            state = "PRIMED",
+            supportiveAdvice = "Great recovery today",
+            hrvComponentScore = 80.0,
+            rhrComponentScore = 75.0,
+            sleepComponentScore = 85.0
+        )
+        val fakeStrainCalculator = object : com.kevan.hangry.domain.calculation.StrainCalculator {
+            override fun calculateDayStrain(
+                heartRateSamples: List<HeartRateSampleEntity>,
+                workoutsToday: List<ExerciseSessionEntity>
+            ) = com.kevan.hangry.domain.model.StrainResult(
+                dayStrain = 12.5,
+                confidence = com.kevan.hangry.domain.model.ScoreConfidence.HIGH,
+                source = com.kevan.hangry.domain.model.StrainSource.HEART_RATE_ZONES,
+                supportiveNote = "Solid training day"
+            )
+
+            override fun recommendStrainTarget(
+                recoveryState: com.kevan.hangry.domain.model.RecoveryState,
+                recentDailyStrain: List<Double>
+            ) = com.kevan.hangry.domain.model.StrainRecommendation(11.0, 14.5, "Push toward upper limits.")
+        }
+
+        val builder = AiCoachContextBuilder(
+            userProfileRepository = FakeUserProfileRepository(),
+            weightDao = FakeWeightDao(),
+            dailyHealthSummaryDao = FakeDailyHealthSummaryDao(),
+            recoveryScoreDao = FakeRecoveryScoreDao(listOf(recovery)),
+            exerciseSessionDao = FakeExerciseSessionDao(),
+            sleepSessionDao = FakeSleepSessionDao(listOf(sleepSession)),
+            foodLogDao = FakeFoodLogDao(),
+            postureScanDao = FakePostureScanDao(),
+            coachJournalDao = FakeCoachJournalDao(),
+            strainCalculator = fakeStrainCalculator
+        )
+
+        val context = builder.build7DayContext()
+        assertTrue("Contains sleep architecture header", context.contains("=== SLEEP ARCHITECTURE (last 7 days) ==="))
+        assertTrue("Contains deep sleep", context.contains("Deep: 90m"))
+        assertTrue("Contains REM sleep", context.contains("REM: 110m"))
+        assertTrue("Contains sleep quality", context.contains("Quality: 88/100"))
+        assertTrue("Contains recovery header", context.contains("=== TODAY'S RECOVERY & RECOMMENDED STRAIN ==="))
+        assertTrue("Contains recovery state", context.contains("State: PRIMED"))
+        assertTrue("Contains recommended strain", context.contains("Recommended Day Strain Target: 11.0 - 14.5 / 21"))
+        assertTrue("Contains strain guidance", context.contains("Push toward upper limits."))
+    }
 }

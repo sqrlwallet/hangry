@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.ui.coach.DashMood
+import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.components.DashEmptyScene
 import com.kevan.hangry.ui.components.DashEmptyState
@@ -352,6 +354,19 @@ fun NutritionScreen(
                             }
                         )
                     }
+                }
+            }
+
+            if (uiState.todayEntries.isNotEmpty()) {
+                item {
+                    val totalKcal = uiState.todayEntries.sumOf { it.calories }
+                    val count = uiState.todayEntries.size
+                    val itemText = if (count == 1) "1 item" else "$count items"
+                    DashNote(
+                        mood = DashMood.NUTRITION,
+                        text = "Great fueling! $totalKcal kcal tracked across $itemText. Keep up the mindful nourishment.",
+                        modifier = Modifier.padding(top = HangryTokens.Spacing.xs)
+                    )
                 }
             }
 

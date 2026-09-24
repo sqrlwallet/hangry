@@ -18,11 +18,19 @@ import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.MealPlanRepository
 import com.kevan.hangry.domain.repository.SleepRepository
-import kotlinx.coroutines.flow.first
+import android.content.Context
+import com.kevan.hangry.data.local.dao.CoachJournalDao
+import com.kevan.hangry.data.local.dao.ExerciseSessionDao
+import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
+import com.kevan.hangry.data.nudges.NudgePrefs
+import com.kevan.hangry.domain.model.WorkoutType
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
 
 /**
  * Runs an action Dash proposed, once the user taps it, through the same repositories the rest
@@ -42,6 +50,9 @@ class CoachActionExecutor(
     private val sleepRepository: SleepRepository? = null,
     private val bodyFatRepository: BodyFatRepository? = null,
     private val healthSyncManager: HealthSyncManager? = null,
+    private val exerciseSessionDao: ExerciseSessionDao? = null,
+    private val coachJournalDao: CoachJournalDao? = null,
+    private val context: Context? = null,
     private val zone: ZoneId = ZoneId.systemDefault()
 ) {
 
@@ -65,6 +76,9 @@ class CoachActionExecutor(
             CoachAction.SET_HRV_FEELING -> setHrvFeeling(action)
             CoachAction.LOG_BODY_FAT -> logBodyFat(action)
             CoachAction.LOG_WEIGHT -> logWeight(action)
+            CoachAction.LOG_WORKOUT -> logWorkout(action)
+            CoachAction.RESOLVE_JOURNAL_ENTRY -> resolveJournalEntry(action)
+            CoachAction.UPDATE_REMINDERS -> updateReminders(action)
             // Navigation itself is done by the chat screen; this just validates the target.
             CoachAction.OPEN_SCREEN -> {
                 require(action.screen in CoachAction.Screens.ALL) { "Hangry doesn't have that screen." }
@@ -395,5 +409,64 @@ class CoachActionExecutor(
         require(item.name.isNotBlank()) { "Missing name." }
         healthRecordsRepository.addProfileItem(kind, item.name, item.note)
         return "Added ${item.name} to your ${if (kind == HealthProfileKind.ALLERGY) "allergies" else "conditions"}"
+    }
+
+    private suspend fun logWorkout(action: CoachAction): String {
+        val payload = action.workout ?: error("Missing workout details.")
+        require(payload.durationMinutes > 0) { "Duration must be greater than zero." }
+        val dao = exerciseSessionDao ?: error("Workout storage unavailable.")
+        val now = Instant.now()
+        val start = payload.startTime?.let { runCatching { LocalDateTime.parse(it).atZone(zone).toInstant() }.getOrNull() }
+            ?: now.minusSeconds(payload.durationMinutes * 60L)
+        val end = start.plusSeconds(payload.durationMinutes * 60L)
+        val rawType = payload.exerciseType.trim().uppercase().replace(" ", "_")
+        val workoutType = WorkoutType.fromId(rawType)
+        val fingerprint = "manual_${start.toEpochMilli()}_${workoutType.name}"
+        val entity = ExerciseSessionEntity(
+            recordFingerprint = fingerprint,
+            exerciseType = workoutType.name,
+            title = payload.title?.trim()?.ifBlank { null },
+            startTime = start,
+            endTime = end,
+            durationMinutes = payload.durationMinutes,
+            totalCalories = payload.calories,
+            activeCalories = payload.calories,
+            distanceMeters = payload.distanceKm?.let { it * 1000.0 },
+            notes = payload.notes?.trim()?.ifBlank { null },
+            dataQualityState = "VALID"
+        )
+        dao.insertOrIgnore(listOf(entity))
+        healthSyncManager?.syncRecent()?.collect { }
+        return "Logged ${workoutType.label} (${payload.durationMinutes} min" + (payload.calories?.let { ", ${it.toInt()} kcal" } ?: "") + ")."
+    }
+
+    private suspend fun resolveJournalEntry(action: CoachAction): String {
+        val payload = action.resolveJournal ?: error("Missing journal entry details.")
+        val dao = coachJournalDao ?: error("Journal storage unavailable.")
+        val entries = dao.getAllSync()
+        val target = if (payload.entryId != null) {
+            entries.firstOrNull { it.id == payload.entryId }
+        } else if (!payload.summary.isNullOrBlank()) {
+            entries.firstOrNull { it.summary.contains(payload.summary, ignoreCase = true) || it.content.contains(payload.summary, ignoreCase = true) }
+        } else null
+        requireNotNull(target) { "Could not find matching journal memory to resolve." }
+        dao.delete(target.id)
+        return "Resolved and removed memory: \"${target.summary}\"."
+    }
+
+    private suspend fun updateReminders(action: CoachAction): String {
+        val payload = action.reminders ?: error("Missing reminder preferences.")
+        val ctx = context ?: error("App context unavailable.")
+        val changes = mutableListOf<String>()
+        payload.morningReadinessEnabled?.let {
+            NudgePrefs.setMorningEnabled(ctx, it)
+            changes += if (it) "morning brief on" else "morning brief off"
+        }
+        payload.bedtimeReminderEnabled?.let {
+            NudgePrefs.setBedtimeEnabled(ctx, it)
+            changes += if (it) "bedtime reminder on" else "bedtime reminder off"
+        }
+        require(changes.isNotEmpty()) { "No reminder changes specified." }
+        return "Updated reminders: ${changes.joinToString(", ")}."
     }
 }

@@ -17,12 +17,21 @@ import com.kevan.hangry.domain.model.MarkerType
 import com.kevan.hangry.domain.model.WorkoutText
 import com.kevan.hangry.domain.model.WorkoutType
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
+import com.kevan.hangry.data.repository.BodyAgeLoader
+import com.kevan.hangry.data.repository.BodyAgeSnapshot
+import com.kevan.hangry.data.repository.StreaksLoader
+import com.kevan.hangry.domain.calculation.StrainCalculator
+import com.kevan.hangry.domain.calculation.Streak
+import com.kevan.hangry.domain.calculation.StreakType
+import com.kevan.hangry.domain.model.RecoveryState
+import com.kevan.hangry.data.local.entity.RecoveryScoreEntity
 import com.kevan.hangry.domain.repository.SupplementRepository
 import com.kevan.hangry.domain.model.SupplementsSnapshot
 import com.kevan.hangry.domain.model.EnergyBalanceResult
 import com.kevan.hangry.domain.repository.BodyMetricsRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.ZoneId
@@ -47,7 +56,10 @@ class AiCoachContextBuilder(
     /** Labs, vitals, goals, allergies, conditions, pregnancy and cycle. Optional for tests. */
     private val healthRecordsRepository: HealthRecordsRepository? = null,
     /** Daily supplements, schedule and adherence. Optional for tests. */
-    private val supplementRepository: SupplementRepository? = null
+    private val supplementRepository: SupplementRepository? = null,
+    private val bodyAgeLoader: BodyAgeLoader? = null,
+    private val streaksLoader: StreaksLoader? = null,
+    private val strainCalculator: StrainCalculator? = null
 ) {
 
     suspend fun build7DayContext(): String {
@@ -108,8 +120,22 @@ class AiCoachContextBuilder(
             appendBodyMetrics(sb, snapshot)
         }
 
+        bodyAgeLoader?.let { loader ->
+            runCatching { loader.load(today, zone) }.getOrNull()?.let { snapshot ->
+                appendBodyAge(sb, snapshot)
+            }
+        }
+
         healthRecordsRepository?.current()?.let { appendHealthRecords(sb, it, today) }
         supplementRepository?.current()?.let { appendSupplements(sb, it) }
+
+        streaksLoader?.let { loader ->
+            val stepGoal = profile?.dailyStepGoal ?: 10000L
+            val sleepTarget = profile?.sleepDurationTargetMinutes ?: 480
+            runCatching { loader.load(today, stepGoal, sleepTarget, zone) }.getOrNull()?.let { streaks ->
+                appendStreaks(sb, streaks)
+            }
+        }
 
         sb.appendLine("=== USER'S PERSONAL JOURNAL & KNOWN PROBLEMS / MEMORIES ===")
         if (journalMemories.isEmpty()) {
@@ -120,6 +146,12 @@ class AiCoachContextBuilder(
             }
         }
         sb.appendLine()
+
+        val latestScore = recoveryScores[today] ?: recoveryScores.values.maxByOrNull { it.date }
+        val recentStrains = dailySummaries.mapNotNull { it.dayStrain }
+        appendRecoveryGuidance(sb, latestScore, recentStrains, strainCalculator)
+
+        appendSleepArchitecture(sb, sleepSessions, zone)
 
         sb.appendLine("=== 7-DAY DAILY HEALTH SUMMARIES ($startDate to $today) ===")
         if (dailySummaries.isEmpty()) {
@@ -316,6 +348,125 @@ class AiCoachContextBuilder(
         if (snapshot.todayDoses.isNotEmpty()) {
             sb.appendLine("Today: ${snapshot.takenToday} of ${snapshot.todayDoses.size} doses taken" +
                 (snapshot.nextDose?.let { " | next: ${it.supplement.name} at ${it.time}" } ?: ""))
+        }
+        sb.appendLine()
+    }
+
+    private fun appendBodyAge(sb: StringBuilder, snapshot: BodyAgeSnapshot) {
+        sb.appendLine("=== BODY AGE (Biological vs Chronological Age over 30 days) ===")
+        val cur = snapshot.current
+        if (cur == null) {
+            val needs = snapshot.needs.joinToString("; ").ifBlank { "More health data needed" }
+            sb.appendLine("Not enough data to calculate Body Age yet ($needs).")
+        } else {
+            val diffYears = cur.difference
+            val diffStr = when {
+                diffYears < -0.2 -> "%.1f years younger than chronological age".format(Locale.US, kotlin.math.abs(diffYears))
+                diffYears > 0.2 -> "%.1f years older than chronological age".format(Locale.US, diffYears)
+                else -> "matches chronological age"
+            }
+            sb.appendLine("Body Age: %.1f yrs (Chronological: %.1f yrs) - %s".format(Locale.US, cur.bodyAge, cur.chronologicalAge, diffStr))
+            snapshot.previous?.let { prev ->
+                val change = cur.bodyAge - prev.bodyAge
+                val trendStr = if (kotlin.math.abs(change) < 0.2) "stable" else if (change < 0) "trending %.1f years younger over the past month".format(Locale.US, kotlin.math.abs(change)) else "trending %.1f years older over the past month".format(Locale.US, change)
+                sb.appendLine("30-Day Trend: $trendStr (was %.1f yrs 30 days ago)".format(Locale.US, prev.bodyAge))
+            }
+            if (cur.factors.isNotEmpty()) {
+                sb.appendLine("Key Drivers:")
+                cur.factors.forEach { f ->
+                    val effect = if (f.years < 0) "%.1f yrs younger".format(Locale.US, kotlin.math.abs(f.years))
+                    else if (f.years > 0) "+%.1f yrs older".format(Locale.US, f.years)
+                    else "neutral"
+                    sb.appendLine("• ${f.name}: ${f.value} ($effect) - ${f.tip}")
+                }
+            }
+        }
+        sb.appendLine()
+    }
+
+    private fun appendStreaks(sb: StringBuilder, streaks: List<Streak>) {
+        sb.appendLine("=== HABIT STREAKS ===")
+        if (streaks.isEmpty()) {
+            sb.appendLine("No active streaks recorded yet.")
+        } else {
+            streaks.forEach { s ->
+                val status = if (s.doneToday) "done today" else "pending today"
+                sb.appendLine("• ${s.type.label}: ${s.current} day(s) ($status | all-time best: ${s.best} days)")
+            }
+        }
+        sb.appendLine()
+    }
+
+    private fun appendRecoveryGuidance(
+        sb: StringBuilder,
+        latestScore: RecoveryScoreEntity?,
+        recentStrains: List<Double>,
+        strainCalculator: StrainCalculator?
+    ) {
+        sb.appendLine("=== TODAY'S RECOVERY & RECOMMENDED STRAIN ===")
+        if (latestScore == null) {
+            sb.appendLine("No recovery score computed yet for today.")
+        } else {
+            val recState = runCatching { RecoveryState.valueOf(latestScore.state) }.getOrNull()
+            val scoreStr = latestScore.score?.let { "$it%" } ?: "Building baseline"
+            sb.appendLine("Recovery Score: $scoreStr | State: ${latestScore.state} | Confidence: ${latestScore.confidence}")
+            if (latestScore.supportiveAdvice.isNotBlank()) {
+                sb.appendLine("Advice: ${latestScore.supportiveAdvice}")
+            }
+            val components = listOfNotNull(
+                latestScore.hrvComponentScore?.let { "HRV: ${it.roundToInt()}%" },
+                latestScore.rhrComponentScore?.let { "RHR: ${it.roundToInt()}%" },
+                latestScore.sleepComponentScore?.let { "Sleep: ${it.roundToInt()}%" },
+                latestScore.trainingLoadComponentScore?.let { "Load: ${it.roundToInt()}%" }
+            )
+            if (components.isNotEmpty()) {
+                sb.appendLine("Score Drivers: " + components.joinToString(" | "))
+            }
+            if (recState != null && strainCalculator != null) {
+                val recommendation = strainCalculator.recommendStrainTarget(recState, recentStrains)
+                sb.appendLine("Recommended Day Strain Target: %.1f - %.1f / 21".format(Locale.US, recommendation.targetLow, recommendation.targetHigh))
+                sb.appendLine("Strain Guidance: ${recommendation.guidance}")
+            }
+        }
+        sb.appendLine()
+    }
+
+    private fun appendSleepArchitecture(
+        sb: StringBuilder,
+        sessions: List<com.kevan.hangry.data.local.entity.SleepSessionEntity>,
+        zone: ZoneId
+    ) {
+        sb.appendLine("=== SLEEP ARCHITECTURE (last 7 days) ===")
+        val validSessions = sessions.filter { it.durationMinutes > 0 }
+        if (validSessions.isEmpty()) {
+            sb.appendLine("No detailed sleep stage sessions recorded in the last 7 days.")
+        } else {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zone)
+            validSessions.sortedByDescending { it.startTime }.take(7).forEach { s ->
+                val dateStr = formatter.format(s.startTime)
+                val durH = s.durationMinutes / 60
+                val durM = s.durationMinutes % 60
+                val totalMin = s.durationMinutes.toDouble()
+                val stages = mutableListOf<String>()
+                s.deepSleepMinutes?.let {
+                    val pct = ((it / totalMin) * 100).roundToInt()
+                    stages += "Deep: ${it}m ($pct%)"
+                }
+                s.remSleepMinutes?.let {
+                    val pct = ((it / totalMin) * 100).roundToInt()
+                    stages += "REM: ${it}m ($pct%)"
+                }
+                s.lightSleepMinutes?.let {
+                    val pct = ((it / totalMin) * 100).roundToInt()
+                    stages += "Light: ${it}m ($pct%)"
+                }
+                s.awakeMinutes?.let {
+                    stages += "Awake: ${it}m"
+                }
+                val scoreStr = s.sleepQualityScore?.let { " | Quality: $it/100" } ?: ""
+                val stagesStr = if (stages.isNotEmpty()) " | Stages: ${stages.joinToString(", ")}" else ""
+                sb.appendLine("• $dateStr: ${durH}h ${durM}m$stagesStr$scoreStr")
+            }
         }
         sb.appendLine()
     }

@@ -268,7 +268,9 @@ class AiCoachContextBuilderTest {
         val fakeStrainCalculator = object : com.kevan.hangry.domain.calculation.StrainCalculator {
             override fun calculateDayStrain(
                 heartRateSamples: List<HeartRateSampleEntity>,
-                workoutsToday: List<ExerciseSessionEntity>
+                workoutsToday: List<ExerciseSessionEntity>,
+                zones: com.kevan.hangry.domain.calculation.HeartRateZones,
+                sleepSessions: List<com.kevan.hangry.data.local.entity.SleepSessionEntity>
             ) = com.kevan.hangry.domain.model.StrainResult(
                 dayStrain = 12.5,
                 confidence = com.kevan.hangry.domain.model.ScoreConfidence.HIGH,

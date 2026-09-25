@@ -5,8 +5,8 @@ import com.kevan.hangry.domain.model.SleepAnalysis
 
 interface SleepCalculator {
     /**
-     * @param previousDaySleepDebtMinutes carryover debt from the prior day, used to raise
-     *   tonight's sleep need (see CALCULATIONS.md §7).
+     * @param recentSessions sessions before [currentSession], newest first; sleep debt over the
+     *   last week comes from these.
      * @param previousDayStrain yesterday's day-strain, compared against [rollingAverageStrain]
      *   to add recovery time after an unusually demanding day.
      */
@@ -14,7 +14,6 @@ interface SleepCalculator {
         currentSession: SleepSessionEntity?,
         recentSessions: List<SleepSessionEntity>,
         targetDurationMinutes: Int = 480,
-        previousDaySleepDebtMinutes: Int = 0,
         previousDayStrain: Double? = null,
         rollingAverageStrain: Double? = null
     ): SleepAnalysis

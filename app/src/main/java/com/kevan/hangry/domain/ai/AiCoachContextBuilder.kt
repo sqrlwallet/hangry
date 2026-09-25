@@ -164,11 +164,11 @@ class AiCoachContextBuilder(
                 val dateStr = s.date.toString()
                 val rec = recoveryScores[s.date]?.score?.let { "$it%" } ?: "N/A"
                 val strain = s.dayStrain?.let { "%.1f/21".format(java.util.Locale.US, it) } ?: "N/A"
-                val sleepDur = s.sleepDurationMinutes?.let { "${it / 60}h ${it % 60}m" } ?: "N/A"
+                val sleepDur = s.sleepDurationMinutes?.let { "${it / 60}h ${it % 60}m asleep" + (s.sleepNeedMinutes?.let { n -> " of ${n / 60}h ${n % 60}m needed" } ?: "") + (s.sleepScore?.let { sc -> ", sleep score $sc/100" } ?: "") } ?: "N/A"
                 val steps = s.steps?.let { "$it steps" } ?: "0 steps"
                 val actCal = s.activeCalories?.let { "%.0f active kcal".format(java.util.Locale.US, it) } ?: "0 active kcal"
                 val actMin = s.activeMinutes?.let { " | Active: $it min" } ?: ""
-                val rhr = s.restingHeartRate?.let { "RHR %.0f bpm".format(java.util.Locale.US, it) } ?: "RHR N/A"
+                val rhr = s.restingHeartRate?.let { "overnight RHR %.0f bpm".format(java.util.Locale.US, it) } ?: "RHR N/A"
                 val hrv = s.hrvRmssd?.let { "HRV %.1f ms".format(java.util.Locale.US, it) } ?: "HRV N/A"
 
                 sb.appendLine("• $dateStr: Recovery: $rec | Sleep: $sleepDur | Strain: $strain | Steps: $steps | Burn: $actCal$actMin | $rhr | $hrv")

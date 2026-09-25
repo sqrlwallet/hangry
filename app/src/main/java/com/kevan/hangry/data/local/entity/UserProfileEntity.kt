@@ -39,6 +39,8 @@ data class UserProfileEntity(
     val dailyActivityMinutesGoal: Int = 90,
     /** How long the user aims to sleep; drives sleep need, debt and the Sleep screen target. */
     val sleepGoalMinutes: Int = 480,
+    /** Known max heart rate (from a test or a hard race); null estimates it from age for strain zones. */
+    val maxHeartRate: Int? = null,
     val dailyActiveCaloriesGoal: Int = 500,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now()

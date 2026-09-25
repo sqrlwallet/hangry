@@ -56,7 +56,9 @@ private val Zone5Color: Color @Composable get() = LocalHangryTokens.current.char
 private val TRAINING_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "Heart Rate Zones",
-        "5 zones from active recovery to peak effort, based on continuous heart-rate samples. " +
+        "5 zones from active recovery to peak effort, set from your own heart-rate reserve: max heart rate " +
+            "(from Settings, or estimated as 208 - 0.7 x age) minus your usual resting heart rate. Zone 1 starts at 50%. " +
+            "Readings below that - sitting, sleeping - aren't counted. " +
             "Today's zone mix is shown when available, falling back to a 7-day window otherwise."
     )
 )
@@ -82,11 +84,13 @@ fun TrainingScreen(
     val workouts by workoutRepository.getSessionsBetween(dayStart, dayEnd).collectAsState(initial = emptyList())
 
     // Collect active date's zone distribution, falling back to 7-day trailing if active date has no samples
-    val todayZoneDistribution by heartRateRepository.getZoneDistribution(dayStart, dayEnd)
+    val zones = uiState.heartRateZones
+    val zoneLabels = remember(zones) { zones.labels() }
+    val todayZoneDistribution by remember(dayStart, zones) { heartRateRepository.getZoneDistribution(dayStart, dayEnd, zones) }
         .collectAsState(initial = HeartRateZoneDistribution())
 
     val trailing7dStart = dayStart.minus(7, ChronoUnit.DAYS)
-    val weekZoneDistribution by heartRateRepository.getZoneDistribution(trailing7dStart, dayEnd)
+    val weekZoneDistribution by remember(dayStart, zones) { heartRateRepository.getZoneDistribution(trailing7dStart, dayEnd, zones) }
         .collectAsState(initial = HeartRateZoneDistribution())
 
     val effectiveDistribution = if (todayZoneDistribution.totalCount > 0) {
@@ -290,35 +294,35 @@ fun TrainingScreen(
                     ZoneDetailRow(
                         color = Zone1Color,
                         name = "Zone 1: Active Recovery",
-                        range = "< 114 bpm",
+                        range = "${zoneLabels[0]} bpm",
                         percentage = (effectiveDistribution.zone1Pct * 100).toInt(),
                         purpose = "Warm-up & Restoration"
                     )
                     ZoneDetailRow(
                         color = Zone2Color,
                         name = "Zone 2: Aerobic Base",
-                        range = "114–133 bpm",
+                        range = "${zoneLabels[1]} bpm",
                         percentage = (effectiveDistribution.zone2Pct * 100).toInt(),
                         purpose = "Mitochondrial Density"
                     )
                     ZoneDetailRow(
                         color = Zone3Color,
                         name = "Zone 3: Aerobic Tempo",
-                        range = "133–152 bpm",
+                        range = "${zoneLabels[2]} bpm",
                         percentage = (effectiveDistribution.zone3Pct * 100).toInt(),
                         purpose = "Cardiovascular Stamina"
                     )
                     ZoneDetailRow(
                         color = Zone4Color,
                         name = "Zone 4: Lactate Threshold",
-                        range = "152–171 bpm",
+                        range = "${zoneLabels[3]} bpm",
                         percentage = (effectiveDistribution.zone4Pct * 100).toInt(),
                         purpose = "Speed Endurance"
                     )
                     ZoneDetailRow(
                         color = Zone5Color,
                         name = "Zone 5: Peak / VO2 Max",
-                        range = "≥ 171 bpm",
+                        range = "${zoneLabels[4]} bpm",
                         percentage = (effectiveDistribution.zone5Pct * 100).toInt(),
                         purpose = "Anaerobic Power"
                     )

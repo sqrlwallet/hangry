@@ -193,7 +193,7 @@ class RealHealthConnectDataSource(
             HealthDedup.Span(it, it.startTime, it.endTime, it.metadata.dataOrigin.packageName, if (it.stages.isNotEmpty()) 1.0 else 0.0)
         })
         return oneCopyPerNight.map { record ->
-            val durationMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
+            val inBedMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
             val pkg = record.metadata.dataOrigin.packageName
             val recordId = record.metadata.id
             val fingerprint = sha256("SLEEP|$pkg|$recordId|${record.startTime.toEpochMilli()}")
@@ -203,20 +203,26 @@ class RealHealthConnectDataSource(
             var lightMin: Int? = null
             var awakeMin: Int? = null
 
+            // Time asleep, not time in bed: with stages it's the sleep stages added up (awake
+            // spells and untracked gaps don't count); without them, the whole session.
+            var asleepMinutes = inBedMinutes
             if (record.stages.isNotEmpty()) {
-                var d = 0; var r = 0; var l = 0; var a = 0
+                var d = 0; var r = 0; var l = 0; var a = 0; var generic = 0
                 for (stage in record.stages) {
                     val m = java.time.Duration.between(stage.startTime, stage.endTime).toMinutes().toInt()
                     when (stage.stage) {
                         SleepSessionRecord.STAGE_TYPE_DEEP -> d += m
                         SleepSessionRecord.STAGE_TYPE_REM -> r += m
                         SleepSessionRecord.STAGE_TYPE_LIGHT -> l += m
+                        SleepSessionRecord.STAGE_TYPE_SLEEPING -> generic += m
                         SleepSessionRecord.STAGE_TYPE_AWAKE,
                         SleepSessionRecord.STAGE_TYPE_OUT_OF_BED,
                         SleepSessionRecord.STAGE_TYPE_AWAKE_IN_BED -> a += m
                     }
                 }
                 deepMin = d; remMin = r; lightMin = l; awakeMin = a
+                val staged = d + r + l + generic
+                if (staged in 1..inBedMinutes) asleepMinutes = staged
             }
 
             SleepSessionEntity(
@@ -225,8 +231,8 @@ class RealHealthConnectDataSource(
                 recordFingerprint = fingerprint,
                 startTime = record.startTime,
                 endTime = record.endTime,
-                durationMinutes = durationMinutes,
-                timeInBedMinutes = durationMinutes,
+                durationMinutes = asleepMinutes,
+                timeInBedMinutes = inBedMinutes,
                 deepSleepMinutes = deepMin,
                 remSleepMinutes = remMin,
                 lightSleepMinutes = lightMin,

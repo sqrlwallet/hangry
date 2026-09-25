@@ -190,16 +190,16 @@ class DashboardViewModel(
                     session.endTime.atZone(zone).toLocalDate() == date
                 }
 
-                val previousDaySummary = recentSummaries.firstOrNull()
-                val previousDayDebt = previousDaySummary?.sleepDurationMinutes?.let { max(0, sleepGoal - it) } ?: 0
-                val rollingAverageStrain = recentSummaries.mapNotNull { it.dayStrain }
+                val previousDaySummary = recentSummaries.firstOrNull { it.date == date.minusDays(1) }
+                // Same 7 days as the sync uses, so tonight's need matches the stored one.
+                val rollingAverageStrain = recentSummaries.filter { !it.date.isBefore(date.minusDays(7)) }
+                    .mapNotNull { it.dayStrain }
                     .let { if (it.isNotEmpty()) it.average() else null }
 
                 val sleepAnalysis = sleepCalculator.analyzeSleep(
                     currentSession = latestSleep,
                     recentSessions = sleepBaselineHistory,
                     targetDurationMinutes = sleepGoal,
-                    previousDaySleepDebtMinutes = previousDayDebt,
                     previousDayStrain = previousDaySummary?.dayStrain,
                     rollingAverageStrain = rollingAverageStrain
                 )
@@ -282,6 +282,10 @@ class DashboardViewModel(
                         dailySummary = summary,
                         recoveryScore = score,
                         sleepAnalysis = sleepAnalysis,
+                        heartRateZones = com.kevan.hangry.domain.calculation.HeartRateZones.forUser(
+                            profile?.age, profile?.maxHeartRate,
+                            recentSummaries.mapNotNull { it.restingHeartRate }.takeIf { it.isNotEmpty() }?.average()
+                        ),
                         trainingAnalysis = trainingAnalysis,
                         strainRecommendation = strainRecommendation,
                         calorieBurn = calorieBurn,

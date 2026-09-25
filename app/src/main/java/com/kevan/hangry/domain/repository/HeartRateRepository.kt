@@ -12,8 +12,8 @@ interface HeartRateRepository {
     suspend fun getAverageRestingHeartRate(start: LocalDate, end: LocalDate): Double?
     suspend fun insertRestingHeartRates(records: List<RestingHeartRateEntity>): List<Long>
     fun getSamplesBetween(start: Instant, end: Instant): Flow<List<HeartRateSampleEntity>>
-    fun getZoneDistribution(start: Instant, end: Instant): Flow<com.kevan.hangry.domain.model.HeartRateZoneDistribution>
-    suspend fun getZoneDistributionSync(start: Instant, end: Instant): com.kevan.hangry.domain.model.HeartRateZoneDistribution
+    fun getZoneDistribution(start: Instant, end: Instant, zones: com.kevan.hangry.domain.calculation.HeartRateZones): Flow<com.kevan.hangry.domain.model.HeartRateZoneDistribution>
+    suspend fun getZoneDistributionSync(start: Instant, end: Instant, zones: com.kevan.hangry.domain.calculation.HeartRateZones): com.kevan.hangry.domain.model.HeartRateZoneDistribution
     suspend fun insertSamples(samples: List<HeartRateSampleEntity>): List<Long>
     suspend fun deleteAll()
 }

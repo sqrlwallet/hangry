@@ -21,6 +21,8 @@ data class DashboardUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val dailySummary: DailyHealthSummaryEntity? = null,
     val recoveryScore: RecoveryScoreEntity? = null,
+    /** Personal heart-rate zones (max HR from Settings or age, usual resting HR). */
+    val heartRateZones: com.kevan.hangry.domain.calculation.HeartRateZones = com.kevan.hangry.domain.calculation.HeartRateZones.DEFAULT,
     val sleepAnalysis: SleepAnalysis? = null,
     val trainingAnalysis: TrainingLoadAnalysis? = null,
     val strainRecommendation: StrainRecommendation? = null,

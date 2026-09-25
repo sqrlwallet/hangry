@@ -13,6 +13,12 @@ data class DailyHealthSummaryEntity(
     val sleepStartTime: Instant? = null,
     val sleepEndTime: Instant? = null,
     val sleepConsistencyScore: Double? = null,
+    /** What the night needed: sleep goal + recent debt + a hard day's extra. */
+    val sleepNeedMinutes: Int? = null,
+    /** 0-100 Sleep Score (need met + how well you slept), see HangrySleepCalculator. */
+    val sleepScore: Int? = null,
+    /** 0-100: efficiency, deep + REM and regular timing, regardless of length. */
+    val sleepQualityScore: Int? = null,
     val steps: Long? = null,
     val distanceMeters: Double? = null,
     val activeCalories: Double? = null, // workouts in full + every step's cost, see ActiveActivityCalculator
@@ -23,7 +29,8 @@ data class DailyHealthSummaryEntity(
     val activeMinutes: Int? = null,
     val exerciseCount: Int = 0,
     val dailyTrainingLoad: Double? = null,
-    val dayStrain: Double? = null, // 0-21 bounded day-strain, see CALCULATIONS.md §6
+    val dayStrain: Double? = null, // 0-21 day strain; null when there was no heart rate or workout to go on
+    /** Overnight resting heart rate when there's sleep heart rate, else a daytime estimate. */
     val restingHeartRate: Double? = null,
     val averageHeartRate: Double? = null,
     val hrvRmssd: Double? = null,
@@ -43,5 +50,7 @@ data class DailyHealthSummaryEntity(
 /**
  * Bump when the way a day's summary is calculated changes, so stored days get rebuilt.
  * 2: active calories/minutes count whole workouts and every step (ActiveActivityCalculator).
+ * 3: overnight RHR and HRV, personal strain zones (sleep excluded), sleep need from the goal
+ *    and a week of debt, time asleep instead of time in bed.
  */
-const val SUMMARY_CALCULATION_VERSION = 2
+const val SUMMARY_CALCULATION_VERSION = 3

@@ -3,6 +3,7 @@ package com.kevan.hangry.ui.navigation
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import com.kevan.hangry.data.repository.BodyAgeLoader
 import com.kevan.hangry.data.repository.StreaksLoader
 import com.kevan.hangry.ui.bodyage.BodyAgeScreen
@@ -217,6 +218,20 @@ fun HangryNavGraph(
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
+    }
+    // Live strain: while the app is on screen, pull today's heart rate every few minutes so
+    // strain builds up as the day goes on. The hourly background sync covers the rest, and the
+    // first sync after midnight settles yesterday's final number.
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                if (appContainer.healthSyncManager.refreshToday()) {
+                    dashboardViewModel.refreshHabits()
+                    com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(appContext)
+                }
+                delay(LIVE_REFRESH_MS)
+            }
+        }
     }
     LaunchedEffect(Unit) {
         while (true) {
@@ -871,3 +886,6 @@ internal fun NavHostController.navigateToTab(route: String) {
         restoreState = true
     }
 }
+
+/** How often today's strain refreshes while the app is open. */
+private const val LIVE_REFRESH_MS = 5 * 60 * 1000L

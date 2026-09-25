@@ -22,4 +22,10 @@ interface HealthSyncManager {
 
     /** Saves the pick and immediately recomputes that day's recovery score with it. */
     suspend fun setHrvFeeling(date: LocalDate, feeling: HrvFeeling) {}
+
+    /**
+     * Quietly pulls today's heart rate, workouts and steps and recomputes today, so strain and
+     * activity keep up as the day goes on. Skipped (false) while a full sync is running.
+     */
+    suspend fun refreshToday(): Boolean = false
 }

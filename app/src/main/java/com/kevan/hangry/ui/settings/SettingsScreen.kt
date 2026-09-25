@@ -573,6 +573,8 @@ fun SettingsScreen(
             onDismiss = { showEditGoalsDialog = false },
             onSave = { updated, newWeight ->
                 coroutineScope.launch {
+                    val scoringInputsChanged = updated.maxHeartRate != profile?.maxHeartRate ||
+                        updated.sleepGoalMinutes != profile?.sleepGoalMinutes || updated.age != profile?.age
                     userProfileRepository.saveProfile(updated)
                     if (newWeight != null && newWeight > 0.0) {
                         val record = WeightMeasurementEntity(
@@ -585,6 +587,8 @@ fun SettingsScreen(
                     }
                     showEditGoalsDialog = false
                     snackbarHostState.showSnackbar("Goals & body metrics saved.")
+                    // Strain zones and sleep need depend on these - rescore history with them.
+                    if (scoringInputsChanged) syncManager.recalculateAllBaselines().collect { }
                 }
             }
         )
@@ -617,6 +621,7 @@ private fun EditGoalsDialog(
     var sleepGoalInput by remember {
         mutableStateOf(((profile?.sleepGoalMinutes ?: 480) / 60.0).let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() })
     }
+    var maxHrInput by remember { mutableStateOf(profile?.maxHeartRate?.toString() ?: "") }
     var selectedSex by remember { mutableStateOf(profile?.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() }) }
     var targetDate by remember { mutableStateOf(profile?.goalTargetDate) }
     var neckInput by remember { mutableStateOf(profile?.neckCircumferenceCm?.toString() ?: "") }
@@ -727,6 +732,22 @@ private fun EditGoalsDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                val estimatedMaxHr = com.kevan.hangry.domain.calculation.HeartRateZones.estimateMaxHr(ageInput.toIntOrNull()).toInt()
+                OutlinedTextField(
+                    value = maxHrInput,
+                    onValueChange = { maxHrInput = it.filter { c -> c.isDigit() }.take(3) },
+                    label = { Text("Max heart rate (optional)") },
+                    placeholder = { Text("$estimatedMaxHr") },
+                    supportingText = {
+                        Text(
+                            if (maxHrInput.isBlank()) "Estimated $estimatedMaxHr bpm from your age. Enter yours if you know it - it sets your strain zones."
+                            else "Sets your heart-rate zones for strain. Leave empty to estimate from age."
+                        )
+                    },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 OutlinedButton(
                     onClick = { showDatePicker = true },
                     modifier = Modifier.fillMaxWidth()
@@ -798,6 +819,7 @@ private fun EditGoalsDialog(
                         sleepGoalMinutes = sleepGoalInput.toDoubleOrNull()
                             ?.let { (it * 60).toInt().coerceIn(240, 720) } ?: (profile?.sleepGoalMinutes ?: 480),
                         goalTargetDate = targetDate,
+                        maxHeartRate = maxHrInput.toIntOrNull()?.takeIf { it in 120..230 },
                         neckCircumferenceCm = neckInput.toDoubleOrNull(),
                         chestCircumferenceCm = chestInput.toDoubleOrNull(),
                         waistCircumferenceCm = waistInput.toDoubleOrNull(),

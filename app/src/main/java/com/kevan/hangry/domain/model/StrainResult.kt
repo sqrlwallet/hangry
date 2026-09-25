@@ -15,7 +15,9 @@ data class StrainResult(
     val dayStrain: Double, // 0.0 to 21.0, saturating scale
     val confidence: ScoreConfidence,
     val source: StrainSource,
-    val supportiveNote: String
+    val supportiveNote: String,
+    /** Minutes in personal zones 1-5, when strain came from heart rate. */
+    val zoneMinutes: List<Double>? = null
 )
 
 data class StrainRecommendation(

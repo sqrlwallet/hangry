@@ -32,23 +32,23 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 private val RECOVERY_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "Heart Rate Variability — 35% weight",
-        "Reflects parasympathetic autonomic tone. Higher HRV relative to your 7-day rolling baseline indicates systemic readiness. If your device doesn't report HRV, we count it as excellent - and you can change that to how you actually feel."
+        "Reflects parasympathetic autonomic tone, from readings taken while you slept. Scored by how far last night is from your own 30-day normal, allowing for how much your HRV usually varies. If your device doesn't report HRV, we count it as excellent - and you can change that to how you actually feel."
     ),
     HangryInfoSection(
         "Resting Heart Rate — 25% weight",
-        "Reflects cardiovascular recovery. A resting pulse matching or lower than your baseline indicates strong recovery."
+        "Your lowest 5-minute average heart rate during last night's sleep (a daytime estimate if your device doesn't record heart rate overnight). Lower than your 30-day normal indicates strong recovery."
     ),
     HangryInfoSection(
-        "Sleep Duration — 25% weight",
-        "Evaluates actual sleep against your personal 7-day baseline and target duration."
+        "Sleep — 25% weight",
+        "How much of your sleep need you got (your sleep goal, plus recent sleep debt and extra after a hard day), with a quarter for how well you slept."
     ),
     HangryInfoSection(
-        "Strain & Consistency — 15% weight",
-        "Accounts for circadian sleep consistency and acute strain from recent workouts."
+        "Sleep Consistency — 15% weight",
+        "How regular your bed and wake times have been over the last week."
     ),
     HangryInfoSection(
         "Algorithm",
-        "Hangry Recovery Algorithm - Autonomic-Restorative Heuristic, computed over a 7-day rolling baseline window."
+        "Compared with your own last 30 days. A breathing rate well above your usual lowers the score, since it's often an early sign of illness."
     )
 )
 
@@ -132,12 +132,12 @@ fun RecoveryDetailsScreen(
                 score = scoreEntity?.rhrComponentScore
             )
             RecoveryComponentRow(
-                label = "Sleep Duration",
+                label = "Sleep",
                 valueColor = tokens.chartColors.sleep,
                 score = scoreEntity?.sleepComponentScore
             )
             RecoveryComponentRow(
-                label = "Strain & Consistency",
+                label = "Sleep Consistency",
                 valueColor = tokens.chartColors.trainingLoad,
                 score = scoreEntity?.trainingLoadComponentScore
             )

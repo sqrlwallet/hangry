@@ -43,7 +43,7 @@ import com.kevan.hangry.data.local.entity.*
         SupplementIntakeEntity::class,
         FastEntity::class
     ],
-    version = 27,
+    version = 28,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -545,6 +545,31 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Sleep duration was stored as time in bed. Where the device recorded stages it's now the
+         * stages added up (awake time and untracked gaps excluded). Also a max heart rate setting
+         * for personal strain zones, and the night's sleep need and scores on each daily summary.
+         */
+        val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_profile ADD COLUMN maxHeartRate INTEGER")
+                listOf("sleepNeedMinutes", "sleepScore", "sleepQualityScore").forEach {
+                    db.execSQL("ALTER TABLE daily_health_summaries ADD COLUMN $it INTEGER")
+                }
+                db.execSQL(
+                    """
+                    UPDATE sleep_sessions
+                    SET timeInBedMinutes = COALESCE(timeInBedMinutes, durationMinutes),
+                        durationMinutes = deepSleepMinutes + remSleepMinutes + lightSleepMinutes
+                    WHERE isManualEntry = 0
+                      AND deepSleepMinutes IS NOT NULL AND remSleepMinutes IS NOT NULL AND lightSleepMinutes IS NOT NULL
+                      AND deepSleepMinutes + remSleepMinutes + lightSleepMinutes > 0
+                      AND deepSleepMinutes + remSleepMinutes + lightSleepMinutes <= durationMinutes
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -556,7 +581,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28
                     )
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {

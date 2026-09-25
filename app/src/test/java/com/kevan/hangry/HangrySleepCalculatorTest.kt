@@ -73,7 +73,7 @@ class HangrySleepCalculatorTest {
     }
 
     @Test
-    fun testSleepNeed_risesWithPreviousDayDebtAndStrain() {
+    fun testSleepNeed_risesWithRecentDebtAndStrain() {
         val now = Instant.now()
         val current = SleepSessionEntity(
             recordFingerprint = "need-test",
@@ -90,11 +90,11 @@ class HangrySleepCalculatorTest {
             )
         }
 
+        val shortNights = history.map { it.copy(durationMinutes = 360) }
         val baseline = calculator.analyzeSleep(current, history)
         val withDebtAndStrain = calculator.analyzeSleep(
             currentSession = current,
-            recentSessions = history,
-            previousDaySleepDebtMinutes = 60,
+            recentSessions = shortNights,
             previousDayStrain = 18.0,
             rollingAverageStrain = 9.0
         )
@@ -240,7 +240,7 @@ class HangrySleepCalculatorTest {
         }
 
         val analysis = calculator.analyzeSleep(current, history)
-        assertTrue(analysis.supportiveNote.contains("shorter than your usual pattern", ignoreCase = true))
+        assertTrue(analysis.supportiveNote.contains("shorter than the sleep you needed", ignoreCase = true))
         assertFalse(analysis.supportiveNote.contains("poor", ignoreCase = true))
     }
 }

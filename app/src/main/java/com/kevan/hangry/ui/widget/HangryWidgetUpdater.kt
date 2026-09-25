@@ -232,12 +232,16 @@ object HangryWidgetUpdater {
                 "${latestSleep.startTime.atZone(zone).format(timeFormat)} – ${latestSleep.endTime.atZone(zone).format(timeFormat)}"
             else -> "Last night"
         }
-        val scoreStr = summary?.sleepConsistencyScore?.takeIf { hasSleep }?.let { "${it.roundToInt()}% steady" }
+        // The night out of 100 leads; time asleep moves to the subtitle.
+        val sleepScore = summary?.sleepScore?.takeIf { hasSleep }
+        val headline = sleepScore?.let { "$it/100" } ?: durationStr
+        val subtitle = if (sleepScore != null) "$durationStr asleep · $subtitleStr" else subtitleStr
+        val scoreStr = if (sleepScore != null) "Sleep score" else summary?.sleepConsistencyScore?.takeIf { hasSleep }?.let { "${it.roundToInt()}% steady" }
 
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_sleep)
-            views.setTextViewText(R.id.tv_sleep_duration, durationStr)
-            views.setTextViewText(R.id.tv_sleep_subtitle, subtitleStr)
+            views.setTextViewText(R.id.tv_sleep_duration, headline)
+            views.setTextViewText(R.id.tv_sleep_subtitle, subtitle)
             views.setTextViewText(R.id.tv_sleep_score, scoreStr.orEmpty())
             views.setViewVisibility(R.id.tv_sleep_score, if (scoreStr == null) View.GONE else View.VISIBLE)
 

@@ -32,28 +32,29 @@ interface HeartRateDao {
     suspend fun getRestingBpmEstimateBetween(start: Instant, end: Instant): Double?
 
     @Query("""
-        SELECT 
-            COUNT(CASE WHEN bpm < 114 THEN 1 END) as zone1Count,
-            COUNT(CASE WHEN bpm >= 114 AND bpm < 133 THEN 1 END) as zone2Count,
-            COUNT(CASE WHEN bpm >= 133 AND bpm < 152 THEN 1 END) as zone3Count,
-            COUNT(CASE WHEN bpm >= 152 AND bpm < 171 THEN 1 END) as zone4Count,
-            COUNT(CASE WHEN bpm >= 171 THEN 1 END) as zone5Count
+        SELECT
+            COUNT(CASE WHEN bpm >= :z1 AND bpm < :z2 THEN 1 END) as zone1Count,
+            COUNT(CASE WHEN bpm >= :z2 AND bpm < :z3 THEN 1 END) as zone2Count,
+            COUNT(CASE WHEN bpm >= :z3 AND bpm < :z4 THEN 1 END) as zone3Count,
+            COUNT(CASE WHEN bpm >= :z4 AND bpm < :z5 THEN 1 END) as zone4Count,
+            COUNT(CASE WHEN bpm >= :z5 THEN 1 END) as zone5Count
         FROM heart_rate_samples
         WHERE timestamp >= :start AND timestamp <= :end
     """)
-    fun getZoneDistribution(start: Instant, end: Instant): Flow<com.kevan.hangry.domain.model.HeartRateZoneDistribution>
+    /** Samples in personal zones 1-5 (lower bounds [z1]..[z5]); resting readings below zone 1 aren't counted. */
+    fun getZoneDistribution(start: Instant, end: Instant, z1: Double, z2: Double, z3: Double, z4: Double, z5: Double): Flow<com.kevan.hangry.domain.model.HeartRateZoneDistribution>
 
     @Query("""
-        SELECT 
-            COUNT(CASE WHEN bpm < 114 THEN 1 END) as zone1Count,
-            COUNT(CASE WHEN bpm >= 114 AND bpm < 133 THEN 1 END) as zone2Count,
-            COUNT(CASE WHEN bpm >= 133 AND bpm < 152 THEN 1 END) as zone3Count,
-            COUNT(CASE WHEN bpm >= 152 AND bpm < 171 THEN 1 END) as zone4Count,
-            COUNT(CASE WHEN bpm >= 171 THEN 1 END) as zone5Count
+        SELECT
+            COUNT(CASE WHEN bpm >= :z1 AND bpm < :z2 THEN 1 END) as zone1Count,
+            COUNT(CASE WHEN bpm >= :z2 AND bpm < :z3 THEN 1 END) as zone2Count,
+            COUNT(CASE WHEN bpm >= :z3 AND bpm < :z4 THEN 1 END) as zone3Count,
+            COUNT(CASE WHEN bpm >= :z4 AND bpm < :z5 THEN 1 END) as zone4Count,
+            COUNT(CASE WHEN bpm >= :z5 THEN 1 END) as zone5Count
         FROM heart_rate_samples
         WHERE timestamp >= :start AND timestamp <= :end
     """)
-    suspend fun getZoneDistributionSync(start: Instant, end: Instant): com.kevan.hangry.domain.model.HeartRateZoneDistribution
+    suspend fun getZoneDistributionSync(start: Instant, end: Instant, z1: Double, z2: Double, z3: Double, z4: Double, z5: Double): com.kevan.hangry.domain.model.HeartRateZoneDistribution
 
     @Query("SELECT COUNT(*) FROM heart_rate_samples")
     suspend fun getCount(): Int

@@ -15,6 +15,9 @@ interface HrvDao {
 
     // See RestingHeartRateDao.getForDate - deterministically prefer the most recently
     // imported row when more than one exists for the same date.
+    @Query("SELECT * FROM hrv_measurements WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp ASC")
+    suspend fun getBetweenTimestamps(start: java.time.Instant, end: java.time.Instant): List<HrvMeasurementEntity>
+
     @Query("SELECT * FROM hrv_measurements WHERE recordDate = :date ORDER BY importTimestamp DESC LIMIT 1")
     suspend fun getForDate(date: LocalDate): HrvMeasurementEntity?
 

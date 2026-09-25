@@ -15,12 +15,22 @@ data class SleepAnalysis(
     val lightSleepMinutes: Int? = null,
     val awakeMinutes: Int? = null,
     val restorativePercentage: Int? = null,
-    /** Personal baseline plus adjustments; the 8h target until there's history. */
+    /** Time asleep / time in bed. */
+    val efficiencyPercentage: Int? = null,
+    /** What this night needed: the sleep goal plus recent sleep debt and a hard day's extra. */
     val sleepNeedMinutes: Int = 480,
+    /** What tonight needs, including anything this night fell short by. */
+    val tonightsNeedMinutes: Int = sleepNeedMinutes,
     val sleepPerformancePercentage: Int? = null,
+    /** How well you slept (efficiency, deep + REM, regular timing), regardless of length. */
     val sleepQualityScore: Int? = null,
+    /** 0-100: how much of your need you got (half the score) plus how well you slept. */
+    val sleepScore: Int? = null,
+    /** The Sleep Score's parts, each 0-100; null when not measured. */
+    val efficiencyScore: Int? = null,
+    val restorativeScore: Int? = null,
     val recommendedBedtime: LocalTime? = null,
-    /** Needs at least 3 recent nights. */
+    /** How regular bed and wake times are. Needs at least 3 nights. */
     val consistencyPercentage: Int? = null,
     val sevenDayAverageMinutes: Int? = null,
     val thirtyDayAverageMinutes: Int? = null,

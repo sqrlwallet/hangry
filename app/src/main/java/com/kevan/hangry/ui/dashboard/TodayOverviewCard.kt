@@ -106,18 +106,20 @@ fun TodayOverviewCard(
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val sleepMin = uiState.dailySummary?.sleepDurationMinutes
-                val performance = uiState.sleepAnalysis?.sleepPerformancePercentage
+                val sleepMin = uiState.dailySummary?.sleepDurationMinutes?.takeIf { it > 0 }
+                val sleepScore = uiState.sleepAnalysis?.sleepScore ?: uiState.dailySummary?.sleepScore
                 OverviewStat(
-                    label = "Sleep",
+                    label = "Sleep score",
                     value = when {
                         isPending -> "Pending"
-                        sleepMin != null && sleepMin > 0 -> "${sleepMin / 60}h ${sleepMin % 60}m"
+                        sleepScore != null && sleepMin != null -> "$sleepScore/100"
+                        sleepMin != null -> "${sleepMin / 60}h ${sleepMin % 60}m"
                         else -> "—"
                     },
                     detail = when {
                         isPending -> "Log last night's sleep"
-                        performance != null -> "$performance% of need"
+                        sleepMin != null -> "${sleepMin / 60}h ${sleepMin % 60}m asleep" +
+                            (uiState.sleepAnalysis?.sleepPerformancePercentage?.let { " · $it% of need" } ?: "")
                         else -> null
                     },
                     color = tokens.chartColors.sleep,
@@ -125,10 +127,16 @@ fun TodayOverviewCard(
                 )
                 val strain = uiState.dailySummary?.dayStrain?.coerceIn(0.0, HangryStrainCalculator.MAX_STRAIN)
                 val target = uiState.strainRecommendation
+                // Today's strain keeps building until midnight; earlier days are final.
+                val isToday = uiState.selectedDate == java.time.LocalDate.now()
                 OverviewStat(
-                    label = "Strain",
-                    value = strain?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                    detail = target?.let { String.format(Locale.US, "Target %.1f–%.1f", it.targetLow, it.targetHigh) },
+                    label = if (isToday) "Strain so far" else "Strain",
+                    value = strain?.let { String.format(Locale.US, "%.1f", it) } ?: if (isToday) "0.0" else "—",
+                    detail = when {
+                        !isToday -> if (strain != null) "Final for the day" else null
+                        target != null -> String.format(Locale.US, "Target %.1f–%.1f · live", target.targetLow, target.targetHigh)
+                        else -> "Live - builds through the day"
+                    },
                     color = tokens.chartColors.trainingLoad,
                     onClick = onOpenWorkouts
                 )

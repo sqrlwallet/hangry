@@ -45,7 +45,7 @@
     <!-- AppWidgets -->
     <string name="widget_activity_description">Today\'s steps and active calories.</string>
     <string name="widget_quick_log_description">One-tap shortcut to snap and log meals instantly.</string>
-    <string name="widget_sleep_description">Last night\'s sleep, when you slept, and how steady your sleep schedule is.</string>
+    <string name="widget_sleep_description">Last night\'s sleep score out of 100, how long you slept, and when.</string>
     <string name="widget_recovery_description">Today\'s recovery score and what it means for training.</string>
     <string name="widget_supplements_description">Your next supplement dose and how many you\'ve taken today.</string>
     <string name="widget_overview_description">Comprehensive daily overview with recovery, activity, sleep, and quick-log.</string>

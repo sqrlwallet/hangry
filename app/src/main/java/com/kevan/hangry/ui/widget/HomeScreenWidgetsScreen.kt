@@ -147,7 +147,7 @@ fun HomeScreenWidgetsScreen(
             WidgetPreviewCard(
                 title = "Sleep Insights",
                 sizeLabel = "2 × 2",
-                description = "Last night's sleep, when you slept, and how steady your sleep schedule is.",
+                description = "Last night's sleep score out of 100, how long you slept, and when.",
                 onPinWidget = { pinWidget(context, SleepWidgetProvider::class.java) }
             ) {
                 SleepWidgetMockup()
@@ -440,13 +440,13 @@ private fun SleepWidgetMockup() {
                 color = Color(0xFF2F2C33),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("88% steady", color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Text("Sleep score", color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-        Text("7h 30m", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("11:40 PM – 7:10 AM", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+        Text("82/100", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("7h 30m asleep · 11:40 PM – 7:10 AM", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
     }
 }
 

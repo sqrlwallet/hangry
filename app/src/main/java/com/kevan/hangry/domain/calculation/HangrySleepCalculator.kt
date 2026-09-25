@@ -139,16 +139,21 @@ class HangrySleepCalculator(private val zone: ZoneId = ZoneId.systemDefault()) :
             .map { night -> night.maxBy { it.durationMinutes } }
 
     /**
-     * Recent shortfalls against the goal, most recent night weighted most: sleep debt fades over
-     * about a week rather than resetting after one good night. Capped at 2 hours.
+     * Sleep debt is paid back gradually - over up to two weeks, not in one night. The debt is the
+     * running shortfall against the goal over the last 14 nights (a longer night pays some back);
+     * each night then needs 1/14 of it extra. Capped at an hour: beyond that the goal itself is
+     * probably out of step with the user's life.
      */
     private fun debtCarryover(recentNightsNewestFirst: List<Int>, target: Int): Int {
-        val debt = recentNightsNewestFirst.take(DEBT_WEIGHTS.size).withIndex()
-            .sumOf { (i, minutes) -> max(0, target - minutes) * DEBT_WEIGHTS[i] }
-        return debt.roundToInt().coerceIn(0, MAX_DEBT_CARRYOVER_MINUTES)
+        var debt = 0.0
+        // Oldest first, so a long night only repays debt that already existed.
+        for (minutes in recentNightsNewestFirst.take(DEBT_WINDOW_NIGHTS).reversed()) {
+            debt = max(0.0, debt + (target - minutes))
+        }
+        return (debt / DEBT_WINDOW_NIGHTS).roundToInt().coerceIn(0, MAX_DEBT_CARRYOVER_MINUTES)
     }
 
-    /** Extra sleep after a day harder than usual, up to an hour. */
+    /** Extra sleep after a day harder than usual, up to 30 minutes. */
     private fun strainAdjustment(previousDayStrain: Double?, rollingAverageStrain: Double?): Int {
         if (previousDayStrain == null || rollingAverageStrain == null || rollingAverageStrain <= 0.0) return 0
         val ratio = previousDayStrain / rollingAverageStrain
@@ -201,13 +206,13 @@ class HangrySleepCalculator(private val zone: ZoneId = ZoneId.systemDefault()) :
     companion object {
         private const val MIN_TARGET_MINUTES = 240
         private const val MAX_TARGET_MINUTES = 720
-        private const val MAX_EXTRA_NEED_MINUTES = 180
+        private const val MAX_EXTRA_NEED_MINUTES = 90
 
-        /** Share of each recent night's shortfall still owed, last night first. */
-        private val DEBT_WEIGHTS = doubleArrayOf(0.30, 0.20, 0.15, 0.10, 0.08, 0.06, 0.05)
-        private const val MAX_DEBT_CARRYOVER_MINUTES = 120
-        private const val STRAIN_ADJUSTMENT_MINUTES_PER_RATIO_UNIT = 60.0
-        private const val MAX_STRAIN_ADJUSTMENT_MINUTES = 60
+        /** Sleep debt is repaid over this many nights. */
+        private const val DEBT_WINDOW_NIGHTS = 14
+        private const val MAX_DEBT_CARRYOVER_MINUTES = 60
+        private const val STRAIN_ADJUSTMENT_MINUTES_PER_RATIO_UNIT = 30.0
+        private const val MAX_STRAIN_ADJUSTMENT_MINUTES = 30
 
         private const val CONSISTENCY_POINTS_PER_MINUTE = 0.5
         private const val EFFICIENCY_FLOOR = 65.0

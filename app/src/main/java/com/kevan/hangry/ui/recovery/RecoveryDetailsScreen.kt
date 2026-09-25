@@ -36,15 +36,15 @@ private val RECOVERY_INFO_SECTIONS = listOf(
     ),
     HangryInfoSection(
         "Resting Heart Rate — 25% weight",
-        "Your lowest 5-minute average heart rate during last night's sleep (a daytime estimate if your device doesn't record heart rate overnight). Lower than your 30-day normal indicates strong recovery."
+        "Your lowest 5-minute average heart rate during last night's sleep (a daytime estimate if your device doesn't record heart rate overnight), against your monthly average. At or below it scores 100; each bpm above it takes off 2 points."
     ),
     HangryInfoSection(
         "Sleep — 25% weight",
         "How much of your sleep need you got (your sleep goal, plus recent sleep debt and extra after a hard day), with a quarter for how well you slept."
     ),
     HangryInfoSection(
-        "Sleep Consistency — 15% weight",
-        "How regular your bed and wake times have been over the last week."
+        "Strain Balance — 15% weight",
+        "Yesterday's strain against the target it was given. In range or lighter scores 100 (lighter means you have room to push today); each point over the target takes off 12, because your body needs to recover. Sleep consistency is part of your Sleep Score instead."
     ),
     HangryInfoSection(
         "Algorithm",
@@ -137,7 +137,7 @@ fun RecoveryDetailsScreen(
                 score = scoreEntity?.sleepComponentScore
             )
             RecoveryComponentRow(
-                label = "Sleep Consistency",
+                label = "Strain Balance",
                 valueColor = tokens.chartColors.trainingLoad,
                 score = scoreEntity?.trainingLoadComponentScore
             )

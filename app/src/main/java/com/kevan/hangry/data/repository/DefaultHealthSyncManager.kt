@@ -30,6 +30,7 @@ import com.kevan.hangry.domain.calculation.TrainingLoadCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.domain.model.RecoveryResult
+import com.kevan.hangry.domain.model.RecoveryState
 import com.kevan.hangry.domain.model.StrainSource
 import com.kevan.hangry.domain.model.SyncProgress
 import com.kevan.hangry.domain.model.SyncStatus
@@ -436,7 +437,11 @@ class DefaultHealthSyncManager(
         }
         val result = recoveryCalculator.calculateRecovery(
             date = date,
-            currentDayMetrics = summary.toDayMetrics(date),
+            currentDayMetrics = summary.toDayMetrics(date).withStrainBalance(
+                date,
+                { day -> summaryDao.getSummaryForDateSync(day) },
+                { day -> database.recoveryScoreDao().getScoreForDateSync(day)?.state }
+            ),
             baselineHistory = history,
             config = recoveryConfigFor(feeling)
         )
@@ -458,6 +463,24 @@ class DefaultHealthSyncManager(
         sleepQualityScore = this?.sleepQualityScore,
         respiratoryRate = this?.respiratoryRate
     )
+
+    /**
+     * Adds yesterday's strain and the target band it was given: yesterday's recovery state
+     * applied to the week of strain before it, the same band the Today screen showed.
+     */
+    private suspend fun DayMetrics.withStrainBalance(
+        date: LocalDate,
+        summaryFor: suspend (LocalDate) -> DailyHealthSummaryEntity?,
+        stateFor: suspend (LocalDate) -> String?
+    ): DayMetrics {
+        val yesterday = date.minusDays(1)
+        val strain = summaryFor(yesterday)?.dayStrain ?: return this
+        val weekBefore = (1..7).mapNotNull { summaryFor(yesterday.minusDays(it.toLong()))?.dayStrain }
+        if (weekBefore.isEmpty()) return copy(previousDayStrain = strain)
+        val state = stateFor(yesterday)?.let { runCatching { RecoveryState.valueOf(it) }.getOrNull() } ?: RecoveryState.BUILDING_BASELINE
+        val target = strainCalculator.recommendStrainTarget(state, weekBefore)
+        return copy(previousDayStrain = strain, previousDayStrainTarget = target.targetLow..target.targetHigh)
+    }
 
     private fun RecoveryResult.toEntity(date: LocalDate) = RecoveryScoreEntity(
         date = date,
@@ -585,6 +608,11 @@ class DefaultHealthSyncManager(
             .getSummariesBetweenList(effectiveStart.minusDays(BASELINE_DAYS + 1L), end)
             .associateBy { it.date }
         fun summaryFor(day: LocalDate) = computedSummariesByDate[day] ?: storedSummariesByDate[day]
+        // Yesterday's recovery sets the strain target it's judged against today.
+        val computedStatesByDate = HashMap<LocalDate, String>(daysBetween + 1)
+        val storedStatesByDate = database.recoveryScoreDao()
+            .getScoresBetweenList(effectiveStart.minusDays(1), end)
+            .associate { it.date to it.state }
 
         for (i in 0..daysBetween) {
             val date = effectiveStart.plusDays(i.toLong())
@@ -749,7 +777,9 @@ class DefaultHealthSyncManager(
                 val prevDate = date.minusDays(offset.toLong())
                 summaryFor(prevDate).toDayMetrics(prevDate)
             }
-            val currentDayMetrics = summary.toDayMetrics(date)
+            val currentDayMetrics = summary.toDayMetrics(date).withStrainBalance(date, ::summaryFor) { day ->
+                computedStatesByDate[day] ?: storedStatesByDate[day]
+            }
 
             val recoveryResult = recoveryCalculator.calculateRecovery(
                 date = date,
@@ -758,6 +788,7 @@ class DefaultHealthSyncManager(
                 config = recoveryConfigFor(hrvFeelings[date])
             )
             scoresToInsert.add(recoveryResult.toEntity(date))
+            computedStatesByDate[date] = recoveryResult.state.name
         }
 
         database.withTransaction {

@@ -147,7 +147,24 @@ class ScoreAccuracyTest {
         val a = sleep.analyzeSleep(null, rested, targetDurationMinutes = 480)
         val b = sleep.analyzeSleep(null, short, targetDurationMinutes = 480)
         assertEquals(480, a.sleepNeedMinutes)
-        assertTrue("need ${b.sleepNeedMinutes}", b.sleepNeedMinutes in 560..600)
+        // 7 nights x 3h short = 21h of debt, repaid over 14 nights = 90 min, capped at an hour.
+        assertEquals(540, b.sleepNeedMinutes)
+    }
+
+    @Test
+    fun `sleep debt is repaid over two weeks, not in one night`() {
+        // Three nights an hour short: 3h of debt / 14 nights = ~13 extra minutes, not 3 hours.
+        val nights = (22..24).map { night(it, "00:00", "07:00", asleep = 420) }.reversed()
+        val a = sleep.analyzeSleep(null, nights, targetDurationMinutes = 480)
+        assertEquals(493, a.sleepNeedMinutes)
+    }
+
+    @Test
+    fun `a long night pays back earlier debt`() {
+        val short = night(22, "00:00", "06:00", asleep = 360)          // 2h short
+        val long = night(23, "22:00", "08:00", asleep = 600)           // 2h over
+        val a = sleep.analyzeSleep(null, listOf(long, short), targetDurationMinutes = 480)
+        assertEquals(480, a.sleepNeedMinutes)
     }
 
     @Test
@@ -207,11 +224,38 @@ class ScoreAccuracyTest {
     }
 
     @Test
-    fun `at your normal HRV and resting heart rate score 65`() {
+    fun `at your normal HRV scores 65`() {
         val today = DayMetrics(LocalDate.of(2026, 9, 20), 450, 55.0, 60.0)
         val r = recovery.calculateRecovery(today.date, today, history(30, { 60.0 }), RecoveryConfig())
         assertEquals(65.0, r.hrvScore!!, 0.5)
-        assertEquals(65.0, r.rhrScore!!, 0.5)
+    }
+
+    @Test
+    fun `resting heart rate loses 2 points per bpm above the monthly average`() {
+        val base = history(30, { 60.0 }, rhr = { 55.0 })
+        fun rhrScore(today: Double) =
+            recovery.calculateRecovery(LocalDate.of(2026, 9, 20), DayMetrics(LocalDate.of(2026, 9, 20), 450, today, 60.0), base, RecoveryConfig()).rhrScore!!
+        assertEquals(100.0, rhrScore(55.0), 0.01)
+        assertEquals(100.0, rhrScore(52.0), 0.01)
+        assertEquals(98.0, rhrScore(56.0), 0.01)
+        assertEquals(96.0, rhrScore(57.0), 0.01)
+        assertEquals(94.0, rhrScore(58.0), 0.01)
+    }
+
+    @Test
+    fun `strain over yesterday's target lowers recovery, in range or lighter doesn't`() {
+        val base = history(14, { 60.0 })
+        fun result(strain: Double) = recovery.calculateRecovery(
+            LocalDate.of(2026, 9, 20),
+            DayMetrics(LocalDate.of(2026, 9, 20), 450, 55.0, 60.0, previousDayStrain = strain, previousDayStrainTarget = 8.0..12.0),
+            base, RecoveryConfig()
+        )
+        assertEquals(100.0, result(10.0).trainingLoadScore!!, 0.01)
+        assertEquals(100.0, result(4.0).trainingLoadScore!!, 0.01)
+        assertTrue(result(4.0).positiveContributors.any { it.contains("room to push") })
+        assertEquals(64.0, result(15.0).trainingLoadScore!!, 0.01)
+        assertTrue(result(15.0).score!! < result(10.0).score!!)
+        assertTrue(result(15.0).negativeContributors.any { it.contains("went over") })
     }
 
     @Test

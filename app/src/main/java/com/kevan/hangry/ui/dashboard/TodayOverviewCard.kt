@@ -127,19 +127,27 @@ fun TodayOverviewCard(
                 )
                 val strain = uiState.dailySummary?.dayStrain?.coerceIn(0.0, HangryStrainCalculator.MAX_STRAIN)
                 val target = uiState.strainRecommendation
-                // Today's strain keeps building until midnight; earlier days are final.
                 val isToday = uiState.selectedDate == java.time.LocalDate.now()
-                OverviewStat(
-                    label = if (isToday) "Strain so far" else "Strain",
-                    value = strain?.let { String.format(Locale.US, "%.1f", it) } ?: if (isToday) "0.0" else "—",
-                    detail = when {
-                        !isToday -> if (strain != null) "Final for the day" else null
-                        target != null -> String.format(Locale.US, "Target %.1f–%.1f · live", target.targetLow, target.targetHigh)
-                        else -> "Live - builds through the day"
-                    },
-                    color = tokens.chartColors.trainingLoad,
-                    onClick = onOpenWorkouts
-                )
+                if (isToday) {
+                    // Yesterday's finished number leads; today keeps building until midnight.
+                    val yesterday = uiState.previousDayStrain?.coerceIn(0.0, HangryStrainCalculator.MAX_STRAIN)
+                    OverviewStat(
+                        label = "Yesterday's strain",
+                        value = yesterday?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
+                        detail = String.format(Locale.US, "Today so far %.1f", strain ?: 0.0) +
+                            (target?.let { String.format(Locale.US, " · target %.1f–%.1f", it.targetLow, it.targetHigh) } ?: ""),
+                        color = tokens.chartColors.trainingLoad,
+                        onClick = onOpenWorkouts
+                    )
+                } else {
+                    OverviewStat(
+                        label = "Strain",
+                        value = strain?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
+                        detail = if (strain != null) "Final for the day" else null,
+                        color = tokens.chartColors.trainingLoad,
+                        onClick = onOpenWorkouts
+                    )
+                }
             }
         }
 

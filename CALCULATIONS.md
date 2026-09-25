@@ -26,12 +26,12 @@ Baselines are the user's own **last 30 days** (at least 3 usable days before a s
 - **HRV RMSSD ($w_{\text{hrv}} = 0.35$)**: last night's HRV, the average of readings taken during the main sleep (±30 min), else the day's first reading. Compared on a log scale, as in HRV research:
   $$z_{\text{hrv}} = \frac{\ln \text{HRV}_{\text{today}} - \overline{\ln \text{HRV}}_{30d}}{\max(\text{SD}_{30d}, 0.08)}, \quad S_{\text{hrv}} = \text{clamp}(0, 100, 65 + 15 z_{\text{hrv}})$$
   When the device reports no HRV, the user's "how do you feel" answer stands in (Excellent = 90 by default).
-- **Resting Heart Rate ($w_{\text{rhr}} = 0.25$)**: the lowest 5-minute average heart rate during the main sleep. Without overnight heart rate: Health Connect's resting heart rate, else the lowest 5-minute awake average.
-  $$z_{\text{rhr}} = \frac{\overline{\text{RHR}}_{30d} - \text{RHR}_{\text{today}}}{\max(\text{SD}_{30d}, 2\text{ bpm})}, \quad S_{\text{rhr}} = \text{clamp}(0, 100, 65 + 15 z_{\text{rhr}})$$
+- **Resting Heart Rate ($w_{\text{rhr}} = 0.25$)**: the lowest 5-minute average heart rate during the main sleep. Without overnight heart rate: Health Connect's resting heart rate, else the lowest 5-minute awake average. Scored against the monthly (30-day) average: at or below it is 100, and each bpm above it costs 2 points (1 bpm → 98, 3 → 94, 10 → 80):
+  $$S_{\text{rhr}} = \text{clamp}(0, 100, 100 - 2 \times \max(0, \text{RHR}_{\text{today}} - \overline{\text{RHR}}_{30d}))$$
 - **Sleep ($w_{\text{sleep}} = 0.25$)**: time asleep against the night's **sleep need** (§7), with a quarter for sleep quality (§7.1) when known:
   $$S_{\text{need}} = \text{clamp}(0, 100, 85 + (\tfrac{\text{asleep}}{\text{need}} - 1) \times 150), \quad S_{\text{sleep}} = 0.75\,S_{\text{need}} + 0.25\,\text{Quality}$$
   Meeting your need scores 85, 110% or more scores 100, 80% scores 55.
-- **Sleep consistency ($w_{\text{load}} = 0.15$)**: regular bed and wake times (§4): $S = \text{clamp}(0, 100, \text{Consistency} \times 0.7 + 15)$.
+- **Strain balance ($w_{\text{load}} = 0.15$)**: yesterday's final strain against the target band it was given (§6.3, from yesterday's recovery and the week before). In the band, or lighter, scores 100 (lighter means there's room to push today); over it costs 12 points per strain point: $S = \text{clamp}(0, 100, 100 - 12 \times \max(0, \text{strain} - \text{high}))$. Sleep consistency counts in the Sleep Score (§7.1), not here.
 - **Breathing rate**: not weighted, but a rise of 1+ breath/min over the 30-day normal (with 5+ days of history) subtracts $\text{clamp}(0, 12, (\text{rise} - 0.5) \times 6)$ points and is listed as a contributor, since a raised breathing rate is often an early sign of illness.
 
 ---
@@ -105,7 +105,7 @@ $$\text{Day Strain} = \text{clamp}(0, 21, 21 \times (1 - e^{-\text{Points} / 150
 An easy hour lands around 4–12 depending on effort, a hard hour (zone 4) around 17. Confidence is `HIGH` at 200+ awake samples, `MEDIUM` otherwise.
 
 ### 6.1a Live during the day
-Today's strain is recalculated as the day goes on: every 5 minutes while the app is open (a quiet pull of today's heart rate, workouts and steps from Health Connect) and hourly in the background. The Today screen labels it "Strain so far". The first sync after midnight recalculates yesterday with its complete data, and from then on it's shown as the final number for that day.
+Today's strain is recalculated as the day goes on: every 5 minutes while the app is open (a quiet pull of today's heart rate, workouts and steps from Health Connect) and hourly in the background. The Today screen leads with yesterday's final strain and shows today's "so far" under it with today's target. The first sync after midnight recalculates yesterday with its complete data, and from then on it's shown as the final number for that day.
 
 ### 6.2 Fallback: workout-only estimate
 With under 20 awake heart-rate samples, strain is estimated from logged workouts: $\text{Points} = \text{SessionLoad} \times 2.4$ (a 45-minute run ≈ 200 points ≈ strain 15), through the same curve. Always `LOW` confidence and labelled as an estimate. A day with neither heart rate nor workouts stores **no** strain (not 0), so it doesn't drag rolling averages and strain targets down.
@@ -127,10 +127,10 @@ Rather than folding strain into the Hangry Recovery formula itself (which would 
 
 `HangrySleepCalculator` computes a day-specific sleep need starting from the user's **sleep goal** (Settings, 8 h default), not their recent average, which would make chronically short sleep look normal:
 
-$$\text{SleepNeed} = \text{Goal} + \text{DebtCarryover} + \text{StrainAdjustment}, \quad \le \text{Goal} + 3\text{ h}$$
+$$\text{SleepNeed} = \text{Goal} + \text{DebtRepayment} + \text{StrainAdjustment}, \quad \le \text{Goal} + 1.5\text{ h}$$
 
-- **Debt carryover**: a share of each of the last 7 nights' shortfall against the goal, most recent weighted most (30%, 20%, 15%, 10%, 8%, 6%, 5%), capped at 2 hours. Debt fades over about a week instead of resetting after one good night.
-- **Strain adjustment**: if yesterday's strain exceeded the 7-day average, add `(ratio − 1) × 60` minutes, up to 60.
+- **Debt repayment**: sleep debt is paid back over up to two weeks, not in one night. The debt is the running shortfall against the goal over the last 14 nights (longer nights pay some back), and each night needs $\text{debt} / 14$ extra, at most 60 minutes. Three nights an hour short adds about 13 minutes.
+- **Strain adjustment**: if yesterday's strain exceeded the 7-day average, add `(ratio − 1) × 30` minutes, up to 30.
 - **Tonight's need** (Sleep screen) is the same with last night included in the debt.
 - **Sleep Performance**: $\text{clamp}(0, 150, \text{round}(\text{asleep} / \text{SleepNeed} \times 100))$.
 - **Recommended bedtime**: the circular-mean wake time over the last 7 nights minus tonight's need.

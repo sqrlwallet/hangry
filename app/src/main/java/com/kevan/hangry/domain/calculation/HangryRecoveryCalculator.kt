@@ -11,13 +11,12 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * Recovery from how today's overnight HRV and resting heart rate compare with the user's own
- * last 30 days, how much of their sleep need they got, and how regular their sleep is.
+ * Recovery from overnight HRV and resting heart rate against the user's own last 30 days, how
+ * much of their sleep need they got, and whether yesterday's strain stayed within its target.
  *
- * HRV and RHR are scored by how unusual today is for *you* (standard deviations from your
- * normal, HRV on a log scale as in the research), not by a fixed ratio: someone whose HRV swings
- * a lot day to day needs a bigger drop to be flagged than someone whose HRV is steady. A reading
- * right at your normal scores 65; each standard deviation moves it 15 points.
+ * HRV is scored by how unusual last night is for *you* (standard deviations from your normal,
+ * on a log scale as in the research): a reading at your normal scores 65, each SD moves it 15.
+ * Resting heart rate loses 2 points per bpm above your monthly average.
  */
 class HangryRecoveryCalculator : RecoveryCalculator {
 
@@ -58,13 +57,15 @@ class HangryRecoveryCalculator : RecoveryCalculator {
             zScore(z)
         }
 
-        // 2. Resting heart rate: lower than your normal is better.
+        // 2. Resting heart rate against your monthly average: at or below it is full marks, and
+        //    each bpm above it costs 2 points (1 bpm up = 98, 3 up = 94, 10 up = 80).
         val rhrHistory = usableHistory.mapNotNull { it.restingHeartRate }
         val rhrScore: Double? = currentDayMetrics.restingHeartRate?.takeIf { it > 0 && rhrHistory.isNotEmpty() }?.let { today ->
-            val z = (rhrHistory.average() - today) / max(sd(rhrHistory), MIN_RHR_SD)
-            if (z >= NOTABLE_Z) positiveContributors.add("Resting heart rate is lower than usual.")
-            else if (z <= -NOTABLE_Z) negativeContributors.add("Resting heart rate is higher than usual.")
-            zScore(z)
+            val deviation = today - rhrHistory.average()
+            val bpm = deviation.roundToInt()
+            if (deviation <= -RHR_NOTABLE_BPM) positiveContributors.add("Resting heart rate is ${-bpm} bpm below your monthly average.")
+            else if (deviation >= RHR_NOTABLE_BPM) negativeContributors.add("Resting heart rate is $bpm bpm above your monthly average.")
+            clampScore(100.0 - RHR_POINTS_PER_BPM * max(0.0, deviation))
         }
 
         // 3. Sleep: how much of what you needed you got, with a quarter for how well you slept.
@@ -102,8 +103,28 @@ class HangryRecoveryCalculator : RecoveryCalculator {
             )
         }
 
-        // 4. Sleep consistency (regular bed and wake times) - only when actually known.
-        val loadScore: Double? = currentDayMetrics.sleepConsistencyPercentage?.let { clampScore((it * 0.7) + 15.0) }
+        // 4. Strain balance: yesterday's strain against the target it was given. In range or
+        //    lighter is fine (lighter leaves room to push today); going over costs points.
+        val loadScore: Double? = currentDayMetrics.previousDayStrain?.let { strain ->
+            val target = currentDayMetrics.previousDayStrainTarget
+            when {
+                target == null -> null
+                strain > target.endInclusive -> {
+                    negativeContributors.add(
+                        String.format(java.util.Locale.US, "Yesterday's strain (%.1f) went over its target of %.1f - your body needs some recovery.", strain, target.endInclusive)
+                    )
+                    clampScore(100.0 - (strain - target.endInclusive) * STRAIN_OVERSHOOT_POINTS)
+                }
+                strain < target.start -> {
+                    positiveContributors.add(String.format(java.util.Locale.US, "Yesterday was lighter than its target (%.1f) - you have room to push today.", strain))
+                    100.0
+                }
+                else -> {
+                    positiveContributors.add(String.format(java.util.Locale.US, "Yesterday's strain (%.1f) was right in its target range.", strain))
+                    100.0
+                }
+            }
+        }
 
         // Dynamic re-weighting based on available components (NEVER substitute missing data with zero).
         // HRV is the exception: when it isn't available it counts as an excellent day (config.assumedHrvScore).
@@ -208,7 +229,10 @@ class HangryRecoveryCalculator : RecoveryCalculator {
         const val NOTABLE_Z = 0.75
         /** Floors so a very steady (or short) history doesn't turn tiny changes into big swings. */
         const val MIN_LN_HRV_SD = 0.08
-        const val MIN_RHR_SD = 2.0
+        const val RHR_POINTS_PER_BPM = 2.0
+        const val RHR_NOTABLE_BPM = 3.0
+        /** Points off per strain point over yesterday's target (3 over = 64). */
+        const val STRAIN_OVERSHOOT_POINTS = 12.0
         const val MIN_RESP_HISTORY = 5
         const val RESP_RISE_NOTABLE = 1.0
         const val RESP_PENALTY_PER_BREATH = 6.0

@@ -222,7 +222,8 @@ class DashboardViewModel(
                 }
                 // The target is a band around your own recent strain; with no history yet there's
                 // nothing personal to base it on, so no target rather than a generic one.
-                val recentStrain = recentSummaries.mapNotNull { it.dayStrain }
+                // The week before, like the sync uses to judge yesterday's strain against its band.
+                val recentStrain = recentSummaries.filter { !it.date.isBefore(date.minusDays(7)) }.mapNotNull { it.dayStrain }
                 val strainRecommendation = recentStrain.takeIf { it.isNotEmpty() }?.let {
                     strainCalculator.recommendStrainTarget(recoveryState = recoveryState, recentDailyStrain = it)
                 }
@@ -282,6 +283,7 @@ class DashboardViewModel(
                         dailySummary = summary,
                         recoveryScore = score,
                         sleepAnalysis = sleepAnalysis,
+                        previousDayStrain = previousDaySummary?.dayStrain,
                         heartRateZones = com.kevan.hangry.domain.calculation.HeartRateZones.forUser(
                             profile?.age, profile?.maxHeartRate,
                             recentSummaries.mapNotNull { it.restingHeartRate }.takeIf { it.isNotEmpty() }?.average()

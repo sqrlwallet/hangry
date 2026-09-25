@@ -39,7 +39,7 @@ import java.time.temporal.ChronoUnit
 private val SLEEP_COACH_SECTIONS = listOf(
     HangryInfoSection(
         "Tonight's Sleep Need",
-        "Your sleep goal, plus part of any sleep you've been short over the last week (last night counts most), plus up to an hour after a harder-than-usual day."
+        "Your sleep goal, plus a slice of any sleep debt so it's paid back over two weeks (debt from the last 14 nights ÷ 14, at most an hour), plus up to 30 minutes after a harder-than-usual day."
     ),
     HangryInfoSection(
         "Sleep Score",

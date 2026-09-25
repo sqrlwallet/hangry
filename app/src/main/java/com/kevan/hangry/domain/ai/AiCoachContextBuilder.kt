@@ -59,6 +59,10 @@ class AiCoachContextBuilder(
     private val supplementRepository: SupplementRepository? = null,
     /** Intermittent fasting, only when the user has turned it on. Optional for tests. */
     private val fastingRepository: com.kevan.hangry.domain.repository.FastingRepository? = null,
+    /** This week's longevity pillars (strength, zone 2, zone 4-5, mobility, balance). Optional for tests. */
+    private val longevityRepository: com.kevan.hangry.data.repository.LongevityRepository? = null,
+    /** Guided programs the user has turned on (stress, focus, knees, back...). Optional for tests. */
+    private val programsRepository: com.kevan.hangry.data.repository.ProgramsRepository? = null,
     private val bodyAgeLoader: BodyAgeLoader? = null,
     private val streaksLoader: StreaksLoader? = null,
     private val strainCalculator: StrainCalculator? = null
@@ -131,6 +135,24 @@ class AiCoachContextBuilder(
         healthRecordsRepository?.current()?.let { appendHealthRecords(sb, it, today) }
         supplementRepository?.current()?.let { appendSupplements(sb, it) }
         fastingRepository?.current()?.takeIf { it.enabled }?.let { appendFasting(sb, it) }
+        programsRepository?.current()?.filter { it.enabled }?.takeIf { it.isNotEmpty() }?.let { programs ->
+            sb.appendLine("=== GUIDED PROGRAMS (the user turned these on) ===")
+            programs.forEach { p ->
+                val recent = p.sessions.take(3).joinToString(", ") { s -> "${s.date} ${s.feel.label(p.program.kind)}" }.ifEmpty { "none yet" }
+                sb.appendLine("• ${p.program.title}: level ${p.level}/${p.program.levels.size} (${p.currentLevel.title}), ${p.sessionsThisWeek}/${p.program.sessionsPerWeek} this week, recent: $recent")
+            }
+            sb.appendLine("Keep advice simple and gentle. If they mention pain or feeling worse, suggest the easier versions and checking with a professional.")
+            sb.appendLine()
+        }
+        longevityRepository?.let { repo ->
+            runCatching { repo.observeWeek(today).first() }.getOrNull()?.let { week ->
+                sb.appendLine("=== LONGEVITY PILLARS (this week, Mon-Sun, ${week.pillarsMet}/5 targets met) ===")
+                week.pillars.forEach { p ->
+                    sb.appendLine("• ${p.pillar.label}: " + if (p.measurable) "${p.value}/${p.pillar.goal} ${p.pillar.unit}" else "no heart-rate data")
+                }
+                sb.appendLine()
+            }
+        }
 
         streaksLoader?.let { loader ->
             val stepGoal = profile?.dailyStepGoal ?: 10000L

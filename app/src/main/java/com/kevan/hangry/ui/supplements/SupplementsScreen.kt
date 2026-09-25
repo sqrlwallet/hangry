@@ -164,7 +164,7 @@ fun SupplementsScreen(
 private fun EmptyState(onSnap: () -> Unit, onGallery: () -> Unit, onManual: () -> Unit) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = Modifier.fillMaxWidth()) {
-        Icon(Icons.Default.Medication, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(32.dp))
+        DashExpression(mood = DashMood.SUPPLEMENTS, size = 96.dp, contentDescription = null)
         Spacer(Modifier.height(8.dp))
         Text("Add your daily supplements", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         Text(

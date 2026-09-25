@@ -94,7 +94,7 @@ data class CoachAction(
     /** Screens Dash may open, by the name it uses in OPEN_SCREEN. */
     object Screens {
         val ALL = setOf(
-            "breathing", "supplements", "fasting", "health_records", "body_metrics", "body_fat", "nutrition",
+            "breathing", "supplements", "fasting", "programs", "health_records", "body_metrics", "body_fat", "nutrition",
             "sleep", "recovery", "heart", "training", "trends", "posture", "settings"
         )
     }

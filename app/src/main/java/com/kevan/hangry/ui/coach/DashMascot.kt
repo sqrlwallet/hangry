@@ -98,8 +98,16 @@ fun DashAvatar(
     )
 }
 
-/** Dash's expressions, each a full-body illustration on a transparent background. */
-enum class DashMood(@DrawableRes val imageRes: Int, val description: String) {
+/**
+ * Dash's expressions, each a full-body illustration on a transparent background. Moods with
+ * [frames] loop through them (every [frameMillis]) - short exercise animations.
+ */
+enum class DashMood(
+    @DrawableRes val imageRes: Int,
+    val description: String,
+    val frames: List<Int> = emptyList(),
+    val frameMillis: Long = 0
+) {
     HAPPY(R.drawable.dash_mood_happy, "$MASCOT_NAME giving a thumbs up"),
     CHEER(R.drawable.dash_mood_cheer, "$MASCOT_NAME cheering you on"),
     CELEBRATE(R.drawable.dash_mood_celebrate, "$MASCOT_NAME celebrating with confetti"),
@@ -109,16 +117,60 @@ enum class DashMood(@DrawableRes val imageRes: Int, val description: String) {
     WAVE(R.drawable.dash_wave, "$MASCOT_NAME waving hello"),
     HEART(R.drawable.dash_heart, "$MASCOT_NAME holding a glowing heart"),
     WORKOUT(R.drawable.dash_mood_workout, "$MASCOT_NAME running and working out"),
-    NUTRITION(R.drawable.dash_mood_nutrition, "$MASCOT_NAME holding a fresh apple");
+    NUTRITION(R.drawable.dash_mood_nutrition, "$MASCOT_NAME holding a fresh apple"),
+
+    // Fasting
+    FASTING(R.drawable.dash_fasting, "$MASCOT_NAME holding a stopwatch"),
+    FASTING_DONE(R.drawable.dash_fasting_done, "$MASCOT_NAME proudly holding up a stopwatch"),
+
+    // Mind and body programs
+    MEDITATE(R.drawable.dash_meditate, "$MASCOT_NAME meditating calmly"),
+    FOCUS(R.drawable.dash_focus, "$MASCOT_NAME focused, writing at a desk"),
+    STRETCH(
+        R.drawable.dash_stretch_1, "$MASCOT_NAME stretching in a lunge",
+        frames = listOf(R.drawable.dash_stretch_1, R.drawable.dash_stretch_2, R.drawable.dash_stretch_3, R.drawable.dash_stretch_4),
+        frameMillis = 900
+    ),
+    STRENGTH(
+        R.drawable.dash_strength_1, "$MASCOT_NAME doing push-ups",
+        frames = listOf(R.drawable.dash_strength_1, R.drawable.dash_strength_2, R.drawable.dash_strength_3, R.drawable.dash_strength_2),
+        frameMillis = 550
+    ),
+    PULL_UP(
+        R.drawable.dash_pullup_1, "$MASCOT_NAME doing a pull-up",
+        frames = listOf(R.drawable.dash_pullup_1, R.drawable.dash_pullup_2),
+        frameMillis = 800
+    ),
+    KNEES(R.drawable.dash_knees, "$MASCOT_NAME in a deep split squat"),
+    BACK_CARE(R.drawable.dash_back_care, "$MASCOT_NAME doing a bird-dog exercise"),
+    SHOULDER(R.drawable.dash_shoulder, "$MASCOT_NAME raising both arms"),
+    BALANCE(R.drawable.dash_balance, "$MASCOT_NAME balancing on one leg"),
+    LEVEL_UP(R.drawable.dash_level_up, "$MASCOT_NAME stepping up with a raised fist"),
+
+    // How you're doing
+    OUCH(R.drawable.dash_ouch, "$MASCOT_NAME gently holding a sore knee"),
+    REST(R.drawable.dash_rest, "$MASCOT_NAME resting on a sofa with a warm drink"),
+    PUSH(R.drawable.dash_push, "$MASCOT_NAME ready to sprint"),
+    SYNC_ERROR(R.drawable.dash_sync_error, "$MASCOT_NAME holding an unplugged cable"),
+    UNWELL(R.drawable.dash_unwell, "$MASCOT_NAME wrapped in a blanket with a thermometer"),
+
+    // Sleep
+    SLEEP_GREAT(R.drawable.dash_sleep_great, "$MASCOT_NAME stretching awake, well rested"),
+    SLEEP_SHORT(R.drawable.dash_sleep_short, "$MASCOT_NAME tired, holding a coffee"),
+    BEDTIME(R.drawable.dash_bedtime, "$MASCOT_NAME getting ready for bed"),
+
+    SUPPLEMENTS(R.drawable.dash_supplements, "$MASCOT_NAME holding a supplement bottle"),
+    STREAK(R.drawable.dash_streak_fire, "$MASCOT_NAME celebrating next to a flame");
 
     /** Moods that mark a win spring in when they appear. */
-    val popsIn: Boolean get() = this == CELEBRATE || this == CHEER || this == WORKOUT
+    val popsIn: Boolean get() = this == CELEBRATE || this == CHEER || this == WORKOUT ||
+        this == FASTING_DONE || this == LEVEL_UP || this == STREAK || this == SLEEP_GREAT
 }
 
 fun RecoveryState.dashMood(): DashMood = when (this) {
-    RecoveryState.PRIMED -> DashMood.HAPPY
+    RecoveryState.PRIMED -> DashMood.PUSH
     RecoveryState.BALANCED -> DashMood.CHEER
-    RecoveryState.REBUILD -> DashMood.CONCERNED
+    RecoveryState.REBUILD -> DashMood.REST
     RecoveryState.BUILDING_BASELINE -> DashMood.THINKING
 }
 
@@ -148,6 +200,14 @@ fun DashExpression(
     }
     val beat: State<Float> = if (mood == DashMood.HEART) rememberHeartbeat() else remember { mutableFloatStateOf(1f) }
     val shown = if (tap.reacting) DashMood.HAPPY else mood
+    // Exercise moods loop through their frames.
+    var frame by remember(mood) { mutableStateOf(0) }
+    LaunchedEffect(mood) {
+        if (mood.frames.size > 1) while (true) {
+            delay(mood.frameMillis)
+            frame = (frame + 1) % mood.frames.size
+        }
+    }
 
     Box(
         modifier = modifier
@@ -165,7 +225,7 @@ fun DashExpression(
         }
         Crossfade(targetState = shown, animationSpec = tween(200), label = "dashMood") { current ->
             Image(
-                painter = painterResource(id = current.imageRes),
+                painter = painterResource(id = current.frames.getOrNull(frame) ?: current.imageRes),
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
@@ -174,7 +234,9 @@ fun DashExpression(
                         val currentMood = shown
                         val isRunning = currentMood == DashMood.WORKOUT
                         val isWaving = currentMood == DashMood.WAVE
-                        val isConcerned = currentMood == DashMood.CONCERNED
+                        val isConcerned = currentMood == DashMood.CONCERNED || currentMood == DashMood.SYNC_ERROR
+                        val isBalancing = currentMood == DashMood.BALANCE
+                        val isBreathing = currentMood == DashMood.MEDITATE || currentMood == DashMood.REST
 
                         val bobTravel = if (isRunning) {
                             -size.toPx() * (0.045f * runBob.value + HOP_HEIGHT * tap.hop.value)
@@ -186,13 +248,17 @@ fun DashExpression(
 
                         rotationZ = when {
                             isWaving -> waveSway.value * 5f
+                            // A little wobble that never quite tips over.
+                            isBalancing -> waveSway.value * 3f
                             isRunning -> -3.5f + (runBob.value * 2f)
                             currentMood == DashMood.HAPPY -> sin(bob.value * PI.toFloat()) * 2f
                             else -> 0f
                         }
                         rotationY = tap.spin.value * 360f
 
-                        val scale = entrance.value * beat.value
+                        // Meditating and resting Dash breathes slowly instead of bobbing.
+                        val breath = if (isBreathing) 1f + 0.025f * bob.value else 1f
+                        val scale = entrance.value * beat.value * breath
                         scaleX = scale
                         scaleY = scale
                         transformOrigin = TransformOrigin(0.5f, 1f)
@@ -202,6 +268,12 @@ fun DashExpression(
         }
         if (mood == DashMood.CELEBRATE) {
             ConfettiBurst(modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.FASTING_DONE || shown == DashMood.LEVEL_UP || shown == DashMood.STREAK || shown == DashMood.SLEEP_GREAT) {
+            TwinklingSparkles(modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.BEDTIME || shown == DashMood.SLEEP_SHORT) {
+            FloatingZs(size = size, modifier = Modifier.matchParentSize())
         }
         if (shown == DashMood.SLEEPY) {
             FloatingZs(size = size, modifier = Modifier.matchParentSize())
@@ -215,7 +287,10 @@ fun DashExpression(
         if (shown == DashMood.CONCERNED) {
             NervousSweatDrop(size = size, modifier = Modifier.matchParentSize())
         }
-        if (shown == DashMood.WORKOUT) {
+        if (shown == DashMood.FOCUS) {
+            FloatingThoughtBubbles(size = size, modifier = Modifier.matchParentSize())
+        }
+        if (shown == DashMood.WORKOUT || shown == DashMood.PUSH) {
             RunningDustPuffs(size = size, modifier = Modifier.matchParentSize())
         }
         if (shown == DashMood.NUTRITION) {
@@ -705,13 +780,14 @@ fun DashAlertCard(
     title: String,
     message: String,
     modifier: Modifier = Modifier,
+    mood: DashMood = DashMood.CONCERNED,
     onDismiss: (() -> Unit)? = null,
     action: (@Composable () -> Unit)? = null
 ) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.Top) {
-            DashExpression(mood = DashMood.CONCERNED, size = 64.dp, contentDescription = null)
+            DashExpression(mood = mood, size = 64.dp, contentDescription = null)
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)

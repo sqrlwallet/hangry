@@ -41,6 +41,7 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -69,6 +70,7 @@ fun TrainingScreen(
     viewModel: DashboardViewModel,
     workoutRepository: WorkoutRepository,
     heartRateRepository: HeartRateRepository,
+    longevityRepository: com.kevan.hangry.data.repository.LongevityRepository? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -99,6 +101,13 @@ fun TrainingScreen(
         weekZoneDistribution
     }
     val isTodayData = todayZoneDistribution.totalCount > 0
+
+    // The week (Mon-Sun) holding the inspected date, against the longevity pillars' targets.
+    val weekStart = com.kevan.hangry.domain.model.LongevityWeek.weekStart(activeDate)
+    val longevityWeek by remember(weekStart, longevityRepository) {
+        longevityRepository?.observeWeek(activeDate) ?: kotlinx.coroutines.flow.flowOf(null)
+    }.collectAsState(initial = null)
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -156,6 +165,16 @@ fun TrainingScreen(
                             color = tokens.chartColors.trainingLoad
                         )
                     }
+                }
+            }
+
+            longevityWeek?.let { week ->
+                item {
+                    LongevityCard(
+                        week = week,
+                        today = LocalDate.now(zone),
+                        onToggleDay = { pillar, day, done -> scope.launch { longevityRepository?.setDone(pillar, day, done) } }
+                    )
                 }
             }
 
@@ -349,15 +368,12 @@ fun TrainingScreen(
             if (workouts.isEmpty()) {
                 item {
                     HangryCard {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            DashExpression(mood = DashMood.SLEEPY, size = 72.dp, contentDescription = null)
-                            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
-                            Text(
-                                text = if (isToday) "No workouts synced yet today. Workouts from your watch or fitness apps show up here." else "No workouts recorded on this day.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = tokens.textSecondary
-                            )
-                        }
+                        DashEmptyState(
+                            scene = DashEmptyScene.WORKOUTS,
+                            title = if (isToday) "No workouts yet today" else "No workouts this day",
+                            body = if (isToday) "Workouts from your watch or fitness apps show up here." else null,
+                            imageSize = 120.dp
+                        )
                     }
                 }
             } else {

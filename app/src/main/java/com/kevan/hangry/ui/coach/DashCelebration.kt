@@ -21,7 +21,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 
 /** A goal-reached moment: Dash bursts in with confetti. */
 @Composable
-fun DashCelebration(title: String, message: String, onDismiss: () -> Unit) {
+fun DashCelebration(title: String, message: String, onDismiss: () -> Unit, mood: DashMood = DashMood.CELEBRATE) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
     LaunchedEffect(Unit) { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
@@ -33,7 +33,7 @@ fun DashCelebration(title: String, message: String, onDismiss: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                DashExpression(mood = DashMood.CELEBRATE, size = 150.dp)
+                DashExpression(mood = mood, size = 150.dp)
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = tokens.textPrimary, textAlign = TextAlign.Center)
                 Text(message, style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary, textAlign = TextAlign.Center)
             }

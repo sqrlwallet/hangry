@@ -81,7 +81,7 @@ class BedtimeReminderReceiver : BroadcastReceiver() {
                     context, NudgeNotifications.BEDTIME_ID,
                     NotificationCompat.Builder(context, NudgeNotifications.CHANNEL_ID)
                         .setSmallIcon(R.drawable.ic_notification_bedtime)
-                        .setLargeIcon(NudgeNotifications.dashPicture(context, DashMood.SLEEPY.imageRes))
+                        .setLargeIcon(NudgeNotifications.dashPicture(context, DashMood.BEDTIME.imageRes))
                         .setContentTitle(message.title)
                         .setContentText(message.body)
                         .setStyle(NotificationCompat.BigTextStyle().bigText(message.body))

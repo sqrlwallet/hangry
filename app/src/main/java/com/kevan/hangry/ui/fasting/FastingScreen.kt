@@ -189,7 +189,7 @@ private fun IntroCard(
 ) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = Modifier.fillMaxWidth()) {
-        Icon(Icons.Default.Timer, contentDescription = null, tint = FastingColor, modifier = Modifier.size(32.dp))
+        DashExpression(mood = DashMood.FASTING, size = 96.dp, contentDescription = null)
         Spacer(Modifier.height(8.dp))
         Text("Intermittent fasting", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         Text(
@@ -328,6 +328,7 @@ private fun TimerCard(
 
             if (active != null) {
                 val zone = ZoneId.systemDefault()
+                if (active.reachedGoal(now)) DashExpression(mood = DashMood.FASTING_DONE, size = 72.dp, contentDescription = null)
                 Text(
                     "Started ${active.startAt.atZone(zone).format(TIME_FORMAT)} · goal ${active.goalAt().atZone(zone).format(TIME_FORMAT)}",
                     style = MaterialTheme.typography.bodySmall,
@@ -422,7 +423,7 @@ private fun StatsCard(snapshot: FastingSnapshot) {
     HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Progress", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
-            if (snapshot.streak >= 3) DashExpression(mood = DashMood.HAPPY, size = 36.dp, contentDescription = null)
+            if (snapshot.streak >= 3) DashExpression(mood = DashMood.STREAK, size = 44.dp, contentDescription = null)
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

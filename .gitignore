@@ -20,3 +20,6 @@ app/build/
 keystore.properties
 *.jks
 *.keystore
+
+# Local app-logic notes, not tracked
+docs/

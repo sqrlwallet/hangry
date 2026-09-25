@@ -106,7 +106,11 @@ fun RecoveryDetailsScreen(
             }
 
             scoreEntity?.state?.let { RecoveryState.valueOf(it) }?.let { state ->
-                DashNote(mood = state.dashMood(), text = state.dashLine())
+                val breathingUp = scoreEntity.negativeContributors.contains("Breathing rate")
+                DashNote(
+                    mood = if (breathingUp) DashMood.UNWELL else state.dashMood(),
+                    text = if (breathingUp) "Your breathing rate is up - you might be coming down with something. Take it easy today." else state.dashLine()
+                )
             }
 
             Text(

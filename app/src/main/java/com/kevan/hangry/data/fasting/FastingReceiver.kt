@@ -71,7 +71,7 @@ class FastingReceiver : BroadcastReceiver() {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_fasting)
-            .setLargeIcon(NudgeNotifications.dashPicture(context, DashMood.HAPPY.imageRes))
+            .setLargeIcon(NudgeNotifications.dashPicture(context, DashMood.FASTING_DONE.imageRes))
             .setContentTitle("Fasting goal reached")
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

@@ -140,7 +140,12 @@ fun DashboardScreen(
     }
 
     celebration?.let { message ->
-        DashCelebration(title = if (message.contains("streak")) "Streak milestone!" else "Goal reached!", message = message, onDismiss = { celebration = null })
+        DashCelebration(
+            title = if (message.contains("streak")) "Streak milestone!" else "Goal reached!",
+            message = message,
+            onDismiss = { celebration = null },
+            mood = if (message.contains("streak")) DashMood.STREAK else DashMood.CELEBRATE
+        )
     }
 
 
@@ -261,6 +266,7 @@ fun DashboardScreen(
             // A failed sync stays visible (with a worried Dash) until you retry or dismiss it.
             uiState.errorMessage?.let { error ->
                 DashAlertCard(
+                    mood = DashMood.SYNC_ERROR,
                     title = "Sync didn't finish",
                     message = "$error\nPull down to try again.",
                     onDismiss = { viewModel.clearError() }

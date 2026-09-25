@@ -49,9 +49,9 @@ object MorningReadiness {
         val message = NudgeText.morning(score, state, summary.sleepDurationMinutes, target?.targetLow, target?.targetHigh)
 
         val mood = when (state) {
-            RecoveryState.PRIMED -> DashMood.HAPPY
+            RecoveryState.PRIMED -> DashMood.PUSH
             RecoveryState.BALANCED -> DashMood.CHEER
-            RecoveryState.REBUILD -> DashMood.CONCERNED
+            RecoveryState.REBUILD -> DashMood.REST
             RecoveryState.BUILDING_BASELINE -> DashMood.THINKING
         }
         NudgeNotifications.notify(

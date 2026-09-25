@@ -25,7 +25,10 @@ enum class DashEmptyScene(@DrawableRes val imageRes: Int) {
     HRV(R.drawable.dash_empty_hrv),
     MEALS(R.drawable.dash_empty_meals),
     RECORDS(R.drawable.dash_empty_records),
-    MEMORIES(R.drawable.dash_empty_memories)
+    MEMORIES(R.drawable.dash_empty_memories),
+    WORKOUTS(R.drawable.dash_empty_workouts),
+    SLEEP(R.drawable.dash_empty_sleep),
+    PROGRAMS(R.drawable.dash_empty_programs)
 }
 
 /** Centered Dash illustration with a title and short hint, for empty lists and missing data. */

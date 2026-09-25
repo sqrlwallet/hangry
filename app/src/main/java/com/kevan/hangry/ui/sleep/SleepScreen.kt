@@ -172,11 +172,23 @@ fun SleepScreen(
                 )
             } else if (sleepMin <= 0) {
                 // A past day with nothing logged - say so rather than showing empty cards.
-                DashNote(mood = DashMood.SLEEPY, text = "No sleep was recorded for this day. Tap + to log it.")
+                HangryCard {
+                    com.kevan.hangry.ui.components.DashEmptyState(
+                        scene = com.kevan.hangry.ui.components.DashEmptyScene.SLEEP,
+                        title = "No sleep recorded",
+                        body = "Nothing was recorded for this day. Tap + to log it.",
+                        imageSize = 120.dp
+                    )
+                }
             } else {
                 val performance = analysis?.sleepPerformancePercentage
                 DashNote(
-                    mood = DashMood.SLEEPY,
+                    mood = when {
+                        performance == null -> DashMood.SLEEPY
+                        performance >= 95 -> DashMood.SLEEP_GREAT
+                        performance >= 75 -> DashMood.SLEEPY
+                        else -> DashMood.SLEEP_SHORT
+                    },
                     text = when {
                         performance == null -> "Here's how last night went."
                         performance >= 95 -> "You got all the sleep you needed. Well rested!"

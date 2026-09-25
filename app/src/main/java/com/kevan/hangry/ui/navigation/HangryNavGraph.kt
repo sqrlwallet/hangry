@@ -111,6 +111,10 @@ sealed class Screen(val route: String) {
     data object HealthRecords : Screen("health_records")
     data object Supplements : Screen("supplements")
     data object Fasting : Screen("fasting")
+    data object Programs : Screen("programs")
+    data object Program : Screen("program/{programId}") {
+        fun createRoute(programId: String) = "program/$programId"
+    }
     data object More : Screen("more")
     data object BodyAge : Screen("body_age")
     data object Breathing : Screen("breathing?pattern={pattern}&start={start}") {
@@ -518,7 +522,8 @@ fun HangryNavGraph(
             TrainingScreen(
                 viewModel = dashboardViewModel,
                 workoutRepository = appContainer.workoutRepository,
-                heartRateRepository = appContainer.heartRateRepository
+                heartRateRepository = appContainer.heartRateRepository,
+                longevityRepository = appContainer.longevityRepository
             )
         }
 
@@ -655,6 +660,7 @@ fun HangryNavGraph(
                 onOpenHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
                 onOpenSupplements = { navController.navigate(Screen.Supplements.route) },
                 onOpenFasting = { navController.navigate(Screen.Fasting.route) },
+                onOpenPrograms = { navController.navigate(Screen.Programs.route) },
                 onOpenBreathing = { navController.navigate(Screen.Breathing.createRoute()) },
                 onOpenWidgets = { navController.navigate(Screen.HomeScreenWidgets.route) },
                 onCustomizeToday = {
@@ -708,6 +714,7 @@ fun HangryNavGraph(
                         "breathing" -> Screen.Breathing.createRoute(pattern)
                         "supplements" -> Screen.Supplements.route
                         "fasting" -> Screen.Fasting.route
+                        "programs" -> Screen.Programs.route
                         "health_records" -> Screen.HealthRecords.route
                         "body_metrics" -> Screen.BodyMetrics.route
                         "body_fat" -> Screen.BodyFatCalculator.route
@@ -753,6 +760,32 @@ fun HangryNavGraph(
             )
             SupplementsScreen(
                 viewModel = supplementsViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Opt-in guided programs (stress, focus, mobility, shoulders, back, pull-up, push-up, knees)
+        composable(Screen.Programs.route) {
+            val programsViewModel: com.kevan.hangry.ui.programs.ProgramsViewModel = viewModel(
+                factory = com.kevan.hangry.ui.programs.ProgramsViewModel.provideFactory(appContainer.programsRepository)
+            )
+            com.kevan.hangry.ui.programs.ProgramsScreen(
+                viewModel = programsViewModel,
+                onOpenProgram = { id -> navController.navigate(Screen.Program.createRoute(id)) },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Screen.Program.route,
+            arguments = listOf(navArgument("programId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val programsViewModel: com.kevan.hangry.ui.programs.ProgramsViewModel = viewModel(
+                factory = com.kevan.hangry.ui.programs.ProgramsViewModel.provideFactory(appContainer.programsRepository)
+            )
+            com.kevan.hangry.ui.programs.ProgramScreen(
+                programId = backStackEntry.arguments?.getString("programId").orEmpty(),
+                viewModel = programsViewModel,
+                onOpenBreathing = { pattern -> navController.navigate(Screen.Breathing.createRoute(pattern)) { launchSingleTop = true } },
                 onNavigateBack = { navController.popBackStack() }
             )
         }

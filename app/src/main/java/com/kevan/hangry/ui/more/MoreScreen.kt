@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccessibilityNew
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.DashboardCustomize
@@ -40,6 +41,7 @@ fun MoreScreen(
     onOpenBodyMetrics: () -> Unit,
     onOpenHealthRecords: () -> Unit,
     onOpenSupplements: () -> Unit,
+    onOpenFasting: () -> Unit,
     onOpenBreathing: () -> Unit,
     onOpenWidgets: () -> Unit,
     onCustomizeToday: () -> Unit,
@@ -56,7 +58,8 @@ fun MoreScreen(
         ),
         "Health" to listOf(
             MoreItem(Icons.Default.MonitorHeart, "Health Records", "Blood pressure, labs, goals and cycle", onOpenHealthRecords),
-            MoreItem(Icons.Default.Medication, "Supplements", "Doses, reminders and checks", onOpenSupplements),
+            MoreItem(Icons.Default.Medication, "Supplements", "What you take, with optional reminders", onOpenSupplements),
+            MoreItem(Icons.Default.Timer, "Fasting", "Optional intermittent fasting timer and streak", onOpenFasting),
             MoreItem(Icons.Default.Air, "Breathing", "Guided breathing with Dash", onOpenBreathing)
         ),
         "App" to listOf(

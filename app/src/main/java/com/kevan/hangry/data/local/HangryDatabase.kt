@@ -40,9 +40,10 @@ import com.kevan.hangry.data.local.entity.*
         HealthProfileItemEntity::class,
         MenstrualPeriodEntity::class,
         SupplementEntity::class,
-        SupplementIntakeEntity::class
+        SupplementIntakeEntity::class,
+        FastEntity::class
     ],
-    version = 25,
+    version = 27,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -72,6 +73,7 @@ abstract class HangryDatabase : RoomDatabase() {
     abstract fun hrvFeelingDao(): HrvFeelingDao
     abstract fun healthRecordsDao(): HealthRecordsDao
     abstract fun supplementDao(): SupplementDao
+    abstract fun fastDao(): FastDao
 
     open fun checkpointAndOptimize() {
         openHelper.writableDatabase.let { db ->
@@ -514,6 +516,35 @@ abstract class HangryDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Supplements become context-only unless the user asks for tracking. Ones that already had
+         * reminders on keep being tracked; the rest are assumed taken from now on.
+         */
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE supplements ADD COLUMN tracked INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE supplements SET tracked = 1 WHERE remindersEnabled = 1 AND times != ''")
+            }
+        }
+
+        /** Intermittent fasting history. */
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS fasts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        startAt INTEGER NOT NULL,
+                        endAt INTEGER,
+                        targetMinutes INTEGER NOT NULL,
+                        planId TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_fasts_startAt ON fasts(startAt)")
+            }
+        }
+
         fun getDatabase(context: Context): HangryDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -525,7 +556,7 @@ abstract class HangryDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27
                     )
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {

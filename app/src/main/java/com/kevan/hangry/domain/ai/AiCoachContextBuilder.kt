@@ -57,6 +57,8 @@ class AiCoachContextBuilder(
     private val healthRecordsRepository: HealthRecordsRepository? = null,
     /** Daily supplements, schedule and adherence. Optional for tests. */
     private val supplementRepository: SupplementRepository? = null,
+    /** Intermittent fasting, only when the user has turned it on. Optional for tests. */
+    private val fastingRepository: com.kevan.hangry.domain.repository.FastingRepository? = null,
     private val bodyAgeLoader: BodyAgeLoader? = null,
     private val streaksLoader: StreaksLoader? = null,
     private val strainCalculator: StrainCalculator? = null
@@ -128,6 +130,7 @@ class AiCoachContextBuilder(
 
         healthRecordsRepository?.current()?.let { appendHealthRecords(sb, it, today) }
         supplementRepository?.current()?.let { appendSupplements(sb, it) }
+        fastingRepository?.current()?.takeIf { it.enabled }?.let { appendFasting(sb, it) }
 
         streaksLoader?.let { loader ->
             val stepGoal = profile?.dailyStepGoal ?: 10000L
@@ -337,17 +340,34 @@ class AiCoachContextBuilder(
         snapshot.supplements.forEach { s ->
             val dose = (if (s.doseAmount % 1.0 == 0.0) s.doseAmount.toInt().toString() else s.doseAmount.toString()) + " " + s.doseUnit
             val times = s.times.joinToString(", ").ifEmpty { "no set time" }
+            // Adding a supplement isn't a request to be tracked: untracked ones count as taken.
+            val tracking = if (s.tracked) " [TRACKED${if (s.remindersEnabled) ", reminders on" else ""}]" else " [not tracked - assume taken as usual]"
             val ingredients = s.ingredients.joinToString(", ") { i ->
                 listOfNotNull(i.name, i.amount?.let { a -> (if (a % 1.0 == 0.0) a.toInt().toString() else a.toString()) + (i.unit?.let { " $it" } ?: "") }).joinToString(" ")
             }
             val adherence = snapshot.weekAdherence[s.id]?.takeIf { it.second > 0 }?.let { " | last 7 days: ${it.first}/${it.second} doses taken" } ?: ""
             val status = if (s.active) "" else " [PAUSED]"
-            sb.appendLine("• ${s.name}${s.brand?.let { " ($it)" } ?: ""}$status: $dose at $times" +
+            sb.appendLine("• ${s.name}${s.brand?.let { " ($it)" } ?: ""}$status$tracking: $dose at $times" +
                 (if (ingredients.isNotEmpty()) " | per serving: $ingredients" else "") + adherence)
         }
         if (snapshot.todayDoses.isNotEmpty()) {
-            sb.appendLine("Today: ${snapshot.takenToday} of ${snapshot.todayDoses.size} doses taken" +
+            sb.appendLine("Today (tracked only): ${snapshot.takenToday} of ${snapshot.todayDoses.size} doses taken" +
                 (snapshot.nextDose?.let { " | next: ${it.supplement.name} at ${it.time}" } ?: ""))
+        }
+        sb.appendLine()
+    }
+
+    private fun appendFasting(sb: StringBuilder, snapshot: com.kevan.hangry.domain.model.FastingSnapshot) {
+        sb.appendLine("=== INTERMITTENT FASTING (the user turned this on) ===")
+        sb.appendLine("Plan: ${snapshot.plan.label} (${snapshot.targetHours}h fast) | streak: ${snapshot.streak} days (best ${snapshot.bestStreak})")
+        val fmt = com.kevan.hangry.domain.model.FastingMath::formatDuration
+        snapshot.active?.let { f ->
+            val stage = com.kevan.hangry.domain.model.FastingStage.at(f.elapsed())
+            sb.appendLine("Fasting now: ${fmt(f.elapsed())} of ${f.targetMinutes / 60}h, started ${f.startAt.atZone(ZoneId.systemDefault()).toLocalDateTime().withNano(0)} | stage: ${stage.title}")
+        } ?: sb.appendLine("Not fasting right now (eating window).")
+        val week = com.kevan.hangry.domain.model.FastingMath.lastWeek(snapshot.history)
+        if (week.isNotEmpty()) {
+            sb.appendLine("Last 7 days: ${week.size} fasts, ${week.count { it.reachedGoal() }} reached goal, lengths: " + week.joinToString(", ") { fmt(it.elapsed()) })
         }
         sb.appendLine()
     }

@@ -22,9 +22,10 @@ class HangryApplication : Application() {
         DailyNudgeWorker.schedule(this)
         BedtimeReminder.reschedule(this)
         com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(this)
-        // Alarms are cleared by app updates and force-stops; re-arm supplement reminders.
+        // Alarms are cleared by app updates and force-stops; re-arm supplement and fasting reminders.
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
             runCatching { container.supplementRepository.rescheduleReminders() }
+            runCatching { container.fastingRepository.rescheduleReminder() }
             runCatching { container.userProfileRepository.refreshAgeFromBirthday() }
         }
     }

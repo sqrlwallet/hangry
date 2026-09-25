@@ -19,7 +19,10 @@ import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalTime
 
-/** Home-page checklist: today's doses with one-tap ticks, or a prompt to add the first one. */
+/**
+ * Home-page checklist: today's doses of tracked supplements with one-tap ticks. Untracked ones are
+ * assumed taken, so they're just listed; with none added, a prompt to add the first one.
+ */
 @Composable
 fun SupplementsDashboardCard(
     snapshot: SupplementsSnapshot,
@@ -48,10 +51,22 @@ fun SupplementsDashboardCard(
         if (snapshot.supplements.isEmpty()) {
             Spacer(Modifier.height(6.dp))
             Text(
-                "Snap your daily supplements - AI reads the label, and you get reminders to take them.",
+                "Snap your daily supplements - AI reads the label so Dash knows what you take.",
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
+            return@HangryCard
+        }
+        if (snapshot.todayDoses.isEmpty()) {
+            snapshot.active.takeIf { it.isNotEmpty() }?.let { active ->
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Taking " + active.joinToString(", ") { it.name },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.textSecondary,
+                    maxLines = 2
+                )
+            }
             return@HangryCard
         }
         snapshot.todayDoses.take(MAX_ROWS).forEach { dose ->

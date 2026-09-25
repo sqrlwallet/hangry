@@ -57,5 +57,6 @@
     <string name="widget_posture_description">Your last posture score and a shortcut to a new check.</string>
     <string name="widget_cycle_description">Cycle day and when your next period is predicted.</string>
     <string name="widget_calories_description">Calories eaten today against your daily target.</string>
+    <string name="widget_fasting_description">Your fasting timer and streak, with a button to start or end a fast.</string>
     <string name="widget_nutrition_description">Calories, protein, carbs and fat today, with one-tap buttons to log your usual foods.</string>
 </resources>

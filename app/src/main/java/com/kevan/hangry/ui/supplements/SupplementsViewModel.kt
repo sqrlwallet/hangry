@@ -33,8 +33,11 @@ data class SupplementEditorState(
     val form: String? = null,
     val doseAmount: String = "1",
     val doseUnit: String = "capsule",
-    val times: List<LocalTime> = listOf(LocalTime.of(8, 0)),
+    /** Usual dose times: context for Dash, and the schedule when tracked. */
+    val times: List<LocalTime> = emptyList(),
     val ingredients: List<SupplementIngredient> = emptyList(),
+    /** Off by default: adding a supplement is context, not a request to be reminded. */
+    val tracked: Boolean = false,
     val remindersEnabled: Boolean = true,
     val notes: String = "",
     val suggestedTiming: String? = null,
@@ -46,7 +49,7 @@ data class SupplementEditorState(
     val analysisError: String? = null
 ) {
     val isNew: Boolean get() = id == 0L
-    val canSave: Boolean get() = name.isNotBlank() && !isAnalyzing
+    val canSave: Boolean get() = name.isNotBlank() && !isAnalyzing && (!tracked || times.isNotEmpty())
 }
 
 class SupplementsViewModel(
@@ -89,11 +92,18 @@ class SupplementsViewModel(
             doseUnit = supplement.doseUnit,
             times = supplement.times,
             ingredients = supplement.ingredients,
-            remindersEnabled = supplement.remindersEnabled,
+            tracked = supplement.tracked,
+            // Default reminders on for when tracking is switched on later.
+            remindersEnabled = supplement.remindersEnabled || !supplement.tracked,
             notes = supplement.notes.orEmpty(),
             existingPhotoPath = supplement.photoPath,
             active = supplement.active
         )
+    }
+
+    /** Tracking needs at least one dose time; start from the label's suggested timing. */
+    fun setTracked(tracked: Boolean) = _editor.update { e ->
+        e?.copy(tracked = tracked, times = if (tracked && e.times.isEmpty()) listOf(defaultTimeFor(e.suggestedTiming)) else e.times)
     }
 
     fun updateEditor(transform: (SupplementEditorState) -> SupplementEditorState) = _editor.update { it?.let(transform) }
@@ -118,6 +128,7 @@ class SupplementsViewModel(
                     doseUnit = e.doseUnit,
                     times = e.times,
                     ingredients = e.ingredients,
+                    tracked = e.tracked,
                     remindersEnabled = e.remindersEnabled,
                     notes = e.notes,
                     photoPath = photoPath,

@@ -109,6 +109,7 @@ sealed class Screen(val route: String) {
     data object BodyMetrics : Screen("body_metrics")
     data object HealthRecords : Screen("health_records")
     data object Supplements : Screen("supplements")
+    data object Fasting : Screen("fasting")
     data object More : Screen("more")
     data object BodyAge : Screen("body_age")
     data object Breathing : Screen("breathing?pattern={pattern}&start={start}") {
@@ -161,7 +162,7 @@ fun HangryNavGraph(
             dashboardWidgetRepository = appContainer.dashboardWidgetRepository,
             bodyFatRepository = appContainer.bodyFatRepository,
             bodyMetricsRepository = appContainer.bodyMetricsRepository,
-            streaksLoader = StreaksLoader(appContainer.database),
+            streaksLoader = StreaksLoader(appContainer.database, appContainer.fastingRepository),
             bodyAgeLoader = BodyAgeLoader(appContainer.database)
         )
     )
@@ -420,6 +421,12 @@ fun HangryNavGraph(
                 .collectAsState(initial = HealthRecordsSnapshot())
             val supplements by appContainer.supplementRepository.observe()
                 .collectAsState(initial = SupplementsSnapshot())
+            val fasting by appContainer.fastingRepository.observe()
+                .collectAsState(initial = com.kevan.hangry.domain.model.FastingSnapshot())
+            // Starting, ending or turning off fasting can change the streaks on Today.
+            LaunchedEffect(fasting.enabled, fasting.active?.id, fasting.history.size, fasting.streak) {
+                dashboardViewModel.refreshHabits()
+            }
             BackgroundAccessPrompt()
             DashboardScreen(
                 onNavigateToBodyAge = { navController.navigate(Screen.BodyAge.route) },
@@ -458,6 +465,10 @@ fun HangryNavGraph(
                 },
                 onNavigateToSupplements = { navController.navigate(Screen.Supplements.route) },
                 onNavigateToHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
+                fasting = fasting,
+                onStartFast = { coroutineScope.launch { appContainer.fastingRepository.startFast() } },
+                onEndFast = { coroutineScope.launch { appContainer.fastingRepository.endFast() } },
+                onNavigateToFasting = { navController.navigate(Screen.Fasting.route) },
                 onNavigateToBreathing = { pattern ->
                     navController.navigate(Screen.Breathing.createRoute(pattern?.id)) {
                         launchSingleTop = true
@@ -628,6 +639,7 @@ fun HangryNavGraph(
                 onOpenBodyMetrics = { navController.navigate(Screen.BodyMetrics.route) },
                 onOpenHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
                 onOpenSupplements = { navController.navigate(Screen.Supplements.route) },
+                onOpenFasting = { navController.navigate(Screen.Fasting.route) },
                 onOpenBreathing = { navController.navigate(Screen.Breathing.createRoute()) },
                 onOpenWidgets = { navController.navigate(Screen.HomeScreenWidgets.route) },
                 onCustomizeToday = {
@@ -680,6 +692,7 @@ fun HangryNavGraph(
                     val route = when (screen) {
                         "breathing" -> Screen.Breathing.createRoute(pattern)
                         "supplements" -> Screen.Supplements.route
+                        "fasting" -> Screen.Fasting.route
                         "health_records" -> Screen.HealthRecords.route
                         "body_metrics" -> Screen.BodyMetrics.route
                         "body_fat" -> Screen.BodyFatCalculator.route
@@ -725,6 +738,20 @@ fun HangryNavGraph(
             )
             SupplementsScreen(
                 viewModel = supplementsViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Opt-in intermittent fasting: timer, plan, streak and history
+        composable(Screen.Fasting.route) {
+            val fastingViewModel: com.kevan.hangry.ui.fasting.FastingViewModel = viewModel(
+                factory = com.kevan.hangry.ui.fasting.FastingViewModel.provideFactory(
+                    repository = appContainer.fastingRepository,
+                    healthRecordsRepository = appContainer.healthRecordsRepository
+                )
+            )
+            com.kevan.hangry.ui.fasting.FastingScreen(
+                viewModel = fastingViewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

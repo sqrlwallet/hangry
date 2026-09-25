@@ -20,6 +20,7 @@ enum class WidgetType {
     SUPPLEMENTS,
     STREAKS,
     BODY_AGE,
+    FASTING,
     CUSTOM_METRIC
 }
 
@@ -82,6 +83,14 @@ data class DashboardWidget(
                 id = "streaks",
                 type = WidgetType.STREAKS,
                 title = "Streaks",
+                isVisible = true,
+                order = 1
+            ),
+            DashboardWidget(
+                // Only drawn once the user turns fasting on.
+                id = "fasting",
+                type = WidgetType.FASTING,
+                title = "Fasting",
                 isVisible = true,
                 order = 1
             ),

@@ -64,7 +64,7 @@ class DashImprovementsTest {
 
     @Test
     fun `an overdue supplement dose becomes the first suggestion`() {
-        val magnesium = Supplement(1, "Magnesium", null, null, 2.0, "capsules", listOf(LocalTime.of(8, 0)), emptyList(), true, null, null, true)
+        val magnesium = Supplement(1, "Magnesium", null, null, 2.0, "capsules", listOf(LocalTime.of(8, 0)), emptyList(), true, true, null, null, true)
         val snapshot = SupplementsSnapshot(supplements = listOf(magnesium), todayDoses = listOf(SupplementDose(magnesium, LocalTime.of(8, 0), taken = false)))
         val chips = DashInsights.suggestions(snapshot, null, null, now = LocalTime.of(12, 0))
         assertTrue(chips.first().contains("Magnesium"))

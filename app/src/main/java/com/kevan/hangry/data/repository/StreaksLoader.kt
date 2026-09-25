@@ -4,16 +4,22 @@ import com.kevan.hangry.data.local.HangryDatabase
 import com.kevan.hangry.domain.calculation.Streak
 import com.kevan.hangry.domain.calculation.StreakCalculator
 import com.kevan.hangry.domain.calculation.StreakType
+import com.kevan.hangry.domain.model.FastingMath
 import com.kevan.hangry.domain.model.SupplementTimes
+import com.kevan.hangry.domain.repository.FastingRepository
 import java.time.LocalDate
 import java.time.ZoneId
 
 /**
  * Builds the streaks shown on Today from data the app already stores: daily summaries (steps,
- * sleep), the food log and supplement doses. Only habits the user actually has data for are
+ * sleep), the food log, supplement doses and fasts. Only habits the user actually has data for are
  * returned - no step data means no step streak card.
  */
-class StreaksLoader(private val database: HangryDatabase) {
+class StreaksLoader(
+    private val database: HangryDatabase,
+    /** Only while fasting is turned on. Optional for tests. */
+    private val fastingRepository: FastingRepository? = null
+) {
 
     suspend fun load(today: LocalDate, stepGoal: Long, sleepGoalMinutes: Int, zone: ZoneId = ZoneId.systemDefault()): List<Streak> {
         val start = today.minusDays(HISTORY_DAYS)
@@ -36,7 +42,7 @@ class StreaksLoader(private val database: HangryDatabase) {
             streaks += StreakCalculator.streak(StreakType.SLEEP, days, today)
         }
 
-        val supplements = database.supplementDao().getAll().filter { it.active && SupplementTimes.parse(it.times).isNotEmpty() }
+        val supplements = database.supplementDao().getAll().filter { it.active && it.tracked && SupplementTimes.parse(it.times).isNotEmpty() }
         if (supplements.isNotEmpty()) {
             val taken = database.supplementDao().getIntakesBetween(start, today)
                 .map { Triple(it.supplementId, it.date, it.scheduledTime) }
@@ -50,6 +56,11 @@ class StreaksLoader(private val database: HangryDatabase) {
             }
             val days = StreakCalculator.fullyTakenDays(schedules, taken, start, today)
             streaks += StreakCalculator.streak(StreakType.SUPPLEMENTS, days, today)
+        }
+
+        fastingRepository?.current()?.takeIf { it.enabled && (it.active != null || it.history.isNotEmpty()) }?.let { fasting ->
+            val fasts = listOfNotNull(fasting.active) + fasting.history
+            streaks += StreakCalculator.streak(StreakType.FASTING, FastingMath.goalDays(fasts, zone), today)
         }
         return streaks
     }

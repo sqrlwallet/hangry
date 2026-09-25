@@ -89,6 +89,8 @@ class OpenRouterAiCoachService(
                - The user may attach photos: supplement bottles/labels, meals, lab reports, blood pressure monitor screens, etc. Read them carefully and only use values you can actually see.
                - You can propose in-app actions in the "actions" array. The app shows each as a card and the user taps to confirm - you never change anything yourself. So say "Tap Add below to save it", never "I've added it".
                - Propose an action when the user asks you to add, log, save, track or remind them of something, or clearly implies it (e.g. sends a supplement photo saying "I take this every morning", or a lab report saying "save these"). Don't propose actions for general questions.
+               - Supplements: adding one is context for you, not a request to be tracked. Untracked supplements are assumed taken as usual - never ask whether they took them or nag about them. Set "track": true only when the user asks for help tracking, remembering or reminders.
+               - Fasting: only when the context shows INTERMITTENT FASTING, the user turned it on - time meal and workout advice around their eating window and cheer their streak. Never push fasting on anyone who hasn't turned it on, and if they're pregnant, under 18 or mention an eating disorder, gently suggest checking with their doctor rather than encouraging fasts.
                - One action per item: a lab report with LDL, HDL and triglycerides becomes three ADD_READING actions.
                - If something needed is missing (e.g. what time they take a supplement), make a sensible default, say what you assumed in the reply, and mention they can edit it later.
                - Action types and payloads (these cover everything a user can enter in Hangry - if they want to record or change something, there's an action for it):
@@ -214,9 +216,9 @@ internal fun parseCoachResponse(raw: String): CoachResponse {
  * checks nothing in CoachAction.ALL is missing, so new data-entry points can't be forgotten here.
  */
 internal val DASH_ACTION_GUIDE = listOf(
-    "ADD_SUPPLEMENT" to "\"supplement\": {\"name\", \"brand\", \"form\" (capsule|tablet|softgel|gummy|powder|liquid|other), \"doseAmount\" (units per dose), \"doseUnit\" (e.g. \"capsules\"), \"times\" ([\"HH:mm\"] 24-hour, one per daily dose), \"reminders\" (true/false), \"ingredients\" ([{\"name\",\"amount\",\"unit\",\"dailyValuePercent\"}]), \"notes\"}",
-    "UPDATE_SUPPLEMENT" to "\"supplementName\" (one they already take) + \"supplementUpdate\": {\"doseAmount\", \"doseUnit\", \"times\" ([\"HH:mm\"]), \"reminders\", \"active\" (false pauses it), \"notes\"} - only what changes",
-    "MARK_SUPPLEMENT_TAKEN" to "\"supplementName\" (one they already take)",
+    "ADD_SUPPLEMENT" to "\"supplement\": {\"name\", \"brand\", \"form\" (capsule|tablet|softgel|gummy|powder|liquid|other), \"doseAmount\" (units per dose), \"doseUnit\" (e.g. \"capsules\"), \"times\" ([\"HH:mm\"] 24-hour, when they usually take it), \"track\" (true ONLY if they ask you to help them track, remember or remind them; default false = context only, assumed taken), \"reminders\" (true/false, only used when tracked),\"ingredients\" ([{\"name\",\"amount\",\"unit\",\"dailyValuePercent\"}]), \"notes\"}",
+    "UPDATE_SUPPLEMENT" to "\"supplementName\" (one they already take) + \"supplementUpdate\": {\"doseAmount\", \"doseUnit\", \"times\" ([\"HH:mm\"]), \"track\" (true when they ask for help tracking or reminders, false to stop), \"reminders\", \"active\" (false pauses it), \"notes\"} - only what changes",
+    "MARK_SUPPLEMENT_TAKEN" to "\"supplementName\" (a tracked one - untracked supplements already count as taken)",
     "LOG_MEAL" to "\"meal\": {\"foodName\", \"calories\" (integer), \"proteinG\", \"carbsG\", \"fatG\", \"fiberG\", \"sugarG\", \"sodiumMg\"} - estimate like a nutrition specialist, including hidden oils",
     "UPDATE_MEAL" to "\"mealName\" (a meal logged in the last 3 days) + \"meal\": the full corrected values (same fields as LOG_MEAL)",
     "ADD_MEAL_PLAN" to "\"mealPlan\": {\"name\", \"mealType\" (BREAKFAST|LUNCH|DINNER|SNACK|OTHER), \"calories\", \"proteinG\", \"carbsG\", \"fatG\"} - a saved meal they eat often, for one-tap logging",
@@ -232,7 +234,7 @@ internal val DASH_ACTION_GUIDE = listOf(
     "LOG_BODY_FAT" to "\"bodyFat\": {\"percentage\", \"source\" (e.g. \"DEXA scan\", \"smart scale\")} - a measured body fat % they tell you or show you",
     "LOG_SLEEP" to "\"sleep\": {\"durationMinutes\", \"endTime\" (\"YYYY-MM-DDTHH:mm\" wake time, or null for now)} - when their device missed a night",
     "SET_HRV_FEELING" to "\"feeling\" (EXCELLENT|GOOD|OKAY|TIRED|DRAINED) - how they feel today; only changes recovery on days their device didn't report HRV",
-    "OPEN_SCREEN" to "\"screen\" (breathing|supplements|health_records|body_metrics|body_fat|nutrition|sleep|recovery|heart|training|trends|posture|settings), plus \"breathingPattern\" (box_4|bpm_6|bpm_5|bpm_3) for breathing - e.g. offer a 6 BPM session when they're stressed before bed",
+    "OPEN_SCREEN" to "\"screen\" (breathing|supplements|fasting|health_records|body_metrics|body_fat|nutrition|sleep|recovery|heart|training|trends|posture|settings), plus \"breathingPattern\" (box_4|bpm_6|bpm_5|bpm_3) for breathing - e.g. offer a 6 BPM session when they're stressed before bed",
     "LOG_WORKOUT" to "\"workout\": {\"exerciseType\" (e.g. \"RUNNING\", \"WEIGHTLIFTING\", \"WALKING\", \"SWIMMING\", \"CYCLING\", \"YOGA\"), \"title\", \"durationMinutes\", \"calories\" (kcal), \"distanceKm\", \"startTime\" (\"YYYY-MM-DDTHH:mm\" or null for ending now), \"notes\"} - log an activity they did without a wearable",
     "RESOLVE_JOURNAL_ENTRY" to "\"resolveJournal\": {\"summary\" (matching title/keyword of the problem or injury)} - resolve or forget an injury or past issue that is now healed",
     "UPDATE_REMINDERS" to "\"reminders\": {\"morningReadinessEnabled\" (true/false), \"bedtimeReminderEnabled\" (true/false)} - update nudge and reminder switches"

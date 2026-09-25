@@ -463,6 +463,7 @@ class DefaultHealthSyncManager(
             }
             database.supplementDao().deleteAllSupplements()
             database.supplementDao().deleteAllIntakes()
+            database.fastDao().deleteAll()
         }
     }
 

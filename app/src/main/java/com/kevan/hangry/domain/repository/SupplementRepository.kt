@@ -18,6 +18,7 @@ data class SupplementDraft(
     val times: List<LocalTime> = emptyList(),
     val ingredients: List<SupplementIngredient> = emptyList(),
     val remindersEnabled: Boolean = false,
+    val tracked: Boolean = false,
     val notes: String? = null,
     val photoPath: String? = null,
     val active: Boolean = true

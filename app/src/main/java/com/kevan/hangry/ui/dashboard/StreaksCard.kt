@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -100,5 +101,6 @@ private fun StreakType.look(): Pair<ImageVector, Color> {
         StreakType.MEALS -> Icons.Default.Restaurant to tokens.chartColors.activeCalories
         StreakType.SLEEP -> Icons.Default.Bedtime to tokens.chartColors.sleep
         StreakType.SUPPLEMENTS -> Icons.Default.Medication to tokens.chartColors.hrv
+        StreakType.FASTING -> Icons.Default.Timer to com.kevan.hangry.ui.fasting.FastingColor
     }
 }

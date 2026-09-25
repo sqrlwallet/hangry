@@ -101,16 +101,20 @@ class CoachActionExecutor(
                 doseUnit = p.doseUnit?.takeIf { it.isNotBlank() } ?: p.form ?: "serving",
                 times = times,
                 ingredients = p.ingredients,
-                remindersEnabled = p.reminders && times.isNotEmpty(),
+                tracked = p.track && times.isNotEmpty(),
+                remindersEnabled = p.reminders,
                 notes = p.notes
             )
         )
-        return "Added ${p.name}" + if (times.isNotEmpty()) " · ${times.joinToString { it.toString() }}" else ""
+        return "Added ${p.name}" + if (p.track && times.isNotEmpty()) " · tracking ${times.joinToString { it.toString() }}" else ""
     }
 
     private suspend fun markTaken(action: CoachAction): String {
         val name = action.supplementName?.trim()?.lowercase() ?: error("Which supplement?")
-        val dose = supplementRepository.current().todayDoses
+        val snapshot = supplementRepository.current()
+        snapshot.supplements.firstOrNull { !it.tracked && (it.name.lowercase().contains(name) || name.contains(it.name.lowercase())) }
+            ?.let { error("${it.name} isn't tracked - it already counts as taken.") }
+        val dose = snapshot.todayDoses
             .filter { !it.taken && (it.supplement.name.lowercase().contains(name) || name.contains(it.supplement.name.lowercase())) }
             .minByOrNull { it.time } ?: error("No untaken dose of that supplement today.")
         supplementRepository.setTaken(dose.supplement.id, dose.time, taken = true)
@@ -271,7 +275,9 @@ class CoachActionExecutor(
         val s = supplementRepository.current().supplements.firstOrNull {
             it.name.lowercase().contains(name) || name.contains(it.name.lowercase())
         } ?: error("You don't have a supplement called \"${action.supplementName}\".")
-        val times = u.times?.let { SupplementTimes.parse(it.joinToString(",")) } ?: s.times
+        val tracked = u.track ?: s.tracked
+        var times = u.times?.let { SupplementTimes.parse(it.joinToString(",")) } ?: s.times
+        if (tracked && times.isEmpty()) times = listOf(java.time.LocalTime.of(8, 0))
         u.doseAmount?.let { require(it > 0) { "That dose doesn't look right." } }
         supplementRepository.save(
             SupplementDraft(
@@ -280,7 +286,9 @@ class CoachActionExecutor(
                 doseUnit = u.doseUnit?.takeIf { it.isNotBlank() } ?: s.doseUnit,
                 times = times,
                 ingredients = s.ingredients,
-                remindersEnabled = (u.reminders ?: s.remindersEnabled) && times.isNotEmpty(),
+                tracked = tracked,
+                // Asking to track implies reminders unless they say otherwise.
+                remindersEnabled = u.reminders ?: (s.remindersEnabled || (u.track == true && !s.tracked)),
                 notes = u.notes ?: s.notes,
                 photoPath = s.photoPath,
                 active = u.active ?: s.active

@@ -98,6 +98,9 @@ object HangryWidgetUpdater {
 
         // 8. Calories and Nutrition
         NutritionWidgets.updateAll(context, appWidgetManager, container, today, WidgetPrefs.hideValues(context))
+
+        // 9. Fasting
+        FastingWidget.update(context, appWidgetManager, container.fastingRepository)
     }
 
     private fun updateActivityWidgets(
@@ -175,7 +178,7 @@ object HangryWidgetUpdater {
         val count = if (doses.isEmpty()) "—" else "${snapshot.takenToday}/${doses.size}"
         val (headline, subtitle) = when {
             snapshot.supplements.isEmpty() -> "Add your supplements" to "Tap to snap your first bottle"
-            doses.isEmpty() -> "No doses today" to "Set a time on a supplement for reminders"
+            doses.isEmpty() -> "Taking ${snapshot.active.size}" to "Turn on tracking for dose check-offs"
             next == null -> "All taken today" to "${doses.size} dose${if (doses.size == 1) "" else "s"} done"
             else -> next.supplement.name to "Next at ${next.time.format(timeFormat)} · ${doses.size - snapshot.takenToday} left today"
         }

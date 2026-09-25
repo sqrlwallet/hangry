@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The timer ticks on its own (Chronometer); the hourly refresh keeps the progress bar and text current. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_fasting_description"
+    android:initialLayout="@layout/widget_fasting"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:previewLayout="@layout/widget_fasting"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="3600000"
+    android:widgetCategory="home_screen" />

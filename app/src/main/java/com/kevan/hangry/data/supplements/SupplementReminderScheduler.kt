@@ -24,7 +24,7 @@ class SupplementReminderScheduler(private val context: Context) {
 
     fun reschedule(supplements: List<Supplement>) {
         val wanted = supplements
-            .filter { it.active && it.remindersEnabled }
+            .filter { it.active && it.tracked && it.remindersEnabled }
             .flatMap { it.times }
             .map(SupplementTimes::key)
             .toSet()

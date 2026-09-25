@@ -99,7 +99,7 @@ fun HomeScreenWidgetsScreen(
                         )
                         HangryInfoTip(
                             title = "Home Screen Widgets",
-                            body = "Add widgets to your Android home screen for activity, calories, nutrition, sleep, recovery, heart, health markers, goals, weight, posture, cycle, breathing, supplements and one-tap meal logging."
+                            body = "Add widgets to your Android home screen for activity, calories, nutrition, sleep, recovery, heart, health markers, goals, weight, posture, cycle, breathing, supplements, fasting and one-tap meal logging."
                         )
                     }
                 }
@@ -181,6 +181,15 @@ fun HomeScreenWidgetsScreen(
                 onPinWidget = { pinWidget(context, OverviewWidgetProvider::class.java) }
             ) {
                 OverviewWidgetMockup()
+            }
+
+            WidgetPreviewCard(
+                title = "Fasting",
+                sizeLabel = "2 × 2",
+                description = "A live fasting timer with your stage and streak, and a button to start or end a fast. Turn fasting on in More › Fasting first.",
+                onPinWidget = { pinWidget(context, FastingWidgetProvider::class.java) }
+            ) {
+                FastingWidgetMockup()
             }
 
             WidgetPreviewCard(
@@ -461,6 +470,33 @@ private fun SupplementsWidgetMockup() {
         Spacer(modifier = Modifier.height(6.dp))
         Text("Magnesium Glycinate", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text("Next at 9:00 PM · 2 left today", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun FastingWidgetMockup() {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Timer, null, tint = Color(0xFFB39DDB), modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("FASTING · FAT BURNING", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+            }
+            Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
+                Text("🔥 5", color = Color(0xFFB39DDB), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text("13:42:08", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("2h 17m left · 12:30 PM", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2F2C33))) {
+            Box(Modifier.fillMaxWidth(0.86f).fillMaxHeight().background(Color(0xFFB39DDB)))
+        }
     }
 }
 

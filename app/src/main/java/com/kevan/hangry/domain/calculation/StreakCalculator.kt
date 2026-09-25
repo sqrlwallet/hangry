@@ -7,7 +7,8 @@ enum class StreakType(val label: String) {
     STEPS("Step goal"),
     MEALS("Meals logged"),
     SLEEP("Sleep goal"),
-    SUPPLEMENTS("All supplements")
+    SUPPLEMENTS("All supplements"),
+    FASTING("Fasting goal")
 }
 
 /**

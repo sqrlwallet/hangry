@@ -94,7 +94,7 @@ data class CoachAction(
     /** Screens Dash may open, by the name it uses in OPEN_SCREEN. */
     object Screens {
         val ALL = setOf(
-            "breathing", "supplements", "health_records", "body_metrics", "body_fat", "nutrition",
+            "breathing", "supplements", "fasting", "health_records", "body_metrics", "body_fat", "nutrition",
             "sleep", "recovery", "heart", "training", "trends", "posture", "settings"
         )
     }
@@ -116,6 +116,8 @@ data class SupplementActionPayload(
     val doseUnit: String? = null,
     /** "HH:mm", 24-hour. */
     val times: List<String> = emptyList(),
+    /** Only when the user asks for help tracking/remembering it; otherwise it's context, assumed taken. */
+    val track: Boolean = false,
     val reminders: Boolean = true,
     val ingredients: List<SupplementIngredient> = emptyList(),
     val notes: String? = null
@@ -178,6 +180,7 @@ data class SupplementUpdatePayload(
     val doseAmount: Double? = null,
     val doseUnit: String? = null,
     val times: List<String>? = null,
+    val track: Boolean? = null,
     val reminders: Boolean? = null,
     /** false pauses it (history is kept). */
     val active: Boolean? = null,

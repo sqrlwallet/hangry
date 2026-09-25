@@ -79,6 +79,10 @@ fun DashboardScreen(
     onToggleSupplementDose: (Long, java.time.LocalTime, Boolean) -> Unit = { _, _, _ -> },
     onNavigateToSupplements: () -> Unit = {},
     onNavigateToHealthRecords: () -> Unit = {},
+    fasting: com.kevan.hangry.domain.model.FastingSnapshot = com.kevan.hangry.domain.model.FastingSnapshot(),
+    onStartFast: () -> Unit = {},
+    onEndFast: () -> Unit = {},
+    onNavigateToFasting: () -> Unit = {},
     autoOpenQuickLog: Boolean = false,
     onAutoOpenQuickLogHandled: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -285,6 +289,13 @@ fun DashboardScreen(
                     WidgetType.STREAKS -> StreaksCard(streaks = uiState.streaks)
 
                     WidgetType.BODY_AGE -> BodyAgeCard(snapshot = uiState.bodyAge, onClick = onNavigateToBodyAge)
+
+                    WidgetType.FASTING -> com.kevan.hangry.ui.fasting.FastingDashboardCard(
+                        snapshot = fasting,
+                        onStart = onStartFast,
+                        onEnd = onEndFast,
+                        onOpen = onNavigateToFasting
+                    )
 
                     // Folded into the overview, or reachable from the tab bar and Log Meal button.
                     WidgetType.DAILY_ACTIVITY_RINGS, WidgetType.LOG_MEAL, WidgetType.SLEEP_STRAIN_RINGS,

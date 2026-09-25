@@ -20,6 +20,11 @@ data class SupplementEntity(
     /** JSON list of SupplementIngredient. */
     val ingredientsJson: String = "[]",
     val remindersEnabled: Boolean = false,
+    /**
+     * The user asked Hangry to help them take it: doses get check-offs, adherence and (optionally)
+     * reminders. Otherwise it's context for Dash and assumed taken as usual.
+     */
+    val tracked: Boolean = false,
     val notes: String? = null,
     val photoPath: String? = null,
     val active: Boolean = true,

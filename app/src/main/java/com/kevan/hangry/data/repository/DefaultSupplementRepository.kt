@@ -61,7 +61,8 @@ class DefaultSupplementRepository(
             doseUnit = draft.doseUnit.trim().ifEmpty { "serving" },
             times = SupplementTimes.format(draft.times),
             ingredientsJson = json.encodeToString(ingredientsSerializer, draft.ingredients),
-            remindersEnabled = draft.remindersEnabled && draft.times.isNotEmpty(),
+            tracked = draft.tracked && draft.times.isNotEmpty(),
+            remindersEnabled = draft.tracked && draft.remindersEnabled && draft.times.isNotEmpty(),
             notes = draft.notes?.trim()?.takeIf { it.isNotEmpty() },
             photoPath = draft.photoPath,
             active = draft.active
@@ -91,7 +92,7 @@ class DefaultSupplementRepository(
     override suspend fun markSlotTaken(time: LocalTime, date: LocalDate) {
         val key = SupplementTimes.key(time)
         val intakes = current().supplements
-            .filter { it.active && time in it.times }
+            .filter { it.active && it.tracked && time in it.times }
             .map { SupplementIntakeEntity(supplementId = it.id, date = date, scheduledTime = key, takenAt = Instant.now()) }
         dao.insertIntakes(intakes)
     }
@@ -135,12 +136,13 @@ class DefaultSupplementRepository(
     private fun snapshot(entities: List<SupplementEntity>, intakes: List<SupplementIntakeEntity>, today: LocalDate): SupplementsSnapshot {
         val supplements = entities.map { it.toModel() }
         val takenKeys = intakes.map { Triple(it.supplementId, it.date, it.scheduledTime) }.toSet()
-        val todayDoses = supplements.filter { it.active }
+        // Untracked supplements are assumed taken, so they have no doses to tick off.
+        val todayDoses = supplements.filter { it.active && it.tracked }
             .flatMap { s -> s.times.map { t -> SupplementDose(s, t, Triple(s.id, today, SupplementTimes.key(t)) in takenKeys) } }
             .sortedWith(compareBy({ it.time }, { it.supplement.name.lowercase() }))
         // Last 7 full days; a supplement only counts from the day it was added.
         val weekDays = (1L..7L).map { today.minusDays(it) }
-        val adherence = supplements.filter { it.active && it.times.isNotEmpty() }.associate { s ->
+        val adherence = supplements.filter { it.active && it.tracked && it.times.isNotEmpty() }.associate { s ->
             val created = entities.first { it.id == s.id }.createdAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
             val days = weekDays.filter { !it.isBefore(created) }
             val scheduled = days.size * s.times.size
@@ -159,7 +161,8 @@ class DefaultSupplementRepository(
         doseUnit = doseUnit,
         times = SupplementTimes.parse(times),
         ingredients = runCatching { json.decodeFromString(ingredientsSerializer, ingredientsJson) }.getOrDefault(emptyList()),
-        remindersEnabled = remindersEnabled,
+        remindersEnabled = remindersEnabled && tracked,
+        tracked = tracked,
         notes = notes,
         photoPath = photoPath,
         active = active

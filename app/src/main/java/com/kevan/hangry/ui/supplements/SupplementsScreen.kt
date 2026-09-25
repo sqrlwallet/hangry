@@ -60,8 +60,8 @@ private val SUPPLEMENTS_INFO = listOf(
         "Photograph the front of the bottle and the Supplement Facts label. AI reads the name, serving and ingredients, then you just confirm when and how much you take."
     ),
     HangryInfoSection(
-        "Reminders",
-        "Turn on reminders and you'll get one notification per dose time with a Mark taken button. You can also tick doses off here, on the Today screen, or from the home-screen widget."
+        "Tracking is optional",
+        "Adding a supplement just tells Dash what you take - it's assumed you take it as usual, with nothing to tick off. Want help remembering? Turn on Help me track this to tick doses off here, on the Today screen or the home-screen widget, and get a reminder at each dose time."
     ),
     HangryInfoSection(
         "Ask Dash",
@@ -130,7 +130,7 @@ fun SupplementsScreen(
                     onManual = viewModel::startManual
                 )
             } else {
-                TodayChecklist(snapshot = snapshot, onToggle = viewModel::setTaken)
+                if (snapshot.todayDoses.isNotEmpty()) TodayChecklist(snapshot = snapshot, onToggle = viewModel::setTaken)
                 Text("Your supplements", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 snapshot.supplements.forEach { supplement ->
                     SupplementCard(
@@ -150,6 +150,7 @@ fun SupplementsScreen(
             state = state,
             aiEnabled = aiEnabled,
             onChange = viewModel::updateEditor,
+            onSetTracked = viewModel::setTracked,
             onAddPhoto = { photoLauncher.takePhoto() },
             onPickPhotos = { photoLauncher.pickFromGallery() },
             onSave = viewModel::save,
@@ -167,7 +168,7 @@ private fun EmptyState(onSnap: () -> Unit, onGallery: () -> Unit, onManual: () -
         Spacer(Modifier.height(8.dp))
         Text("Add your daily supplements", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         Text(
-            "Snap the bottle and its label - AI reads the dose and ingredients. Then set when you take it and get reminders.",
+            "Snap the bottle and its label - AI reads the dose and ingredients so Dash knows what you take. Want reminders too? Just turn on tracking.",
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textSecondary
         )
@@ -253,7 +254,8 @@ private fun SupplementCard(supplement: Supplement, adherence: Pair<Int, Int>?, o
                     style = MaterialTheme.typography.titleSmall,
                     color = if (supplement.active) tokens.textPrimary else tokens.textMuted
                 )
-                val schedule = supplement.times.joinToString(", ") { it.format(TIME_FORMAT) }.ifEmpty { "No set time" }
+                val schedule = supplement.times.joinToString(", ") { it.format(TIME_FORMAT) }
+                    .ifEmpty { "Taken as usual" }
                 Text(
                     "${SupplementsViewModel.formatAmount(supplement.doseAmount)} ${supplement.doseUnit} · $schedule",
                     style = MaterialTheme.typography.bodySmall,
@@ -271,6 +273,8 @@ private fun SupplementCard(supplement: Supplement, adherence: Pair<Int, Int>?, o
             Column(horizontalAlignment = Alignment.End) {
                 if (supplement.remindersEnabled && supplement.active) {
                     Icon(Icons.Default.NotificationsActive, contentDescription = "Reminders on", tint = tokens.textSecondary, modifier = Modifier.size(16.dp))
+                } else if (supplement.tracked && supplement.active) {
+                    Text("Tracking", style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
                 }
                 adherence?.takeIf { it.second > 0 }?.let { (taken, scheduled) ->
                     Text("$taken/$scheduled this week", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
@@ -291,6 +295,7 @@ private fun SupplementEditorSheet(
     state: SupplementEditorState,
     aiEnabled: Boolean,
     onChange: ((SupplementEditorState) -> SupplementEditorState) -> Unit,
+    onSetTracked: (Boolean) -> Unit,
     onAddPhoto: () -> Unit,
     onPickPhotos: () -> Unit,
     onSave: () -> Unit,
@@ -305,7 +310,7 @@ private fun SupplementEditorSheet(
     // Reminders need notification permission on Android 13+; saving goes ahead either way.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { onSave() }
     val save = {
-        val needsPermission = state.remindersEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        val needsPermission = state.tracked && state.remindersEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         if (needsPermission) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) else onSave()
     }
@@ -408,7 +413,10 @@ private fun SupplementEditorSheet(
                 )
             }
 
-            Text("When do you take it?", style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
+            Text(
+                if (state.tracked) "When do you take it?" else "When do you usually take it? (optional)",
+                style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary
+            )
             state.suggestedTiming?.let {
                 Text("Suggested: $it", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
             }
@@ -434,12 +442,28 @@ private fun SupplementEditorSheet(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Remind me", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                    Text("A notification at each time, with a Mark taken button", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                    Text("Help me track this", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(
+                        if (state.tracked) "Tick off each dose and see how consistent you are"
+                        else "Off: Dash knows you take it and assumes you do - nothing to tick off",
+                        style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary
+                    )
                 }
-                Switch(checked = state.remindersEnabled, onCheckedChange = { v -> onChange { it.copy(remindersEnabled = v) } }, enabled = state.times.isNotEmpty())
+                Switch(checked = state.tracked, onCheckedChange = onSetTracked)
             }
-            ExactAlarmHint(visible = state.remindersEnabled && state.times.isNotEmpty())
+            if (state.tracked) {
+                if (state.times.isEmpty()) {
+                    Text("Add a time to track this", style = MaterialTheme.typography.bodySmall, color = tokens.scoreColors.rebuild)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Remind me", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                        Text("A notification at each time, with a Mark taken button", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                    }
+                    Switch(checked = state.remindersEnabled, onCheckedChange = { v -> onChange { it.copy(remindersEnabled = v) } }, enabled = state.times.isNotEmpty())
+                }
+                ExactAlarmHint(visible = state.remindersEnabled && state.times.isNotEmpty())
+            }
 
             if (state.ingredients.isNotEmpty()) {
                 Text("Ingredients per serving", style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
@@ -498,7 +522,7 @@ private fun SupplementEditorSheet(
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete ${state.name}?") },
-            text = { Text("Its reminders and history are removed too. To stop for now but keep history, turn off Currently taking instead.") },
+            text = { Text("Its reminders and history are removed too. To stop for now, turn off Currently taking instead.") },
             confirmButton = { TextButton(onClick = { confirmDelete = false; onDelete() }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } }
         )

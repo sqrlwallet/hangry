@@ -43,6 +43,8 @@ data class Supplement(
     val times: List<LocalTime>,
     val ingredients: List<SupplementIngredient>,
     val remindersEnabled: Boolean,
+    /** Hangry helps the user take it (check-offs, adherence, reminders); otherwise assumed taken. */
+    val tracked: Boolean,
     val notes: String?,
     val photoPath: String?,
     val active: Boolean
@@ -58,9 +60,9 @@ data class SupplementDose(
 data class SupplementsSnapshot(
     val supplements: List<Supplement> = emptyList(),
     val today: LocalDate = LocalDate.now(),
-    /** Today's doses, in time order. */
+    /** Today's doses of tracked supplements, in time order. */
     val todayDoses: List<SupplementDose> = emptyList(),
-    /** Doses taken / scheduled over the last 7 full days, per supplement id. */
+    /** Doses taken / scheduled over the last 7 full days, per tracked supplement id. */
     val weekAdherence: Map<Long, Pair<Int, Int>> = emptyMap()
 ) {
     val active: List<Supplement> get() = supplements.filter { it.active }

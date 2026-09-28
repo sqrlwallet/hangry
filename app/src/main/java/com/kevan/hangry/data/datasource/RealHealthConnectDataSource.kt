@@ -680,10 +680,17 @@ class RealHealthConnectDataSource(
         return earliestDate
     }
 
+    private fun foodClientId(entry: FoodLogEntity) = "hangry-food-${entry.id}"
+
     override suspend fun writeNutritionRecord(entry: FoodLogEntity): Boolean {
         val activeClient = client ?: return false
         return try {
             val startInstant = entry.timestamp.minusSeconds(60)
+            // Stable client id: writing an edited entry again replaces its record, and delete can find it.
+            val metadata = androidx.health.connect.client.records.metadata.Metadata.manualEntry(
+                clientRecordId = foodClientId(entry),
+                clientRecordVersion = System.currentTimeMillis()
+            )
             activeClient.insertRecords(
                 listOf(
                     NutritionRecord(
@@ -691,7 +698,7 @@ class RealHealthConnectDataSource(
                         startZoneOffset = null,
                         endTime = entry.timestamp,
                         endZoneOffset = null,
-                        metadata = androidx.health.connect.client.records.metadata.Metadata.manualEntry(),
+                        metadata = metadata,
                         name = entry.foodName,
                         energy = androidx.health.connect.client.units.Energy.kilocalories(entry.calories.toDouble()),
                         protein = androidx.health.connect.client.units.Mass.grams(entry.proteinG),
@@ -706,6 +713,27 @@ class RealHealthConnectDataSource(
             true
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed writing nutrition record: ${e.message}")
+            false
+        }
+    }
+
+    override suspend fun deleteNutritionRecord(entry: FoodLogEntity): Boolean {
+        val activeClient = client ?: return false
+        return try {
+            // Entries logged before client ids were added are found by their exact time and name.
+            val end = entry.timestamp
+            val legacyIds = readAllRecords(NutritionRecord::class, TimeRangeFilter.between(end.minusSeconds(60), end))
+                .filter {
+                    it.metadata.dataOrigin.packageName == context.packageName &&
+                        it.metadata.clientRecordId == null &&
+                        it.endTime.toEpochMilli() == end.toEpochMilli() &&
+                        it.name == entry.foodName
+                }
+                .map { it.metadata.id }
+            activeClient.deleteRecords(NutritionRecord::class, recordIdsList = legacyIds, clientRecordIdsList = listOf(foodClientId(entry)))
+            true
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed deleting nutrition record: ${e.message}")
             false
         }
     }

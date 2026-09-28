@@ -14,13 +14,20 @@ import java.time.ZoneId
 import kotlin.math.roundToInt
 
 /**
- * A week's progress on the five longevity pillars. Strength and mobility come from logged
- * workouts, cardio minutes from time in the user's own heart-rate zones (zone 2, and zones
- * 4-5), and anything that isn't a workout - balance drills, a quick stretch - from tick-offs.
+ * A week's progress on the five longevity pillars. Strength sessions come from logged workouts,
+ * cardio minutes from time in the user's own heart-rate zones (zone 2, and zones 4-5). Mobility
+ * and balance are minutes: yoga, pilates and stretching count toward both, and anything that
+ * isn't a workout - balance drills, a quick stretch - from tick-offs.
  */
 object LongevityCalculator {
 
     private const val MAX_GAP_MINUTES = 10.0
+
+    /** A day ticked off by hand: a short stretch or balance practice. */
+    const val TICK_MINUTES = 10
+
+    /** A mobility program session (mobility, knees, back, shoulders), which has no logged duration. */
+    const val PROGRAM_SESSION_MINUTES = 15
 
     fun week(
         weekStart: LocalDate,
@@ -41,10 +48,11 @@ object LongevityCalculator {
         val category = { w: ExerciseSessionEntity -> WorkoutType.fromId(w.exerciseType) }
 
         val strength = inWeek.filter { category(it).category == WorkoutCategory.STRENGTH }
-        // Breathing sessions are logged as mind-body too, but they aren't mobility work.
-        val mobilityWorkoutDays = inWeek
+        // Yoga, pilates and stretching; breathing sessions are logged as mind-body too, but they
+        // aren't mobility or balance work.
+        val mindBody = inWeek
             .filter { category(it).category == WorkoutCategory.MIND_BODY && category(it) != WorkoutType.GUIDED_BREATHING }
-            .map(::dayOf).toSet()
+        val mindBodyMinutes = mindBody.sumOf { it.durationMinutes }
 
         // Minutes in each personal zone while awake; a gap over 10 minutes means the device was off.
         val awake = heartRate
@@ -61,7 +69,10 @@ object LongevityCalculator {
 
         val mobilityChecked = checkIns[LongevityPillar.MOBILITY].orEmpty() intersect weekDays
         val balanceChecked = checkIns[LongevityPillar.BALANCE].orEmpty() intersect weekDays
-        val mobilityDays = mobilityWorkoutDays + mobilityChecked + (extraMobilityDays intersect weekDays)
+        val programDays = extraMobilityDays intersect weekDays
+        val mindBodyDays = mindBody.map(::dayOf).toSet()
+        val mobilityMinutes = mindBodyMinutes + programDays.size * PROGRAM_SESSION_MINUTES + mobilityChecked.size * TICK_MINUTES
+        val balanceMinutes = mindBodyMinutes + balanceChecked.size * TICK_MINUTES
 
         return LongevityWeek(
             start = weekStart,
@@ -72,8 +83,11 @@ object LongevityCalculator {
                 },
                 PillarProgress(LongevityPillar.ZONE2, zoneMinutes[1].roundToInt(), measurable = hasHeartRate),
                 PillarProgress(LongevityPillar.HIGH_INTENSITY, (zoneMinutes[3] + zoneMinutes[4]).roundToInt(), measurable = hasHeartRate),
-                PillarProgress(LongevityPillar.MOBILITY, mobilityDays.size, days = mobilityDays, checkedDays = mobilityChecked),
-                PillarProgress(LongevityPillar.BALANCE, balanceChecked.size, days = balanceChecked, checkedDays = balanceChecked)
+                PillarProgress(
+                    LongevityPillar.MOBILITY, mobilityMinutes,
+                    days = mindBodyDays + programDays + mobilityChecked, checkedDays = mobilityChecked
+                ),
+                PillarProgress(LongevityPillar.BALANCE, balanceMinutes, days = mindBodyDays + balanceChecked, checkedDays = balanceChecked)
             )
         )
     }

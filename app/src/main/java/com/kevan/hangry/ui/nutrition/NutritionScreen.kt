@@ -30,8 +30,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.graphics.Color
 import kotlin.math.roundToInt
 import com.kevan.hangry.domain.calculation.NutritionTargets
-import com.kevan.hangry.domain.model.CommonFood
-import com.kevan.hangry.domain.model.CommonFoods
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.coach.DashSpinner
@@ -80,7 +78,7 @@ private val NUTRITION_INFO_SECTIONS = listOf(
     ),
     HangryInfoSection(
         "Saved Meals",
-        "Every food you log is saved automatically. Log it again in one tap from Quick add or Saved Meals - no retyping, no AI call. Common foods like a banana or an egg are there from day one."
+        "Every food you log is saved automatically. Log it again in one tap from Quick add or Saved Meals - no retyping, no AI call."
     ),
     HangryInfoSection(
         "Health Connect",
@@ -290,19 +288,17 @@ fun NutritionScreen(
                 }
             }
 
-            item {
-                QuickAddRow(
-                    savedMeals = uiState.mealPlans,
-                    onLogSaved = { meal, portion ->
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        viewModel.logFromMealPlan(meal, portion)
-                    },
-                    onLogCommon = { food, portion ->
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        viewModel.logCommonFood(food, portion)
-                    },
-                    onSeeAll = onNavigateToMealPlan
-                )
+            if (uiState.mealPlans.isNotEmpty()) {
+                item {
+                    QuickAddRow(
+                        savedMeals = uiState.mealPlans,
+                        onLogSaved = { meal, portion ->
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            viewModel.logFromMealPlan(meal, portion)
+                        },
+                        onSeeAll = onNavigateToMealPlan
+                    )
+                }
             }
 
             item {
@@ -443,21 +439,15 @@ fun NutritionScreen(
     }
 }
 
-/**
- * One-tap logging for what the user eats most: their most recent saved meals first, topped up
- * with everyday basics so there's something to tap before anything has been saved.
- */
+/** One-tap logging for what the user eats most: their most recent saved meals. */
 @Composable
 private fun QuickAddRow(
     savedMeals: List<MealPlanEntity>,
     onLogSaved: (MealPlanEntity, Double) -> Unit,
-    onLogCommon: (CommonFood, Double) -> Unit,
     onSeeAll: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
     val recent = savedMeals.take(QUICK_ADD_COUNT)
-    val savedKeys = savedMeals.map { it.nameKey }.toSet()
-    val starters = CommonFoods.starters.filter { it.key !in savedKeys }.take((QUICK_ADD_COUNT - recent.size).coerceAtLeast(0))
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -473,9 +463,6 @@ private fun QuickAddRow(
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(recent, key = { "saved_${it.id}" }) { meal ->
                 QuickAddChip(name = meal.name, calories = meal.calories, onLog = { portion -> onLogSaved(meal, portion) })
-            }
-            items(starters, key = { "common_${it.name}" }) { food ->
-                QuickAddChip(name = food.name, calories = food.calories, onLog = { portion -> onLogCommon(food, portion) })
             }
         }
     }

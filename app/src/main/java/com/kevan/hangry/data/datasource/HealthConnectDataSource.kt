@@ -30,6 +30,9 @@ interface HealthConnectDataSource {
     /** Writes one AI-logged (or manually-logged) food entry to Health Connect. Returns false on any failure. */
     suspend fun writeNutritionRecord(entry: FoodLogEntity): Boolean
 
+    /** Removes the record Hangry wrote for [entry]. Returns false on any failure. */
+    suspend fun deleteNutritionRecord(entry: FoodLogEntity): Boolean
+
     /**
      * Write permissions needed to log breathing sessions on this device: a Mindfulness session
      * where Health Connect supports it, otherwise a Guided Breathing exercise session.

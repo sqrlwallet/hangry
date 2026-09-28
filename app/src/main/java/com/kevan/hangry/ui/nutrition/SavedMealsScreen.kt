@@ -3,7 +3,6 @@ package com.kevan.hangry.ui.nutrition
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -27,9 +26,6 @@ import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.PORTIONS
 import com.kevan.hangry.data.local.entity.portionLabel
 import com.kevan.hangry.data.local.entity.portionedName
-import com.kevan.hangry.domain.model.CommonFood
-import com.kevan.hangry.domain.model.CommonFoodCategory
-import com.kevan.hangry.domain.model.CommonFoods
 import com.kevan.hangry.ui.components.DashEmptyScene
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.HangryCard
@@ -39,7 +35,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlin.math.roundToInt
 
 /**
- * Every food the user has logged before, plus everyday basics, one tap from being logged again.
+ * Every food the user has logged before, one tap from being logged again.
  * Stays open after a tap so a whole meal (eggs, toast, coffee) can go in back to back.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +51,6 @@ fun SavedMealsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var query by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf<CommonFoodCategory?>(null) }
     // Sticks between taps so e.g. a double helping of several foods is quick; every row shows
     // the numbers for the chosen portion, so it's never a surprise.
     var portion by rememberSaveable { mutableDoubleStateOf(1.0) }
@@ -65,13 +60,6 @@ fun SavedMealsScreen(
 
     val q = query.trim().lowercase()
     val saved = uiState.mealPlans.filter { q.isEmpty() || it.name.lowercase().contains(q) }
-    val savedKeys = remember(uiState.mealPlans) { uiState.mealPlans.map { it.nameKey }.toSet() }
-    // A basic food the user has logged already shows once, under their own meals.
-    val common = CommonFoods.all.filter {
-        it.key !in savedKeys &&
-            (category == null || it.category == category) &&
-            (q.isEmpty() || it.name.lowercase().contains(q))
-    }
 
     LaunchedEffect(uiState.lastSavedEntry) {
         val entry = uiState.lastSavedEntry ?: return@LaunchedEffect
@@ -191,33 +179,6 @@ fun SavedMealsScreen(
                 }
             }
 
-            item {
-                SectionHeader(title = "Common foods", trailing = "Typical values", modifier = Modifier.padding(top = HangryTokens.Spacing.s))
-            }
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        FilterChip(selected = category == null, onClick = { category = null }, label = { Text("All") })
-                    }
-                    items(CommonFoodCategory.entries) { c ->
-                        FilterChip(
-                            selected = category == c,
-                            onClick = { category = if (category == c) null else c },
-                            label = { Text(c.title) }
-                        )
-                    }
-                }
-            }
-            if (common.isEmpty()) {
-                item { NoMatch("No common foods match. Tap + to add your own.") }
-            } else {
-                items(common, key = { "common_${it.name}" }) { food ->
-                    CommonFoodRow(food = food, portion = portion, onLog = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        viewModel.logCommonFood(food, portion)
-                    })
-                }
-            }
         }
     }
 
@@ -341,32 +302,6 @@ private fun SavedMealRow(meal: MealPlanEntity, portion: Double, onLog: () -> Uni
                         }
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CommonFoodRow(food: CommonFood, portion: Double, onLog: () -> Unit) {
-    val tokens = LocalHangryTokens.current
-    HangryCard(
-        modifier = Modifier.clickable(onClickLabel = "Log ${portionedName(food.name, portion)}", onClick = onLog),
-        contentPadding = HangryTokens.Spacing.s
-    ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.AddCircleOutline,
-                contentDescription = null,
-                tint = tokens.chartColors.activeCalories,
-                modifier = Modifier.padding(horizontal = HangryTokens.Spacing.xs)
-            )
-            Column(modifier = Modifier.weight(1f).padding(start = HangryTokens.Spacing.xs)) {
-                Text(text = food.name, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                Text(
-                    text = "${portionPrefix(portion)}${food.serving} · ${macroLine(food.calories, food.proteinG, food.carbsG, food.fatG, portion)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
             }
         }
     }

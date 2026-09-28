@@ -14,7 +14,6 @@ import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.data.local.entity.toLogEntry
 import com.kevan.hangry.data.local.entity.savedMealKey
-import com.kevan.hangry.domain.model.CommonFood
 import com.kevan.hangry.domain.ai.FoodAnalyzer
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.model.FoodAnalysisResult
@@ -148,7 +147,7 @@ class NutritionViewModel(
     }
 
     fun analyzePhoto(uri: Uri, note: String?) {
-        val base64 = context.readImageAsBase64Jpeg(uri)
+        val base64 = context.readImageAsBase64Jpeg(uri, maxDimension = FOOD_PHOTO_MAX_DIMENSION)
         if (base64 == null) {
             _uiState.update { it.copy(errorMessage = "Couldn't read that photo. Try again.") }
             return
@@ -211,7 +210,7 @@ class NutritionViewModel(
             )
             val id = foodLogRepository.insert(entry)
             val saved = entry.copy(id = id)
-            val synced = healthConnectDataSource.writeNutritionRecord(entry)
+            val synced = healthConnectDataSource.writeNutritionRecord(saved)
             if (synced) foodLogRepository.markSyncedToHealthConnect(id)
             if (photoUri != null) {
                 context.clearCapturedImageCache()
@@ -226,7 +225,7 @@ class NutritionViewModel(
     }
 
     suspend fun estimateFood(photoUri: Uri?, note: String?): Result<FoodAnalysisResult> {
-        val base64 = photoUri?.let { context.readImageAsBase64Jpeg(it) }
+        val base64 = photoUri?.let { context.readImageAsBase64Jpeg(it, maxDimension = FOOD_PHOTO_MAX_DIMENSION) }
         return if (base64 != null) {
             foodAnalyzer.analyzePhoto(base64, note, allergies())
         } else if (!note.isNullOrBlank()) {
@@ -254,7 +253,7 @@ class NutritionViewModel(
         )
         val id = foodLogRepository.insert(entry)
         val saved = entry.copy(id = id)
-        val synced = healthConnectDataSource.writeNutritionRecord(entry)
+        val synced = healthConnectDataSource.writeNutritionRecord(saved)
         if (synced) foodLogRepository.markSyncedToHealthConnect(id)
         context.clearCapturedImageCache()
         _uiState.update {
@@ -284,9 +283,17 @@ class NutritionViewModel(
     }
 
     fun saveEdit(updated: FoodLogEntity) {
+        val previous = _uiState.value.editingEntry?.takeIf { it.id == updated.id } ?: updated
+        _uiState.update { it.copy(editingEntry = null) }
         viewModelScope.launch {
             foodLogRepository.update(updated)
-            _uiState.update { it.copy(editingEntry = null) }
+            // Another app's meal can only be changed by that app, so the edit stays in Hangry.
+            if (updated.source == FoodLogSource.HEALTH_CONNECT) return@launch
+            // Remove the old record first so an entry written before client ids existed isn't left behind.
+            val synced = healthConnectDataSource.deleteNutritionRecord(previous) &&
+                healthConnectDataSource.writeNutritionRecord(updated)
+            foodLogRepository.update(updated.copy(healthConnectSynced = synced))
+            if (!synced) _uiState.update { it.copy(errorMessage = "Saved, but couldn't update Health Connect.") }
         }
     }
 
@@ -294,15 +301,10 @@ class NutritionViewModel(
         logFoodInstantly(plan.toLogEntry(_selectedDate.value, portion))
     }
 
-    /** One tap on a built-in food (banana, egg, ...) logs [portion] standard servings of it. */
-    fun logCommonFood(food: CommonFood, portion: Double = 1.0) {
-        logFoodInstantly(food.toLogEntry(_selectedDate.value, portion))
-    }
-
     private fun logFoodInstantly(entry: FoodLogEntity) {
         viewModelScope.launch {
             val id = foodLogRepository.insert(entry)
-            if (healthConnectDataSource.writeNutritionRecord(entry)) {
+            if (healthConnectDataSource.writeNutritionRecord(entry.copy(id = id))) {
                 foodLogRepository.markSyncedToHealthConnect(id)
             }
             _uiState.update { it.copy(lastSavedEntry = entry.copy(id = id)) }
@@ -331,6 +333,7 @@ class NutritionViewModel(
     fun deleteEntry(entry: FoodLogEntity) {
         viewModelScope.launch {
             foodLogRepository.delete(entry)
+            if (entry.source != FoodLogSource.HEALTH_CONNECT) healthConnectDataSource.deleteNutritionRecord(entry)
             entry.photoPath?.let { File(it).delete() }
         }
     }
@@ -378,3 +381,6 @@ class NutritionViewModel(
         }
     }
 }
+
+/** Food photos go up at a higher resolution than other scans: portion sizing leans on edges, depth and plate rims. */
+private const val FOOD_PHOTO_MAX_DIMENSION = 1536

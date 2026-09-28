@@ -19,9 +19,10 @@ class LongevityTest {
     private val monday = LocalDate.of(2026, 9, 21)
     private val zones = HeartRateZones.forUser(40, null, 60.0) // max 180; zone 2 = 132-143, zone 4 = 156+
 
-    private fun workout(day: LocalDate, type: String, id: String) = ExerciseSessionEntity(
+    private fun workout(day: LocalDate, type: String, id: String, minutes: Int = 60) = ExerciseSessionEntity(
         recordFingerprint = id, exerciseType = type,
-        startTime = day.atTime(7, 0).toInstant(zone), endTime = day.atTime(8, 0).toInstant(zone), durationMinutes = 60
+        startTime = day.atTime(7, 0).toInstant(zone), endTime = day.atTime(7, 0).plusMinutes(minutes.toLong()).toInstant(zone),
+        durationMinutes = minutes
     )
 
     private fun minutes(day: LocalDate, hour: Int, count: Int, bpm: Double) = (0 until count).map {
@@ -35,17 +36,36 @@ class LongevityTest {
     }
 
     @Test
-    fun `strength sessions and mobility workouts count, breathing doesn't`() {
+    fun `strength sessions and mobility minutes count, breathing doesn't`() {
         val workouts = listOf(
             workout(monday, "WEIGHTLIFTING", "a"),
             workout(monday.plusDays(2), "STRENGTH_TRAINING", "b"),
-            workout(monday.plusDays(1), "YOGA", "c"),
+            workout(monday.plusDays(1), "YOGA", "c", minutes = 30),
             workout(monday.plusDays(3), "GUIDED_BREATHING", "d"),
             workout(monday.minusDays(1), "WEIGHTLIFTING", "last-week")
         )
         val week = LongevityCalculator.week(monday, workouts, emptyList(), emptyList(), zones, emptyMap(), zone)
         assertEquals(2, week.of(LongevityPillar.STRENGTH).value)
-        assertEquals(1, week.of(LongevityPillar.MOBILITY).value)
+        assertEquals(30, week.of(LongevityPillar.MOBILITY).value)
+        assertEquals(setOf(monday.plusDays(1)), week.of(LongevityPillar.MOBILITY).days)
+    }
+
+    @Test
+    fun `three strength sessions meet the target`() {
+        val workouts = (0L..2L).map { workout(monday.plusDays(it * 2), "STRENGTH_TRAINING", "s$it") }
+        val week = LongevityCalculator.week(monday, workouts, emptyList(), emptyList(), zones, emptyMap(), zone)
+        assertTrue(week.of(LongevityPillar.STRENGTH).met)
+    }
+
+    @Test
+    fun `an hour of yoga meets both mobility and balance`() {
+        val workouts = listOf(workout(monday, "YOGA", "y1", minutes = 40), workout(monday.plusDays(3), "PILATES", "p1", minutes = 20))
+        val week = LongevityCalculator.week(monday, workouts, emptyList(), emptyList(), zones, emptyMap(), zone)
+        assertEquals(60, week.of(LongevityPillar.MOBILITY).value)
+        assertEquals(60, week.of(LongevityPillar.BALANCE).value)
+        assertTrue(week.of(LongevityPillar.MOBILITY).met)
+        assertTrue(week.of(LongevityPillar.BALANCE).met)
+        assertEquals(setOf(monday, monday.plusDays(3)), week.of(LongevityPillar.BALANCE).days)
     }
 
     @Test
@@ -64,11 +84,12 @@ class LongevityTest {
     }
 
     @Test
-    fun `balance comes from tick-offs, and a met target counts as done`() {
-        val days = (0L..6L).map { monday.plusDays(it) }.toSet()
+    fun `each tick-off adds minutes, and a met target counts as done`() {
+        val days = (0L..5L).map { monday.plusDays(it) }.toSet()
         val week = LongevityCalculator.week(monday, emptyList(), emptyList(), emptyList(), zones, mapOf(LongevityPillar.BALANCE to days), zone)
-        assertEquals(7, week.of(LongevityPillar.BALANCE).value)
+        assertEquals(6 * LongevityCalculator.TICK_MINUTES, week.of(LongevityPillar.BALANCE).value)
         assertTrue(week.of(LongevityPillar.BALANCE).met)
+        assertEquals(0, week.of(LongevityPillar.MOBILITY).value)
         assertEquals(1, week.pillarsMet)
     }
 }

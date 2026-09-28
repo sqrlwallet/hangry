@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kevan.hangry.domain.calculation.LongevityCalculator
 import com.kevan.hangry.domain.model.LongevityPillar
 import com.kevan.hangry.domain.model.LongevityWeek
 import com.kevan.hangry.domain.model.PillarProgress
@@ -49,7 +50,7 @@ import kotlin.math.sin
 private val LONGEVITY_INFO = LongevityPillar.entries.map { HangryInfoSection("${it.label} · ${it.goal} ${it.unit}/week", it.why) } +
     HangryInfoSection(
         "How it's counted",
-        "Strength and mobility come from workouts you log (strength training, weightlifting, yoga, pilates, stretching...). Cardio minutes come from time in your own heart-rate zones, so they need a watch. Balance - and mobility you didn't log as a workout - you tick off by tapping the day."
+        "Strength sessions come from workouts you log (strength training, weightlifting...). Yoga, pilates and stretching count their minutes toward both mobility and balance. Cardio minutes come from time in your own heart-rate zones, so they need a watch. Practice you didn't log as a workout you tick off by tapping the day: each tick adds ${LongevityCalculator.TICK_MINUTES} minutes."
     )
 
 private val DAY_FORMAT = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
@@ -68,7 +69,8 @@ private fun LongevityPillar.color(): Color {
 
 /**
  * The week's five longevity pillars: a radar of how close each is to its weekly target, then a
- * row per pillar. Daily pillars show the week's days, and balance/mobility days can be ticked.
+ * row per pillar. Strength, mobility and balance show the week's days, and balance/mobility days
+ * can be ticked.
  */
 @Composable
 fun LongevityCard(
@@ -109,7 +111,7 @@ fun LongevityCard(
             PillarRow(progress, week, today, onToggleDay)
         }
         Text(
-            "Tap a day to tick off balance or mobility practice.",
+            "Tap a day to tick off ${LongevityCalculator.TICK_MINUTES} min of balance or mobility practice.",
             style = MaterialTheme.typography.labelSmall,
             color = tokens.textMuted,
             modifier = Modifier.padding(top = 4.dp)
@@ -207,8 +209,8 @@ private fun PillarRow(
             strokeCap = StrokeCap.Round,
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp).height(5.dp)
         )
-        if (progress.pillar.daily || progress.pillar == LongevityPillar.STRENGTH) {
-            val tickable = progress.pillar == LongevityPillar.MOBILITY || progress.pillar == LongevityPillar.BALANCE
+        val tickable = progress.pillar == LongevityPillar.MOBILITY || progress.pillar == LongevityPillar.BALANCE
+        if (tickable || progress.pillar == LongevityPillar.STRENGTH) {
             Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 week.days.forEach { day ->
                     val done = day in progress.days

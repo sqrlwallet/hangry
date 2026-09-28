@@ -99,6 +99,6 @@ class ProgramsTest {
             extraMobilityDays = setOf(monday.plusDays(1))
         )
         assertEquals(2, week.of(LongevityPillar.STRENGTH).value)
-        assertEquals(1, week.of(LongevityPillar.MOBILITY).value)
+        assertEquals(LongevityCalculator.PROGRAM_SESSION_MINUTES, week.of(LongevityPillar.MOBILITY).value)
     }
 }

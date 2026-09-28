@@ -9,15 +9,13 @@ enum class LongevityPillar(
     val label: String,
     val goal: Int,
     val unit: String,
-    /** True when the goal counts days (daily practice) rather than sessions or minutes. */
-    val daily: Boolean,
     val why: String
 ) {
-    STRENGTH("Strength", 3, "sessions", false, "Push, pull and squat 3 times a week. Protects muscle, bone and independence as you age."),
-    ZONE2("Zone 2 cardio", 150, "min", false, "150 minutes a week at a pace you can still talk at. Builds your aerobic base and metabolic health."),
-    HIGH_INTENSITY("Zone 4–5 cardio", 75, "min", false, "75 minutes a week of hard efforts to raise VO2 max, one of the strongest predictors of longevity. Try the Norwegian 4×4: four 4-minute hard intervals with 3 minutes easy between."),
-    MOBILITY("Mobility", 7, "days", true, "5–10 minutes a day for hips, spine, ankles and shoulders, to move well and avoid injury."),
-    BALANCE("Balance", 7, "days", true, "A few minutes a day of stability work, like standing on one leg (eyes closed when it gets easy). Helps prevent falls.");
+    STRENGTH("Strength", 3, "sessions", "Push, pull and squat 3 times a week. Protects muscle, bone and independence as you age."),
+    ZONE2("Zone 2 cardio", 150, "min", "150 minutes a week at a pace you can still talk at. Builds your aerobic base and metabolic health."),
+    HIGH_INTENSITY("Zone 4–5 cardio", 75, "min", "75 minutes a week of hard efforts to raise VO2 max, one of the strongest predictors of longevity. Try the Norwegian 4×4: four 4-minute hard intervals with 3 minutes easy between."),
+    MOBILITY("Mobility", 60, "min", "An hour a week for hips, spine, ankles and shoulders - one yoga class or a few short stretches - to move well and avoid injury."),
+    BALANCE("Balance", 60, "min", "An hour a week of stability work: yoga and pilates count, or stand on one leg (eyes closed when it gets easy). Helps prevent falls.");
 
     companion object {
         fun fromName(name: String?): LongevityPillar? = entries.firstOrNull { it.name == name }
@@ -27,9 +25,9 @@ enum class LongevityPillar(
 data class PillarProgress(
     val pillar: LongevityPillar,
     val value: Int,
-    /** Days of the week this pillar was done (daily pillars, and strength sessions). */
+    /** Days of the week this pillar was worked on (strength, mobility, balance). */
     val days: Set<LocalDate> = emptySet(),
-    /** Days ticked off by hand, which can be un-ticked. */
+    /** Days ticked off by hand (mobility, balance), which can be un-ticked. */
     val checkedDays: Set<LocalDate> = emptySet(),
     /** False when there was no data that could count toward it (e.g. no heart rate for zones). */
     val measurable: Boolean = true

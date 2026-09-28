@@ -43,7 +43,7 @@ class NutritionWidgetReceiver : BroadcastReceiver() {
                     "That meal isn't saved anymore"
                 } else {
                     val id = container.foodLogRepository.insert(entry)
-                    if (container.healthConnectDataSource.writeNutritionRecord(entry)) {
+                    if (container.healthConnectDataSource.writeNutritionRecord(entry.copy(id = id))) {
                         container.foodLogRepository.markSyncedToHealthConnect(id)
                     }
                     "Logged ${entry.foodName} · ${entry.calories} kcal"

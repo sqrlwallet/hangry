@@ -9,24 +9,46 @@ import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-private const val SYSTEM_PROMPT = """You are a certified nutrition specialist and dietary estimation assistant inside a personal health app. Given a photo of food, a meal plate, a beverage, packaged food, or a text description of a meal/snack, provide a comprehensive, accurate nutritional estimate for the serving shown or described.
+private const val SYSTEM_PROMPT = """You are a certified nutrition specialist and dietary estimation assistant inside a personal health app. Given a photo of food, a meal plate, a beverage, packaged food, or a text description of a meal/snack, estimate the nutrition of EXACTLY the amount shown or described - not a typical serving of that dish.
 
-ESTIMATION PRINCIPLES:
-1. Portion & Volume Recognition: Carefully analyze visual cues (plate/bowl proportion, container size, utensils, thickness of cuts). If portion is not explicitly stated in text, assume a standard adult restaurant or home-cooked serving size.
-2. Cooking Oils & Hidden Ingredients: In cooked, sauteed, roasted, or restaurant meals, account for realistic hidden calories from cooking fats (e.g., 1-2 tsp olive oil, butter, cooking spray ~45-120 kcal, 5-14g fat) and dressings/sauces that are typically present.
-3. Caloric & Macronutrient Consistency: Ensure mathematical consistency: calories ≈ (proteinG * 4) + (carbsG * 4) + (fatG * 9).
-4. Micronutrients: Provide realistic estimates for dietary fiber (g), sugar (g), and sodium (mg).
-5. Descriptive Food Name: Provide a specific, appetizing, clear name highlighting key items and preparation style (e.g., "Pan-Seared Salmon with Jasmine Rice & Steamed Broccoli", "Two Scrambled Eggs with Sourdough Toast & Avocado").
-6. Confidence & Portion Breakdown Note: In confidenceNote, provide a concise breakdown of the estimated portion weights and key assumptions (e.g., "Estimated ~450g total: ~180g salmon fillet, 1 cup cooked rice (~195g), 1 cup broccoli with ~1 tsp olive oil").
+METHOD - work component by component, never from a stock recipe:
+1. Identify every separate component on the plate: each food, side, sauce, dressing, topping, garnish and drink. Also list cooking fat as its own component whenever the food is fried, sauteed, roasted or glossy (e.g. "Olive oil (absorbed)", ~5-15g), plus butter, cheese or sauce that is visible or clearly implied.
+2. Establish scale from reference objects before judging size: a standard dinner plate is ~26-28cm across, a side plate ~20cm, a cereal bowl ~15cm, a fork ~19cm, a tablespoon ~4cm across the bowl, a 330ml can is 12cm tall, an adult palm is ~9cm wide, a phone ~15cm long. Say which reference you used.
+3. Estimate each component's weight in grams from what is actually visible: its footprint (the fraction of the plate it covers), its height/thickness, and its density; or count discrete pieces (e.g. 3 chicken nuggets, 2 slices of bread, 12 fries) and multiply by a typical piece weight. Use the cooked, as-served weight. If the plate is partly eaten, only count what is left. Do not round the portion up or down to a "standard serving" - a small scoop of rice is a small scoop of rice.
+4. For each component give nutrition per 100g for that food as prepared (e.g. cooked white rice ~130 kcal/100g, grilled chicken breast ~165 kcal/100g). The app multiplies these by your gram estimate, so the per-100g values must describe the food itself, independent of portion size.
+5. Quantities the user states (e.g. "200g chicken", "half portion", "2 eggs", "I ate half") override your visual estimate. Packaged food with a visible label: use the label's values.
+6. foodName: a specific, clear name for the whole meal highlighting key items and preparation (e.g. "Pan-Seared Salmon with Jasmine Rice & Steamed Broccoli").
+7. portionNote: one short sentence on the scale reference and key assumptions (e.g. "Scaled from a 27cm dinner plate; rice mound ~2cm deep; assumed pan-fried in oil").
 
 OUTPUT FORMAT:
 Respond with ONLY a single JSON object. No markdown code fences, no introductory or concluding text:
-{"foodName": string, "calories": integer, "proteinG": number, "carbsG": number, "fatG": number, "fiberG": number, "sugarG": number, "sodiumMg": number, "confidenceNote": string}"""
+{"foodName": string, "items": [{"name": string, "grams": number, "per100g": {"calories": number, "proteinG": number, "carbsG": number, "fatG": number, "fiberG": number, "sugarG": number, "sodiumMg": number}}], "portionNote": string}"""
 
 @Serializable
-private data class FoodAnalysisJson(
+internal data class FoodNutrientsJson(
+    val calories: Double = 0.0,
+    val proteinG: Double = 0.0,
+    val carbsG: Double = 0.0,
+    val fatG: Double = 0.0,
+    val fiberG: Double = 0.0,
+    val sugarG: Double = 0.0,
+    val sodiumMg: Double = 0.0
+)
+
+@Serializable
+internal data class FoodItemJson(
+    val name: String,
+    val grams: Double,
+    val per100g: FoodNutrientsJson = FoodNutrientsJson()
+)
+
+@Serializable
+internal data class FoodAnalysisJson(
     val foodName: String,
-    val calories: Int,
+    val items: List<FoodItemJson> = emptyList(),
+    val portionNote: String = "",
+    // Whole-meal totals: only used when the model skips the itemized breakdown.
+    val calories: Int = 0,
     val proteinG: Double = 0.0,
     val carbsG: Double = 0.0,
     val fatG: Double = 0.0,
@@ -36,6 +58,38 @@ private data class FoodAnalysisJson(
     val confidenceNote: String = "",
     val allergenWarnings: List<String> = emptyList()
 )
+
+/**
+ * Totals come from summing each component's grams x per-100g values, so the logged numbers scale
+ * with the portion actually on the plate rather than whatever the model pictures as "a serving".
+ */
+internal fun FoodAnalysisJson.toResult(checkAllergens: Boolean): FoodAnalysisResult {
+    val warnings = if (checkAllergens) allergenWarnings.filter { it.isNotBlank() } else emptyList()
+    val weighed = items.filter { it.grams > 0 }
+    if (weighed.isEmpty()) {
+        return FoodAnalysisResult(
+            foodName = foodName, calories = calories, proteinG = proteinG, carbsG = carbsG, fatG = fatG,
+            fiberG = fiberG, sugarG = sugarG, sodiumMg = sodiumMg,
+            confidenceNote = confidenceNote.ifBlank { portionNote }, allergenWarnings = warnings
+        )
+    }
+    fun total(nutrient: (FoodNutrientsJson) -> Double) = weighed.sumOf { it.grams / 100.0 * nutrient(it.per100g) }
+    fun Double.round1() = Math.round(this * 10) / 10.0
+    val breakdown = weighed.joinToString(", ") { "~${Math.round(it.grams)}g ${it.name}" }
+    return FoodAnalysisResult(
+        foodName = foodName,
+        calories = Math.round(total { it.calories }).toInt(),
+        proteinG = total { it.proteinG }.round1(),
+        carbsG = total { it.carbsG }.round1(),
+        fatG = total { it.fatG }.round1(),
+        fiberG = total { it.fiberG }.round1(),
+        sugarG = total { it.sugarG }.round1(),
+        sodiumMg = Math.round(total { it.sodiumMg }).toDouble(),
+        confidenceNote = listOf("Estimated ~${Math.round(weighed.sumOf { it.grams })}g total: $breakdown.", portionNote)
+            .filter { it.isNotBlank() }.joinToString(" "),
+        allergenWarnings = warnings
+    )
+}
 
 internal fun allergenInstructions(allergies: List<String>): String = """
 
@@ -53,8 +107,8 @@ class OpenRouterFoodAnalyzer(
 
     override suspend fun analyzePhoto(imageBase64: String, note: String?, allergies: List<String>): Result<FoodAnalysisResult> {
         val userText = note?.takeIf { it.isNotBlank() }
-            ?.let { "Estimate the nutrition of the food in this photo. Additional context from the user: $it" }
-            ?: "Estimate the nutrition of the food in this photo."
+            ?.let { "Estimate the nutrition of exactly the food in this photo, weighing each component. Additional context from the user: $it" }
+            ?: "Estimate the nutrition of exactly the food in this photo, weighing each component."
         return runAnalysis(userText, allergies, imagesBase64 = listOf(imageBase64))
     }
 
@@ -70,19 +124,8 @@ class OpenRouterFoodAnalyzer(
         // The allergen check is only asked for when the user has allergies on record.
         val systemPrompt = if (allergies.isEmpty()) SYSTEM_PROMPT else SYSTEM_PROMPT + allergenInstructions(allergies)
         return client.chatCompletion(apiKey, model, systemPrompt, userText, imagesBase64).mapCatching { raw ->
-            val parsed = json.decodeFromString(FoodAnalysisJson.serializer(), extractJsonPayload(raw))
-            FoodAnalysisResult(
-                foodName = parsed.foodName,
-                calories = parsed.calories,
-                proteinG = parsed.proteinG,
-                carbsG = parsed.carbsG,
-                fatG = parsed.fatG,
-                fiberG = parsed.fiberG,
-                sugarG = parsed.sugarG,
-                sodiumMg = parsed.sodiumMg,
-                confidenceNote = parsed.confidenceNote,
-                allergenWarnings = if (allergies.isEmpty()) emptyList() else parsed.allergenWarnings.filter { it.isNotBlank() }
-            )
+            json.decodeFromString(FoodAnalysisJson.serializer(), extractJsonPayload(raw))
+                .toResult(checkAllergens = allergies.isNotEmpty())
         }.recoverCatching { e ->
             if (e is OpenRouterException) throw e
             throw OpenRouterException.MalformedResponse(e)

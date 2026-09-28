@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.savedMealKey
-import com.kevan.hangry.domain.model.CommonFoods
 import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.ui.coach.DashSpinner
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -72,7 +71,7 @@ fun QuickMealLogSheet(
         showMacros = true
     }
 
-    // Foods the user has saved (and everyday basics) matching what's being typed - picking one
+    // Foods the user has saved matching what's being typed - picking one
     // fills in its numbers instead of retyping them.
     val suggestions = remember(foodName, mealPlans) { foodSuggestions(foodName, mealPlans) }
 
@@ -239,7 +238,7 @@ fun QuickMealLogSheet(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Icon(
-                                    imageVector = if (pick.saved) Icons.Default.History else Icons.Default.Restaurant,
+                                    imageVector = Icons.Default.History,
                                     contentDescription = null,
                                     tint = tokens.textMuted,
                                     modifier = Modifier.size(18.dp)
@@ -247,7 +246,7 @@ fun QuickMealLogSheet(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(pick.name, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                                     Text(
-                                        text = listOfNotNull(pick.serving, "${pick.calories} kcal").joinToString(" · "),
+                                        text = "${pick.calories} kcal",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.textMuted
                                     )
@@ -433,18 +432,13 @@ private data class FoodPick(
     val calories: Int,
     val proteinG: Double,
     val carbsG: Double,
-    val fatG: Double,
-    val serving: String? = null,
-    val saved: Boolean = true
+    val fatG: Double
 )
 
 private fun foodSuggestions(typed: String, saved: List<MealPlanEntity>): List<FoodPick> {
     val q = savedMealKey(typed)
     if (q.length < 2) return emptyList()
-    val fromSaved = saved.filter { it.nameKey.contains(q) && it.nameKey != q }
+    return saved.filter { it.nameKey.contains(q) && it.nameKey != q }
+        .take(4)
         .map { FoodPick(it.name, it.calories, it.proteinG, it.carbsG, it.fatG) }
-    val savedKeys = saved.map { it.nameKey }.toSet()
-    val fromCommon = CommonFoods.all.filter { it.key.contains(q) && it.key !in savedKeys && it.key != q }
-        .map { FoodPick(it.name, it.calories, it.proteinG, it.carbsG, it.fatG, serving = it.serving, saved = false) }
-    return (fromSaved + fromCommon).take(4)
 }

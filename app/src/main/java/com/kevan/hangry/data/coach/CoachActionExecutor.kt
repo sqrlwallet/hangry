@@ -138,7 +138,7 @@ class CoachActionExecutor(
             sodiumMg = m.sodiumMg
         )
         val id = foodLogRepository.insert(entry)
-        if (writeNutritionRecord(entry)) foodLogRepository.markSyncedToHealthConnect(id)
+        if (writeNutritionRecord(entry.copy(id = id))) foodLogRepository.markSyncedToHealthConnect(id)
         return "Logged ${m.foodName} · ${m.calories} kcal"
     }
 

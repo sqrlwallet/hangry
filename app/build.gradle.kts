@@ -16,6 +16,9 @@ val keystoreProperties = Properties().apply {
 fun signingValue(key: String, env: String): String? =
     keystoreProperties.getProperty(key) ?: System.getenv(env)
 val releaseStoreFile = signingValue("storeFile", "HANGRY_KEYSTORE_PATH")
+// GitHub APKs stay on the debug key so existing sideloaded installs keep updating in place:
+// build them with `./gradlew assembleRelease -Psideload`.
+val sideloadBuild = providers.gradleProperty("sideload").isPresent
 
 android {
     namespace = "com.kevan.hangry"
@@ -50,10 +53,10 @@ android {
             isShrinkResources = true
             // Without an upload key, release builds fall back to the debug key so sideloadable
             // APKs still build - Play rejects debug-signed uploads, so nothing ships by mistake.
-            signingConfig = if (releaseStoreFile != null) {
+            signingConfig = if (releaseStoreFile != null && !sideloadBuild) {
                 signingConfigs.getByName("release")
             } else {
-                logger.warn("keystore.properties not found - release build is signed with the DEBUG key and can't be uploaded to Play.")
+                if (!sideloadBuild) logger.warn("keystore.properties not found - release build is signed with the DEBUG key and can't be uploaded to Play.")
                 signingConfigs.getByName("debug")
             }
             proguardFiles(

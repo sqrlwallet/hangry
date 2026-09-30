@@ -13,6 +13,10 @@ interface SleepSessionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertOrIgnore(sessions: List<SleepSessionEntity>): List<Long>
 
+    /** Adds the stage timeline to a night saved before timelines were kept. */
+    @Query("UPDATE sleep_sessions SET stageSegments = :stageSegments WHERE recordFingerprint = :fingerprint AND stageSegments IS NULL")
+    suspend fun fillStageSegments(fingerprint: String, stageSegments: String)
+
     @Query("SELECT * FROM sleep_sessions WHERE startTime >= :start AND endTime <= :end ORDER BY startTime DESC")
     fun getSessionsBetween(start: Instant, end: Instant): Flow<List<SleepSessionEntity>>
 

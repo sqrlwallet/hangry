@@ -28,6 +28,8 @@ data class SleepSessionEntity(
     val remSleepMinutes: Int? = null,
     val lightSleepMinutes: Int? = null,
     val awakeMinutes: Int? = null,
+    /** The night's stage timeline (see SleepStageCodec); null when the device didn't record stages. */
+    val stageSegments: String? = null,
     val sleepQualityScore: Int? = null,
     val isManualEntry: Boolean = false,
     val timeZoneOffset: String? = null,

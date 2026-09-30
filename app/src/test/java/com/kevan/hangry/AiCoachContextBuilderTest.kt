@@ -87,6 +87,7 @@ class AiCoachContextBuilderTest {
 
     private class FakeSleepSessionDao(var sleepSessions: List<SleepSessionEntity> = emptyList()) : SleepSessionDao {
         override suspend fun insertOrIgnore(sessions: List<SleepSessionEntity>): List<Long> = emptyList()
+        override suspend fun fillStageSegments(fingerprint: String, stageSegments: String) {}
         override fun getSessionsBetween(start: Instant, end: Instant): Flow<List<SleepSessionEntity>> = flowOf(sleepSessions)
         override suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<SleepSessionEntity> = sleepSessions
         override fun getLatestSession(): Flow<SleepSessionEntity?> = flowOf(null)

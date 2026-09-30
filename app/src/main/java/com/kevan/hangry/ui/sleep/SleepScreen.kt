@@ -33,7 +33,9 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
+import com.kevan.hangry.domain.model.SleepStageCodec
 import java.time.Instant
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 private val SLEEP_COACH_SECTIONS = listOf(
@@ -128,6 +130,17 @@ fun SleepScreen(
 
     val sleepMin = uiState.dailySummary?.sleepDurationMinutes ?: 0
     val analysis = uiState.sleepAnalysis
+
+    // The selected night and the six before it, for the hypnogram and weekly stage chart.
+    val zone = remember { ZoneId.systemDefault() }
+    val weekSessions by remember(uiState.selectedDate) {
+        sleepRepository.getSessionsBetween(
+            uiState.selectedDate.minusDays(7).atStartOfDay(zone).toInstant(),
+            uiState.selectedDate.plusDays(1).atStartOfDay(zone).toInstant()
+        )
+    }.collectAsState(initial = emptyList())
+    val selectedNight = remember(weekSessions) { primaryNightFor(uiState.selectedDate, weekSessions, zone) }
+    val weekNights = remember(weekSessions) { weekOfNights(uiState.selectedDate, weekSessions, zone) }
 
     Scaffold(
         topBar = {
@@ -357,7 +370,6 @@ fun SleepScreen(
                 val rem = remRecorded
                 val light = analysis.lightSleepMinutes ?: 0
                 val awake = analysis.awakeMinutes ?: 0
-                val totalStageMinutes = maxOf(1, deep + rem + light + awake)
                 val restorativePct = analysis.restorativePercentage ?: 0
 
                 HangryCard {
@@ -387,79 +399,27 @@ fun SleepScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Stacked Stage Bar
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(14.dp)
-                            .background(tokens.cardBorder, RoundedCornerShape(7.dp))
-                    ) {
-                        if (deep > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(deep.toFloat() / totalStageMinutes)
-                                    .fillMaxHeight()
-                                    .background(tokens.chartColors.sleepDeep, RoundedCornerShape(topStart = 7.dp, bottomStart = 7.dp))
-                            )
-                        }
-                        if (rem > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(rem.toFloat() / totalStageMinutes)
-                                    .fillMaxHeight()
-                                    .background(tokens.chartColors.sleepRem)
-                            )
-                        }
-                        if (light > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(light.toFloat() / totalStageMinutes)
-                                    .fillMaxHeight()
-                                    .background(tokens.chartColors.sleepLight)
-                            )
-                        }
-                        if (awake > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(awake.toFloat() / totalStageMinutes)
-                                    .fillMaxHeight()
-                                    .background(tokens.chartColors.sleepAwake, RoundedCornerShape(topEnd = 7.dp, bottomEnd = 7.dp))
-                            )
-                        }
+                    // The night stage by stage - once the timeline has been synced.
+                    val segments = remember(selectedNight) {
+                        selectedNight?.let { SleepStageCodec.decode(it.startTime, it.stageSegments) }.orEmpty()
+                    }
+                    if (segments.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SleepHypnogram(segments)
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    SleepStageRow(
-                        color = tokens.chartColors.sleepDeep,
-                        name = "Deep Sleep",
-                        durationMinutes = deep,
-                        percentage = (deep.toDouble() / totalStageMinutes * 100).toInt()
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                    SleepStageRow(
-                        color = tokens.chartColors.sleepRem,
-                        name = "REM Sleep",
-                        durationMinutes = rem,
-                        percentage = (rem.toDouble() / totalStageMinutes * 100).toInt()
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                    SleepStageRow(
-                        color = tokens.chartColors.sleepLight,
-                        name = "Light Sleep",
-                        durationMinutes = light,
-                        percentage = (light.toDouble() / totalStageMinutes * 100).toInt()
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                    SleepStageRow(
-                        color = tokens.chartColors.sleepAwake,
-                        name = "Awake / Restless",
-                        durationMinutes = awake,
-                        percentage = (awake.toDouble() / totalStageMinutes * 100).toInt()
-                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SleepStageBreakdown(deep = deep, rem = rem, light = light, awake = awake)
                 }
+                }
+            }
+
+            // Stages night by night for the week ending on the selected day.
+            if (weekNights.any { it.asleepMinutes > 0 }) {
+                HangryCard {
+                    Text("Sleep over the last 7 nights", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    WeeklySleepStagesChart(weekNights, uiState.selectedDate)
                 }
             }
 
@@ -578,51 +538,6 @@ fun SleepScreen(
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun SleepStageRow(
-    color: Color,
-    name: String,
-    durationMinutes: Int,
-    percentage: Int
-) {
-    val tokens = LocalHangryTokens.current
-    val h = durationMinutes / 60
-    val m = durationMinutes % 60
-    val durationText = if (h > 0) "${h}h ${m}m" else "${m}m"
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .background(color, CircleShape)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textPrimary
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = durationText,
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textPrimary
-            )
-            Text(
-                text = "$percentage%",
-                style = MaterialTheme.typography.labelSmall,
-                color = tokens.textSecondary
-            )
-        }
     }
 }
 

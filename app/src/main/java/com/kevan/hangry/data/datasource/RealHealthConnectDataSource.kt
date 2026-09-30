@@ -17,6 +17,9 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import com.kevan.hangry.data.healthrecords.FhirHealthRecordParser
 import com.kevan.hangry.data.local.entity.*
 import com.kevan.hangry.domain.calculation.HealthDedup
+import com.kevan.hangry.domain.model.SleepStage
+import com.kevan.hangry.domain.model.SleepStageCodec
+import com.kevan.hangry.domain.model.SleepStageSegment
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDate
@@ -202,6 +205,7 @@ class RealHealthConnectDataSource(
             var remMin: Int? = null
             var lightMin: Int? = null
             var awakeMin: Int? = null
+            var stageSegments: String? = null
 
             // Time asleep, not time in bed: with stages it's the sleep stages added up (awake
             // spells and untracked gaps don't count); without them, the whole session.
@@ -221,6 +225,19 @@ class RealHealthConnectDataSource(
                     }
                 }
                 deepMin = d; remMin = r; lightMin = l; awakeMin = a
+                stageSegments = SleepStageCodec.encode(record.startTime, record.stages.mapNotNull { stage ->
+                    val type = when (stage.stage) {
+                        SleepSessionRecord.STAGE_TYPE_DEEP -> SleepStage.DEEP
+                        SleepSessionRecord.STAGE_TYPE_REM -> SleepStage.REM
+                        SleepSessionRecord.STAGE_TYPE_LIGHT -> SleepStage.LIGHT
+                        SleepSessionRecord.STAGE_TYPE_SLEEPING -> SleepStage.ASLEEP
+                        SleepSessionRecord.STAGE_TYPE_AWAKE,
+                        SleepSessionRecord.STAGE_TYPE_OUT_OF_BED,
+                        SleepSessionRecord.STAGE_TYPE_AWAKE_IN_BED -> SleepStage.AWAKE
+                        else -> null
+                    } ?: return@mapNotNull null
+                    SleepStageSegment(type, maxOf(stage.startTime, record.startTime), minOf(stage.endTime, record.endTime))
+                })
                 val staged = d + r + l + generic
                 if (staged in 1..inBedMinutes) asleepMinutes = staged
             }
@@ -237,6 +254,7 @@ class RealHealthConnectDataSource(
                 remSleepMinutes = remMin,
                 lightSleepMinutes = lightMin,
                 awakeMinutes = awakeMin,
+                stageSegments = stageSegments,
                 timeZoneOffset = record.startZoneOffset?.toString(),
                 isManualEntry = false,
                 dataQualityState = "VALID"

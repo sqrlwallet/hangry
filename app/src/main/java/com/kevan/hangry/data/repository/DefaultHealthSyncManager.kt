@@ -171,6 +171,10 @@ class DefaultHealthSyncManager(
                     }
                     val sleepInserted = database.sleepSessionDao().insertOrIgnore(sleepSessions)
                     chunkInserted += sleepInserted.count { it != -1L }
+                    // Nights saved before stage timelines were kept get theirs now.
+                    sleepSessions.forEach { session ->
+                        session.stageSegments?.let { database.sleepSessionDao().fillStageSegments(session.recordFingerprint, it) }
+                    }
 
                     val workoutInserted = database.exerciseSessionDao().insertOrIgnore(workouts)
                     chunkInserted += workoutInserted.count { it != -1L }

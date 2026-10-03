@@ -290,8 +290,9 @@ class NutritionViewModel(
             // Another app's meal can only be changed by that app, so the edit stays in Hangry.
             if (updated.source == FoodLogSource.HEALTH_CONNECT) return@launch
             // Remove the old record first so an entry written before client ids existed isn't left behind.
-            val synced = healthConnectDataSource.deleteNutritionRecord(previous) &&
-                healthConnectDataSource.writeNutritionRecord(updated)
+            // The write runs either way: it replaces the record by client id even if the delete failed.
+            healthConnectDataSource.deleteNutritionRecord(previous)
+            val synced = healthConnectDataSource.writeNutritionRecord(updated)
             foodLogRepository.update(updated.copy(healthConnectSynced = synced))
             if (!synced) _uiState.update { it.copy(errorMessage = "Saved, but couldn't update Health Connect.") }
         }

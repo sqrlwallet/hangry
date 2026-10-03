@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.PORTIONS
 import com.kevan.hangry.data.local.entity.portionLabel
@@ -609,9 +610,12 @@ private fun EditFoodEntryDialog(
 ) {
     var foodName by remember { mutableStateOf(entry.foodName) }
     var calories by remember { mutableStateOf(entry.calories.toString()) }
-    var protein by remember { mutableStateOf(entry.proteinG.toInt().toString()) }
-    var carbs by remember { mutableStateOf(entry.carbsG.toInt().toString()) }
-    var fat by remember { mutableStateOf(entry.fatG.toInt().toString()) }
+    val shownProtein = entry.proteinG.toInt().toString()
+    val shownCarbs = entry.carbsG.toInt().toString()
+    val shownFat = entry.fatG.toInt().toString()
+    var protein by remember { mutableStateOf(shownProtein) }
+    var carbs by remember { mutableStateOf(shownCarbs) }
+    var fat by remember { mutableStateOf(shownFat) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -627,6 +631,14 @@ private fun EditFoodEntryDialog(
                             .fillMaxWidth()
                             .height(120.dp)
                             .clip(RoundedCornerShape(8.dp))
+                    )
+                }
+                if (entry.source == FoodLogSource.HEALTH_CONNECT) {
+                    // Health Connect only lets the app that wrote a record change it.
+                    Text(
+                        "Logged by another app. Changes here stay in Hangry. To change Health Connect, edit the meal in that app.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 OutlinedTextField(value = foodName, onValueChange = { foodName = it }, label = { Text("Food") }, modifier = Modifier.fillMaxWidth())
@@ -645,9 +657,10 @@ private fun EditFoodEntryDialog(
                         entry.copy(
                             foodName = foodName,
                             calories = calories.toIntOrNull() ?: entry.calories,
-                            proteinG = protein.toDoubleOrNull() ?: entry.proteinG,
-                            carbsG = carbs.toDoubleOrNull() ?: entry.carbsG,
-                            fatG = fat.toDoubleOrNull() ?: entry.fatG
+                            // Untouched fields keep their decimals instead of the rounded value shown.
+                            proteinG = protein.takeIf { it != shownProtein }?.toDoubleOrNull() ?: entry.proteinG,
+                            carbsG = carbs.takeIf { it != shownCarbs }?.toDoubleOrNull() ?: entry.carbsG,
+                            fatG = fat.takeIf { it != shownFat }?.toDoubleOrNull() ?: entry.fatG
                         )
                     )
                 }

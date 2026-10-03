@@ -739,15 +739,18 @@ class RealHealthConnectDataSource(
         val activeClient = client ?: return false
         return try {
             // Entries logged before client ids were added are found by their exact time and name.
+            // Best effort: without read access the lookup fails, and the client-id delete must still run.
             val end = entry.timestamp
-            val legacyIds = readAllRecords(NutritionRecord::class, TimeRangeFilter.between(end.minusSeconds(60), end))
-                .filter {
-                    it.metadata.dataOrigin.packageName == context.packageName &&
-                        it.metadata.clientRecordId == null &&
-                        it.endTime.toEpochMilli() == end.toEpochMilli() &&
-                        it.name == entry.foodName
-                }
-                .map { it.metadata.id }
+            val legacyIds = runCatching {
+                readAllRecords(NutritionRecord::class, TimeRangeFilter.between(end.minusSeconds(60), end))
+                    .filter {
+                        it.metadata.dataOrigin.packageName == context.packageName &&
+                            it.metadata.clientRecordId == null &&
+                            it.endTime.toEpochMilli() == end.toEpochMilli() &&
+                            it.name == entry.foodName
+                    }
+                    .map { it.metadata.id }
+            }.getOrElse { emptyList() }
             activeClient.deleteRecords(NutritionRecord::class, recordIdsList = legacyIds, clientRecordIdsList = listOf(foodClientId(entry)))
             true
         } catch (e: Exception) {

@@ -58,11 +58,6 @@ private fun infoFor(s: ProgramSnapshot): List<HangryInfoSection> = buildList {
     p.equipment?.let { add(HangryInfoSection("You'll need", it)) }
     add(HangryInfoSection("Safety", p.safety))
     p.credit?.let { add(HangryInfoSection("Where it comes from", it)) }
-    val pillars = listOfNotNull(
-        "Mobility".takeIf { p.countsAsMobility },
-        p.strengthFromLevel?.let { if (it <= 1) "Strength" else "Strength (from level $it)" }
-    )
-    if (pillars.isNotEmpty()) add(HangryInfoSection("Longevity pillars", "Finished sessions count toward: ${pillars.joinToString(" and ")}."))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

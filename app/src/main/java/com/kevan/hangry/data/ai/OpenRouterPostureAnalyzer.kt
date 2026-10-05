@@ -75,8 +75,7 @@ class OpenRouterPostureAnalyzer(
 
     override suspend fun analyzeScan(imagesBase64: List<String>): Result<PostureAnalysisResult> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
-        val model = userProfileRepository.getProfileSync()?.preferredAiModel?.takeIf { it.isNotBlank() }
-            ?: AiDefaults.DEFAULT_MODEL
+        val model = AiDefaults.analysisModel(userProfileRepository.getProfileSync()?.preferredAiModel)
         val userText = if (imagesBase64.size == 1) {
             "Here is 1 posture photo for evaluation."
         } else {

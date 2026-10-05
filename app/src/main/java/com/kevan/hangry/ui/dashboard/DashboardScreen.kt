@@ -427,8 +427,8 @@ fun DashboardScreen(
             aiEnabled = nutritionUiState.aiFeaturesEnabled,
             mealPlans = nutritionUiState.mealPlans,
             onDismiss = { nutritionViewModel.dismissManualReview() },
-            onLogMeal = { name, calories, uri, p, c, f ->
-                nutritionViewModel.quickLogMeal(name, calories, uri, p, c, f)
+            onLogMeal = { name, calories, uri, p, c, f, fiber ->
+                nutritionViewModel.quickLogMeal(name, calories, uri, p, c, f, fiber)
             },
             onEstimateWithAi = if (nutritionUiState?.aiFeaturesEnabled == true) {
                 { uri, note -> nutritionViewModel.estimateFood(uri, note) }

@@ -129,7 +129,7 @@ fun AiFeaturesSection(
             SettingsActionRow(
                 icon = Icons.Default.SmartToy,
                 title = "AI Model",
-                subtitle = profile?.preferredAiModel?.takeIf { it.isNotBlank() } ?: AiDefaults.DEFAULT_MODEL,
+                subtitle = AiDefaults.analysisModel(profile?.preferredAiModel),
                 onClick = { showModelDialog = true }
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -159,7 +159,7 @@ fun AiFeaturesSection(
         ApiKeyDialog(
             secureKeyStore = secureKeyStore,
             openRouterClient = openRouterClient,
-            preferredModel = profile?.preferredAiModel?.takeIf { it.isNotBlank() } ?: AiDefaults.DEFAULT_MODEL,
+            preferredModel = AiDefaults.analysisModel(profile?.preferredAiModel),
             onDismiss = { showApiKeyDialog = false },
             onSaved = {
                 showApiKeyDialog = false
@@ -171,8 +171,8 @@ fun AiFeaturesSection(
     if (showModelDialog) {
         ModelDialog(
             title = "AI Model",
-            description = "Used for food & posture photos",
-            currentModel = profile?.preferredAiModel?.takeIf { it.isNotBlank() } ?: AiDefaults.DEFAULT_MODEL,
+            description = "Used for food, posture, body-fat & supplement photos and the weekly nutrition review",
+            currentModel = AiDefaults.analysisModel(profile?.preferredAiModel),
             onDismiss = { showModelDialog = false },
             onSave = { newModel ->
                 coroutineScope.launch {

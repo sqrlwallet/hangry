@@ -41,7 +41,6 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -70,7 +69,6 @@ fun TrainingScreen(
     viewModel: DashboardViewModel,
     workoutRepository: WorkoutRepository,
     heartRateRepository: HeartRateRepository,
-    longevityRepository: com.kevan.hangry.data.repository.LongevityRepository? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -101,13 +99,6 @@ fun TrainingScreen(
         weekZoneDistribution
     }
     val isTodayData = todayZoneDistribution.totalCount > 0
-
-    // The week (Mon-Sun) holding the inspected date, against the longevity pillars' targets.
-    val weekStart = com.kevan.hangry.domain.model.LongevityWeek.weekStart(activeDate)
-    val longevityWeek by remember(weekStart, longevityRepository) {
-        longevityRepository?.observeWeek(activeDate) ?: kotlinx.coroutines.flow.flowOf(null)
-    }.collectAsState(initial = null)
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -168,13 +159,43 @@ fun TrainingScreen(
                 }
             }
 
-            longevityWeek?.let { week ->
+            // What was done comes first; the zone breakdown follows.
+            item {
+                Text(
+                    text = dayHeading("Workouts", activeDate),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = tokens.textPrimary
+                )
+            }
+
+            if (workouts.isEmpty()) {
                 item {
-                    LongevityCard(
-                        week = week,
-                        today = LocalDate.now(zone),
-                        onToggleDay = { pillar, day, done -> scope.launch { longevityRepository?.setDone(pillar, day, done) } }
+                    HangryCard {
+                        DashEmptyState(
+                            scene = DashEmptyScene.WORKOUTS,
+                            title = if (isToday) "No workouts yet today" else "No workouts this day",
+                            body = if (isToday) "Workouts from your watch or fitness apps show up here." else null,
+                            imageSize = 120.dp
+                        )
+                    }
+                }
+            } else {
+                // Dash cheers on the day's training with his running gear.
+                item {
+                    val totalMinutes = workouts.sumOf { it.durationMinutes }
+                    val kcal = workouts.sumOf { ActiveActivityCalculator.workoutCalories(it, bmr = null) ?: 0.0 }
+                    val count = if (workouts.size == 1) "a workout" else "${workouts.size} workouts"
+                    DashNote(
+                        mood = DashMood.WORKOUT,
+                        text = if (isToday) {
+                            "Nice work! $count today: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
+                        } else {
+                            "${count.replaceFirstChar { it.uppercase() }} this day: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
+                        }
                     )
+                }
+                items(workouts, key = { it.id }) { workout ->
+                    WorkoutItemCard(workout = workout)
                 }
             }
 
@@ -353,46 +374,6 @@ fun TrainingScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
-                }
-            }
-
-            item {
-                Text(
-                    text = dayHeading("Workouts", activeDate),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = tokens.textPrimary,
-                    modifier = Modifier.padding(top = HangryTokens.Spacing.s)
-                )
-            }
-
-            if (workouts.isEmpty()) {
-                item {
-                    HangryCard {
-                        DashEmptyState(
-                            scene = DashEmptyScene.WORKOUTS,
-                            title = if (isToday) "No workouts yet today" else "No workouts this day",
-                            body = if (isToday) "Workouts from your watch or fitness apps show up here." else null,
-                            imageSize = 120.dp
-                        )
-                    }
-                }
-            } else {
-                // Dash cheers on the day's training with his running gear.
-                item {
-                    val totalMinutes = workouts.sumOf { it.durationMinutes }
-                    val kcal = workouts.sumOf { ActiveActivityCalculator.workoutCalories(it, bmr = null) ?: 0.0 }
-                    val count = if (workouts.size == 1) "a workout" else "${workouts.size} workouts"
-                    DashNote(
-                        mood = DashMood.WORKOUT,
-                        text = if (isToday) {
-                            "Nice work! $count today: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
-                        } else {
-                            "${count.replaceFirstChar { it.uppercase() }} this day: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
-                        }
-                    )
-                }
-                items(workouts, key = { it.id }) { workout ->
-                    WorkoutItemCard(workout = workout)
                 }
             }
 

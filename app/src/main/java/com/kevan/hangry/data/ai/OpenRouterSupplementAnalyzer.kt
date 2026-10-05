@@ -35,8 +35,7 @@ class OpenRouterSupplementAnalyzer(
 
     override suspend fun analyzePhotos(imagesBase64: List<String>, note: String?, userContext: String?): Result<SupplementAnalysisResult> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
-        val model = userProfileRepository.getProfileSync()?.preferredAiModel?.takeIf { it.isNotBlank() }
-            ?: AiDefaults.DEFAULT_MODEL
+        val model = AiDefaults.analysisModel(userProfileRepository.getProfileSync()?.preferredAiModel)
         val userText = buildString {
             append("Read this supplement from the photos.")
             note?.takeIf { it.isNotBlank() }?.let { append(" Note from the user: $it") }

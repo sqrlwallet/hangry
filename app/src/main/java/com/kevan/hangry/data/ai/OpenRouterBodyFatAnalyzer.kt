@@ -89,8 +89,7 @@ class OpenRouterBodyFatAnalyzer(
         calculatedNavyBf: Double?
     ): Result<BodyFatAnalysisResult> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
-        val model = userProfileRepository.getProfileSync()?.preferredAiModel?.takeIf { it.isNotBlank() }
-            ?: AiDefaults.DEFAULT_MODEL
+        val model = AiDefaults.analysisModel(userProfileRepository.getProfileSync()?.preferredAiModel)
 
         val biometricsBuilder = StringBuilder("User Biometrics & Circumference Data:\n")
         heightCm?.let { biometricsBuilder.append("- Height: ${it.roundToInt()} cm\n") }

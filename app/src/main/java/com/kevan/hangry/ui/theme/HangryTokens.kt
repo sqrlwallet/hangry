@@ -79,6 +79,7 @@ data class MacroNutrientColors(
     val protein: Color,
     val carbs: Color,
     val fat: Color,
+    val fiber: Color,
     val calories: Color,
     val water: Color
 )
@@ -151,6 +152,7 @@ val DarkMacroNutrientColors = MacroNutrientColors(
     protein = BlueRibbonLight,
     carbs = GreenHaze,
     fat = Supernova,
+    fiber = Color(0xFFB98AF0),
     calories = Pumpkin,
     water = AzureRadiance
 )
@@ -159,6 +161,7 @@ val LightMacroNutrientColors = MacroNutrientColors(
     protein = BlueRibbon,
     carbs = GreenHazeDeep,
     fat = SupernovaDeep,
+    fiber = Color(0xFF7A45B8),
     calories = Color(0xFFE0650F),
     water = AzureDeep
 )

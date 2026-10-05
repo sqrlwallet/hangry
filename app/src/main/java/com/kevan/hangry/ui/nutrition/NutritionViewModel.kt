@@ -15,6 +15,9 @@ import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.data.local.entity.toLogEntry
 import com.kevan.hangry.data.local.entity.savedMealKey
 import com.kevan.hangry.domain.ai.FoodAnalyzer
+import com.kevan.hangry.domain.ai.NutritionReviewer
+import com.kevan.hangry.domain.model.NutritionReview
+import com.kevan.hangry.domain.model.NutritionWeekAnalyzer
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.domain.repository.FoodLogRepository
@@ -24,12 +27,14 @@ import com.kevan.hangry.ui.widget.HangryWidgetUpdater
 import com.kevan.hangry.util.clearCapturedImageCache
 import com.kevan.hangry.util.readImageAsBase64Jpeg
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -54,7 +59,9 @@ class NutritionViewModel(
     private val healthConnectDataSource: HealthConnectDataSource,
     private val userProfileRepository: UserProfileRepository,
     /** Source of the user's allergies for meal allergen alerts; none recorded means no check. */
-    private val healthRecordsRepository: HealthRecordsRepository? = null
+    private val healthRecordsRepository: HealthRecordsRepository? = null,
+    /** Writes the AI half of the weekly review; null leaves only the rule-based tips. */
+    private val nutritionReviewer: NutritionReviewer? = null
 ) : ViewModel() {
 
     private suspend fun allergies(): List<String> =
@@ -191,7 +198,8 @@ class NutritionViewModel(
         photoUri: Uri? = null,
         proteinG: Double = 0.0,
         carbsG: Double = 0.0,
-        fatG: Double = 0.0
+        fatG: Double = 0.0,
+        fiberG: Double = 0.0
     ) {
         val safeName = foodName.ifBlank { "Meal" }
         val safeCalories = calories.coerceAtLeast(0)
@@ -206,6 +214,7 @@ class NutritionViewModel(
                 proteinG = proteinG,
                 carbsG = carbsG,
                 fatG = fatG,
+                fiberG = fiberG,
                 photoPath = permanentPhotoPath
             )
             val id = foodLogRepository.insert(entry)
@@ -339,6 +348,69 @@ class NutritionViewModel(
         }
     }
 
+    private var reviewJob: Job? = null
+
+    /** The last AI review and the exact week it was written for, so reopening the sheet doesn't pay for another call. */
+    private var cachedReview: Pair<String, NutritionReview>? = null
+
+    /**
+     * Opens the weekly review: the past week's averages and rule-based tips come from the log
+     * right away; with AI on, the model's review of the same week follows.
+     */
+    fun openWeeklyReview(calorieTarget: Int?, forceRefresh: Boolean = false) {
+        reviewJob?.cancel()
+        val reviewer = nutritionReviewer.takeIf { _uiState.value.aiFeaturesEnabled }
+        _uiState.update { it.copy(weeklyReview = WeeklyReviewState(calorieTarget = calorieTarget, aiAvailable = reviewer != null)) }
+        reviewJob = viewModelScope.launch {
+            val today = LocalDate.now(zone)
+            val entries = foodLogRepository.getBetween(today.minusDays(NutritionWeekAnalyzer.WINDOW_DAYS), today).first()
+            val summary = NutritionWeekAnalyzer.summarize(entries, today, zone)
+            val tips = NutritionWeekAnalyzer.tips(summary, calorieTarget)
+            val runAi = reviewer != null && summary.daysLogged > 0
+            updateReview { it.copy(isLoading = false, summary = summary, tips = tips, isAiLoading = runAi) }
+            if (!runAi) return@launch
+
+            val weekText = NutritionWeekAnalyzer.promptText(summary, calorieTarget, profileText(), allergies()) +
+                "\nMeals logged:\n" + NutritionWeekAnalyzer.mealList(entries, summary, zone)
+            cachedReview?.takeIf { !forceRefresh && it.first == weekText }?.let { (_, review) ->
+                updateReview { it.copy(isAiLoading = false, aiReview = review) }
+                return@launch
+            }
+            reviewer!!.review(weekText).fold(
+                onSuccess = { review ->
+                    cachedReview = weekText to review
+                    updateReview { it.copy(isAiLoading = false, aiReview = review) }
+                },
+                onFailure = { e -> updateReview { it.copy(isAiLoading = false, aiError = e.messageOrDefault()) } }
+            )
+        }
+    }
+
+    fun refreshWeeklyReview() {
+        openWeeklyReview(_uiState.value.weeklyReview?.calorieTarget, forceRefresh = true)
+    }
+
+    fun closeWeeklyReview() {
+        reviewJob?.cancel()
+        _uiState.update { it.copy(weeklyReview = null) }
+    }
+
+    private fun updateReview(transform: (WeeklyReviewState) -> WeeklyReviewState) {
+        _uiState.update { state -> state.weeklyReview?.let { state.copy(weeklyReview = transform(it)) } ?: state }
+    }
+
+    /** Age, sex and weight goal, so the review's advice fits the person. */
+    private suspend fun profileText(): String? {
+        val p = userProfileRepository.getProfileSync() ?: return null
+        return listOfNotNull(
+            p.age?.let { "$it years old" },
+            p.biologicalSex?.lowercase(),
+            p.currentWeightKg?.let { "${it.toInt()} kg" },
+            p.weightGoalKg?.let { goal -> "goal weight ${goal.toInt()} kg" + (p.goalTargetDate?.let { " by $it" } ?: "") },
+            "pregnant".takeIf { p.isPregnant }
+        ).joinToString(", ").ifBlank { null }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
@@ -365,7 +437,8 @@ class NutritionViewModel(
             foodAnalyzer: FoodAnalyzer,
             healthConnectDataSource: HealthConnectDataSource,
             userProfileRepository: UserProfileRepository,
-            healthRecordsRepository: HealthRecordsRepository? = null
+            healthRecordsRepository: HealthRecordsRepository? = null,
+            nutritionReviewer: NutritionReviewer? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -376,7 +449,8 @@ class NutritionViewModel(
                     foodAnalyzer = foodAnalyzer,
                     healthConnectDataSource = healthConnectDataSource,
                     userProfileRepository = userProfileRepository,
-                    healthRecordsRepository = healthRecordsRepository
+                    healthRecordsRepository = healthRecordsRepository,
+                    nutritionReviewer = nutritionReviewer
                 ) as T
             }
         }

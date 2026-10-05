@@ -1,6 +1,7 @@
 package com.kevan.hangry.ui.nutrition
 
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -75,7 +76,11 @@ private fun getMealBucket(timestamp: Instant, zone: ZoneId = ZoneId.systemDefaul
 private val NUTRITION_INFO_SECTIONS = listOf(
     HangryInfoSection(
         "How it works",
-        "Take or choose a food photo, or describe a meal in text - the AI estimates calories and macros and logs it immediately. Got it wrong? Tap the entry to fix it."
+        "Take or choose a food photo, or describe a meal in text - the AI estimates calories, macros and fiber and logs it immediately. Got it wrong? Tap the entry to fix it."
+    ),
+    HangryInfoSection(
+        "Weekly review",
+        "Looks back at your last 7 days of logged meals: daily averages against your targets, what to add and how to fit it in. With AI on, Dash reviews the actual meals you ate."
     ),
     HangryInfoSection(
         "Saved Meals",
@@ -107,6 +112,7 @@ fun NutritionScreen(
     val totalProtein = uiState.todayEntries.sumOf { it.proteinG }
     val totalCarbs = uiState.todayEntries.sumOf { it.carbsG }
     val totalFat = uiState.todayEntries.sumOf { it.fatG }
+    val totalFiber = uiState.todayEntries.sumOf { it.fiberG }
     val macroGoals = NutritionTargets.macros(calorieTarget)
     val proteinGoal = macroGoals?.proteinG
     val carbsGoal = macroGoals?.carbsG
@@ -237,7 +243,9 @@ fun NutritionScreen(
                     carbsG = totalCarbs,
                     carbsGoalG = carbsGoal,
                     fatG = totalFat,
-                    fatGoalG = fatGoal
+                    fatGoalG = fatGoal,
+                    fiberG = totalFiber,
+                    fiberGoalG = NutritionTargets.fiberG(calorieTarget)
                 )
             }
 
@@ -277,6 +285,10 @@ fun NutritionScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+
+            item {
+                WeeklyReviewEntryCard(onClick = { viewModel.openWeeklyReview(calorieTarget) })
             }
 
             if (uiState.isAnalyzing) {
@@ -397,6 +409,18 @@ fun NutritionScreen(
         )
     }
 
+    uiState.weeklyReview?.let { review ->
+        WeeklyReviewSheet(
+            state = review,
+            onDismiss = viewModel::closeWeeklyReview,
+            onRefresh = viewModel::refreshWeeklyReview,
+            onOpenAiSettings = {
+                viewModel.closeWeeklyReview()
+                onNavigateToAiSettings()
+            }
+        )
+    }
+
     if (showDescribeDialog) {
         DescribeFoodDialog(
             onDismiss = { showDescribeDialog = false },
@@ -429,14 +453,43 @@ fun NutritionScreen(
                 showQuickLogSheet = false
                 viewModel.dismissManualReview()
             },
-            onLogMeal = { name, calories, uri, p, c, f ->
-                viewModel.quickLogMeal(name, calories, uri, p, c, f)
+            onLogMeal = { name, calories, uri, p, c, f, fiber ->
+                viewModel.quickLogMeal(name, calories, uri, p, c, f, fiber)
             },
             onEstimateWithAi = if (uiState.aiFeaturesEnabled) {
                 { uri, note -> viewModel.estimateFood(uri, note) }
             } else null,
             onLogMealPlan = { plan -> viewModel.logFromMealPlan(plan) }
         )
+    }
+}
+
+/** Opens the look back over the last 7 days of eating. */
+@Composable
+private fun WeeklyReviewEntryCard(onClick: () -> Unit) {
+    val tokens = LocalHangryTokens.current
+    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open weekly review", onClick = onClick)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(tokens.brandAccentContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Insights, contentDescription = null, tint = tokens.brandAccent)
+            }
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Weekly review", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(
+                    "Your last 7 days of eating, and what to add next",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.textMuted
+                )
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = tokens.textMuted)
+        }
     }
 }
 
@@ -565,7 +618,8 @@ private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = entry.foodName, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
-                    text = "${entry.calories} kcal · P${entry.proteinG.toInt()} C${entry.carbsG.toInt()} F${entry.fatG.toInt()}",
+                    text = "${entry.calories} kcal · P${entry.proteinG.toInt()} C${entry.carbsG.toInt()} F${entry.fatG.toInt()}" +
+                        if (entry.fiberG >= 0.5) " · Fiber ${entry.fiberG.roundToInt()}g" else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
@@ -613,9 +667,11 @@ private fun EditFoodEntryDialog(
     val shownProtein = entry.proteinG.toInt().toString()
     val shownCarbs = entry.carbsG.toInt().toString()
     val shownFat = entry.fatG.toInt().toString()
+    val shownFiber = entry.fiberG.toInt().toString()
     var protein by remember { mutableStateOf(shownProtein) }
     var carbs by remember { mutableStateOf(shownCarbs) }
     var fat by remember { mutableStateOf(shownFat) }
+    var fiber by remember { mutableStateOf(shownFiber) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -648,6 +704,7 @@ private fun EditFoodEntryDialog(
                     OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Carbs g") }, modifier = Modifier.weight(1f))
                     OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("Fat g") }, modifier = Modifier.weight(1f))
                 }
+                OutlinedTextField(value = fiber, onValueChange = { fiber = it }, label = { Text("Fiber g") }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -660,7 +717,8 @@ private fun EditFoodEntryDialog(
                             // Untouched fields keep their decimals instead of the rounded value shown.
                             proteinG = protein.takeIf { it != shownProtein }?.toDoubleOrNull() ?: entry.proteinG,
                             carbsG = carbs.takeIf { it != shownCarbs }?.toDoubleOrNull() ?: entry.carbsG,
-                            fatG = fat.takeIf { it != shownFat }?.toDoubleOrNull() ?: entry.fatG
+                            fatG = fat.takeIf { it != shownFat }?.toDoubleOrNull() ?: entry.fatG,
+                            fiberG = fiber.takeIf { it != shownFiber }?.toDoubleOrNull() ?: entry.fiberG
                         )
                     )
                 }

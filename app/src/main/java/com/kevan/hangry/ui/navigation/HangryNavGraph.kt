@@ -188,6 +188,7 @@ fun HangryNavGraph(
             foodLogRepository = appContainer.foodLogRepository,
             mealPlanRepository = appContainer.mealPlanRepository,
             foodAnalyzer = appContainer.foodAnalyzer,
+            nutritionReviewer = appContainer.nutritionReviewer,
             healthConnectDataSource = appContainer.healthConnectDataSource,
             userProfileRepository = appContainer.userProfileRepository,
             healthRecordsRepository = appContainer.healthRecordsRepository
@@ -522,8 +523,7 @@ fun HangryNavGraph(
             TrainingScreen(
                 viewModel = dashboardViewModel,
                 workoutRepository = appContainer.workoutRepository,
-                heartRateRepository = appContainer.heartRateRepository,
-                longevityRepository = appContainer.longevityRepository
+                heartRateRepository = appContainer.heartRateRepository
             )
         }
 

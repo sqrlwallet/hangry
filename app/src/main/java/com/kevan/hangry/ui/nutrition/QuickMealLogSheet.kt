@@ -41,7 +41,7 @@ fun QuickMealLogSheet(
     aiEnabled: Boolean = false,
     mealPlans: List<MealPlanEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onLogMeal: (name: String, calories: Int, photoUri: Uri?, protein: Double, carbs: Double, fat: Double) -> Unit,
+    onLogMeal: (name: String, calories: Int, photoUri: Uri?, protein: Double, carbs: Double, fat: Double, fiber: Double) -> Unit,
     onEstimateWithAi: (suspend (Uri?, String) -> Result<FoodAnalysisResult>)? = null,
     onLogMealPlan: ((MealPlanEntity) -> Unit)? = null
 ) {
@@ -54,6 +54,7 @@ fun QuickMealLogSheet(
     var proteinText by remember { mutableStateOf("") }
     var carbsText by remember { mutableStateOf("") }
     var fatText by remember { mutableStateOf("") }
+    var fiberText by remember { mutableStateOf("") }
     var showMacros by remember { mutableStateOf(false) }
 
     var isEstimating by remember { mutableStateOf(false) }
@@ -68,6 +69,7 @@ fun QuickMealLogSheet(
         proteinText = pick.proteinG.toInt().toString()
         carbsText = pick.carbsG.toInt().toString()
         fatText = pick.fatG.toInt().toString()
+        fiberText = pick.fiberG.toInt().toString()
         showMacros = true
     }
 
@@ -174,7 +176,7 @@ fun QuickMealLogSheet(
                             SuggestionChip(
                                 onClick = {
                                     if (photoUri != null) {
-                                        applyPick(FoodPick(plan.name, plan.calories, plan.proteinG, plan.carbsG, plan.fatG))
+                                        applyPick(FoodPick(plan.name, plan.calories, plan.proteinG, plan.carbsG, plan.fatG, plan.fiberG))
                                     } else {
                                         onLogMealPlan(plan)
                                         onDismiss()
@@ -305,6 +307,7 @@ fun QuickMealLogSheet(
                                     proteinText = result.proteinG.toInt().toString()
                                     carbsText = result.carbsG.toInt().toString()
                                     fatText = result.fatG.toInt().toString()
+                                    fiberText = result.fiberG.toInt().toString()
                                     allergenWarnings = result.allergenWarnings
                                     showMacros = true
                                 },
@@ -364,6 +367,7 @@ fun QuickMealLogSheet(
             }
 
             AnimatedVisibility(visible = showMacros) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -393,6 +397,15 @@ fun QuickMealLogSheet(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                OutlinedTextField(
+                    value = fiberText,
+                    onValueChange = { if (it.all { c -> c.isDigit() }) fiberText = it },
+                    label = { Text("Fiber (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                }
             }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
@@ -405,8 +418,9 @@ fun QuickMealLogSheet(
                     val protein = proteinText.toDoubleOrNull() ?: 0.0
                     val carbs = carbsText.toDoubleOrNull() ?: 0.0
                     val fat = fatText.toDoubleOrNull() ?: 0.0
+                    val fiber = fiberText.toDoubleOrNull() ?: 0.0
 
-                    onLogMeal(finalName, finalCalories, photoUri, protein, carbs, fat)
+                    onLogMeal(finalName, finalCalories, photoUri, protein, carbs, fat, fiber)
                     onDismiss()
                 },
                 modifier = Modifier
@@ -432,7 +446,8 @@ private data class FoodPick(
     val calories: Int,
     val proteinG: Double,
     val carbsG: Double,
-    val fatG: Double
+    val fatG: Double,
+    val fiberG: Double
 )
 
 private fun foodSuggestions(typed: String, saved: List<MealPlanEntity>): List<FoodPick> {
@@ -440,5 +455,5 @@ private fun foodSuggestions(typed: String, saved: List<MealPlanEntity>): List<Fo
     if (q.length < 2) return emptyList()
     return saved.filter { it.nameKey.contains(q) && it.nameKey != q }
         .take(4)
-        .map { FoodPick(it.name, it.calories, it.proteinG, it.carbsG, it.fatG) }
+        .map { FoodPick(it.name, it.calories, it.proteinG, it.carbsG, it.fatG, it.fiberG) }
 }

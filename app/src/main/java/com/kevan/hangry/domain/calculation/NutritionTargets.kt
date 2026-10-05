@@ -23,4 +23,11 @@ object NutritionTargets {
             fatG = (it * 0.25 / 9.0).coerceAtLeast(30.0)
         )
     }
+
+    /**
+     * Daily fiber: 14g per 1,000 kcal (the US Dietary Guidelines rule), kept within the usual
+     * 25-38g adult range. Without a calorie target it's the middle of that range.
+     */
+    fun fiberG(calories: Int?): Double =
+        calories?.let { (it * 14.0 / 1000.0).coerceIn(25.0, 38.0) } ?: 28.0
 }

@@ -30,6 +30,8 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * Full Day Inspection Sheet.
@@ -101,7 +103,7 @@ fun DayDetailSheet(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Open on Today",
+                        text = stringResource(R.string.metrics_components_open_on_today),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
@@ -128,7 +130,7 @@ fun DayDetailSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Recovery Score",
+                            text = stringResource(R.string.metrics_components_recovery_score),
                             style = MaterialTheme.typography.titleMedium,
                             color = tokens.textPrimary
                         )
@@ -137,7 +139,7 @@ fun DayDetailSheet(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = recoveryScore?.state ?: "BASELINE CALIBRATING",
+                                text = recoveryScore?.state ?: stringResource(R.string.metrics_components_baseline_calibrating),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = recoveryColor,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -153,14 +155,14 @@ fun DayDetailSheet(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = if (scoreVal != null) "$scoreVal%" else "—",
+                            text = if (scoreVal != null) stringResource(R.string.metrics_components_percent_value, scoreVal) else "—",
                             style = MaterialTheme.typography.displayMedium,
                             fontWeight = FontWeight.Bold,
                             color = recoveryColor
                         )
 
                         Text(
-                            text = "Confidence: ${recoveryScore?.confidence ?: "CALIBRATING"}",
+                            text = stringResource(R.string.metrics_components_confidence_value, recoveryScore?.confidence ?: stringResource(R.string.metrics_components_calibrating_caps)),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -179,7 +181,7 @@ fun DayDetailSheet(
 
             // 2. Activity, Strain & Calories Grid
             Text(
-                text = "Activity & Strain",
+                text = stringResource(R.string.metrics_components_activity_strain),
                 style = MaterialTheme.typography.titleSmall,
                 color = tokens.textSecondary
             )
@@ -189,20 +191,20 @@ fun DayDetailSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MetricMiniCard(
-                    title = "Day Strain",
+                    title = stringResource(R.string.metrics_components_day_strain),
                     value = summary?.dayStrain?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
                     color = tokens.chartColors.trainingLoad,
                     modifier = Modifier.weight(1f)
                 )
                 MetricMiniCard(
-                    title = "Steps",
+                    title = stringResource(R.string.metrics_components_steps),
                     value = summary?.steps?.let { String.format(Locale.US, "%,d", it) } ?: "0",
                     color = tokens.chartColors.steps,
                     modifier = Modifier.weight(1f)
                 )
                 MetricMiniCard(
-                    title = "Active Burn",
-                    value = summary?.activeCalories?.let { "${it.toInt()} kcal" } ?: "—",
+                    title = stringResource(R.string.metrics_components_active_burn),
+                    value = summary?.activeCalories?.let { stringResource(R.string.metrics_components_kcal_value, it.toInt()) } ?: "—",
                     color = tokens.chartColors.activeCalories,
                     modifier = Modifier.weight(1f)
                 )
@@ -229,7 +231,7 @@ fun DayDetailSheet(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Sleep Duration",
+                                text = stringResource(R.string.metrics_components_sleep_duration),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
@@ -237,7 +239,7 @@ fun DayDetailSheet(
 
                         val sleepMins = summary?.sleepDurationMinutes
                         Text(
-                            text = if (sleepMins != null) "${sleepMins / 60}h ${sleepMins % 60}m" else "No record",
+                            text = if (sleepMins != null) stringResource(R.string.metrics_components_duration_h_m, sleepMins / 60, sleepMins % 60) else stringResource(R.string.metrics_components_no_record),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = tokens.chartColors.sleep
@@ -247,7 +249,7 @@ fun DayDetailSheet(
                     if (summary?.sleepConsistencyScore != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Sleep Consistency: ${(summary.sleepConsistencyScore * 100).toInt()}%",
+                            text = stringResource(R.string.metrics_components_sleep_consistency_value, (summary.sleepConsistencyScore * 100).toInt()),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -263,7 +265,7 @@ fun DayDetailSheet(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Cardiovascular & Vitals",
+                        text = stringResource(R.string.metrics_components_cardio_vitals),
                         style = MaterialTheme.typography.titleMedium,
                         color = tokens.textPrimary
                     )
@@ -274,18 +276,18 @@ fun DayDetailSheet(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         VitalColumn(
-                            label = "Resting HR",
-                            value = summary?.restingHeartRate?.let { "${it.toInt()} bpm" } ?: "—",
+                            label = stringResource(R.string.metrics_components_resting_hr),
+                            value = summary?.restingHeartRate?.let { stringResource(R.string.metrics_components_bpm_value, it.toInt()) } ?: "—",
                             color = tokens.chartColors.restingHeartRate
                         )
                         VitalColumn(
-                            label = "HRV RMSSD",
-                            value = summary?.hrvRmssd?.let { "${it.toInt()} ms" } ?: "—",
+                            label = stringResource(R.string.metrics_components_hrv_rmssd),
+                            value = summary?.hrvRmssd?.let { stringResource(R.string.metrics_components_ms_value, it.toInt()) } ?: "—",
                             color = tokens.chartColors.hrv
                         )
                         VitalColumn(
-                            label = "Avg Heart Rate",
-                            value = summary?.averageHeartRate?.let { "${it.toInt()} bpm" } ?: "—",
+                            label = stringResource(R.string.metrics_components_avg_heart_rate),
+                            value = summary?.averageHeartRate?.let { stringResource(R.string.metrics_components_bpm_value, it.toInt()) } ?: "—",
                             color = tokens.textSecondary
                         )
                     }
@@ -304,22 +306,22 @@ fun DayDetailSheet(
                         ) {
                             if (summary?.spo2Percentage != null) {
                                 VitalColumn(
-                                    label = "Blood Oxygen (SpO2)",
-                                    value = "${summary.spo2Percentage.toInt()}%",
+                                    label = stringResource(R.string.metrics_components_blood_oxygen_spo2),
+                                    value = stringResource(R.string.metrics_components_percent_value, summary.spo2Percentage.toInt()),
                                     color = tokens.textSecondary
                                 )
                             }
                             if (summary?.bloodPressureSystolic != null && summary.bloodPressureDiastolic != null) {
                                 VitalColumn(
-                                    label = "Blood Pressure",
-                                    value = "${summary.bloodPressureSystolic.toInt()}/${summary.bloodPressureDiastolic.toInt()} mmHg",
+                                    label = stringResource(R.string.metrics_components_blood_pressure),
+                                    value = stringResource(R.string.metrics_components_blood_pressure_value, summary.bloodPressureSystolic.toInt(), summary.bloodPressureDiastolic.toInt()),
                                     color = tokens.textSecondary
                                 )
                             }
                             if (summary?.respiratoryRate != null) {
                                 VitalColumn(
-                                    label = "Respiratory Rate",
-                                    value = "${summary.respiratoryRate.toInt()} rpm",
+                                    label = stringResource(R.string.metrics_components_respiratory_rate),
+                                    value = stringResource(R.string.metrics_components_rpm_value, summary.respiratoryRate.toInt()),
                                     color = tokens.textSecondary
                                 )
                             }
@@ -333,15 +335,15 @@ fun DayDetailSheet(
                             ) {
                                 if (summary.hydrationLiters != null) {
                                     VitalColumn(
-                                        label = "Hydration Intake",
-                                        value = "%.1f L".format(summary.hydrationLiters),
+                                        label = stringResource(R.string.metrics_components_hydration_intake),
+                                        value = stringResource(R.string.metrics_components_liters_value, summary.hydrationLiters),
                                         color = tokens.chartColors.sleep
                                     )
                                 }
                                 if (summary.bodyFatPercentage != null) {
                                     VitalColumn(
-                                        label = "Body Fat",
-                                        value = "%.1f%%".format(summary.bodyFatPercentage),
+                                        label = stringResource(R.string.metrics_components_body_fat),
+                                        value = stringResource(R.string.metrics_components_percent_decimal_value, summary.bodyFatPercentage),
                                         color = tokens.textSecondary
                                     )
                                 }
@@ -365,7 +367,7 @@ fun DayDetailSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Workouts (${workouts.size})",
+                                text = stringResource(R.string.metrics_components_workouts_count, workouts.size),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
@@ -401,7 +403,7 @@ fun DayDetailSheet(
                                     )
                                 }
                                 Text(
-                                    text = ActiveActivityCalculator.workoutCalories(session, bmr = null)?.let { "${it.toInt()} kcal" } ?: "",
+                                    text = ActiveActivityCalculator.workoutCalories(session, bmr = null)?.let { stringResource(R.string.metrics_components_kcal_value, it.toInt()) } ?: "",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = tokens.chartColors.activeCalories
@@ -431,7 +433,7 @@ fun DayDetailSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Nutrition ($totalCal kcal)",
+                                text = stringResource(R.string.metrics_components_nutrition_kcal, totalCal),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
@@ -443,13 +445,13 @@ fun DayDetailSheet(
                                     },
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
-                                    Text("Open in Nutrition", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                                    Text(stringResource(R.string.metrics_components_open_in_nutrition), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }
 
                         Text(
-                            text = "Macros: ${totalProtein.toInt()}g P · ${totalCarbs.toInt()}g C · ${totalFat.toInt()}g F",
+                            text = stringResource(R.string.metrics_components_macros_summary, totalProtein.toInt(), totalCarbs.toInt(), totalFat.toInt()),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textSecondary
                         )
@@ -470,7 +472,7 @@ fun DayDetailSheet(
                                     modifier = Modifier.weight(1f)
                                 )
                                 Text(
-                                    text = "${meal.calories} kcal",
+                                    text = stringResource(R.string.metrics_components_kcal_value, meal.calories),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = tokens.textMuted
                                 )

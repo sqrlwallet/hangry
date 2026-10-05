@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.breathing
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -61,26 +63,11 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val BREATHING_INFO_SECTIONS = listOf(
-    HangryInfoSection(
-        "Following the cues",
-        "A short beep marks the start of each step - breathe in, hold, or breathe out - and a double beep means the session is done. Watch the circle to learn the rhythm, then put on headphones, close your eyes and follow the sounds - you can lock the screen and the session keeps going."
-    ),
-    HangryInfoSection(
-        "Slow breathing & HRV",
-        "Breathing at around 5-6 breaths per minute lines your breathing up with your heart rate rhythm (resonance), which reliably raises heart rate variability and shifts you toward parasympathetic recovery."
-    ),
-    HangryInfoSection(
-        "Box breathing",
-        "Equal 4-second inhale, hold, exhale and hold. The holds make it a good tool for regaining focus under stress."
-    ),
-    HangryInfoSection(
-        "Health Connect",
-        "Sessions of 30 seconds or longer are saved on your device and, once you allow it, logged to Health Connect as a breathing (mindfulness) session so other health apps can see them."
-    ),
-    HangryInfoSection(
-        "Stay comfortable",
-        "Breathe through your nose if you can and never strain. If you feel light-headed, stop and breathe normally."
-    )
+    R.string.coach_breathing_info_cues_title to R.string.coach_breathing_info_cues_body,
+    R.string.coach_breathing_info_hrv_title to R.string.coach_breathing_info_hrv_body,
+    R.string.coach_breathing_info_box_title to R.string.coach_breathing_info_box_body,
+    R.string.coach_breathing_info_hc_title to R.string.coach_breathing_info_hc_body,
+    R.string.coach_breathing_info_comfort_title to R.string.coach_breathing_info_comfort_body
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,14 +126,17 @@ fun BreathingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Breathing") },
+                title = { Text(stringResource(R.string.coach_breathing_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.coach_back))
                     }
                 },
                 actions = {
-                    HangryInfoIconButton(title = "About Breathing Exercises", sections = BREATHING_INFO_SECTIONS)
+                    HangryInfoIconButton(
+                        title = stringResource(R.string.coach_breathing_about),
+                        sections = BREATHING_INFO_SECTIONS.map { (title, body) -> HangryInfoSection(stringResource(title), stringResource(body)) }
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -212,12 +202,12 @@ private fun SessionSetup(
     val tokens = LocalHangryTokens.current
 
     Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
-        StatTile(value = "$minutesToday", label = "min today", modifier = Modifier.weight(1f))
-        StatTile(value = "$minutesThisWeek", label = "min last 7 days", modifier = Modifier.weight(1f))
+        StatTile(value = "$minutesToday", label = stringResource(R.string.coach_breathing_min_today), modifier = Modifier.weight(1f))
+        StatTile(value = "$minutesThisWeek", label = stringResource(R.string.coach_breathing_min_last_7_days), modifier = Modifier.weight(1f))
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Pattern", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+        Text(stringResource(R.string.coach_breathing_pattern), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         HangryInfoTip(title = setup.pattern.title, body = setup.pattern.description)
     }
     BreathingPattern.entries.chunked(2).forEach { row ->
@@ -233,7 +223,7 @@ private fun SessionSetup(
         }
     }
 
-    Text("Duration", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+    Text(stringResource(R.string.coach_breathing_duration), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -254,7 +244,7 @@ private fun SessionSetup(
         }
     }
     Text(
-        text = "minutes · ${setup.pattern.sessionSecondsFor(setup.minutes) / setup.pattern.cycleSeconds} breaths",
+        text = stringResource(R.string.coach_breathing_minutes_breaths, setup.pattern.sessionSecondsFor(setup.minutes) / setup.pattern.cycleSeconds),
         style = MaterialTheme.typography.labelSmall,
         color = tokens.textMuted
     )
@@ -269,11 +259,10 @@ private fun SessionSetup(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                Text("Audio cues", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(stringResource(R.string.coach_breathing_audio_cues), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 HangryInfoTip(
-                    title = "Audio cues",
-                    body = "A beep plays each time you switch between breathing in, holding and breathing out. " +
-                        "You can lock your screen - the audio cues keep playing."
+                    title = stringResource(R.string.coach_breathing_audio_cues),
+                    body = stringResource(R.string.coach_breathing_audio_cues_body)
                 )
             }
             Switch(checked = setup.soundEnabled, onCheckedChange = onToggleSound)
@@ -285,10 +274,10 @@ private fun SessionSetup(
         HealthConnectRow(status = setup.healthConnect, onConnect = onConnectHealth)
     }
 
-    PrimaryButton(text = "Start ${setup.minutes}-minute session", icon = Icons.Default.PlayArrow, onClick = onStart)
+    PrimaryButton(text = stringResource(R.string.coach_breathing_start_session, setup.minutes), icon = Icons.Default.PlayArrow, onClick = onStart)
 
     if (recent.isNotEmpty()) {
-        Text("Recent sessions", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+        Text(stringResource(R.string.coach_recent_sessions), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
             recent.forEachIndexed { index, session ->
                 RecentSessionRow(session)
@@ -368,20 +357,20 @@ private fun HealthConnectRow(status: HealthConnectLogStatus, onConnect: () -> Un
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("Health Connect", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+            Text(stringResource(R.string.coach_breathing_health_connect), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
             Text(
                 text = when (status) {
-                    HealthConnectLogStatus.CHECKING -> "Checking access…"
-                    HealthConnectLogStatus.UNAVAILABLE -> "Not available - sessions are saved on this device"
-                    HealthConnectLogStatus.NEEDS_PERMISSION -> "Allow access to log sessions as breathing activity"
-                    HealthConnectLogStatus.CONNECTED -> "Sessions are logged automatically"
+                    HealthConnectLogStatus.CHECKING -> stringResource(R.string.coach_breathing_hc_checking)
+                    HealthConnectLogStatus.UNAVAILABLE -> stringResource(R.string.coach_breathing_hc_unavailable)
+                    HealthConnectLogStatus.NEEDS_PERMISSION -> stringResource(R.string.coach_breathing_hc_needs_permission)
+                    HealthConnectLogStatus.CONNECTED -> stringResource(R.string.coach_breathing_hc_connected)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
         }
         if (status == HealthConnectLogStatus.NEEDS_PERMISSION) {
-            TextButton(onClick = onConnect) { Text("Allow") }
+            TextButton(onClick = onConnect) { Text(stringResource(R.string.coach_breathing_allow)) }
         }
     }
 }
@@ -407,7 +396,7 @@ private fun RecentSessionRow(session: BreathingSessionEntity) {
                 color = tokens.textPrimary
             )
             Text(
-                text = if (session.healthConnectSynced) "Health Connect" else "On device",
+                text = if (session.healthConnectSynced) stringResource(R.string.coach_breathing_health_connect) else stringResource(R.string.coach_breathing_on_device),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
@@ -522,7 +511,7 @@ private fun ActiveSession(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = if (state.isPaused) "Paused" else phaseType.label,
+            text = if (state.isPaused) stringResource(R.string.coach_breathing_paused) else phaseType.label,
             style = MaterialTheme.typography.headlineSmall,
             color = tokens.textPrimary
         )
@@ -539,12 +528,12 @@ private fun ActiveSession(
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = "Breath ${position.cycleIndex + 1} of ${state.targetSeconds / state.pattern.cycleSeconds}",
+                text = stringResource(R.string.coach_breathing_breath_of, position.cycleIndex + 1, state.targetSeconds / state.pattern.cycleSeconds),
                 style = MaterialTheme.typography.labelMedium,
                 color = tokens.textSecondary
             )
             Text(
-                text = "${formatClock(state.remainingSeconds)} left",
+                text = stringResource(R.string.coach_breathing_time_left, formatClock(state.remainingSeconds)),
                 style = MaterialTheme.typography.labelMedium,
                 color = tokens.textSecondary
             )
@@ -570,7 +559,7 @@ private fun ActiveSession(
         FilledTonalIconButton(onClick = onToggleSound, modifier = Modifier.size(52.dp)) {
             Icon(
                 imageVector = if (state.soundEnabled) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                contentDescription = if (state.soundEnabled) "Mute cues" else "Unmute cues"
+                contentDescription = if (state.soundEnabled) stringResource(R.string.coach_breathing_mute_cues) else stringResource(R.string.coach_breathing_unmute_cues)
             )
         }
         FilledIconButton(
@@ -580,17 +569,17 @@ private fun ActiveSession(
         ) {
             Icon(
                 imageVector = if (state.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                contentDescription = if (state.isPaused) "Resume" else "Pause",
+                contentDescription = if (state.isPaused) stringResource(R.string.coach_breathing_resume) else stringResource(R.string.coach_breathing_pause),
                 modifier = Modifier.size(32.dp)
             )
         }
         FilledTonalIconButton(onClick = onStop, modifier = Modifier.size(52.dp)) {
-            Icon(imageVector = Icons.Default.Stop, contentDescription = "End session")
+            Icon(imageVector = Icons.Default.Stop, contentDescription = stringResource(R.string.coach_breathing_end_session))
         }
     }
 
     Text(
-        text = "Safe to lock your screen",
+        text = stringResource(R.string.coach_breathing_safe_to_lock),
         style = MaterialTheme.typography.bodySmall,
         color = tokens.textMuted,
         modifier = Modifier.fillMaxWidth(),
@@ -632,7 +621,7 @@ private fun SessionSummary(
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
         Text(
-            text = if (state.completed) "Session complete" else "Session ended",
+            text = if (state.completed) stringResource(R.string.coach_breathing_session_complete) else stringResource(R.string.coach_breathing_session_ended),
             style = MaterialTheme.typography.headlineSmall,
             color = tokens.textPrimary
         )
@@ -644,8 +633,8 @@ private fun SessionSummary(
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
-        StatTile(value = formatDuration(state.durationSeconds), label = "breathing", modifier = Modifier.weight(1f))
-        StatTile(value = "${state.cycles}", label = "breaths", modifier = Modifier.weight(1f))
+        StatTile(value = formatDuration(state.durationSeconds), label = stringResource(R.string.coach_breathing_label_breathing), modifier = Modifier.weight(1f))
+        StatTile(value = "${state.cycles}", label = stringResource(R.string.coach_breathing_label_breaths), modifier = Modifier.weight(1f))
     }
 
     HangryCard(modifier = Modifier.fillMaxWidth()) {
@@ -660,24 +649,24 @@ private fun SessionSummary(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = when {
-                    state.saved == null -> "Under 30 seconds, so this one wasn't logged."
-                    state.saved == false -> "Saving…"
-                    synced -> "Saved and logged to Health Connect."
+                    state.saved == null -> stringResource(R.string.coach_breathing_not_logged)
+                    state.saved == false -> stringResource(R.string.coach_breathing_saving)
+                    synced -> stringResource(R.string.coach_breathing_saved_synced)
                     healthConnect == HealthConnectLogStatus.NEEDS_PERMISSION ->
-                        "Saved on this device only."
-                    else -> "Saved on this device."
+                        stringResource(R.string.coach_breathing_saved_device_only)
+                    else -> stringResource(R.string.coach_breathing_saved_device)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = tokens.textPrimary,
                 modifier = Modifier.weight(1f)
             )
             if (state.saved == true && !synced && healthConnect == HealthConnectLogStatus.NEEDS_PERMISSION) {
-                TextButton(onClick = onConnectHealth) { Text("Allow") }
+                TextButton(onClick = onConnectHealth) { Text(stringResource(R.string.coach_breathing_allow)) }
             }
         }
     }
 
-    PrimaryButton(text = "Done", icon = Icons.Default.CheckCircle, onClick = onDone)
+    PrimaryButton(text = stringResource(R.string.coach_done), icon = Icons.Default.CheckCircle, onClick = onDone)
 }
 
 // endregion
@@ -709,13 +698,16 @@ private fun PrimaryButton(text: String, icon: androidx.compose.ui.graphics.vecto
 }
 
 /** "4-4-4-4 sec" style summary of one breathing cycle. */
-fun BreathingPattern.cadenceLabel(): String = phases.joinToString("-") { "${it.seconds}" } + " sec"
+@Composable
+fun BreathingPattern.cadenceLabel(): String =
+    stringResource(R.string.coach_breathing_cadence, phases.joinToString("-") { "${it.seconds}" })
 
 private fun formatClock(totalSeconds: Int): String =
     String.format(Locale.US, "%d:%02d", totalSeconds / 60, totalSeconds % 60)
 
+@Composable
 private fun formatDuration(totalSeconds: Int): String = when {
-    totalSeconds < 60 -> "${totalSeconds}s"
-    totalSeconds % 60 == 0 -> "${totalSeconds / 60} min"
-    else -> "${totalSeconds / 60}m ${totalSeconds % 60}s"
+    totalSeconds < 60 -> stringResource(R.string.coach_breathing_duration_seconds, totalSeconds)
+    totalSeconds % 60 == 0 -> stringResource(R.string.coach_breathing_duration_minutes, totalSeconds / 60)
+    else -> stringResource(R.string.coach_breathing_duration_minutes_seconds, totalSeconds / 60, totalSeconds % 60)
 }

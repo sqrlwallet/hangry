@@ -32,11 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.Supplement
 import com.kevan.hangry.domain.model.SupplementIngredient
 import com.kevan.hangry.domain.model.SupplementsSnapshot
@@ -54,23 +56,12 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val SUPPLEMENTS_INFO = listOf(
-    HangryInfoSection(
-        "Snap, don't type",
-        "Photograph the front of the bottle and the Supplement Facts label. AI reads the name, serving and ingredients, then you just confirm when and how much you take."
-    ),
-    HangryInfoSection(
-        "Tracking is optional",
-        "Adding a supplement just tells Dash what you take - it's assumed you take it as usual, with nothing to tick off. Want help remembering? Turn on Help me track this to tick doses off here, on the Today screen or the home-screen widget, and get a reminder at each dose time."
-    ),
-    HangryInfoSection(
-        "Ask Dash",
-        "Dash knows what you take and when, so it can spot overlaps (like two products with vitamin D) and factor them into advice. You can also send Dash a photo of a supplement and ask it to add it."
-    ),
-    HangryInfoSection(
-        "Not medical advice",
-        "Hangry is an open-source tracker. Cautions flagged by AI are prompts to check with a doctor or pharmacist - especially if you're pregnant or take medication - not instructions."
-    )
+@Composable
+private fun supplementsInfoSections(): List<HangryInfoSection> = listOf(
+    HangryInfoSection(stringResource(R.string.nutrition_supplements_info_snap_title), stringResource(R.string.nutrition_supplements_info_snap_body)),
+    HangryInfoSection(stringResource(R.string.nutrition_supplements_info_tracking_title), stringResource(R.string.nutrition_supplements_info_tracking_body)),
+    HangryInfoSection(stringResource(R.string.nutrition_supplements_info_dash_title), stringResource(R.string.nutrition_supplements_info_dash_body)),
+    HangryInfoSection(stringResource(R.string.nutrition_supplements_info_medical_title), stringResource(R.string.nutrition_supplements_info_medical_body))
 )
 
 internal val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
@@ -94,11 +85,11 @@ fun SupplementsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Supplements") },
+                title = { Text(stringResource(R.string.nutrition_supplements_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nutrition_cd_back)) }
                 },
-                actions = { HangryInfoIconButton(title = "About Supplements", sections = SUPPLEMENTS_INFO) },
+                actions = { HangryInfoIconButton(title = stringResource(R.string.nutrition_supplements_about), sections = supplementsInfoSections()) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
@@ -107,7 +98,7 @@ fun SupplementsScreen(
                 ExtendedFloatingActionButton(
                     onClick = { photoLauncher.takePhoto() },
                     icon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
-                    text = { Text("Add supplement") }
+                    text = { Text(stringResource(R.string.nutrition_supplements_add)) }
                 )
             }
         },
@@ -131,7 +122,7 @@ fun SupplementsScreen(
                 )
             } else {
                 if (snapshot.todayDoses.isNotEmpty()) TodayChecklist(snapshot = snapshot, onToggle = viewModel::setTaken)
-                Text("Your supplements", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(stringResource(R.string.nutrition_supplements_yours), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 snapshot.supplements.forEach { supplement ->
                     SupplementCard(
                         supplement = supplement,
@@ -139,7 +130,7 @@ fun SupplementsScreen(
                         onClick = { viewModel.edit(supplement) }
                     )
                 }
-                TextButton(onClick = viewModel::startManual) { Text("Add without a photo") }
+                TextButton(onClick = viewModel::startManual) { Text(stringResource(R.string.nutrition_supplements_add_without_photo)) }
                 Spacer(Modifier.height(72.dp)) // clear the FAB
             }
         }
@@ -166,9 +157,9 @@ private fun EmptyState(onSnap: () -> Unit, onGallery: () -> Unit, onManual: () -
     HangryCard(modifier = Modifier.fillMaxWidth()) {
         DashExpression(mood = DashMood.SUPPLEMENTS, size = 96.dp, contentDescription = null)
         Spacer(Modifier.height(8.dp))
-        Text("Add your daily supplements", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+        Text(stringResource(R.string.nutrition_supplements_empty_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         Text(
-            "Snap the bottle and its label - AI reads the dose and ingredients so Dash knows what you take. Want reminders too? Just turn on tracking.",
+            stringResource(R.string.nutrition_supplements_empty_body),
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textSecondary
         )
@@ -176,11 +167,11 @@ private fun EmptyState(onSnap: () -> Unit, onGallery: () -> Unit, onManual: () -
         Button(onClick = onSnap, modifier = Modifier.fillMaxWidth().height(48.dp)) {
             Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Snap a supplement")
+            Text(stringResource(R.string.nutrition_supplements_snap))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = onGallery) { Text("Choose photos") }
-            TextButton(onClick = onManual) { Text("Enter manually") }
+            TextButton(onClick = onGallery) { Text(stringResource(R.string.nutrition_supplements_choose_photos)) }
+            TextButton(onClick = onManual) { Text(stringResource(R.string.nutrition_supplements_enter_manually)) }
         }
     }
 }
@@ -194,9 +185,9 @@ internal fun TodayChecklist(
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Today", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.nutrition_supplements_today), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
             Text(
-                if (snapshot.todayDoses.isEmpty()) "No doses scheduled" else "${snapshot.takenToday} of ${snapshot.todayDoses.size} taken",
+                if (snapshot.todayDoses.isEmpty()) stringResource(R.string.nutrition_supplements_no_doses) else stringResource(R.string.nutrition_supplements_taken_of, snapshot.takenToday, snapshot.todayDoses.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = if (snapshot.todayDoses.isNotEmpty() && snapshot.takenToday == snapshot.todayDoses.size) tokens.scoreColors.primed else tokens.textSecondary
             )
@@ -205,7 +196,7 @@ internal fun TodayChecklist(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
                 DashExpression(mood = DashMood.HAPPY, size = 52.dp, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("All taken today. Nice work!", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                Text(stringResource(R.string.nutrition_supplements_all_taken_today), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
             }
         }
         snapshot.todayDoses.take(maxRows).forEach { dose ->
@@ -220,7 +211,7 @@ internal fun TodayChecklist(
                 Column(Modifier.weight(1f)) {
                     Text(dose.supplement.name, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                     Text(
-                        "${SupplementsViewModel.formatAmount(dose.supplement.doseAmount)} ${dose.supplement.doseUnit}",
+                        stringResource(R.string.nutrition_supplements_dose, SupplementsViewModel.formatAmount(dose.supplement.doseAmount), dose.supplement.doseUnit),
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted
                     )
@@ -229,7 +220,7 @@ internal fun TodayChecklist(
             }
         }
         if (snapshot.todayDoses.size > maxRows) {
-            Text("+${snapshot.todayDoses.size - maxRows} more", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            Text(stringResource(R.string.nutrition_supplements_more, snapshot.todayDoses.size - maxRows), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
         }
     }
 }
@@ -250,14 +241,14 @@ private fun SupplementCard(supplement: Supplement, adherence: Pair<Int, Int>?, o
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    supplement.name + if (!supplement.active) " (paused)" else "",
+                    if (!supplement.active) stringResource(R.string.nutrition_supplements_paused_name, supplement.name) else supplement.name,
                     style = MaterialTheme.typography.titleSmall,
                     color = if (supplement.active) tokens.textPrimary else tokens.textMuted
                 )
                 val schedule = supplement.times.joinToString(", ") { it.format(TIME_FORMAT) }
-                    .ifEmpty { "Taken as usual" }
+                    .ifEmpty { stringResource(R.string.nutrition_supplements_taken_as_usual) }
                 Text(
-                    "${SupplementsViewModel.formatAmount(supplement.doseAmount)} ${supplement.doseUnit} · $schedule",
+                    stringResource(R.string.nutrition_supplements_dose_schedule, SupplementsViewModel.formatAmount(supplement.doseAmount), supplement.doseUnit, schedule),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -272,12 +263,12 @@ private fun SupplementCard(supplement: Supplement, adherence: Pair<Int, Int>?, o
             }
             Column(horizontalAlignment = Alignment.End) {
                 if (supplement.remindersEnabled && supplement.active) {
-                    Icon(Icons.Default.NotificationsActive, contentDescription = "Reminders on", tint = tokens.textSecondary, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.NotificationsActive, contentDescription = stringResource(R.string.nutrition_supplements_reminders_on), tint = tokens.textSecondary, modifier = Modifier.size(16.dp))
                 } else if (supplement.tracked && supplement.active) {
-                    Text("Tracking", style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
+                    Text(stringResource(R.string.nutrition_supplements_tracking), style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
                 }
                 adherence?.takeIf { it.second > 0 }?.let { (taken, scheduled) ->
-                    Text("$taken/$scheduled this week", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                    Text(stringResource(R.string.nutrition_supplements_this_week, taken, scheduled), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                 }
             }
         }
@@ -325,7 +316,7 @@ private fun SupplementEditorSheet(
                 .padding(bottom = HangryTokens.Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(if (state.isNew) "Add supplement" else "Edit supplement", style = MaterialTheme.typography.titleLarge)
+            Text(if (state.isNew) stringResource(R.string.nutrition_supplements_add) else stringResource(R.string.nutrition_supplements_edit), style = MaterialTheme.typography.titleLarge)
 
             // Photos
             if (state.photos.isNotEmpty() || state.existingPhotoPath != null || state.isNew) {
@@ -337,7 +328,7 @@ private fun SupplementEditorSheet(
                     models.forEach { model ->
                         AsyncImage(
                             model = model,
-                            contentDescription = "Supplement photo",
+                            contentDescription = stringResource(R.string.nutrition_supplements_photo_cd),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(84.dp).clip(RoundedCornerShape(12.dp))
                         )
@@ -346,13 +337,13 @@ private fun SupplementEditorSheet(
                         OutlinedButton(onClick = onAddPhoto, modifier = Modifier.size(84.dp), shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(4.dp)) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.CameraAlt, contentDescription = null)
-                                Text(if (state.photos.isEmpty()) "Photo" else "Label", style = MaterialTheme.typography.labelSmall)
+                                Text(if (state.photos.isEmpty()) stringResource(R.string.nutrition_supplements_photo) else stringResource(R.string.nutrition_supplements_label), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                         OutlinedButton(onClick = onPickPhotos, modifier = Modifier.size(84.dp), shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(4.dp)) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.PhotoLibrary, contentDescription = null)
-                                Text("Gallery", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.nutrition_action_gallery), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -363,10 +354,10 @@ private fun SupplementEditorSheet(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     DashSpinner(size = 40.dp, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Reading the label…", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                    Text(stringResource(R.string.nutrition_supplements_reading_label), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                 }
             } else if (state.isNew && state.photos.size == 1 && aiEnabled && state.analysisError == null) {
-                Text("Tip: add a photo of the Supplement Facts label for the full ingredient list.",
+                Text(stringResource(R.string.nutrition_supplements_label_tip),
                     style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
             }
             state.analysisError?.let {
@@ -379,10 +370,10 @@ private fun SupplementEditorSheet(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.WarningAmber, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Worth checking", style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
+                            Text(stringResource(R.string.nutrition_supplements_worth_checking), style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
                         }
-                        state.cautions.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary) }
-                        Text("Check with your doctor or pharmacist - this isn't medical advice.",
+                        state.cautions.forEach { Text(stringResource(R.string.nutrition_bullet_item, it), style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary) }
+                        Text(stringResource(R.string.nutrition_supplements_caution_note),
                             style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
                     }
                 }
@@ -390,35 +381,35 @@ private fun SupplementEditorSheet(
 
             OutlinedTextField(
                 value = state.name, onValueChange = { v -> onChange { it.copy(name = v) } },
-                label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth()
+                label = { Text(stringResource(R.string.nutrition_field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = state.brand, onValueChange = { v -> onChange { it.copy(brand = v) } },
-                label = { Text("Brand (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth()
+                label = { Text(stringResource(R.string.nutrition_supplements_brand)) }, singleLine = true, modifier = Modifier.fillMaxWidth()
             )
 
-            Text("How much do you take each time?", style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
+            Text(stringResource(R.string.nutrition_supplements_how_much), style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = state.doseAmount,
                     onValueChange = { v -> onChange { it.copy(doseAmount = v.filter { c -> c.isDigit() || c == '.' || c == ',' }) } },
-                    label = { Text("Amount") }, singleLine = true,
+                    label = { Text(stringResource(R.string.nutrition_supplements_amount)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(0.4f)
                 )
                 OutlinedTextField(
                     value = state.doseUnit, onValueChange = { v -> onChange { it.copy(doseUnit = v) } },
-                    label = { Text("Unit") }, singleLine = true, placeholder = { Text("capsules") },
+                    label = { Text(stringResource(R.string.nutrition_supplements_unit)) }, singleLine = true, placeholder = { Text(stringResource(R.string.nutrition_supplements_unit_placeholder)) },
                     modifier = Modifier.weight(0.6f)
                 )
             }
 
             Text(
-                if (state.tracked) "When do you take it?" else "When do you usually take it? (optional)",
+                if (state.tracked) stringResource(R.string.nutrition_supplements_when_tracked) else stringResource(R.string.nutrition_supplements_when_untracked),
                 style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary
             )
             state.suggestedTiming?.let {
-                Text("Suggested: $it", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                Text(stringResource(R.string.nutrition_supplements_suggested, it), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 state.times.forEachIndexed { index, time ->
@@ -432,20 +423,20 @@ private fun SupplementEditorSheet(
                                 onClick = { onChange { s -> s.copy(times = s.times.filterIndexed { i, _ -> i != index }) } },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove time", modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.nutrition_supplements_remove_time), modifier = Modifier.size(16.dp))
                             }
                         }
                     )
                 }
-                AssistChip(onClick = { pickingTimeIndex = -1 }, label = { Text("Add time") }, leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(16.dp)) })
+                AssistChip(onClick = { pickingTimeIndex = -1 }, label = { Text(stringResource(R.string.nutrition_supplements_add_time)) }, leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(16.dp)) })
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Help me track this", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(stringResource(R.string.nutrition_supplements_help_track), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                     Text(
-                        if (state.tracked) "Tick off each dose and see how consistent you are"
-                        else "Off: Dash knows you take it and assumes you do - nothing to tick off",
+                        if (state.tracked) stringResource(R.string.nutrition_supplements_help_track_on)
+                        else stringResource(R.string.nutrition_supplements_help_track_off),
                         style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary
                     )
                 }
@@ -453,12 +444,12 @@ private fun SupplementEditorSheet(
             }
             if (state.tracked) {
                 if (state.times.isEmpty()) {
-                    Text("Add a time to track this", style = MaterialTheme.typography.bodySmall, color = tokens.scoreColors.rebuild)
+                    Text(stringResource(R.string.nutrition_supplements_add_time_to_track), style = MaterialTheme.typography.bodySmall, color = tokens.scoreColors.rebuild)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Remind me", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                        Text("A notification at each time, with a Mark taken button", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                        Text(stringResource(R.string.nutrition_supplements_remind_me), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                        Text(stringResource(R.string.nutrition_supplements_remind_me_body), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                     }
                     Switch(checked = state.remindersEnabled, onCheckedChange = { v -> onChange { it.copy(remindersEnabled = v) } }, enabled = state.times.isNotEmpty())
                 }
@@ -466,15 +457,15 @@ private fun SupplementEditorSheet(
             }
 
             if (state.ingredients.isNotEmpty()) {
-                Text("Ingredients per serving", style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
+                Text(stringResource(R.string.nutrition_supplements_ingredients), style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
                 state.ingredients.forEachIndexed { index, ingredient ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(ingredientLabel(ingredient), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
                         ingredient.dailyValuePercent?.let {
-                            Text("${SupplementsViewModel.formatAmount(it)}% DV", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                            Text(stringResource(R.string.nutrition_supplements_dv, SupplementsViewModel.formatAmount(it)), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                         }
                         IconButton(onClick = { onChange { s -> s.copy(ingredients = s.ingredients.filterIndexed { i, _ -> i != index }) } }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove ingredient", tint = tokens.textMuted, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.nutrition_supplements_remove_ingredient), tint = tokens.textMuted, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -482,25 +473,25 @@ private fun SupplementEditorSheet(
 
             OutlinedTextField(
                 value = state.notes, onValueChange = { v -> onChange { it.copy(notes = v) } },
-                label = { Text("Notes (optional)") }, modifier = Modifier.fillMaxWidth()
+                label = { Text(stringResource(R.string.nutrition_supplements_notes)) }, modifier = Modifier.fillMaxWidth()
             )
 
             if (!state.isNew) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Currently taking", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.nutrition_supplements_currently_taking), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
                     Switch(checked = state.active, onCheckedChange = { v -> onChange { it.copy(active = v) } })
                 }
             }
 
             Button(onClick = save, enabled = state.canSave, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-                Text(if (state.isNew) "Save supplement" else "Save changes")
+                Text(if (state.isNew) stringResource(R.string.nutrition_supplements_save_new) else stringResource(R.string.nutrition_supplements_save_changes))
             }
             if (!state.isNew) {
                 TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.nutrition_delete), color = MaterialTheme.colorScheme.error)
                 }
             }
-            Text("For your own tracking - not medical advice.", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            Text(stringResource(R.string.nutrition_fasting_disclaimer), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
         }
     }
 
@@ -521,10 +512,10 @@ private fun SupplementEditorSheet(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete ${state.name}?") },
-            text = { Text("Its reminders and history are removed too. To stop for now, turn off Currently taking instead.") },
-            confirmButton = { TextButton(onClick = { confirmDelete = false; onDelete() }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } }
+            title = { Text(stringResource(R.string.nutrition_supplements_delete_title, state.name)) },
+            text = { Text(stringResource(R.string.nutrition_supplements_delete_body)) },
+            confirmButton = { TextButton(onClick = { confirmDelete = false; onDelete() }) { Text(stringResource(R.string.nutrition_delete), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 }
@@ -543,7 +534,7 @@ private fun ExactAlarmHint(visible: Boolean) {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }
-    }) { Text("Reminders may be a few minutes late - allow on-time alarms") }
+    }) { Text(stringResource(R.string.nutrition_supplements_exact_alarm_hint)) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -552,9 +543,9 @@ private fun TimePickerDialog(initial: LocalTime, onDismiss: () -> Unit, onPick: 
     val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Dose time") },
+        title = { Text(stringResource(R.string.nutrition_supplements_dose_time)) },
         text = { TimePicker(state = state) },
-        confirmButton = { TextButton(onClick = { onPick(LocalTime.of(state.hour, state.minute)) }) { Text("OK") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        confirmButton = { TextButton(onClick = { onPick(LocalTime.of(state.hour, state.minute)) }) { Text(stringResource(R.string.nutrition_fasting_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

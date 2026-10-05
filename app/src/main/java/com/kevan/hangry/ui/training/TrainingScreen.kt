@@ -53,13 +53,11 @@ private val Zone3Color: Color @Composable get() = LocalHangryTokens.current.char
 private val Zone4Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[3] // Threshold
 private val Zone5Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[4] // Peak
 
-private val TRAINING_INFO_SECTIONS = listOf(
+@Composable
+private fun trainingInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "Heart Rate Zones",
-        "5 zones from active recovery to peak effort, set from your own heart-rate reserve: max heart rate " +
-            "(from Settings, or estimated as 208 - 0.7 x age) minus your usual resting heart rate. Zone 1 starts at 50%. " +
-            "Readings below that - sitting, sleeping - aren't counted. " +
-            "Today's zone mix is shown when available, falling back to a 7-day window otherwise."
+        stringResource(R.string.metrics_training_info_zones_title),
+        stringResource(R.string.metrics_training_info_zones_body)
     )
 )
 
@@ -106,7 +104,7 @@ fun TrainingScreen(
                 // A tab now, so no back arrow.
                 title = { Text(stringResource(R.string.title_training)) },
                 actions = {
-                    HangryInfoIconButton(title = "About Training & Zones", sections = TRAINING_INFO_SECTIONS)
+                    HangryInfoIconButton(title = stringResource(R.string.metrics_training_about), sections = trainingInfoSections())
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -139,7 +137,7 @@ fun TrainingScreen(
                     horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
                 ) {
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = if (isToday) "Workouts Today" else "Workouts", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = if (isToday) stringResource(R.string.metrics_training_workouts_today) else stringResource(R.string.metrics_training_workouts), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "${workouts.size}",
@@ -148,10 +146,10 @@ fun TrainingScreen(
                         )
                     }
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = if (isToday) "Active Burn Today" else "Active Burn", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = if (isToday) stringResource(R.string.metrics_training_active_burn_today) else stringResource(R.string.metrics_training_active_burn), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "${uiState.todayActiveCalories.toInt()} kcal",
+                            text = stringResource(R.string.metrics_components_kcal_value, uiState.todayActiveCalories.toInt()),
                             style = MaterialTheme.typography.headlineSmall,
                             color = tokens.chartColors.trainingLoad
                         )
@@ -162,7 +160,7 @@ fun TrainingScreen(
             // What was done comes first; the zone breakdown follows.
             item {
                 Text(
-                    text = dayHeading("Workouts", activeDate),
+                    text = dayHeading(stringResource(R.string.metrics_training_workouts), activeDate),
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary
                 )
@@ -173,8 +171,8 @@ fun TrainingScreen(
                     HangryCard {
                         DashEmptyState(
                             scene = DashEmptyScene.WORKOUTS,
-                            title = if (isToday) "No workouts yet today" else "No workouts this day",
-                            body = if (isToday) "Workouts from your watch or fitness apps show up here." else null,
+                            title = if (isToday) stringResource(R.string.metrics_training_no_workouts_today) else stringResource(R.string.metrics_training_no_workouts_day),
+                            body = if (isToday) stringResource(R.string.metrics_training_no_workouts_body) else null,
                             imageSize = 120.dp
                         )
                     }
@@ -184,13 +182,14 @@ fun TrainingScreen(
                 item {
                     val totalMinutes = workouts.sumOf { it.durationMinutes }
                     val kcal = workouts.sumOf { ActiveActivityCalculator.workoutCalories(it, bmr = null) ?: 0.0 }
-                    val count = if (workouts.size == 1) "a workout" else "${workouts.size} workouts"
+                    val count = if (workouts.size == 1) stringResource(R.string.metrics_training_a_workout) else stringResource(R.string.metrics_training_n_workouts, workouts.size)
+                    val kcalSuffix = if (kcal > 0) stringResource(R.string.metrics_training_kcal_suffix, kcal.toInt()) else "."
                     DashNote(
                         mood = DashMood.WORKOUT,
                         text = if (isToday) {
-                            "Nice work! $count today: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
+                            stringResource(R.string.metrics_training_dash_today, count, WorkoutText.durationText(totalMinutes)) + kcalSuffix
                         } else {
-                            "${count.replaceFirstChar { it.uppercase() }} this day: ${WorkoutText.durationText(totalMinutes)}" + if (kcal > 0) ", ${kcal.toInt()} kcal." else "."
+                            stringResource(R.string.metrics_training_dash_day, count.replaceFirstChar { it.uppercase() }, WorkoutText.durationText(totalMinutes)) + kcalSuffix
                         }
                     )
                 }
@@ -206,8 +205,8 @@ fun TrainingScreen(
                     HangryCard {
                         DashEmptyState(
                             scene = DashEmptyScene.HRV,
-                            title = "No heart-rate data yet",
-                            body = "Heart-rate zones appear once a watch or ring syncs continuous heart rate to Health Connect.",
+                            title = stringResource(R.string.metrics_training_no_hr_title),
+                            body = stringResource(R.string.metrics_training_no_hr_body),
                             imageSize = 120.dp,
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
@@ -227,7 +226,7 @@ fun TrainingScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Heart Rate Zones",
+                                text = stringResource(R.string.metrics_training_info_zones_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
@@ -238,7 +237,7 @@ fun TrainingScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = if (isTodayData) "TODAY" else "7-DAY WINDOW",
+                                text = if (isTodayData) stringResource(R.string.metrics_training_zones_today) else stringResource(R.string.metrics_training_zones_7_day),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.textSecondary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -255,7 +254,7 @@ fun TrainingScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Cardio Focus",
+                            text = stringResource(R.string.metrics_training_cardio_focus),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -333,38 +332,38 @@ fun TrainingScreen(
                     // 5-Zone Breakdown List
                     ZoneDetailRow(
                         color = Zone1Color,
-                        name = "Zone 1: Active Recovery",
-                        range = "${zoneLabels[0]} bpm",
+                        name = stringResource(R.string.metrics_training_zone1_name),
+                        range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[0]),
                         percentage = (effectiveDistribution.zone1Pct * 100).toInt(),
-                        purpose = "Warm-up & Restoration"
+                        purpose = stringResource(R.string.metrics_training_zone1_purpose)
                     )
                     ZoneDetailRow(
                         color = Zone2Color,
-                        name = "Zone 2: Aerobic Base",
-                        range = "${zoneLabels[1]} bpm",
+                        name = stringResource(R.string.metrics_training_zone2_name),
+                        range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[1]),
                         percentage = (effectiveDistribution.zone2Pct * 100).toInt(),
-                        purpose = "Mitochondrial Density"
+                        purpose = stringResource(R.string.metrics_training_zone2_purpose)
                     )
                     ZoneDetailRow(
                         color = Zone3Color,
-                        name = "Zone 3: Aerobic Tempo",
-                        range = "${zoneLabels[2]} bpm",
+                        name = stringResource(R.string.metrics_training_zone3_name),
+                        range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[2]),
                         percentage = (effectiveDistribution.zone3Pct * 100).toInt(),
-                        purpose = "Cardiovascular Stamina"
+                        purpose = stringResource(R.string.metrics_training_zone3_purpose)
                     )
                     ZoneDetailRow(
                         color = Zone4Color,
-                        name = "Zone 4: Lactate Threshold",
-                        range = "${zoneLabels[3]} bpm",
+                        name = stringResource(R.string.metrics_training_zone4_name),
+                        range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[3]),
                         percentage = (effectiveDistribution.zone4Pct * 100).toInt(),
-                        purpose = "Speed Endurance"
+                        purpose = stringResource(R.string.metrics_training_zone4_purpose)
                     )
                     ZoneDetailRow(
                         color = Zone5Color,
-                        name = "Zone 5: Peak / VO2 Max",
-                        range = "${zoneLabels[4]} bpm",
+                        name = stringResource(R.string.metrics_training_zone5_name),
+                        range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[4]),
                         percentage = (effectiveDistribution.zone5Pct * 100).toInt(),
-                        purpose = "Anaerobic Power"
+                        purpose = stringResource(R.string.metrics_training_zone5_purpose)
                     )
 
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
@@ -416,7 +415,7 @@ private fun ZoneDetailRow(
                     color = tokens.textPrimary
                 )
                 Text(
-                    text = "$range • $purpose",
+                    text = stringResource(R.string.metrics_training_zone_range_purpose, range, purpose),
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
@@ -424,7 +423,7 @@ private fun ZoneDetailRow(
         }
 
         Text(
-            text = "$percentage%",
+            text = stringResource(R.string.metrics_components_percent_value, percentage),
             style = MaterialTheme.typography.titleSmall,
             color = tokens.textPrimary
         )
@@ -462,7 +461,7 @@ private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
             // Everything burned during the workout, not just what was above resting.
             ActiveActivityCalculator.workoutCalories(workout, bmr = null)?.let { kcal ->
                 Text(
-                    text = "${kcal.toInt()} kcal",
+                    text = stringResource(R.string.metrics_components_kcal_value, kcal.toInt()),
                     style = MaterialTheme.typography.titleSmall,
                     color = tokens.chartColors.trainingLoad
                 )

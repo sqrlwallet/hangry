@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.bodymetrics
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,18 +44,19 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 
-private val BODY_METRICS_INFO = listOf(
+@Composable
+private fun bodyMetricsInfo(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "Where these numbers come from",
-        "Everything here is calculated on your phone from your height, weight, age, sex, tape measurements and your latest body-fat scan. Update any of those in the Body Fat calculator and every metric refreshes."
+        stringResource(R.string.body_metrics_info_source_title),
+        stringResource(R.string.body_metrics_info_source_body)
     ),
     HangryInfoSection(
-        "Tap any metric",
-        "Each one opens a short explainer: what it measures, the exact sum we did with your numbers, why it matters, and the research its ranges come from."
+        stringResource(R.string.body_metrics_info_tap_title),
+        stringResource(R.string.body_metrics_info_tap_body)
     ),
     HangryInfoSection(
-        "Not a diagnosis",
-        "These are screening numbers used by doctors and researchers. They're great for tracking trends, but talk to a health professional before acting on a single reading."
+        stringResource(R.string.body_metrics_info_not_diagnosis_title),
+        stringResource(R.string.body_metrics_info_not_diagnosis_body)
     )
 )
 
@@ -71,14 +74,14 @@ fun BodyMetricsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Body Metrics") },
+                title = { Text(stringResource(R.string.body_metrics_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back))
                     }
                 },
                 actions = {
-                    HangryInfoIconButton(title = "About Body Metrics", sections = BODY_METRICS_INFO)
+                    HangryInfoIconButton(title = stringResource(R.string.body_metrics_about), sections = bodyMetricsInfo())
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -133,17 +136,17 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
     val tokens = LocalHangryTokens.current
     val input = state.input
     val chips = buildList {
-        input.heightCm?.let { add("Height ${fmt(it, 0)} cm") }
-        input.weightKg?.let { add("Weight ${fmt(it, 1)} kg") }
-        input.age?.let { add("Age $it") }
+        input.heightCm?.let { add(stringResource(R.string.body_metrics_chip_height, fmt(it, 0))) }
+        input.weightKg?.let { add(stringResource(R.string.body_metrics_chip_weight, fmt(it, 1))) }
+        input.age?.let { add(stringResource(R.string.body_metrics_chip_age, it.toString())) }
         input.bodyFatPercent?.let { bf ->
             val date = state.bodyFatScanDate?.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
-            add("Body fat ${fmt(bf, 1)}%" + (date?.let { " · $it" } ?: ""))
+            add(stringResource(R.string.body_metrics_chip_body_fat, fmt(bf, 1)) + (date?.let { " · $it" } ?: ""))
         }
-        input.waistCm?.let { add("Waist ${fmt(it, 1)} cm") }
-        input.hipCm?.let { add("Hips ${fmt(it, 1)} cm") }
-        input.chestCm?.let { add("Chest ${fmt(it, 1)} cm") }
-        input.neckCm?.let { add("Neck ${fmt(it, 1)} cm") }
+        input.waistCm?.let { add(stringResource(R.string.body_metrics_chip_waist, fmt(it, 1))) }
+        input.hipCm?.let { add(stringResource(R.string.body_metrics_chip_hips, fmt(it, 1))) }
+        input.chestCm?.let { add(stringResource(R.string.body_metrics_chip_chest, fmt(it, 1))) }
+        input.neckCm?.let { add(stringResource(R.string.body_metrics_chip_neck, fmt(it, 1))) }
     }
     val total = state.allMetrics.size
     HangryCard(modifier = Modifier.fillMaxWidth()) {
@@ -155,7 +158,7 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
                 color = tokens.textPrimary
             )
             Text(
-                " of $total metrics calculated",
+                stringResource(R.string.body_metrics_of_total_calculated, total),
                 style = MaterialTheme.typography.bodyMedium,
                 color = tokens.textSecondary,
                 modifier = Modifier.padding(bottom = 4.dp)
@@ -169,7 +172,7 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
         if (missing.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Text(
-                "Add ${missing.take(3).joinToString(", ").lowercase()} to unlock the rest.",
+                stringResource(R.string.body_metrics_add_to_unlock, missing.take(3).joinToString(", ").lowercase()),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
@@ -178,7 +181,7 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
         FilledTonalButton(onClick = onUpdateMeasurements, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Straighten, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Update measurements")
+            Text(stringResource(R.string.body_metrics_update_measurements))
         }
     }
 }
@@ -187,7 +190,7 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
 private fun AttentionCard(metrics: List<BodyMetric>, onSelect: (BodyMetric) -> Unit) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
-        Text("Worth a look", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+        Text(stringResource(R.string.body_metrics_worth_a_look), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
         Spacer(Modifier.height(6.dp))
         metrics.forEach { metric ->
             Row(
@@ -225,13 +228,13 @@ private fun MetricCard(metric: BodyMetric, onClick: () -> Unit) {
                         color = if (metric.isAvailable) tokens.textPrimary else tokens.textSecondary
                     )
                     Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Outlined.Info, contentDescription = "About ${metric.name}", tint = tokens.textMuted, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.body_metrics_about_metric, metric.name), tint = tokens.textMuted, modifier = Modifier.size(14.dp))
                 }
                 if (metric.isAvailable) {
                     metric.status?.let { MetricStatusChip(it, metric.tone, modifier = Modifier.padding(top = 4.dp)) }
                 } else {
                     Text(
-                        text = if (metric.missingInputs.isEmpty()) "Not available" else "Add ${metric.missingInputs.joinToString(" & ").lowercase()}",
+                        text = if (metric.missingInputs.isEmpty()) stringResource(R.string.body_metrics_not_available) else stringResource(R.string.body_metrics_add_inputs, metric.missingInputs.joinToString(" & ").lowercase()),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textMuted,
                         modifier = Modifier.padding(top = 2.dp)
@@ -299,11 +302,11 @@ private fun MetricInfoSheet(metric: BodyMetric, onDismiss: () -> Unit, onUpdateM
                 Surface(color = tokens.brandAccentContainer, shape = RoundedCornerShape(12.dp)) {
                     Column(Modifier.padding(12.dp)) {
                         Text(
-                            "Add ${metric.missingInputs.joinToString(", ").lowercase()} to see yours.",
+                            stringResource(R.string.body_metrics_add_to_see_yours, metric.missingInputs.joinToString(", ").lowercase()),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textPrimary
                         )
-                        TextButton(onClick = onUpdateMeasurements, contentPadding = PaddingValues(0.dp)) { Text("Update measurements") }
+                        TextButton(onClick = onUpdateMeasurements, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.body_metrics_update_measurements)) }
                     }
                 }
             }
@@ -313,12 +316,12 @@ private fun MetricInfoSheet(metric: BodyMetric, onDismiss: () -> Unit, onUpdateM
                 MetricBandTable(metric)
             }
 
-            MetricInfoBlock("What it is", metric.info.whatItIs)
-            MetricInfoBlock(if (metric.isAvailable) "How we calculated yours" else "How it's calculated", metric.info.howCalculated)
-            MetricInfoBlock("Why it matters", metric.info.whyItMatters)
-            MetricInfoBlock("Source", metric.info.source)
+            MetricInfoBlock(stringResource(R.string.body_metrics_what_it_is), metric.info.whatItIs)
+            MetricInfoBlock(if (metric.isAvailable) stringResource(R.string.body_metrics_how_we_calculated_yours) else stringResource(R.string.body_metrics_how_its_calculated), metric.info.howCalculated)
+            MetricInfoBlock(stringResource(R.string.body_metrics_why_it_matters), metric.info.whyItMatters)
+            MetricInfoBlock(stringResource(R.string.body_metrics_source), metric.info.source)
             Text(
-                "A screening number, not a diagnosis. Talk to a health professional about any concern.",
+                stringResource(R.string.body_metrics_screening_disclaimer),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )

@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * The one visual signature for Hangry's "your data never leaves this device" promise - reused
@@ -48,17 +50,17 @@ fun LocalFirstBanner(modifier: Modifier = Modifier) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "100% Local-First",
+                        text = stringResource(R.string.metrics_components_local_first),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = tokens.scoreColors.primed
                     )
                     HangryInfoTip(
-                        title = "100% Local-First Architecture",
-                        body = "Your health data never leaves your device. No cloud. No accounts. No telemetry."
+                        title = stringResource(R.string.metrics_components_local_first_architecture),
+                        body = stringResource(R.string.metrics_components_local_first_body)
                     )
                 }
                 Text(
-                    text = "Your data never leaves this device.",
+                    text = stringResource(R.string.metrics_components_local_first_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textPrimary
                 )

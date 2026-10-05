@@ -21,6 +21,7 @@ import com.kevan.hangry.ui.onboarding.OnboardingStepIndicator
 import com.kevan.hangry.ui.onboarding.OnboardingSteps
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun SyncProgressScreen(
@@ -87,17 +88,17 @@ fun SyncProgressScreen(
                 when (progress.status) {
                     SyncStatus.IN_PROGRESS -> {
                         // Dash spins while the history comes in.
-                        DashSpinner(size = 120.dp, contentDescription = "Importing")
+                        DashSpinner(size = 120.dp, contentDescription = stringResource(R.string.settings_sync_importing))
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = "Importing Historical Data",
+                            text = stringResource(R.string.settings_sync_importing_title),
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             ),
                             color = androidx.compose.ui.graphics.Color.White
                         )
                         Text(
-                            text = "Reading ${progress.currentDataType}…",
+                            text = stringResource(R.string.settings_sync_reading, progress.currentDataType),
                             style = MaterialTheme.typography.bodyMedium,
                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f)
                         )
@@ -105,20 +106,20 @@ fun SyncProgressScreen(
                     SyncStatus.SUCCESS -> {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Success",
+                            contentDescription = stringResource(R.string.settings_sync_success),
                             tint = tokens.scoreColors.primed,
                             modifier = Modifier.size(72.dp)
                         )
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = "Import Complete",
+                            text = stringResource(R.string.settings_sync_import_complete),
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             ),
                             color = androidx.compose.ui.graphics.Color.White
                         )
                         Text(
-                            text = "Your baselines are ready.",
+                            text = stringResource(R.string.settings_sync_baselines_ready),
                             style = MaterialTheme.typography.bodyMedium,
                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f),
                             textAlign = TextAlign.Center
@@ -127,20 +128,20 @@ fun SyncProgressScreen(
                     SyncStatus.FAILED -> {
                         Icon(
                             imageVector = Icons.Default.Warning,
-                            contentDescription = "Warning",
+                            contentDescription = stringResource(R.string.settings_sync_warning),
                             tint = tokens.scoreColors.balanced,
                             modifier = Modifier.size(72.dp)
                         )
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = "Sync Incomplete",
+                            text = stringResource(R.string.settings_sync_incomplete),
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             ),
                             color = androidx.compose.ui.graphics.Color.White
                         )
                         Text(
-                            text = progress.errorMessage ?: "We could not sync all historical data yet.",
+                            text = progress.errorMessage ?: stringResource(R.string.settings_sync_incomplete_body),
                             style = MaterialTheme.typography.bodyMedium,
                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f),
                             textAlign = TextAlign.Center
@@ -157,7 +158,7 @@ fun SyncProgressScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Records Read", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = stringResource(R.string.settings_sync_records_read), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                         Text(text = "${progress.recordsRead}", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -165,7 +166,7 @@ fun SyncProgressScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Records Inserted", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = stringResource(R.string.settings_sync_records_inserted), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                         Text(text = "${progress.recordsInserted}", style = MaterialTheme.typography.titleMedium, color = tokens.scoreColors.primed)
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -173,7 +174,7 @@ fun SyncProgressScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Duplicates Skipped", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(text = stringResource(R.string.settings_sync_duplicates_skipped), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                         Text(text = "${progress.recordsSkipped}", style = MaterialTheme.typography.titleMedium, color = tokens.textMuted)
                     }
                 }
@@ -191,7 +192,7 @@ fun SyncProgressScreen(
                             .height(54.dp),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(27.dp)
                     ) {
-                        Text("Retry Sync", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.settings_sync_retry), style = MaterialTheme.typography.titleMedium)
                     }
                 }
 
@@ -208,7 +209,7 @@ fun SyncProgressScreen(
                     )
                 ) {
                     Text(
-                        text = if (progress.status == SyncStatus.SUCCESS) "Enter Hangry" else "Continue to Today",
+                        text = if (progress.status == SyncStatus.SUCCESS) stringResource(R.string.settings_sync_enter_hangry) else stringResource(R.string.settings_sync_continue_to_today),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         ),

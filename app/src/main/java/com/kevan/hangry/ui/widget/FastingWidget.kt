@@ -45,46 +45,50 @@ internal object FastingWidget {
         val active = s.active
         when {
             !s.enabled -> {
-                views.setTextViewText(R.id.tv_fasting_label, "FASTING")
-                views.setTextViewText(R.id.tv_fasting_streak, "Off")
-                showHeadline(views, "Fasting is off")
-                views.setTextViewText(R.id.tv_fasting_subtitle, "Turn it on in Hangry if you'd like")
+                views.setTextViewText(R.id.tv_fasting_label, context.getString(R.string.dashboard_widget_fasting_label))
+                views.setTextViewText(R.id.tv_fasting_streak, context.getString(R.string.dashboard_widget_fasting_off))
+                showHeadline(views, context.getString(R.string.dashboard_widget_fasting_is_off))
+                views.setTextViewText(R.id.tv_fasting_subtitle, context.getString(R.string.dashboard_widget_fasting_turn_on))
                 views.setViewVisibility(R.id.pb_fasting, View.GONE)
-                views.setTextViewText(R.id.btn_fasting_action, "Set up")
+                views.setTextViewText(R.id.btn_fasting_action, context.getString(R.string.dashboard_widget_fasting_set_up))
                 views.setOnClickPendingIntent(R.id.btn_fasting_action, open(context))
             }
             active == null -> {
-                views.setTextViewText(R.id.tv_fasting_label, "EATING WINDOW")
+                views.setTextViewText(R.id.tv_fasting_label, context.getString(R.string.dashboard_widget_fasting_eating_window))
                 views.setTextViewText(R.id.tv_fasting_streak, streakChip(s))
-                showHeadline(views, "Not fasting")
+                showHeadline(views, context.getString(R.string.dashboard_widget_fasting_not_fasting))
                 val last = s.lastFinished
                 views.setTextViewText(
                     R.id.tv_fasting_subtitle,
-                    last?.let { "Last fast " + FastingMath.formatDuration(it.elapsed()) + if (it.reachedGoal()) " ✓" else "" }
-                        ?: "Start when you finish eating · ${s.plan.label}"
+                    last?.let {
+                        context.getString(
+                            if (it.reachedGoal()) R.string.dashboard_widget_fasting_last_fast_reached else R.string.dashboard_widget_fasting_last_fast,
+                            FastingMath.formatDuration(it.elapsed())
+                        )
+                    } ?: context.getString(R.string.dashboard_widget_fasting_start_when_done, s.plan.label)
                 )
                 views.setViewVisibility(R.id.pb_fasting, View.GONE)
-                views.setTextViewText(R.id.btn_fasting_action, "Start fast")
+                views.setTextViewText(R.id.btn_fasting_action, context.getString(R.string.dashboard_widget_fasting_start))
                 views.setOnClickPendingIntent(R.id.btn_fasting_action, broadcast(context, FastingReceiver.ACTION_START))
             }
             else -> {
                 val now = Instant.now()
                 val elapsed = active.elapsed(now)
-                views.setTextViewText(R.id.tv_fasting_label, "FASTING · " + FastingStage.at(elapsed).title.uppercase(Locale.getDefault()))
+                views.setTextViewText(R.id.tv_fasting_label, context.getString(R.string.dashboard_widget_fasting_stage_label, FastingStage.at(elapsed).title.uppercase(Locale.getDefault())))
                 views.setTextViewText(R.id.tv_fasting_streak, streakChip(s))
                 views.setViewVisibility(R.id.tv_fasting_headline, View.GONE)
                 views.setViewVisibility(R.id.ch_fasting_elapsed, View.VISIBLE)
                 views.setChronometer(R.id.ch_fasting_elapsed, SystemClock.elapsedRealtime() - elapsed.toMillis(), null, true)
                 val subtitle = if (active.reachedGoal(now)) {
-                    "Goal reached ✓ · ${active.targetMinutes / 60}h"
+                    context.getString(R.string.dashboard_widget_fasting_goal_reached, active.targetMinutes / 60)
                 } else {
                     val left = Duration.between(now, active.goalAt())
-                    "${FastingMath.formatDuration(left)} left · ${active.goalAt().atZone(ZoneId.systemDefault()).format(timeFormat)}"
+                    context.getString(R.string.dashboard_widget_fasting_time_left, FastingMath.formatDuration(left), active.goalAt().atZone(ZoneId.systemDefault()).format(timeFormat))
                 }
                 views.setTextViewText(R.id.tv_fasting_subtitle, subtitle)
                 views.setViewVisibility(R.id.pb_fasting, View.VISIBLE)
                 views.setProgressBar(R.id.pb_fasting, 100, (active.progress(now) * 100).toInt(), false)
-                views.setTextViewText(R.id.btn_fasting_action, "End fast")
+                views.setTextViewText(R.id.btn_fasting_action, context.getString(R.string.dashboard_widget_fasting_end))
                 views.setOnClickPendingIntent(R.id.btn_fasting_action, broadcast(context, FastingReceiver.ACTION_END))
             }
         }

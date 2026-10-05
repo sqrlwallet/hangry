@@ -38,80 +38,83 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
-private val SLEEP_COACH_SECTIONS = listOf(
+@Composable
+private fun sleepCoachSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "Tonight's Sleep Need",
-        "Your sleep goal, plus a slice of any sleep debt so it's paid back over two weeks (debt from the last 14 nights ÷ 14, at most an hour), plus up to 30 minutes after a harder-than-usual day."
+        stringResource(R.string.metrics_sleep_tonights_need),
+        stringResource(R.string.metrics_sleep_tonights_need_coach_body)
     ),
     HangryInfoSection(
-        "Sleep Score",
-        "Half is how much of your need you got. The rest is how well you slept: time asleep vs time in bed, deep and REM sleep against healthy ranges, and how regular your bed and wake times are."
+        stringResource(R.string.metrics_sleep_score_title),
+        stringResource(R.string.metrics_sleep_score_parts_body)
     ),
     HangryInfoSection(
-        "Quality",
-        "How well you slept regardless of length: efficiency, deep + REM, and regular timing."
+        stringResource(R.string.metrics_sleep_quality_title),
+        stringResource(R.string.metrics_sleep_quality_body)
     ),
     HangryInfoSection(
-        "Suggested Bedtime",
-        "Your usual wake time minus tonight's need - adjust as your schedule needs."
+        stringResource(R.string.metrics_sleep_suggested_bedtime_title),
+        stringResource(R.string.metrics_sleep_suggested_bedtime_body)
     )
 )
 
-private val SLEEP_STAGE_SECTIONS = listOf(
+@Composable
+private fun sleepStageSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "Deep Sleep",
-        "Cellular repair, growth hormone release & physical recovery."
+        stringResource(R.string.metrics_sleep_deep_title),
+        stringResource(R.string.metrics_sleep_deep_body)
     ),
     HangryInfoSection(
-        "REM Sleep",
-        "Cognitive processing, memory consolidation & mental recovery."
+        stringResource(R.string.metrics_sleep_rem_title),
+        stringResource(R.string.metrics_sleep_rem_body)
     ),
     HangryInfoSection(
-        "Light Sleep",
-        "Baseline physiological maintenance & body recovery."
+        stringResource(R.string.metrics_sleep_light_title),
+        stringResource(R.string.metrics_sleep_light_body)
     ),
     HangryInfoSection(
-        "Awake / Restless",
-        "Micro-arousals and wake episodes."
+        stringResource(R.string.metrics_sleep_awake_title),
+        stringResource(R.string.metrics_sleep_awake_body)
     )
 )
 
-private val SLEEP_INFO_SECTIONS = listOf(
+@Composable
+private fun sleepInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "Sleep Score",
-        "Blends sleep efficiency, restorative (deep + REM) sleep, and night-to-night consistency - not just how long you slept."
+        stringResource(R.string.metrics_sleep_score_title),
+        stringResource(R.string.metrics_sleep_score_blend_body)
     ),
     HangryInfoSection(
-        "Tonight's Sleep Need",
-        "Your sleep goal, plus part of any sleep you've been short over the last week (last night counts most), plus up to an hour after a harder-than-usual day."
+        stringResource(R.string.metrics_sleep_tonights_need),
+        stringResource(R.string.metrics_sleep_tonights_need_info_body)
     ),
     HangryInfoSection(
-        "Sleep Score",
-        "Half is how much of your need you got. The rest is how well you slept: time asleep vs time in bed, deep and REM sleep against healthy ranges, and how regular your bed and wake times are."
+        stringResource(R.string.metrics_sleep_score_title),
+        stringResource(R.string.metrics_sleep_score_parts_body)
     ),
     HangryInfoSection(
-        "Quality",
-        "How well you slept regardless of length: efficiency, deep + REM, and regular timing."
+        stringResource(R.string.metrics_sleep_quality_title),
+        stringResource(R.string.metrics_sleep_quality_body)
     ),
     HangryInfoSection(
-        "Suggested Bedtime",
-        "Your usual wake time minus tonight's need - adjust as your schedule needs."
+        stringResource(R.string.metrics_sleep_suggested_bedtime_title),
+        stringResource(R.string.metrics_sleep_suggested_bedtime_body)
     ),
     HangryInfoSection(
-        "Deep Sleep",
-        "Cellular repair, growth hormone release & physical recovery."
+        stringResource(R.string.metrics_sleep_deep_title),
+        stringResource(R.string.metrics_sleep_deep_body)
     ),
     HangryInfoSection(
-        "REM Sleep",
-        "Cognitive processing, memory consolidation & mental recovery."
+        stringResource(R.string.metrics_sleep_rem_title),
+        stringResource(R.string.metrics_sleep_rem_body)
     ),
     HangryInfoSection(
-        "Light Sleep",
-        "Baseline physiological maintenance & body recovery."
+        stringResource(R.string.metrics_sleep_light_title),
+        stringResource(R.string.metrics_sleep_light_body)
     ),
     HangryInfoSection(
-        "Awake / Restless",
-        "Micro-arousals and wake episodes."
+        stringResource(R.string.metrics_sleep_awake_title),
+        stringResource(R.string.metrics_sleep_awake_body)
     )
 )
 
@@ -150,16 +153,16 @@ fun SleepScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.metrics_components_back)
                         )
                     }
                 },
                 actions = {
-                    HangryInfoIconButton(title = "About Sleep", sections = SLEEP_INFO_SECTIONS)
+                    HangryInfoIconButton(title = stringResource(R.string.metrics_sleep_about_sleep), sections = sleepInfoSections())
                     IconButton(onClick = { showManualDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Log Sleep Manually"
+                            contentDescription = stringResource(R.string.metrics_sleep_log_manually)
                         )
                     }
                 },
@@ -179,8 +182,8 @@ fun SleepScreen(
             PastDayNote(date = uiState.selectedDate)
             if (uiState.isPendingSleepData) {
                 HangryPendingNotice(
-                    message = "Log last night's sleep to see today's insights.",
-                    details = "Log last night's sleep to see your sleep score, architecture, and insights for today.",
+                    message = stringResource(R.string.metrics_sleep_pending_message),
+                    details = stringResource(R.string.metrics_sleep_pending_details),
                     dashMood = DashMood.SLEEPY
                 )
             } else if (sleepMin <= 0) {
@@ -188,8 +191,8 @@ fun SleepScreen(
                 HangryCard {
                     com.kevan.hangry.ui.components.DashEmptyState(
                         scene = com.kevan.hangry.ui.components.DashEmptyScene.SLEEP,
-                        title = "No sleep recorded",
-                        body = "Nothing was recorded for this day. Tap + to log it.",
+                        title = stringResource(R.string.metrics_sleep_none_recorded_title),
+                        body = stringResource(R.string.metrics_sleep_none_recorded_body),
                         imageSize = 120.dp
                     )
                 }
@@ -203,10 +206,10 @@ fun SleepScreen(
                         else -> DashMood.SLEEP_SHORT
                     },
                     text = when {
-                        performance == null -> "Here's how last night went."
-                        performance >= 95 -> "You got all the sleep you needed. Well rested!"
-                        performance >= 75 -> "You got $performance% of the sleep you needed. Not bad!"
-                        else -> "Only $performance% of the sleep you needed. An early night would help."
+                        performance == null -> stringResource(R.string.metrics_sleep_dash_default)
+                        performance >= 95 -> stringResource(R.string.metrics_sleep_dash_great)
+                        performance >= 75 -> stringResource(R.string.metrics_sleep_dash_ok, performance)
+                        else -> stringResource(R.string.metrics_sleep_dash_short, performance)
                     }
                 )
                 // Sleep Score hero: the night out of 100, with the time and how it was scored.
@@ -227,21 +230,21 @@ fun SleepScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(score?.toString() ?: "—", style = MaterialTheme.typography.headlineLarge, color = scoreColor)
-                                Text("of 100", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                                Text(stringResource(R.string.metrics_sleep_of_100), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                             }
                         }
                         Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Sleep score", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
+                            Text(stringResource(R.string.metrics_sleep_score_label), style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
                             Text(
-                                text = "${sleepMin / 60}h ${sleepMin % 60}m asleep",
+                                text = stringResource(R.string.metrics_sleep_asleep_duration, sleepMin / 60, sleepMin % 60),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = tokens.chartColors.sleep
                             )
                             val need = analysis?.sleepNeedMinutes
                             analysis?.sleepPerformancePercentage?.let { pct ->
                                 Text(
-                                    text = "$pct% of the ${need?.let { "${it / 60}h ${it % 60}m" } ?: formatGoal(uiState.sleepGoalMinutes)} you needed",
+                                    text = stringResource(R.string.metrics_sleep_pct_of_need, pct, need?.let { stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60) } ?: formatGoal(uiState.sleepGoalMinutes)),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textSecondary
                                 )
@@ -251,10 +254,10 @@ fun SleepScreen(
 
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
                     // How the score was built - only the parts that were measured.
-                    SleepScorePart("Hours vs need", analysis?.sleepPerformancePercentage?.coerceAtMost(100), "50%")
-                    SleepScorePart("Time asleep in bed", analysis?.efficiencyScore, "15%")
-                    SleepScorePart("Deep & REM sleep", analysis?.restorativeScore, "20%")
-                    SleepScorePart("Regular bed & wake times", analysis?.consistencyPercentage, "15%")
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_hours_vs_need), analysis?.sleepPerformancePercentage?.coerceAtMost(100), "50%")
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_time_asleep_in_bed), analysis?.efficiencyScore, "15%")
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_deep_rem), analysis?.restorativeScore, "20%")
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_regular_times), analysis?.consistencyPercentage, "15%")
 
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                     Text(
@@ -270,24 +273,24 @@ fun SleepScreen(
                     horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
                 ) {
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = "Time in Bed", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = stringResource(R.string.metrics_sleep_time_in_bed), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         val inBed = analysis?.timeInBedMinutes
                         Text(
-                            text = inBed?.let { "${it / 60}h ${it % 60}m" } ?: "—",
+                            text = inBed?.let { stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60) } ?: "—",
                             style = MaterialTheme.typography.headlineSmall,
                             color = tokens.textPrimary
                         )
                         analysis?.efficiencyPercentage?.takeIf { inBed != null && inBed > sleepMin }?.let {
-                            Text("$it% asleep", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                            Text(stringResource(R.string.metrics_sleep_pct_asleep, it), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                         }
                     }
                     HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = "Sleep Debt", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                        Text(text = stringResource(R.string.metrics_sleep_debt), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(8.dp))
                         val debt = analysis?.sleepDebtMinutes ?: 0
                         Text(
-                            text = if (debt > 0) "${debt}m" else "0m",
+                            text = stringResource(R.string.metrics_sleep_minutes_short, if (debt > 0) debt else 0),
                             style = MaterialTheme.typography.headlineSmall,
                             color = if (debt > 45) tokens.scoreColors.rebuild else tokens.scoreColors.primed
                         )
@@ -303,11 +306,11 @@ fun SleepScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Sleep Guidance",
+                                text = stringResource(R.string.metrics_sleep_guidance),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
-                            HangryInfoIconButton(title = "Sleep Guidance", sections = SLEEP_COACH_SECTIONS, compact = true)
+                            HangryInfoIconButton(title = stringResource(R.string.metrics_sleep_guidance), sections = sleepCoachSections(), compact = true)
                         }
                         // Quality needs stages, time in bed or a few nights of history.
                         analysis?.sleepQualityScore?.let { quality ->
@@ -321,7 +324,7 @@ fun SleepScreen(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = "Quality $quality/100",
+                                    text = stringResource(R.string.metrics_sleep_quality_value, quality),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = qualityColor,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -334,7 +337,7 @@ fun SleepScreen(
                     val need = analysis?.tonightsNeedMinutes ?: uiState.sleepGoalMinutes
                     val performance = analysis?.sleepPerformancePercentage
                     Text(
-                        text = "Tonight's need: ${need / 60}h ${need % 60}m" + (performance?.let { " · $it% met last night" } ?: ""),
+                        text = stringResource(R.string.metrics_sleep_tonights_need_value, need / 60, need % 60) + (performance?.let { stringResource(R.string.metrics_sleep_need_met_suffix, it) } ?: ""),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary
                     )
@@ -345,7 +348,7 @@ fun SleepScreen(
                         HorizontalDivider(color = tokens.cardBorder)
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = "Suggested bedtime: ${bedtime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"))}",
+                            text = stringResource(R.string.metrics_sleep_suggested_bedtime_value, bedtime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"))),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.chartColors.sleep
                         )
@@ -357,10 +360,10 @@ fun SleepScreen(
                 val remRecorded = analysis?.remSleepMinutes
                 if (deepRecorded == null || remRecorded == null) {
                     HangryCard {
-                        Text("Sleep stages", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                        Text(stringResource(R.string.metrics_sleep_stages_lower), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Your device didn't record sleep stages for this night. A watch or ring that tracks sleep adds deep, REM and light sleep here.",
+                            stringResource(R.string.metrics_sleep_no_stages_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -380,18 +383,18 @@ fun SleepScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Sleep Architecture",
+                                text = stringResource(R.string.metrics_sleep_architecture),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
-                            HangryInfoIconButton(title = "Sleep Stages", sections = SLEEP_STAGE_SECTIONS, compact = true)
+                            HangryInfoIconButton(title = stringResource(R.string.metrics_sleep_stages_title), sections = sleepStageSections(), compact = true)
                         }
                         Surface(
                             color = tokens.scoreColors.primed.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "$restorativePct% Restorative",
+                                text = stringResource(R.string.metrics_sleep_restorative_pct, restorativePct),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = tokens.scoreColors.primed,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -417,7 +420,7 @@ fun SleepScreen(
             // Stages night by night for the week ending on the selected day.
             if (weekNights.any { it.asleepMinutes > 0 }) {
                 HangryCard {
-                    Text("Sleep over the last 7 nights", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Text(stringResource(R.string.metrics_sleep_last_7_nights), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                     Spacer(modifier = Modifier.height(4.dp))
                     WeeklySleepStagesChart(weekNights, uiState.selectedDate)
                 }
@@ -425,16 +428,16 @@ fun SleepScreen(
 
             // Averages and Consistency Card
             HangryCard {
-                Text(text = "Baseline Trends", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.metrics_sleep_baseline_trends), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "7-Day Average", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                    Text(text = stringResource(R.string.metrics_sleep_7_day_avg), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                     val avg7 = analysis?.sevenDayAverageMinutes
-                    Text(text = avg7?.let { "${it / 60}h ${it % 60}m" } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Text(text = avg7?.let { stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60) } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -443,9 +446,9 @@ fun SleepScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "30-Day Average", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                    Text(text = stringResource(R.string.metrics_sleep_30_day_avg), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                     val avg30 = analysis?.thirtyDayAverageMinutes
-                    Text(text = avg30?.let { "${it / 60}h ${it % 60}m" } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Text(text = avg30?.let { stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60) } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
@@ -454,10 +457,10 @@ fun SleepScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Consistency Index", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                    Text(text = stringResource(R.string.metrics_sleep_consistency_index), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                     val consistency = analysis?.consistencyPercentage
                     Text(
-                        text = consistency?.let { "$it%" } ?: "Needs 3 nights",
+                        text = consistency?.let { stringResource(R.string.metrics_components_percent_value, it) } ?: stringResource(R.string.metrics_sleep_needs_3_nights),
                         style = MaterialTheme.typography.titleMedium,
                         color = if (consistency != null) tokens.scoreColors.primed else tokens.textMuted
                     )
@@ -476,10 +479,10 @@ fun SleepScreen(
             onDismissRequest = { if (!isSaving) showManualDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Log Sleep Manually")
+                    Text(stringResource(R.string.metrics_sleep_log_manually))
                     HangryInfoTip(
-                        title = "Manual sleep",
-                        body = "Manually entered sleep is clearly marked as manual data and factored into daily summaries."
+                        title = stringResource(R.string.metrics_sleep_manual_title),
+                        body = stringResource(R.string.metrics_sleep_manual_body)
                     )
                 }
             },
@@ -488,13 +491,13 @@ fun SleepScreen(
                     OutlinedTextField(
                         value = hoursInput,
                         onValueChange = { hoursInput = it },
-                        label = { Text("Hours") },
+                        label = { Text(stringResource(R.string.metrics_sleep_hours)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = minsInput,
                         onValueChange = { minsInput = it },
-                        label = { Text("Minutes") },
+                        label = { Text(stringResource(R.string.metrics_sleep_minutes)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -526,7 +529,7 @@ fun SleepScreen(
                         }
                     }
                 ) {
-                    Text("Save")
+                    Text(stringResource(R.string.metrics_components_save))
                 }
             },
             dismissButton = {
@@ -534,14 +537,15 @@ fun SleepScreen(
                     enabled = !isSaving,
                     onClick = { showManualDialog = false }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
     }
 }
 
-private fun formatGoal(minutes: Int): String = if (minutes % 60 == 0) "${minutes / 60}h" else "${minutes / 60}h ${minutes % 60}m"
+@Composable
+private fun formatGoal(minutes: Int): String = if (minutes % 60 == 0) stringResource(R.string.metrics_sleep_hours_short, minutes / 60) else stringResource(R.string.metrics_components_duration_h_m, minutes / 60, minutes % 60)
 
 /** One part of the Sleep Score as a labelled bar; skipped when it wasn't measured. */
 @Composable
@@ -551,7 +555,7 @@ private fun SleepScorePart(label: String, value: Int?, weight: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
-            Text("$value · $weight", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            Text(stringResource(R.string.metrics_sleep_score_part_value, value, weight), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
         }
         LinearProgressIndicator(
             progress = { value / 100f },

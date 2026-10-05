@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.breathing
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -52,13 +54,13 @@ fun BreathingExercisesCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Breathing Exercises",
+                    text = stringResource(R.string.coach_breathing_exercises),
                     style = MaterialTheme.typography.titleMedium,
                     color = tokens.textPrimary
                 )
             }
             Text(
-                text = if (stats.minutesToday > 0) "${stats.minutesToday} min today" else "Guided audio",
+                text = if (stats.minutesToday > 0) stringResource(R.string.coach_breathing_min_today_count, stats.minutesToday) else stringResource(R.string.coach_breathing_guided_audio),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
@@ -84,8 +86,11 @@ fun BreathingExercisesCard(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "${session.pattern.shortLabel} in progress · " +
-                            (if (session.isPaused) "Paused" else session.position.phase.type.label),
+                        text = stringResource(
+                            R.string.coach_breathing_in_progress,
+                            session.pattern.shortLabel,
+                            if (session.isPaused) stringResource(R.string.coach_breathing_paused) else session.position.phase.type.label
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary,
                         modifier = Modifier.weight(1f)

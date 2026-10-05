@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
@@ -55,7 +56,7 @@ fun HomeScreenWidgetsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Home Screen Widgets",
+                        text = stringResource(R.string.dashboard_widget_screen_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = tokens.textPrimary
                     )
@@ -64,7 +65,7 @@ fun HomeScreenWidgetsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.dashboard_widget_back),
                             tint = tokens.textPrimary
                         )
                     }
@@ -91,15 +92,15 @@ fun HomeScreenWidgetsScreen(
                 Column(modifier = Modifier.padding(HangryTokens.Spacing.m)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Glanceable Health on Your Phone",
+                            text = stringResource(R.string.dashboard_widget_intro_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = tokens.textPrimary,
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         HangryInfoTip(
-                            title = "Home Screen Widgets",
-                            body = "Add widgets to your Android home screen for activity, calories, nutrition, sleep, recovery, heart, health markers, goals, weight, posture, cycle, breathing, supplements, fasting and one-tap meal logging."
+                            title = stringResource(R.string.dashboard_widget_screen_title),
+                            body = stringResource(R.string.dashboard_widget_intro_body)
                         )
                     }
                 }
@@ -107,9 +108,9 @@ fun HomeScreenWidgetsScreen(
 
             // 1. Daily Activity Widget
             WidgetPreviewCard(
-                title = "Daily Activity",
+                title = stringResource(R.string.dashboard_widget_activity_title),
                 sizeLabel = "3 × 2",
-                description = "Today's steps and active calories.",
+                description = stringResource(R.string.dashboard_widget_activity_desc),
                 onPinWidget = { pinWidget(context, ActivityWidgetProvider::class.java) }
             ) {
                 ActivityWidgetMockup()
@@ -117,27 +118,27 @@ fun HomeScreenWidgetsScreen(
 
             // 2. Quick Log Meal Widget
             WidgetPreviewCard(
-                title = "Quick Log Meal",
+                title = stringResource(R.string.dashboard_widget_quick_log_title),
                 sizeLabel = "2 × 1",
-                description = "One-tap camera shortcut to snap and log meals in seconds.",
+                description = stringResource(R.string.dashboard_widget_quick_log_desc),
                 onPinWidget = { pinWidget(context, QuickLogWidgetProvider::class.java) }
             ) {
                 QuickLogWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Calories",
+                title = stringResource(R.string.dashboard_widget_calories_title),
                 sizeLabel = "2 × 2",
-                description = "Calories eaten today as a ring against your daily target, with how much is left.",
+                description = stringResource(R.string.dashboard_widget_calories_desc),
                 onPinWidget = { pinWidget(context, CaloriesWidgetProvider::class.java) }
             ) {
                 CaloriesWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Nutrition",
+                title = stringResource(R.string.dashboard_widget_nutrition_title),
                 sizeLabel = "4 × 2",
-                description = "Calories, protein, carbs and fat today. The buttons log your most recent saved meals in one tap, without opening the app.",
+                description = stringResource(R.string.dashboard_widget_nutrition_desc),
                 onPinWidget = { pinWidget(context, NutritionWidgetProvider::class.java) }
             ) {
                 NutritionWidgetMockup()
@@ -145,9 +146,9 @@ fun HomeScreenWidgetsScreen(
 
             // 3. Sleep Insights Widget
             WidgetPreviewCard(
-                title = "Sleep Insights",
+                title = stringResource(R.string.dashboard_widget_sleep_title),
                 sizeLabel = "2 × 2",
-                description = "Last night's sleep score out of 100, how long you slept, and when.",
+                description = stringResource(R.string.dashboard_widget_sleep_desc),
                 onPinWidget = { pinWidget(context, SleepWidgetProvider::class.java) }
             ) {
                 SleepWidgetMockup()
@@ -155,9 +156,9 @@ fun HomeScreenWidgetsScreen(
 
             // 4. Recovery Score Widget
             WidgetPreviewCard(
-                title = "Recovery Score",
+                title = stringResource(R.string.dashboard_widget_recovery_title),
                 sizeLabel = "2 × 2",
-                description = "Autonomic recovery percentage, readiness band, and advice.",
+                description = stringResource(R.string.dashboard_widget_recovery_desc),
                 onPinWidget = { pinWidget(context, RecoveryWidgetProvider::class.java) }
             ) {
                 RecoveryWidgetMockup()
@@ -165,9 +166,9 @@ fun HomeScreenWidgetsScreen(
 
             // Supplements Widget
             WidgetPreviewCard(
-                title = "Supplements",
+                title = stringResource(R.string.dashboard_widget_supplements_title),
                 sizeLabel = "2 × 2",
-                description = "Your next supplement dose and how many you've taken today.",
+                description = stringResource(R.string.dashboard_widget_supplements_desc),
                 onPinWidget = { pinWidget(context, SupplementsWidgetProvider::class.java) }
             ) {
                 SupplementsWidgetMockup()
@@ -175,81 +176,81 @@ fun HomeScreenWidgetsScreen(
 
             // 5. Daily Overview Widget
             WidgetPreviewCard(
-                title = "Daily Overview",
+                title = stringResource(R.string.dashboard_widget_overview_title),
                 sizeLabel = "4 × 2",
-                description = "All-in-one glance: Recovery, Activity, Sleep, and Quick Log.",
+                description = stringResource(R.string.dashboard_widget_overview_desc),
                 onPinWidget = { pinWidget(context, OverviewWidgetProvider::class.java) }
             ) {
                 OverviewWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Fasting",
+                title = stringResource(R.string.dashboard_widget_fasting_title),
                 sizeLabel = "2 × 2",
-                description = "A live fasting timer with your stage and streak, and a button to start or end a fast. Turn fasting on in More › Fasting first.",
+                description = stringResource(R.string.dashboard_widget_fasting_desc),
                 onPinWidget = { pinWidget(context, FastingWidgetProvider::class.java) }
             ) {
                 FastingWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Breathe",
+                title = stringResource(R.string.dashboard_widget_breathe_title),
                 sizeLabel = "2 × 2",
-                description = "Minutes breathed today and this week. Tap to start your usual pattern with Dash, or pick another.",
+                description = stringResource(R.string.dashboard_widget_breathe_desc),
                 onPinWidget = { pinWidget(context, BreatheWidgetProvider::class.java) }
             ) {
                 BreatheWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Heart",
+                title = stringResource(R.string.dashboard_widget_heart_title),
                 sizeLabel = "2 × 2",
-                description = "Resting heart rate and HRV, each compared with your 4-week normal.",
+                description = stringResource(R.string.dashboard_widget_heart_desc),
                 onPinWidget = { pinWidget(context, HeartWidgetProvider::class.java) }
             ) {
                 HeartWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Health Markers",
+                title = stringResource(R.string.dashboard_widget_markers_title),
                 sizeLabel = "2 × 2",
-                description = "Latest blood pressure and blood sugar with their status. The + opens Health Records to log a reading.",
+                description = stringResource(R.string.dashboard_widget_markers_desc),
                 onPinWidget = { pinWidget(context, HealthMarkersWidgetProvider::class.java) }
             ) {
                 MarkersWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Goals",
+                title = stringResource(R.string.dashboard_widget_goals_title),
                 sizeLabel = "4 × 2",
-                description = "Progress toward your weight goal and any health marker goals, up to three at a time.",
+                description = stringResource(R.string.dashboard_widget_goals_desc),
                 onPinWidget = { pinWidget(context, GoalsWidgetProvider::class.java) }
             ) {
                 GoalsWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Weight Trend",
+                title = stringResource(R.string.dashboard_widget_weight_title),
                 sizeLabel = "2 × 2",
-                description = "Latest weight, how much it changed in 30 days, and a trend line.",
+                description = stringResource(R.string.dashboard_widget_weight_desc),
                 onPinWidget = { pinWidget(context, WeightWidgetProvider::class.java) }
             ) {
                 WeightWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Posture Check",
+                title = stringResource(R.string.dashboard_widget_posture_title),
                 sizeLabel = "2 × 2",
-                description = "Your last posture score and when you took it, with a button that opens a new check.",
+                description = stringResource(R.string.dashboard_widget_posture_desc),
                 onPinWidget = { pinWidget(context, PostureWidgetProvider::class.java) }
             ) {
                 PostureWidgetMockup()
             }
 
             WidgetPreviewCard(
-                title = "Cycle",
+                title = stringResource(R.string.dashboard_widget_cycle_title),
                 sizeLabel = "2 × 2",
-                description = "Cycle day and when your next period is predicted. Available when your sex is set to female.",
+                description = stringResource(R.string.dashboard_widget_cycle_desc),
                 onPinWidget = { pinWidget(context, CycleWidgetProvider::class.java) }
             ) {
                 CycleWidgetMockup()
@@ -262,17 +263,14 @@ fun HomeScreenWidgetsScreen(
                 Column(modifier = Modifier.padding(HangryTokens.Spacing.m)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Add from your home screen",
+                            text = stringResource(R.string.dashboard_widget_add_from_home),
                             style = MaterialTheme.typography.titleSmall,
                             color = tokens.textPrimary,
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         HangryInfoTip(
-                            title = "How to add from your home screen",
-                            body = "1. Press and hold any empty area on your phone's home screen.\n" +
-                                "2. Tap 'Widgets' in the pop-up menu.\n" +
-                                "3. Scroll down and locate 'Hangry'.\n" +
-                                "4. Touch and drag your preferred widget onto your screen."
+                            title = stringResource(R.string.dashboard_widget_how_to_add_title),
+                            body = stringResource(R.string.dashboard_widget_how_to_add_body)
                         )
                     }
                 }
@@ -289,7 +287,7 @@ private fun pinWidget(context: Context, providerClass: Class<*>) {
     } else {
         Toast.makeText(
             context,
-            "Touch and hold your home screen, then choose Widgets -> Hangry to add.",
+            context.getString(R.string.dashboard_widget_pin_fallback),
             Toast.LENGTH_LONG
         ).show()
     }
@@ -356,7 +354,7 @@ private fun WidgetPreviewCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Pin to Home", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_widget_pin_to_home), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -388,9 +386,9 @@ private fun ActivityWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF7E1D), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("DAILY ACTIVITY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_daily_activity), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
-            Text("Today", style = MaterialTheme.typography.labelSmall, color = Color(0xFF948D98))
+            Text(stringResource(R.string.dashboard_widget_mock_today), style = MaterialTheme.typography.labelSmall, color = Color(0xFF948D98))
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -399,8 +397,8 @@ private fun ActivityWidgetMockup() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            MetricColumn(icon = Icons.Default.DirectionsWalk, tint = Color(0xFF6AA8FF), value = "6,420", label = "Steps")
-            MetricColumn(icon = Icons.Default.LocalFireDepartment, tint = Color(0xFFFF7E1D), value = "450", label = "Active kcal")
+            MetricColumn(icon = Icons.Default.DirectionsWalk, tint = Color(0xFF6AA8FF), value = "6,420", label = stringResource(R.string.dashboard_widget_mock_steps))
+            MetricColumn(icon = Icons.Default.LocalFireDepartment, tint = Color(0xFFFF7E1D), value = "450", label = stringResource(R.string.dashboard_widget_mock_active_kcal))
         }
     }
 }
@@ -418,7 +416,7 @@ private fun QuickLogWidgetMockup() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFF9F4F2), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Log Meal", color = Color(0xFFF9F4F2), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.dashboard_widget_mock_log_meal), color = Color(0xFFF9F4F2), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
         }
     }
 }
@@ -434,19 +432,19 @@ private fun SleepWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Bedtime, null, tint = Color(0xFF00A4FF), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("SLEEP", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_sleep), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(
                 color = Color(0xFF2F2C33),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("Sleep score", color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Text(stringResource(R.string.dashboard_widget_mock_sleep_score), color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
         Text("82/100", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("7h 30m asleep · 11:40 PM – 7:10 AM", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.dashboard_widget_mock_sleep_subtitle), color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -461,15 +459,15 @@ private fun SupplementsWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Medication, null, tint = Color(0xFFF7931E), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("SUPPLEMENTS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_supplements), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
                 Text("2/4", color = Color(0xFFF7931E), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
-        Text("Magnesium Glycinate", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("Next at 9:00 PM · 2 left today", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.dashboard_widget_mock_supplement_name), color = Color(0xFFF9F4F2), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.dashboard_widget_mock_supplement_next), color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -484,7 +482,7 @@ private fun FastingWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Timer, null, tint = Color(0xFFB39DDB), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("FASTING · FAT BURNING", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_fasting_label), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
                 Text("🔥 5", color = Color(0xFFB39DDB), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
@@ -492,7 +490,7 @@ private fun FastingWidgetMockup() {
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text("13:42:08", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text("2h 17m left · 12:30 PM", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.dashboard_widget_mock_fasting_left), color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
         Spacer(modifier = Modifier.height(6.dp))
         Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF2F2C33))) {
             Box(Modifier.fillMaxWidth(0.86f).fillMaxHeight().background(Color(0xFFB39DDB)))
@@ -529,7 +527,7 @@ private fun CaloriesWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF7E1D), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("EATEN TODAY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_eaten_today), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
                 Text("62%", color = Color(0xFFFF7E1D), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
@@ -541,7 +539,7 @@ private fun CaloriesWidgetMockup() {
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            "760 left of 2,000",
+            stringResource(R.string.dashboard_widget_mock_calories_left),
             color = Color(0xFFB5AEB8),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -560,7 +558,7 @@ private fun NutritionWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Restaurant, null, tint = Color(0xFFFF7E1D), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("NUTRITION TODAY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_nutrition_today), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(10.dp)) {
                 Text("62%", color = Color(0xFFFF7E1D), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
@@ -571,11 +569,11 @@ private fun NutritionWidgetMockup() {
             MockRing(0.62f, 72.dp, "1,240", MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("760 left of 2,000", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.dashboard_widget_mock_calories_left), color = Color(0xFFF9F4F2), style = MaterialTheme.typography.bodySmall)
                 listOf(
-                    Triple("Protein", "82 / 125 g", 0.66f) to Color(0xFF6AA8FF),
-                    Triple("Carbs", "140 / 250 g", 0.56f) to Color(0xFF01A652),
-                    Triple("Fat", "40 / 56 g", 0.71f) to Color(0xFFFFCE00)
+                    Triple(stringResource(R.string.dashboard_widget_mock_protein), "82 / 125 g", 0.66f) to Color(0xFF6AA8FF),
+                    Triple(stringResource(R.string.dashboard_widget_mock_carbs), "140 / 250 g", 0.56f) to Color(0xFF01A652),
+                    Triple(stringResource(R.string.dashboard_widget_mock_fat), "40 / 56 g", 0.71f) to Color(0xFFFFCE00)
                 ).forEach { (row, color) ->
                     Column {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -594,7 +592,7 @@ private fun NutritionWidgetMockup() {
         }
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf("Oats · 166", "Banana · 105", "Latte · 150").forEach { label ->
+            listOf(stringResource(R.string.dashboard_widget_mock_quick_oats), stringResource(R.string.dashboard_widget_mock_quick_banana), stringResource(R.string.dashboard_widget_mock_quick_latte)).forEach { label ->
                 Surface(color = Color(0xFF2F2C33), shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f)) {
                     Text(
                         label,
@@ -625,19 +623,19 @@ private fun RecoveryWidgetMockup() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Favorite, null, tint = Color(0xFF01A652), modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("RECOVERY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_recovery), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
             }
             Surface(
                 color = Color(0xFF2F2C33),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("PRIMED", color = Color(0xFF01A652), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Text(stringResource(R.string.dashboard_widget_mock_primed), color = Color(0xFF01A652), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
         Text("82%", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Physiological markers elevated above baseline", color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.dashboard_widget_mock_recovery_advice), color = Color(0xFFB5AEB8), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -660,7 +658,7 @@ private fun OverviewWidgetMockup() {
                 ) {
                     Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFFF9F4F2), modifier = Modifier.size(12.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Log Meal", color = Color(0xFFF9F4F2), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_widget_mock_log_meal), color = Color(0xFFF9F4F2), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -672,9 +670,9 @@ private fun OverviewWidgetMockup() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("RECOVERY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
+                Text(stringResource(R.string.dashboard_widget_mock_recovery), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFFB5AEB8))
                 Text("82%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFFF9F4F2))
-                Text("PRIMED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF01A652))
+                Text(stringResource(R.string.dashboard_widget_mock_primed), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF01A652))
             }
 
             Box(
@@ -690,12 +688,12 @@ private fun OverviewWidgetMockup() {
                     .padding(start = 10.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("6,420 steps", color = Color(0xFF6AA8FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_widget_mock_overview_steps), color = Color(0xFF6AA8FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     Text("450 kcal", color = Color(0xFFFF7E1D), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text("Sleep: 7h 30m", color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_widget_mock_overview_sleep), color = Color(0xFF00A4FF), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -732,9 +730,9 @@ private fun HideValuesCard() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Hide values on widgets", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(stringResource(R.string.dashboard_widget_hide_values_title), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
-                    "Calories, nutrition, heart, markers, goals, weight, posture and cycle show no numbers until you open the app.",
+                    stringResource(R.string.dashboard_widget_hide_values_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -791,7 +789,7 @@ private fun MockButton(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun BreatheWidgetMockup() {
     Column {
-        MockHeader(Icons.Default.Air, Color(0xFF6FC3DF), "BREATHE", "45 min / 7d")
+        MockHeader(Icons.Default.Air, Color(0xFF6FC3DF), stringResource(R.string.dashboard_widget_mock_breathe), "45 min / 7d")
         Spacer(modifier = Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
@@ -802,12 +800,12 @@ private fun BreatheWidgetMockup() {
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text("12 min", color = MockWhite, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("today · 2 sessions", color = MockMuted, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.dashboard_widget_mock_breathe_today), color = MockMuted, style = MaterialTheme.typography.bodySmall)
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            MockButton("4s Box", Modifier.weight(1f))
+            MockButton(stringResource(R.string.dashboard_widget_mock_breathe_box), Modifier.weight(1f))
             MockButton("5 BPM", Modifier.weight(1f))
         }
     }
@@ -828,25 +826,25 @@ private fun MockValueRow(label: String, value: String, delta: String? = null, de
 @Composable
 private fun HeartWidgetMockup() {
     Column {
-        MockHeader(Icons.Default.MonitorHeart, Color(0xFFFF6B6B), "HEART")
+        MockHeader(Icons.Default.MonitorHeart, Color(0xFFFF6B6B), stringResource(R.string.dashboard_widget_mock_heart))
         Spacer(modifier = Modifier.height(8.dp))
-        MockValueRow("Resting HR", "58 bpm", "▼ 3", Color(0xFF01A652))
+        MockValueRow(stringResource(R.string.resting_hr_label), "58 bpm", "▼ 3", Color(0xFF01A652))
         Spacer(modifier = Modifier.height(4.dp))
         MockValueRow("HRV", "48 ms", "▲ 5", Color(0xFF01A652))
         Spacer(modifier = Modifier.height(4.dp))
-        Text("vs your 4-week normal", color = MockMuted, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.dashboard_widget_mock_heart_vs_normal), color = MockMuted, style = MaterialTheme.typography.labelSmall)
     }
 }
 
 @Composable
 private fun MarkersWidgetMockup() {
     Column {
-        MockHeader(Icons.Default.WaterDrop, Color(0xFFE57373), "HEALTH MARKERS", "+", MockWhite)
+        MockHeader(Icons.Default.WaterDrop, Color(0xFFE57373), stringResource(R.string.dashboard_widget_mock_markers), "+", MockWhite)
         Spacer(modifier = Modifier.height(8.dp))
-        MockHeader(Icons.Default.Favorite, Color.Transparent, "Blood pressure", "Normal", Color(0xFF01A652))
+        MockHeader(Icons.Default.Favorite, Color.Transparent, stringResource(R.string.dashboard_widget_mock_blood_pressure), stringResource(R.string.dashboard_widget_mock_normal), Color(0xFF01A652))
         Text("118/76 mmHg", color = MockWhite, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(6.dp))
-        MockHeader(Icons.Default.Favorite, Color.Transparent, "Blood sugar", "Normal", Color(0xFF01A652))
+        MockHeader(Icons.Default.Favorite, Color.Transparent, stringResource(R.string.dashboard_widget_mock_blood_sugar), stringResource(R.string.dashboard_widget_mock_normal), Color(0xFF01A652))
         Text("92 mg/dL", color = MockWhite, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
@@ -875,20 +873,20 @@ private fun MockGoal(label: String, detail: String, progress: Float) {
 @Composable
 private fun GoalsWidgetMockup() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MockHeader(Icons.Default.Flag, Color(0xFFF7931E), "GOALS", "1/3 reached")
-        MockGoal("Weight", "74.2 → 72.0 kg", 0.6f)
-        MockGoal("Blood pressure", "Reached", 1f)
-        MockGoal("LDL cholesterol", "128 → 100 mg/dL", 0.35f)
+        MockHeader(Icons.Default.Flag, Color(0xFFF7931E), stringResource(R.string.dashboard_widget_mock_goals), stringResource(R.string.dashboard_widget_mock_goals_reached))
+        MockGoal(stringResource(R.string.dashboard_widget_mock_weight), "74.2 → 72.0 kg", 0.6f)
+        MockGoal(stringResource(R.string.dashboard_widget_mock_blood_pressure), stringResource(R.string.dashboard_widget_mock_reached), 1f)
+        MockGoal(stringResource(R.string.dashboard_widget_mock_ldl), "128 → 100 mg/dL", 0.35f)
     }
 }
 
 @Composable
 private fun WeightWidgetMockup() {
     Column {
-        MockHeader(Icons.Default.MonitorWeight, Color(0xFF6AA8FF), "WEIGHT", "-1.2 kg")
+        MockHeader(Icons.Default.MonitorWeight, Color(0xFF6AA8FF), stringResource(R.string.dashboard_widget_mock_weight_caps), "-1.2 kg")
         Spacer(modifier = Modifier.height(4.dp))
         Text("74.2 kg", color = MockWhite, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Last 30 days", color = MockMuted, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.dashboard_widget_mock_last_30_days), color = MockMuted, style = MaterialTheme.typography.labelSmall)
         Spacer(modifier = Modifier.height(6.dp))
         val points = listOf(75.4f, 75.6f, 75.1f, 75.3f, 74.9f, 74.8f, 75.0f, 74.6f, 74.4f, 74.5f, 74.2f)
         Canvas(
@@ -912,25 +910,25 @@ private fun WeightWidgetMockup() {
 @Composable
 private fun PostureWidgetMockup() {
     Column {
-        MockHeader(Icons.Default.Accessibility, Color(0xFF4ECDC4), "POSTURE", "GOOD")
+        MockHeader(Icons.Default.Accessibility, Color(0xFF4ECDC4), stringResource(R.string.dashboard_widget_mock_posture), stringResource(R.string.dashboard_widget_mock_good))
         Spacer(modifier = Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text("78", color = MockWhite, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("/100", color = MockMuted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 2.dp, bottom = 3.dp))
         }
-        Text("Checked 16 days ago · time for another", color = MockMuted, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.dashboard_widget_mock_posture_checked), color = MockMuted, style = MaterialTheme.typography.bodySmall)
         Spacer(modifier = Modifier.height(6.dp))
-        MockButton("New check", Modifier.fillMaxWidth())
+        MockButton(stringResource(R.string.dashboard_widget_mock_new_check), Modifier.fillMaxWidth())
     }
 }
 
 @Composable
 private fun CycleWidgetMockup() {
     Column {
-        MockHeader(Icons.Default.Autorenew, Color(0xFFF48FB1), "CYCLE", "SOON")
+        MockHeader(Icons.Default.Autorenew, Color(0xFFF48FB1), stringResource(R.string.dashboard_widget_mock_cycle), stringResource(R.string.dashboard_widget_mock_soon))
         Spacer(modifier = Modifier.height(4.dp))
-        Text("Day 26", color = MockWhite, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Next period in ~3 days", color = MockMuted, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.dashboard_widget_mock_cycle_day), color = MockWhite, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.dashboard_widget_mock_next_period), color = MockMuted, style = MaterialTheme.typography.bodySmall)
     }
 }
 

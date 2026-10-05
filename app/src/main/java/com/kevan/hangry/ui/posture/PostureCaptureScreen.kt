@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.posture
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,10 +70,10 @@ fun PostureCaptureScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (savedScan != null) "Posture Check Saved" else "New Posture Check") },
+                title = { Text(if (savedScan != null) stringResource(R.string.body_posture_check_saved) else stringResource(R.string.body_posture_new_check)) },
                 navigationIcon = {
                     IconButton(onClick = if (savedScan != null) onDone else onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -101,14 +103,14 @@ fun PostureCaptureScreen(
             HangryCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Add 1–$MAX_POSTURE_PHOTOS photos, one per pose below",
+                        text = stringResource(R.string.body_posture_add_photos_hint, MAX_POSTURE_PHOTOS),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     HangryInfoTip(
-                        title = "Photo tips",
-                        body = "Take up to one photo per pose: front, side, back, arms overhead, and an optional biceps flex. Stand naturally, full body in frame. Athletic or casual clothing is fine. We'll analyze your alignment and save results automatically."
+                        title = stringResource(R.string.body_posture_photo_tips_title),
+                        body = stringResource(R.string.body_posture_photo_tips_body)
                     )
                 }
             }
@@ -136,7 +138,7 @@ fun PostureCaptureScreen(
                                 .size(28.dp)
                                 .background(tokens.cardBackground, RoundedCornerShape(50))
                         ) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Remove", tint = tokens.textPrimary)
+                            Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(R.string.body_posture_remove), tint = tokens.textPrimary)
                         }
                     }
                 }
@@ -149,7 +151,7 @@ fun PostureCaptureScreen(
                             .clickable { photoLauncher.takePhoto() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Photo", tint = tokens.textMuted)
+                        Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.body_posture_add_photo), tint = tokens.textMuted)
                     }
                 }
             }
@@ -165,14 +167,14 @@ fun PostureCaptureScreen(
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Take Photo")
+                    Text(stringResource(R.string.body_posture_take_photo))
                 }
                 Button(
                     onClick = { photoLauncher.pickFromGallery() },
                     enabled = uiState.capturedPhotos.size < MAX_POSTURE_PHOTOS,
                     modifier = Modifier.weight(1.3f)
                 ) {
-                    Text("Select from Gallery")
+                    Text(stringResource(R.string.body_posture_select_gallery))
                 }
             }
 
@@ -180,7 +182,7 @@ fun PostureCaptureScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     DashExpression(mood = DashMood.THINKING, size = 56.dp, contentDescription = null)
                     Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
-                    Text("Analyzing and saving…", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                    Text(stringResource(R.string.body_posture_analyzing), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                 }
             } else {
                 Button(
@@ -190,8 +192,9 @@ fun PostureCaptureScreen(
                 ) {
                     val count = uiState.capturedPhotos.size
                     Text(
-                        if (count == 0) "Add at least 1 photo to analyze"
-                        else "Analyze Posture ($count photo${if (count > 1) "s" else ""})"
+                        if (count == 0) stringResource(R.string.body_posture_add_one_photo)
+                        else if (count > 1) stringResource(R.string.body_posture_analyze_photos, count)
+                        else stringResource(R.string.body_posture_analyze_photo_one, count)
                     )
                 }
             }
@@ -218,7 +221,7 @@ private fun PostureResultContent(
         HangryCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Score", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
+                    Text(text = stringResource(R.string.body_posture_score), style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
                     Text(text = "$score", style = MaterialTheme.typography.displayMedium, color = tokens.chartColors.hrv)
                 }
                 DashExpression(
@@ -235,16 +238,16 @@ private fun PostureResultContent(
 
         if (findings.isNotEmpty()) {
             HangryCard {
-                Text(text = "Findings", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.body_posture_findings), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                 findings.forEach {
-                    Text("• $it", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                    Text(stringResource(R.string.body_posture_bullet, it), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                 }
             }
         }
 
         if (exercises.isNotEmpty()) {
-            Text(text = "Recommended Exercises", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Text(text = stringResource(R.string.body_posture_recommended_exercises), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
             exercises.forEach { ex ->
                 HangryCard {
                     Text(ex.name, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
@@ -252,7 +255,7 @@ private fun PostureResultContent(
                     Text(ex.description, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "${ex.sets} sets x ${ex.reps} · ${ex.targetArea}",
+                        stringResource(R.string.body_posture_exercise_detail, ex.sets.toString(), ex.reps.toString(), ex.targetArea),
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted
                     )
@@ -261,7 +264,7 @@ private fun PostureResultContent(
         }
 
         Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-            Text("Done")
+            Text(stringResource(R.string.body_posture_done))
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
     }

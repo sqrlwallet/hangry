@@ -73,7 +73,7 @@ fun TodayOverviewCard(
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable(onClickLabel = "Open recovery details") { onOpenRecovery() },
+                    .clickable(onClickLabel = stringResource(R.string.dashboard_open_recovery_details)) { onOpenRecovery() },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 HangryRingGauge(
@@ -97,7 +97,7 @@ fun TodayOverviewCard(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 if (isPending) {
-                    Text("PENDING", style = MaterialTheme.typography.labelSmall, color = tokens.scoreColors.buildingBaseline)
+                    Text(stringResource(R.string.dashboard_pending_caps), style = MaterialTheme.typography.labelSmall, color = tokens.scoreColors.buildingBaseline)
                 } else {
                     HangryStatusBadge(state = state)
                 }
@@ -109,17 +109,18 @@ fun TodayOverviewCard(
                 val sleepMin = uiState.dailySummary?.sleepDurationMinutes?.takeIf { it > 0 }
                 val sleepScore = uiState.sleepAnalysis?.sleepScore ?: uiState.dailySummary?.sleepScore
                 OverviewStat(
-                    label = "Sleep score",
+                    label = stringResource(R.string.dashboard_sleep_score),
                     value = when {
-                        isPending -> "Pending"
-                        sleepScore != null && sleepMin != null -> "$sleepScore/100"
-                        sleepMin != null -> "${sleepMin / 60}h ${sleepMin % 60}m"
+                        isPending -> stringResource(R.string.dashboard_pending)
+                        sleepScore != null && sleepMin != null -> stringResource(R.string.dashboard_score_out_of_100, sleepScore)
+                        sleepMin != null -> stringResource(R.string.dashboard_hours_minutes, sleepMin / 60, sleepMin % 60)
                         else -> "—"
                     },
                     detail = when {
-                        isPending -> "Log last night's sleep"
-                        sleepMin != null -> "${sleepMin / 60}h ${sleepMin % 60}m asleep" +
-                            (uiState.sleepAnalysis?.sleepPerformancePercentage?.let { " · $it% of need" } ?: "")
+                        isPending -> stringResource(R.string.dashboard_log_last_nights_sleep)
+                        sleepMin != null -> uiState.sleepAnalysis?.sleepPerformancePercentage
+                            ?.let { stringResource(R.string.dashboard_sleep_asleep_with_need, sleepMin / 60, sleepMin % 60, it) }
+                            ?: stringResource(R.string.dashboard_sleep_asleep, sleepMin / 60, sleepMin % 60)
                         else -> null
                     },
                     color = tokens.chartColors.sleep,
@@ -132,18 +133,24 @@ fun TodayOverviewCard(
                     // Yesterday's finished number leads; today keeps building until midnight.
                     val yesterday = uiState.previousDayStrain?.coerceIn(0.0, HangryStrainCalculator.MAX_STRAIN)
                     OverviewStat(
-                        label = "Yesterday's strain",
+                        label = stringResource(R.string.dashboard_yesterdays_strain),
                         value = yesterday?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                        detail = String.format(Locale.US, "Today so far %.1f", strain ?: 0.0) +
-                            (target?.let { String.format(Locale.US, " · target %.1f–%.1f", it.targetLow, it.targetHigh) } ?: ""),
+                        detail = target?.let {
+                            stringResource(
+                                R.string.dashboard_strain_today_so_far_with_target,
+                                String.format(Locale.US, "%.1f", strain ?: 0.0),
+                                String.format(Locale.US, "%.1f", it.targetLow),
+                                String.format(Locale.US, "%.1f", it.targetHigh)
+                            )
+                        } ?: stringResource(R.string.dashboard_strain_today_so_far, String.format(Locale.US, "%.1f", strain ?: 0.0)),
                         color = tokens.chartColors.trainingLoad,
                         onClick = onOpenWorkouts
                     )
                 } else {
                     OverviewStat(
-                        label = "Strain",
+                        label = stringResource(R.string.dashboard_strain),
                         value = strain?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                        detail = if (strain != null) "Final for the day" else null,
+                        detail = if (strain != null) stringResource(R.string.dashboard_strain_final_for_day) else null,
                         color = tokens.chartColors.trainingLoad,
                         onClick = onOpenWorkouts
                     )
@@ -156,33 +163,33 @@ fun TodayOverviewCard(
         // Activity
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "Activity",
+                text = stringResource(R.string.dashboard_activity),
                 style = MaterialTheme.typography.titleSmall,
                 color = tokens.textPrimary,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = { showGoalDialog = true }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit activity goals", tint = tokens.textMuted, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.dashboard_edit_activity_goals), tint = tokens.textMuted, modifier = Modifier.size(16.dp))
             }
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             ActivityMini(
-                label = "Active kcal",
+                label = stringResource(R.string.dashboard_active_kcal),
                 value = uiState.todayActiveCalories.roundToInt(),
                 goal = uiState.dailyActiveCaloriesGoal,
                 color = tokens.chartColors.activeCalories,
                 modifier = Modifier.weight(1f)
             )
             ActivityMini(
-                label = "Steps",
+                label = stringResource(R.string.dashboard_steps),
                 value = (uiState.dailySummary?.steps ?: 0L).toInt(),
                 goal = uiState.dailyStepGoal.toInt(),
                 color = tokens.chartColors.steps,
                 modifier = Modifier.weight(1f)
             )
             ActivityMini(
-                label = "Active min",
+                label = stringResource(R.string.dashboard_active_min),
                 value = uiState.todayActiveMinutes,
                 goal = uiState.dailyActivityMinutesGoal,
                 color = tokens.chartColors.hrv,
@@ -212,7 +219,7 @@ private fun OverviewStat(label: String, value: String, detail: String?, color: C
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClickLabel = "Open $label") { onClick() }
+            .clickable(onClickLabel = stringResource(R.string.dashboard_open_label, label)) { onClick() }
             .padding(vertical = 2.dp)
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
@@ -240,7 +247,7 @@ private fun ActivityMini(label: String, value: Int, goal: Int, color: Color, mod
             color = tokens.textPrimary
         )
         Text(
-            text = "$label · ${String.format(Locale.US, "%,d", goal)}",
+            text = stringResource(R.string.dashboard_activity_label_goal, label, String.format(Locale.US, "%,d", goal)),
             style = MaterialTheme.typography.labelSmall,
             color = tokens.textMuted
         )
@@ -259,14 +266,14 @@ fun DailyBriefingCard(uiState: DashboardUiState, modifier: Modifier = Modifier) 
     val scoreEntity = uiState.recoveryScore
 
     val headline = when {
-        isPending -> "Waiting for last night's sleep"
-        state == RecoveryState.PRIMED -> "Primed for a big day"
-        state == RecoveryState.BALANCED -> "Balanced and steady"
-        state == RecoveryState.REBUILD -> "Rebuild and restore"
-        else -> "Getting to know you"
+        isPending -> stringResource(R.string.dashboard_briefing_headline_pending)
+        state == RecoveryState.PRIMED -> stringResource(R.string.dashboard_briefing_headline_primed)
+        state == RecoveryState.BALANCED -> stringResource(R.string.dashboard_briefing_headline_balanced)
+        state == RecoveryState.REBUILD -> stringResource(R.string.dashboard_briefing_headline_rebuild)
+        else -> stringResource(R.string.dashboard_briefing_headline_baseline)
     }
     val advice = when {
-        isPending -> "Log or sync last night's sleep to unlock today's recovery and advice."
+        isPending -> stringResource(R.string.dashboard_briefing_advice_pending)
         else -> scoreEntity?.supportiveAdvice ?: stringResource(R.string.recovery_advice_building_baseline)
     }
     val positive = scoreEntity?.positiveContributors?.split("|")?.filter { it.isNotBlank() }.orEmpty()
@@ -283,7 +290,7 @@ fun DailyBriefingCard(uiState: DashboardUiState, modifier: Modifier = Modifier) 
             )
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Daily Briefing", style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
+                Text(stringResource(R.string.dashboard_daily_briefing), style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
                 Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(advice, style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
@@ -294,20 +301,20 @@ fun DailyBriefingCard(uiState: DashboardUiState, modifier: Modifier = Modifier) 
             val shown = drivers.take(MAX_BRIEFING_DRIVERS)
             shown.forEach { (good, text) ->
                 Text(
-                    text = "• $text",
+                    text = stringResource(R.string.dashboard_bullet_item, text),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (good) tokens.scoreColors.primed else tokens.scoreColors.rebuild
                 )
             }
             val hidden = drivers.size - shown.size
             if (hidden > 0) {
-                Text("+$hidden more factor${if (hidden > 1) "s" else ""}", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                Text(if (hidden > 1) stringResource(R.string.dashboard_briefing_more_factors, hidden) else stringResource(R.string.dashboard_briefing_more_factor, hidden), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
             }
         }
         if (!isPending && target != null) {
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
             Text(
-                text = String.format(Locale.US, "Aim for a strain of %.1f–%.1f today.", target.targetLow, target.targetHigh),
+                text = stringResource(R.string.dashboard_briefing_strain_target, String.format(Locale.US, "%.1f", target.targetLow), String.format(Locale.US, "%.1f", target.targetHigh)),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
                 color = tokens.chartColors.trainingLoad

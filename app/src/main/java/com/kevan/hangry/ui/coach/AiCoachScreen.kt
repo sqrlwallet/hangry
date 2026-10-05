@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.coach
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.compose.animation.core.*
@@ -82,12 +84,12 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val QUICK_STARTERS = listOf(
-    "⚡ Am I ready to train today?",
-    "🥗 How's my calorie & protein balance?",
-    "💤 How did sleep affect my recovery?",
-    "🧘 Stretches for my posture scan?",
-    "📝 Tight hamstrings & lower back",
-    "💊 Review my supplements"
+    R.string.coach_starter_ready_to_train,
+    R.string.coach_starter_calorie_protein,
+    R.string.coach_starter_sleep_recovery,
+    R.string.coach_starter_posture_stretches,
+    R.string.coach_starter_hamstrings_back,
+    R.string.coach_starter_supplements
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,14 +115,17 @@ fun AiCoachScreen(
         viewModel.attachImages(uris)
     }
     val canSend = (inputText.isNotBlank() || uiState.pendingImages.isNotEmpty()) && !uiState.isLoading
-    val starters = uiState.suggestions.ifEmpty { QUICK_STARTERS }
+    val defaultStarters = QUICK_STARTERS.map { stringResource(it) }
+    val starters = uiState.suggestions.ifEmpty { defaultStarters }
     val context = LocalContext.current
+    val askDashPrompt = stringResource(R.string.coach_ask_dash, MASCOT_NAME)
+    val copiedMessage = stringResource(R.string.coach_copied_to_clipboard)
 
     // Talk to Dash: the system speech recogniser, no microphone permission needed.
     val speechIntent = remember {
         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            .putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask $MASCOT_NAME")
+            .putExtra(RecognizerIntent.EXTRA_PROMPT, askDashPrompt)
     }
     val canDictate = remember { speechIntent.resolveActivity(context.packageManager) != null }
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -200,7 +205,7 @@ fun AiCoachScreen(
                         IconButton(onClick = { viewModel.setShowJournalSheet(true) }) {
                             Icon(
                                 imageVector = Icons.Default.Book,
-                                contentDescription = "Personal Journal",
+                                contentDescription = stringResource(R.string.coach_personal_journal),
                                 tint = tokens.textPrimary
                             )
                         }
@@ -211,7 +216,7 @@ fun AiCoachScreen(
                         IconButton(onClick = { showClearDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = "Clear Chat",
+                                contentDescription = stringResource(R.string.coach_clear_chat),
                                 tint = tokens.textSecondary
                             )
                         }
@@ -259,14 +264,14 @@ fun AiCoachScreen(
                     DashAvatar(size = 18.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Last 7 days loaded",
+                        text = stringResource(R.string.coach_last_7_days_loaded),
                         style = MaterialTheme.typography.labelMedium,
                         color = tokens.textSecondary,
                         modifier = Modifier.weight(1f)
                     )
                     HangryInfoTip(
-                        title = "What Dash knows",
-                        body = "$MASCOT_NAME can see your last 7 days of sleep, recovery, strain, workouts and meals, 4-week trends, body metrics, health records, supplements, posture checks and the memories you've shared."
+                        title = stringResource(R.string.coach_what_dash_knows_title),
+                        body = stringResource(R.string.coach_what_dash_knows_body, MASCOT_NAME)
                     )
                 }
             }
@@ -274,7 +279,7 @@ fun AiCoachScreen(
             // Error banner if any - a worried Dash with what went wrong.
             uiState.errorMessage?.let { err ->
                 DashAlertCard(
-                    title = "$MASCOT_NAME couldn't reply",
+                    title = stringResource(R.string.coach_couldnt_reply, MASCOT_NAME),
                     message = err,
                     onDismiss = { viewModel.dismissError() },
                     modifier = Modifier.padding(horizontal = HangryTokens.Spacing.m, vertical = 4.dp)
@@ -313,7 +318,7 @@ fun AiCoachScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     coroutineScope.launch {
                                         snackbarHostState.showSnackbar(
-                                            message = "Copied to clipboard",
+                                            message = copiedMessage,
                                             duration = SnackbarDuration.Short
                                         )
                                     }
@@ -369,7 +374,7 @@ fun AiCoachScreen(
                             Box(Modifier.size(64.dp)) {
                                 AsyncImage(
                                     model = uri,
-                                    contentDescription = "Attached photo",
+                                    contentDescription = stringResource(R.string.coach_attached_photo),
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
                                 )
@@ -378,7 +383,7 @@ fun AiCoachScreen(
                                     modifier = Modifier.align(Alignment.TopEnd).size(22.dp)
                                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), CircleShape)
                                 ) {
-                                    Icon(Icons.Default.Close, contentDescription = "Remove photo", modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.coach_remove_photo), modifier = Modifier.size(14.dp))
                                 }
                             }
                         }
@@ -395,27 +400,28 @@ fun AiCoachScreen(
                             onClick = { showAttachMenu = true },
                             enabled = !uiState.isLoading && uiState.pendingImages.size < AiCoachViewModel.MAX_IMAGES
                         ) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = "Attach a photo", tint = tokens.textSecondary)
+                            Icon(Icons.Default.AddAPhoto, contentDescription = stringResource(R.string.coach_attach_photo), tint = tokens.textSecondary)
                         }
                         DropdownMenu(expanded = showAttachMenu, onDismissRequest = { showAttachMenu = false }) {
                             DropdownMenuItem(
-                                text = { Text("Take a photo") },
+                                text = { Text(stringResource(R.string.coach_take_photo)) },
                                 leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
                                 onClick = { showAttachMenu = false; photoLauncher.takePhoto() }
                             )
                             DropdownMenuItem(
-                                text = { Text("Choose from gallery") },
+                                text = { Text(stringResource(R.string.coach_choose_from_gallery)) },
                                 leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) },
                                 onClick = { showAttachMenu = false; photoLauncher.pickFromGallery() }
                             )
                         }
                     }
+                    val messageInputDescription = stringResource(R.string.coach_message_input_description, MASCOT_NAME)
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
                         placeholder = {
                             Text(
-                                if (uiState.pendingImages.isEmpty()) "Ask $MASCOT_NAME or send a photo..." else "What should $MASCOT_NAME do with it?",
+                                if (uiState.pendingImages.isEmpty()) stringResource(R.string.coach_input_placeholder, MASCOT_NAME) else stringResource(R.string.coach_input_placeholder_with_photo, MASCOT_NAME),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
@@ -429,7 +435,7 @@ fun AiCoachScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear input",
+                                        contentDescription = stringResource(R.string.coach_clear_input),
                                         tint = tokens.textMuted,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -438,7 +444,7 @@ fun AiCoachScreen(
                         } else if (canDictate) {
                             {
                                 IconButton(onClick = { runCatching { speechLauncher.launch(speechIntent) } }, enabled = !uiState.isLoading) {
-                                    Icon(Icons.Default.Mic, contentDescription = "Speak to $MASCOT_NAME", tint = tokens.textSecondary)
+                                    Icon(Icons.Default.Mic, contentDescription = stringResource(R.string.coach_speak_to, MASCOT_NAME), tint = tokens.textSecondary)
                                 }
                             }
                         } else null,
@@ -458,7 +464,7 @@ fun AiCoachScreen(
                         ),
                         modifier = Modifier
                             .weight(1f)
-                            .semantics { contentDescription = "Message input for $MASCOT_NAME" },
+                            .semantics { contentDescription = messageInputDescription },
                         shape = RoundedCornerShape(24.dp),
                         maxLines = 4,
                         enabled = !uiState.isLoading
@@ -482,7 +488,7 @@ fun AiCoachScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = if (uiState.isLoading) "$MASCOT_NAME is thinking" else "Send message",
+                            contentDescription = if (uiState.isLoading) stringResource(R.string.coach_is_thinking, MASCOT_NAME) else stringResource(R.string.coach_send_message),
                             tint = if (canSend) MaterialTheme.colorScheme.onPrimary else tokens.textSecondary
                         )
                     }
@@ -523,8 +529,8 @@ fun AiCoachScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text("Clear Chat History?") },
-            text = { Text("Messages will be cleared. Journal & memories are kept.") },
+            title = { Text(stringResource(R.string.coach_clear_history_title)) },
+            text = { Text(stringResource(R.string.coach_clear_history_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -532,12 +538,12 @@ fun AiCoachScreen(
                         showClearDialog = false
                     }
                 ) {
-                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.coach_clear), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -564,23 +570,23 @@ private fun AiNotConfiguredBanner(
             DashAvatar(size = 56.dp)
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
             val detail = when {
-                !aiEnabled -> "AI features are disabled in Settings. Enable AI Features to give $MASCOT_NAME access to your 7-day health, nutrition, and journal memory."
-                !hasApiKey -> "An OpenRouter API key is required to use AI features. Add your API key in Settings."
-                else -> "$MASCOT_NAME is currently not configured."
+                !aiEnabled -> stringResource(R.string.coach_setup_detail_ai_disabled, MASCOT_NAME)
+                !hasApiKey -> stringResource(R.string.coach_setup_detail_no_key)
+                else -> stringResource(R.string.coach_setup_detail_not_configured, MASCOT_NAME)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Set up $MASCOT_NAME",
+                    text = stringResource(R.string.coach_setup_title, MASCOT_NAME),
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary
                 )
-                HangryInfoTip(title = "Set up $MASCOT_NAME", body = detail)
+                HangryInfoTip(title = stringResource(R.string.coach_setup_title, MASCOT_NAME), body = detail)
             }
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
             val message = when {
-                !aiEnabled -> "Turn on AI Features in Settings."
-                !hasApiKey -> "Add your OpenRouter key in Settings."
-                else -> "$MASCOT_NAME isn't configured yet."
+                !aiEnabled -> stringResource(R.string.coach_setup_message_ai_disabled)
+                !hasApiKey -> stringResource(R.string.coach_setup_message_no_key)
+                else -> stringResource(R.string.coach_setup_message_not_configured, MASCOT_NAME)
             }
             Text(
                 text = message,
@@ -593,7 +599,7 @@ private fun AiNotConfiguredBanner(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Open AI Settings", color = MaterialTheme.colorScheme.onPrimary)
+                Text(stringResource(R.string.coach_open_ai_settings), color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -617,7 +623,7 @@ private fun EmptyConversationView(
         DashExpression(mood = DashMood.WAVE, size = 168.dp)
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
         Text(
-            text = "Hi, I'm $MASCOT_NAME!",
+            text = stringResource(R.string.coach_greeting, MASCOT_NAME),
             style = MaterialTheme.typography.headlineSmall,
             color = tokens.textPrimary,
             fontWeight = FontWeight.Bold
@@ -629,7 +635,7 @@ private fun EmptyConversationView(
             shape = RoundedCornerShape(100.dp)
         ) {
             Text(
-                text = "⚡ 7-Day Biometrics & Memories Active",
+                text = stringResource(R.string.coach_biometrics_active),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
@@ -640,20 +646,20 @@ private fun EmptyConversationView(
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "Ask me anything about your health.",
+                text = stringResource(R.string.coach_ask_me_anything),
                 style = MaterialTheme.typography.bodyMedium,
                 color = tokens.textSecondary,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             HangryInfoTip(
-                title = "About $MASCOT_NAME",
-                body = "I continuously synthesize your sleep, recovery, workouts, nutrition, posture, and personal health journal. Ask me anything or share a new ache, goal, or problem."
+                title = stringResource(R.string.coach_about_dash, MASCOT_NAME),
+                body = stringResource(R.string.coach_about_dash_body)
             )
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
 
         Text(
-            text = "Quick Starters:",
+            text = stringResource(R.string.coach_quick_starters_label),
             style = MaterialTheme.typography.titleSmall,
             color = tokens.textPrimary,
             fontWeight = FontWeight.SemiBold,
@@ -860,7 +866,7 @@ private fun CoachMessageItem(
                         photos.forEach { path ->
                             AsyncImage(
                                 model = File(path),
-                                contentDescription = "Attached photo",
+                                contentDescription = stringResource(R.string.coach_attached_photo),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.size(96.dp).clip(RoundedCornerShape(10.dp))
                             )
@@ -886,7 +892,7 @@ private fun CoachMessageItem(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "Copy text",
+                                contentDescription = stringResource(R.string.coach_copy_text),
                                 tint = tokens.textMuted,
                                 modifier = Modifier.size(14.dp)
                             )
@@ -923,7 +929,7 @@ private fun CoachMessageItem(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Added to journal: $summary",
+                        text = stringResource(R.string.coach_added_to_journal, summary),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         fontWeight = FontWeight.Medium
@@ -942,22 +948,23 @@ private fun decodeActions(raw: String?): List<CoachAction> =
 @Composable
 private fun CoachActionCard(action: CoachAction, onDo: () -> Unit, onDismiss: () -> Unit) {
     val tokens = LocalHangryTokens.current
-    val (icon, verb) = when (action.type) {
-        CoachAction.ADD_SUPPLEMENT -> Icons.Default.Medication to "Add"
-        CoachAction.UPDATE_SUPPLEMENT -> Icons.Default.Medication to "Update"
-        CoachAction.MARK_SUPPLEMENT_TAKEN -> Icons.Default.CheckCircle to "Mark taken"
-        CoachAction.LOG_MEAL -> Icons.Default.Restaurant to "Log"
-        CoachAction.UPDATE_MEAL -> Icons.Default.Restaurant to "Update"
-        CoachAction.ADD_MEAL_PLAN -> Icons.Default.Restaurant to "Add"
-        CoachAction.ADD_READING -> Icons.Default.MonitorHeart to "Save"
-        CoachAction.SET_GOAL, CoachAction.UPDATE_GOALS -> Icons.Default.Flag to "Set"
-        CoachAction.LOG_WEIGHT, CoachAction.LOG_BODY_FAT, CoachAction.UPDATE_PROFILE -> Icons.Default.MonitorHeart to "Save"
-        CoachAction.LOG_SLEEP -> Icons.Default.Bedtime to "Log"
-        CoachAction.SET_HRV_FEELING -> Icons.Default.Favorite to "Save"
-        CoachAction.SET_PREGNANCY, CoachAction.LOG_PERIOD -> Icons.Default.Favorite to "Save"
-        CoachAction.OPEN_SCREEN -> Icons.AutoMirrored.Filled.ArrowForward to "Open"
-        else -> Icons.Default.Add to "Add"
+    val (icon, verbRes) = when (action.type) {
+        CoachAction.ADD_SUPPLEMENT -> Icons.Default.Medication to R.string.coach_action_add
+        CoachAction.UPDATE_SUPPLEMENT -> Icons.Default.Medication to R.string.coach_action_update
+        CoachAction.MARK_SUPPLEMENT_TAKEN -> Icons.Default.CheckCircle to R.string.coach_action_mark_taken
+        CoachAction.LOG_MEAL -> Icons.Default.Restaurant to R.string.coach_action_log
+        CoachAction.UPDATE_MEAL -> Icons.Default.Restaurant to R.string.coach_action_update
+        CoachAction.ADD_MEAL_PLAN -> Icons.Default.Restaurant to R.string.coach_action_add
+        CoachAction.ADD_READING -> Icons.Default.MonitorHeart to R.string.coach_action_save
+        CoachAction.SET_GOAL, CoachAction.UPDATE_GOALS -> Icons.Default.Flag to R.string.coach_action_set
+        CoachAction.LOG_WEIGHT, CoachAction.LOG_BODY_FAT, CoachAction.UPDATE_PROFILE -> Icons.Default.MonitorHeart to R.string.coach_action_save
+        CoachAction.LOG_SLEEP -> Icons.Default.Bedtime to R.string.coach_action_log
+        CoachAction.SET_HRV_FEELING -> Icons.Default.Favorite to R.string.coach_action_save
+        CoachAction.SET_PREGNANCY, CoachAction.LOG_PERIOD -> Icons.Default.Favorite to R.string.coach_action_save
+        CoachAction.OPEN_SCREEN -> Icons.AutoMirrored.Filled.ArrowForward to R.string.coach_action_open
+        else -> Icons.Default.Add to R.string.coach_action_add
     }
+    val verb = stringResource(verbRes)
     Surface(
         color = tokens.cardBackground,
         shape = RoundedCornerShape(14.dp),
@@ -970,15 +977,15 @@ private fun CoachActionCard(action: CoachAction, onDo: () -> Unit, onDismiss: ()
             Column(Modifier.weight(1f)) {
                 Text(action.title.ifBlank { verb }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = tokens.textPrimary)
                 when (action.status) {
-                    CoachActionStatus.DONE -> Text("✓ " + (action.resultMessage ?: "Done"), style = MaterialTheme.typography.labelSmall, color = tokens.scoreColors.primed)
-                    CoachActionStatus.FAILED -> Text(action.resultMessage ?: "Couldn't do that", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                    CoachActionStatus.DISMISSED -> Text("Dismissed", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                    CoachActionStatus.DONE -> Text(stringResource(R.string.coach_action_done_result, action.resultMessage ?: stringResource(R.string.coach_done)), style = MaterialTheme.typography.labelSmall, color = tokens.scoreColors.primed)
+                    CoachActionStatus.FAILED -> Text(action.resultMessage ?: stringResource(R.string.coach_action_failed), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    CoachActionStatus.DISMISSED -> Text(stringResource(R.string.coach_action_dismissed), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                 }
             }
             if (action.status == CoachActionStatus.PENDING || action.status == CoachActionStatus.FAILED) {
-                TextButton(onClick = onDismiss) { Text("Skip", color = tokens.textMuted) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.coach_action_skip), color = tokens.textMuted) }
                 Button(onClick = onDo, contentPadding = PaddingValues(horizontal = 14.dp)) {
-                    Text(if (action.status == CoachActionStatus.FAILED) "Retry" else verb)
+                    Text(if (action.status == CoachActionStatus.FAILED) stringResource(R.string.coach_action_retry) else verb)
                 }
             }
         }
@@ -1029,7 +1036,7 @@ private fun CoachLoadingBubble() {
                 PulsingDotsIndicator(dotColor = MaterialTheme.colorScheme.primary, dotSize = 7.dp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "$MASCOT_NAME is sniffing through your 7-day trends…",
+                    text = stringResource(R.string.coach_loading_bubble, MASCOT_NAME),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -1058,17 +1065,17 @@ private fun CoachJournalBottomSheet(
         ) {
             Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Journal & Memories",
+                    stringResource(R.string.coach_journal_title),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 HangryInfoTip(
-                    title = "Personal Journal & Memories",
-                    body = "Problems, injuries, and details remembered by $MASCOT_NAME. Tell $MASCOT_NAME about any problems, symptoms, or food reactions in chat, and they will be remembered here."
+                    title = stringResource(R.string.coach_journal_info_title),
+                    body = stringResource(R.string.coach_journal_info_body, MASCOT_NAME)
                 )
             }
             IconButton(onClick = onAddEntry) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Journal Entry", tint = MaterialTheme.colorScheme.primary)
+                Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.coach_journal_add_entry), tint = MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -1077,8 +1084,8 @@ private fun CoachJournalBottomSheet(
         if (journalEntries.isEmpty()) {
             DashEmptyState(
                 scene = DashEmptyScene.MEMORIES,
-                title = "No memories yet",
-                body = "Mention an issue in chat and $MASCOT_NAME will remember it.",
+                title = stringResource(R.string.coach_journal_empty_title),
+                body = stringResource(R.string.coach_journal_empty_body, MASCOT_NAME),
                 modifier = Modifier.padding(vertical = HangryTokens.Spacing.m)
             )
         } else {
@@ -1148,7 +1155,7 @@ private fun JournalEntryCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Delete",
+                            contentDescription = stringResource(R.string.coach_delete),
                             tint = tokens.textSecondary,
                             modifier = Modifier.size(18.dp)
                         )
@@ -1184,10 +1191,10 @@ private fun AddJournalEntryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Personal Note / Problem") },
+        title = { Text(stringResource(R.string.coach_journal_add_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Category:", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.coach_journal_category_label), style = MaterialTheme.typography.labelMedium)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(categories) { cat ->
                         FilterChip(
@@ -1200,16 +1207,16 @@ private fun AddJournalEntryDialog(
                 OutlinedTextField(
                     value = summary,
                     onValueChange = { summary = it },
-                    label = { Text("Short Summary") },
-                    placeholder = { Text("e.g. Knee soreness during squats") },
+                    label = { Text(stringResource(R.string.coach_journal_summary_label)) },
+                    placeholder = { Text(stringResource(R.string.coach_journal_summary_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("Details") },
-                    placeholder = { Text("e.g. Sharp right-knee pain on heavy sets") },
+                    label = { Text(stringResource(R.string.coach_journal_details_label)) },
+                    placeholder = { Text(stringResource(R.string.coach_journal_details_placeholder)) },
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1221,12 +1228,12 @@ private fun AddJournalEntryDialog(
                 enabled = summary.isNotBlank() && content.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Save to Journal", color = MaterialTheme.colorScheme.onPrimary)
+                Text(stringResource(R.string.coach_journal_save), color = MaterialTheme.colorScheme.onPrimary)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,6 +50,7 @@ fun SavedMealsScreen(
     val haptic = LocalHapticFeedback.current
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     var query by remember { mutableStateOf("") }
     // Sticks between taps so e.g. a double helping of several foods is quick; every row shows
@@ -65,8 +67,8 @@ fun SavedMealsScreen(
         val entry = uiState.lastSavedEntry ?: return@LaunchedEffect
         viewModel.clearLastSaved()
         val result = snackbarHostState.showSnackbar(
-            message = "Logged ${entry.foodName} · ${entry.calories} kcal",
-            actionLabel = "Undo",
+            message = context.getString(R.string.nutrition_saved_logged_snackbar, entry.foodName, entry.calories),
+            actionLabel = context.getString(R.string.nutrition_undo),
             duration = SnackbarDuration.Short
         )
         if (result == SnackbarResult.ActionPerformed) viewModel.deleteEntry(entry)
@@ -75,8 +77,8 @@ fun SavedMealsScreen(
     LaunchedEffect(deleted) {
         val meal = deleted ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "Removed ${meal.name}",
-            actionLabel = "Undo",
+            message = context.getString(R.string.nutrition_saved_removed_snackbar, meal.name),
+            actionLabel = context.getString(R.string.nutrition_undo),
             duration = SnackbarDuration.Short
         )
         if (result == SnackbarResult.ActionPerformed) viewModel.restoreSavedMeal(meal)
@@ -91,7 +93,7 @@ fun SavedMealsScreen(
                     Column {
                         Text(stringResource(R.string.title_meal_plan))
                         Text(
-                            text = "Tap to log to ${dayLabel(uiState.selectedDate)}",
+                            text = stringResource(R.string.nutrition_saved_tap_to_log, dayLabel(uiState.selectedDate)),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -99,12 +101,12 @@ fun SavedMealsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nutrition_cd_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showAddDialog = true }) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add a meal")
+                        Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.nutrition_saved_add_meal))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -124,12 +126,12 @@ fun SavedMealsScreen(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search foods") },
+                    placeholder = { Text(stringResource(R.string.nutrition_saved_search)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (query.isNotEmpty()) {
                             IconButton(onClick = { query = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.nutrition_saved_clear_search))
                             }
                         }
                     },
@@ -144,8 +146,8 @@ fun SavedMealsScreen(
 
             item {
                 SectionHeader(
-                    title = "Your meals",
-                    trailing = if (uiState.mealPlans.isNotEmpty()) "${uiState.mealPlans.size} saved" else null
+                    title = stringResource(R.string.nutrition_saved_your_meals),
+                    trailing = if (uiState.mealPlans.isNotEmpty()) stringResource(R.string.nutrition_saved_count, uiState.mealPlans.size) else null
                 )
             }
             if (uiState.mealPlans.isEmpty()) {
@@ -153,14 +155,14 @@ fun SavedMealsScreen(
                     HangryCard {
                         DashEmptyState(
                             scene = DashEmptyScene.MEALS,
-                            title = "Nothing saved yet",
-                            body = "Every food you log is saved here automatically, ready to log again in one tap.",
+                            title = stringResource(R.string.nutrition_saved_empty_title),
+                            body = stringResource(R.string.nutrition_saved_empty_body),
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
                 }
             } else if (saved.isEmpty()) {
-                item { NoMatch("None of your meals match \"${query.trim()}\".") }
+                item { NoMatch(stringResource(R.string.nutrition_saved_no_match, query.trim())) }
             } else {
                 items(saved, key = { "saved_${it.id}" }) { meal ->
                     SavedMealRow(
@@ -222,9 +224,15 @@ private fun NoMatch(text: String) {
     )
 }
 
+@Composable
 private fun macroLine(calories: Int, protein: Double, carbs: Double, fat: Double, portion: Double = 1.0): String =
-    "${(calories * portion).roundToInt()} kcal · " +
-        "P${(protein * portion).roundToInt()} C${(carbs * portion).roundToInt()} F${(fat * portion).roundToInt()}"
+    stringResource(
+        R.string.nutrition_entry_macros,
+        (calories * portion).roundToInt(),
+        (protein * portion).roundToInt(),
+        (carbs * portion).roundToInt(),
+        (fat * portion).roundToInt()
+    )
 
 @Composable
 private fun PortionPicker(portion: Double, onPortionChange: (Double) -> Unit) {
@@ -234,13 +242,14 @@ private fun PortionPicker(portion: Double, onPortionChange: (Double) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = "Portion", style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
+        Text(text = stringResource(R.string.nutrition_saved_portion), style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
         PORTIONS.forEach { p ->
+            val portionDescription = stringResource(R.string.nutrition_saved_portion_cd, portionLabel(p))
             FilterChip(
                 selected = portion == p,
                 onClick = { onPortionChange(p) },
-                label = { Text("${portionLabel(p)}×") },
-                modifier = Modifier.semantics { contentDescription = "${portionLabel(p)} portion" }
+                label = { Text(stringResource(R.string.nutrition_portion_times, portionLabel(p))) },
+                modifier = Modifier.semantics { contentDescription = portionDescription }
             )
         }
     }
@@ -251,7 +260,7 @@ private fun SavedMealRow(meal: MealPlanEntity, portion: Double, onLog: () -> Uni
     val tokens = LocalHangryTokens.current
     var menuOpen by remember { mutableStateOf(false) }
     HangryCard(
-        modifier = Modifier.clickable(onClickLabel = "Log ${portionedName(meal.name, portion)}", onClick = onLog),
+        modifier = Modifier.clickable(onClickLabel = stringResource(R.string.nutrition_log_item_label, portionedName(meal.name, portion)), onClick = onLog),
         contentPadding = HangryTokens.Spacing.s
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -271,8 +280,8 @@ private fun SavedMealRow(meal: MealPlanEntity, portion: Double, onLog: () -> Uni
                 )
                 val times = when (meal.useCount) {
                     0 -> ""
-                    1 -> " · logged once"
-                    else -> " · logged ${meal.useCount}×"
+                    1 -> stringResource(R.string.nutrition_saved_logged_once)
+                    else -> stringResource(R.string.nutrition_saved_logged_times, meal.useCount)
                 }
                 Text(
                     text = portionPrefix(portion) + macroLine(meal.calories, meal.proteinG, meal.carbsG, meal.fatG, portion) + times,
@@ -282,11 +291,11 @@ private fun SavedMealRow(meal: MealPlanEntity, portion: Double, onLog: () -> Uni
             }
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Options for ${meal.name}", tint = tokens.textMuted)
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.nutrition_saved_options_for, meal.name), tint = tokens.textMuted)
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text("Edit") },
+                        text = { Text(stringResource(R.string.nutrition_edit)) },
                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -294,7 +303,7 @@ private fun SavedMealRow(meal: MealPlanEntity, portion: Double, onLog: () -> Uni
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Remove") },
+                        text = { Text(stringResource(R.string.nutrition_remove)) },
                         leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -307,7 +316,9 @@ private fun SavedMealRow(meal: MealPlanEntity, portion: Double, onLog: () -> Uni
     }
 }
 
-private fun portionPrefix(portion: Double): String = if (portion == 1.0) "" else "${portionLabel(portion)}× "
+@Composable
+private fun portionPrefix(portion: Double): String =
+    if (portion == 1.0) "" else stringResource(R.string.nutrition_portion_prefix, portionLabel(portion))
 
 /** Add a saved meal by hand ([initial] null), or edit one. */
 @Composable
@@ -326,22 +337,22 @@ private fun SavedMealDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial == null) "Add a meal" else "Edit meal") },
+        title = { Text(if (initial == null) stringResource(R.string.nutrition_saved_add_meal) else stringResource(R.string.nutrition_saved_edit_meal)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.nutrition_field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     value = calories,
                     onValueChange = { if (it.all(Char::isDigit)) calories = it },
-                    label = { Text("Calories") },
+                    label = { Text(stringResource(R.string.nutrition_field_calories)) },
                     keyboardOptions = number,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = protein, onValueChange = { if (it.all(Char::isDigit)) protein = it }, label = { Text("Protein g") }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = carbs, onValueChange = { if (it.all(Char::isDigit)) carbs = it }, label = { Text("Carbs g") }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = fat, onValueChange = { if (it.all(Char::isDigit)) fat = it }, label = { Text("Fat g") }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = protein, onValueChange = { if (it.all(Char::isDigit)) protein = it }, label = { Text(stringResource(R.string.nutrition_field_protein_g)) }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = carbs, onValueChange = { if (it.all(Char::isDigit)) carbs = it }, label = { Text(stringResource(R.string.nutrition_field_carbs_g)) }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = fat, onValueChange = { if (it.all(Char::isDigit)) fat = it }, label = { Text(stringResource(R.string.nutrition_field_fat_g)) }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
                 }
             }
         },
@@ -358,10 +369,10 @@ private fun SavedMealDialog(
                             ?: MealPlanEntity(name = name.trim(), calories = cal, proteinG = p, carbsG = c, fatG = f)
                     )
                 }
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.nutrition_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

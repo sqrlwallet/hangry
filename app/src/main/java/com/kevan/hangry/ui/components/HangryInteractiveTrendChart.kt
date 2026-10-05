@@ -33,6 +33,8 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 data class TrendPoint(
     val date: LocalDate,
@@ -67,7 +69,7 @@ fun HangryInteractiveTrendChart(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Insufficient data points for this timeframe",
+                text = stringResource(R.string.metrics_components_chart_insufficient_data),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textMuted
             )
@@ -126,9 +128,9 @@ fun HangryInteractiveTrendChart(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 val deltaText = when {
-                                    abs(deltaFromAvg) < 0.05 -> "on baseline"
-                                    deltaFromAvg > 0 -> "+${formatValue(deltaFromAvg)} vs avg"
-                                    else -> "${formatValue(deltaFromAvg)} vs avg"
+                                    abs(deltaFromAvg) < 0.05 -> stringResource(R.string.metrics_components_chart_on_baseline)
+                                    deltaFromAvg > 0 -> stringResource(R.string.metrics_components_chart_vs_avg_positive, formatValue(deltaFromAvg))
+                                    else -> stringResource(R.string.metrics_components_chart_vs_avg, formatValue(deltaFromAvg))
                                 }
                                 Text(
                                     text = deltaText,
@@ -145,7 +147,7 @@ fun HangryInteractiveTrendChart(
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Text(
-                                    text = "Tap to inspect day",
+                                    text = stringResource(R.string.metrics_components_chart_tap_inspect),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = color,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -165,23 +167,23 @@ fun HangryInteractiveTrendChart(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Avg: ${formatValue(avgValue)} $unit".trim(),
+                            text = stringResource(R.string.metrics_components_chart_avg, formatValue(avgValue), unit).trim(),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textSecondary
                         )
                         Text(
-                            text = "High: ${formatValue(maxValue)}",
+                            text = stringResource(R.string.metrics_components_chart_high, formatValue(maxValue)),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.scoreColors.primed
                         )
                         Text(
-                            text = "Low: ${formatValue(minValue)}",
+                            text = stringResource(R.string.metrics_components_chart_low, formatValue(minValue)),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
                     }
                     Text(
-                        text = "Touch to scrub",
+                        text = stringResource(R.string.metrics_components_chart_touch_scrub),
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted.copy(alpha = 0.6f)
                     )

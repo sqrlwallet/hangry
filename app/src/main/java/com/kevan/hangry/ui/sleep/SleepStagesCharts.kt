@@ -32,6 +32,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /** The night counted for [date], picked the way daily summaries pick it: the longest session
  * that ends that day and starts no earlier than 6pm the evening before. */
@@ -78,7 +80,8 @@ fun SleepHypnogram(segments: List<SleepStageSegment>, modifier: Modifier = Modif
     val totalSec = maxOf(1L, end.epochSecond - start.epochSecond).toFloat()
     val colors = SleepStage.entries.associateWith { it.color() }
     val grid = tokens.cardBorder
-    val laneNames = listOf("Awake", "REM", "Light", "Deep")
+    val laneNames = listOf(stringResource(R.string.metrics_sleep_stage_awake), stringResource(R.string.metrics_sleep_stage_rem), stringResource(R.string.metrics_sleep_stage_light), stringResource(R.string.metrics_sleep_stage_deep))
+    val hypnogramDescription = stringResource(R.string.metrics_sleep_hypnogram_description)
     val zone = ZoneId.systemDefault()
     val fmt = timeFormatter()
 
@@ -96,7 +99,7 @@ fun SleepHypnogram(segments: List<SleepStageSegment>, modifier: Modifier = Modif
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .semantics { contentDescription = "Sleep stages through the night" }
+                    .semantics { contentDescription = hypnogramDescription }
             ) {
                 val laneH = size.height / 4f
                 val barH = minOf(laneH * 0.55f, 14.dp.toPx())
@@ -173,10 +176,10 @@ fun SleepStageBreakdown(deep: Int, rem: Int, light: Int, awake: Int, modifier: M
     val total = maxOf(1, deep + rem + light + awake)
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf(
-            Triple(SleepStage.AWAKE, "Awake", awake),
-            Triple(SleepStage.REM, "REM", rem),
-            Triple(SleepStage.LIGHT, "Light", light),
-            Triple(SleepStage.DEEP, "Deep", deep)
+            Triple(SleepStage.AWAKE, stringResource(R.string.metrics_sleep_stage_awake), awake),
+            Triple(SleepStage.REM, stringResource(R.string.metrics_sleep_stage_rem), rem),
+            Triple(SleepStage.LIGHT, stringResource(R.string.metrics_sleep_stage_light), light),
+            Triple(SleepStage.DEEP, stringResource(R.string.metrics_sleep_stage_deep), deep)
         ).forEach { (stage, name, minutes) ->
             val pct = (minutes * 100f / total).let { kotlin.math.round(it).toInt() }
             val color = stage.color()
@@ -184,7 +187,7 @@ fun SleepStageBreakdown(deep: Int, rem: Int, light: Int, awake: Int, modifier: M
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(name, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                     Spacer(Modifier.width(6.dp))
-                    Text("$pct%", style = MaterialTheme.typography.titleSmall, color = color, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.metrics_components_percent_value, pct), style = MaterialTheme.typography.titleSmall, color = color, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
                     Text(formatMinutes(minutes), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 }
@@ -200,7 +203,7 @@ fun SleepStageBreakdown(deep: Int, rem: Int, light: Int, awake: Int, modifier: M
             val hatch = tokens.textSecondary
             Canvas(Modifier.size(12.dp)) { drawHatch(hatch, Offset.Zero, size) }
             Spacer(Modifier.width(6.dp))
-            Text("Typical range", style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
+            Text(stringResource(R.string.metrics_sleep_typical_range), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
         }
     }
 }
@@ -279,10 +282,11 @@ fun WeeklySleepStagesChart(nights: List<NightStages>, selectedDate: LocalDate, m
     )
     val grid = tokens.cardBorder
     val avgColor = tokens.textMuted
+    val weeklyChartDescription = stringResource(R.string.metrics_sleep_weekly_chart_description)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            "Average: " + (average?.let { formatMinutes(it) } ?: "—"),
+            stringResource(R.string.metrics_sleep_average_value, average?.let { formatMinutes(it) } ?: "—"),
             style = MaterialTheme.typography.bodyMedium,
             color = tokens.textSecondary
         )
@@ -291,7 +295,7 @@ fun WeeklySleepStagesChart(nights: List<NightStages>, selectedDate: LocalDate, m
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
-                .semantics { contentDescription = "Sleep stages over the last 7 nights" }
+                .semantics { contentDescription = weeklyChartDescription }
         ) {
             val slot = size.width / nights.size
             val barW = minOf(slot * 0.36f, 18.dp.toPx())
@@ -349,8 +353,9 @@ fun WeeklySleepStagesChart(nights: List<NightStages>, selectedDate: LocalDate, m
     }
 }
 
+@Composable
 private fun formatMinutes(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
-    return if (h > 0) "${h}h ${m}m" else "${m}m"
+    return if (h > 0) stringResource(R.string.metrics_components_duration_h_m, h, m) else stringResource(R.string.metrics_sleep_minutes_short, m)
 }

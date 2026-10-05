@@ -13,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.SupplementsSnapshot
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -35,14 +37,14 @@ fun SupplementsDashboardCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Medication, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Supplements", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.nutrition_supplements_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
             val doses = snapshot.todayDoses
             Text(
                 when {
-                    snapshot.supplements.isEmpty() -> "Add →"
-                    doses.isEmpty() -> "Open →"
-                    snapshot.takenToday == doses.size -> "All taken"
-                    else -> "${snapshot.takenToday}/${doses.size} taken"
+                    snapshot.supplements.isEmpty() -> stringResource(R.string.nutrition_supplements_add_arrow)
+                    doses.isEmpty() -> stringResource(R.string.nutrition_supplements_open_arrow)
+                    snapshot.takenToday == doses.size -> stringResource(R.string.nutrition_supplements_all_taken)
+                    else -> stringResource(R.string.nutrition_supplements_taken_ratio, snapshot.takenToday, doses.size)
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = if (doses.isNotEmpty() && snapshot.takenToday == doses.size) tokens.scoreColors.primed else tokens.textMuted
@@ -51,7 +53,7 @@ fun SupplementsDashboardCard(
         if (snapshot.supplements.isEmpty()) {
             Spacer(Modifier.height(6.dp))
             Text(
-                "Snap your daily supplements - AI reads the label so Dash knows what you take.",
+                stringResource(R.string.nutrition_supplements_card_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
@@ -61,7 +63,7 @@ fun SupplementsDashboardCard(
             snapshot.active.takeIf { it.isNotEmpty() }?.let { active ->
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Taking " + active.joinToString(", ") { it.name },
+                    stringResource(R.string.nutrition_supplements_taking, active.joinToString(", ") { it.name }),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary,
                     maxLines = 2
@@ -86,7 +88,7 @@ fun SupplementsDashboardCard(
             }
         }
         if (snapshot.todayDoses.size > MAX_ROWS) {
-            Text("+${snapshot.todayDoses.size - MAX_ROWS} more", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            Text(stringResource(R.string.nutrition_supplements_more, snapshot.todayDoses.size - MAX_ROWS), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
         }
     }
 }

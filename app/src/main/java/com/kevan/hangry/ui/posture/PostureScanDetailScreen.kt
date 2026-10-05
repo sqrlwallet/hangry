@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.posture
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -46,10 +48,10 @@ fun PostureScanDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(scan?.date?.toString() ?: "Posture Scan") },
+                title = { Text(scan?.date?.toString() ?: stringResource(R.string.body_posture_scan)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -72,7 +74,7 @@ fun PostureScanDetailScreen(
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
         ) {
             HangryCard {
-                Text(text = "Score", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
+                Text(text = stringResource(R.string.body_posture_score), style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
                 Text(text = "${current.score}", style = MaterialTheme.typography.displayMedium, color = tokens.chartColors.hrv)
             }
 
@@ -98,17 +100,17 @@ fun PostureScanDetailScreen(
             val findings = current.findings()
             if (findings.isNotEmpty()) {
                 HangryCard {
-                    Text(text = "Findings", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Text(text = stringResource(R.string.body_posture_findings), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                     findings.forEach {
-                        Text("• $it", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(stringResource(R.string.body_posture_bullet, it), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                     }
                 }
             }
 
             val exercises = current.exercises()
             if (exercises.isNotEmpty()) {
-                Text(text = "Recommended Exercises", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.body_posture_recommended_exercises), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 exercises.forEach { ex ->
                     HangryCard {
                         Text(ex.name, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
@@ -116,7 +118,7 @@ fun PostureScanDetailScreen(
                         Text(ex.description, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            "${ex.sets} sets x ${ex.reps} · ${ex.targetArea}",
+                            stringResource(R.string.body_posture_exercise_detail, ex.sets.toString(), ex.reps.toString(), ex.targetArea),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )

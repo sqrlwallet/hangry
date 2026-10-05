@@ -29,6 +29,8 @@ import com.kevan.hangry.data.worker.HealthSyncWorker
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * The live state of background access, re-read whenever the screen comes back (the battery and
@@ -86,11 +88,11 @@ fun BackgroundAccessRows(state: BackgroundAccessState?, actions: BackgroundAcces
     Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)) {
         AccessRow(
             icon = Icons.Default.Sync,
-            title = "Sync in the background",
+            title = stringResource(R.string.settings_bg_sync_title),
             subtitle = when (state?.healthRead) {
                 BackgroundReadStatus.UNSUPPORTED ->
-                    "This version of Health Connect only shares data while Hangry is open. Updating Health Connect adds background sync."
-                else -> "Reads new sleep, heart and activity data from Health Connect every hour, even when Hangry is closed."
+                    stringResource(R.string.settings_bg_sync_unsupported)
+                else -> stringResource(R.string.settings_bg_sync_subtitle)
             },
             granted = state?.healthRead == BackgroundReadStatus.GRANTED,
             available = state != null && state.healthRead != BackgroundReadStatus.UNSUPPORTED,
@@ -99,8 +101,8 @@ fun BackgroundAccessRows(state: BackgroundAccessState?, actions: BackgroundAcces
         HorizontalDivider(color = tokens.cardBorder)
         AccessRow(
             icon = Icons.Default.BatteryChargingFull,
-            title = "Run without battery limits",
-            subtitle = "Stops Android from holding background syncs back for hours. Each sync takes a few seconds.",
+            title = stringResource(R.string.settings_bg_battery_title),
+            subtitle = stringResource(R.string.settings_bg_battery_subtitle),
             granted = state?.batteryUnrestricted == true,
             available = state != null,
             onAllow = actions.askBattery
@@ -108,8 +110,8 @@ fun BackgroundAccessRows(state: BackgroundAccessState?, actions: BackgroundAcces
         HorizontalDivider(color = tokens.cardBorder)
         AccessRow(
             icon = Icons.Default.NotificationsActive,
-            title = "Notifications",
-            subtitle = "Your morning readiness brief, bedtime and supplement reminders.",
+            title = stringResource(R.string.settings_bg_notifications_title),
+            subtitle = stringResource(R.string.settings_bg_notifications_subtitle),
             granted = state?.notifications == true,
             available = state != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
             onAllow = actions.askNotifications
@@ -136,8 +138,8 @@ private fun AccessRow(
         }
         Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
         when {
-            granted -> Icon(Icons.Default.CheckCircle, contentDescription = "Allowed", tint = tokens.scoreColors.primed, modifier = Modifier.size(24.dp))
-            available -> FilledTonalButton(onClick = onAllow) { Text("Allow") }
+            granted -> Icon(Icons.Default.CheckCircle, contentDescription = stringResource(R.string.settings_bg_allowed), tint = tokens.scoreColors.primed, modifier = Modifier.size(24.dp))
+            available -> FilledTonalButton(onClick = onAllow) { Text(stringResource(R.string.settings_bg_allow)) }
         }
     }
 }

@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="SUPPLEMENTS"
+            android:text="@string/widget_layout_supplements"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -59,7 +59,7 @@
         android:layout_marginTop="8dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="Add your supplements"
+        android:text="@string/widget_layout_add_your_supplements"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -71,7 +71,7 @@
         android:layout_marginTop="2dp"
         android:ellipsize="end"
         android:maxLines="2"
-        android:text="Tap to snap your first bottle"
+        android:text="@string/widget_layout_tap_to_snap_your_first_bottle"
         android:textColor="#B5AEB8"
         android:textSize="12sp" />
 </LinearLayout>

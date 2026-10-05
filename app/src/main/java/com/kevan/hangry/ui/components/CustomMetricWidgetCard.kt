@@ -20,6 +20,8 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 @Composable
 fun CustomMetricWidgetCard(
@@ -36,7 +38,7 @@ fun CustomMetricWidgetCard(
     val (currentValue: Double?, displayUnit: String, color: Color) = when (widget.metricType) {
         MetricType.STEPS -> Triple(
             dailySummary?.steps?.toDouble(),
-            widget.unit ?: "steps",
+            widget.unit ?: stringResource(R.string.metrics_components_unit_steps),
             tokens.chartColors.steps
         )
         MetricType.ACTIVE_CALORIES -> Triple(
@@ -108,7 +110,7 @@ fun CustomMetricWidgetCard(
         widget.metricType == MetricType.STEPS -> String.format(Locale.US, "%,d", currentValue.toLong())
         widget.metricType == MetricType.SLEEP_DURATION && (widget.unit == null || widget.unit == "min") -> {
             val totalMins = currentValue.roundToInt()
-            "${totalMins / 60}h ${totalMins % 60}m"
+            stringResource(R.string.metrics_components_duration_h_m, totalMins / 60, totalMins % 60)
         }
         currentValue % 1.0 == 0.0 -> "${currentValue.toLong()}"
         else -> String.format(Locale.US, "%.1f", currentValue)
@@ -117,9 +119,9 @@ fun CustomMetricWidgetCard(
     val displayUnitWithSpace = if (displayUnit.isNotBlank() && !displayUnit.startsWith("%")) " $displayUnit" else displayUnit
 
     val targetSubtitle = when {
-        currentValue == null && goal != null -> "Target: ${goal.toInt()}$displayUnitWithSpace (No data today)"
-        currentValue == null -> "No data recorded today"
-        goal != null && truePercentage != null -> "Target: ${goal.toInt()}$displayUnitWithSpace ($truePercentage%)"
+        currentValue == null && goal != null -> stringResource(R.string.metrics_components_target_no_data, goal.toInt(), displayUnitWithSpace)
+        currentValue == null -> stringResource(R.string.metrics_components_no_data_recorded_today)
+        goal != null && truePercentage != null -> stringResource(R.string.metrics_components_target_percent, goal.toInt(), displayUnitWithSpace, truePercentage)
         else -> null
     }
 
@@ -151,7 +153,7 @@ fun CustomMetricWidgetCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Remove Widget",
+                        contentDescription = stringResource(R.string.metrics_components_remove_widget),
                         tint = tokens.textMuted,
                         modifier = Modifier.size(16.dp)
                     )
@@ -190,7 +192,7 @@ fun CustomMetricWidgetCard(
                             strokeWidth = 6.dp
                         ) {
                             Text(
-                                text = if (truePercentage != null) "$truePercentage%" else if (currentValue != null) "—" else "",
+                                text = if (truePercentage != null) stringResource(R.string.metrics_components_percent_value, truePercentage) else if (currentValue != null) "—" else "",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = color
                             )
@@ -232,7 +234,7 @@ fun CustomMetricWidgetCard(
                             )
                             if (truePercentage != null) {
                                 Text(
-                                    text = "$truePercentage%",
+                                    text = stringResource(R.string.metrics_components_percent_value, truePercentage),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = color
                                 )

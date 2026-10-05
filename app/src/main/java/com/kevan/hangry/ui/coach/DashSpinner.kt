@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.coach
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -34,7 +35,7 @@ internal val DASH_SPIN_FRAMES = listOf(
 fun DashSpinner(
     size: Dp,
     modifier: Modifier = Modifier,
-    contentDescription: String? = "Loading"
+    contentDescription: String? = stringResource(R.string.coach_loading)
 ) {
     val spin = rememberInfiniteTransition(label = "dashSpinner")
     val step = spin.animateFloat(

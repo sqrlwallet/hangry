@@ -14,6 +14,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /** Milliseconds until the next local midnight (plus a second, so the date has definitely changed). */
 fun millisUntilNextMidnight(zone: ZoneId = ZoneId.systemDefault()): Long {
@@ -57,7 +59,7 @@ fun PastDayNote(date: LocalDate, modifier: Modifier = Modifier) {
     val today = rememberToday()
     if (date == today) return
     Text(
-        text = "Showing ${dayLabel(date, today)}",
+        text = stringResource(R.string.metrics_components_showing_day, dayLabel(date, today)),
         style = MaterialTheme.typography.labelLarge,
         color = LocalHangryTokens.current.textSecondary,
         modifier = modifier

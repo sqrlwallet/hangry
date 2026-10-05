@@ -15,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.R
 import com.kevan.hangry.data.nudges.NudgeNotifications
 import com.kevan.hangry.data.nudges.NudgePrefs
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -37,15 +39,19 @@ internal fun RemindersSection() {
     }
 
     SettingsCollapsibleSection(
-        title = "Reminders",
-        summary = listOfNotNull("Morning brief".takeIf { morning }, "bedtime".takeIf { bedtime })
-            .joinToString(" & ").replaceFirstChar { it.uppercase() }.ifEmpty { "Off" },
+        title = stringResource(R.string.settings_reminders_title),
+        summary = when {
+            morning && bedtime -> stringResource(R.string.settings_reminders_summary_both)
+            morning -> stringResource(R.string.settings_reminders_summary_morning)
+            bedtime -> stringResource(R.string.settings_reminders_summary_bedtime)
+            else -> stringResource(R.string.settings_off)
+        },
         icon = Icons.Default.NotificationsActive
     ) {
         ReminderSwitch(
             icon = Icons.Default.WbSunny,
-            title = "Morning readiness",
-            subtitle = "Your recovery and today's strain target, once last night's sleep syncs",
+            title = stringResource(R.string.settings_reminders_morning_title),
+            subtitle = stringResource(R.string.settings_reminders_morning_subtitle),
             checked = morning,
             onChange = {
                 morning = it
@@ -56,8 +62,8 @@ internal fun RemindersSection() {
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
         ReminderSwitch(
             icon = Icons.Default.Bedtime,
-            title = "Bedtime reminder",
-            subtitle = "A nudge 30 minutes before your suggested bedtime",
+            title = stringResource(R.string.settings_reminders_bedtime_title),
+            subtitle = stringResource(R.string.settings_reminders_bedtime_subtitle),
             checked = bedtime,
             onChange = {
                 bedtime = it
@@ -68,12 +74,12 @@ internal fun RemindersSection() {
         if (!allowed && (morning || bedtime)) {
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
             Text(
-                "Notifications are off for Hangry, so these can't show.",
+                stringResource(R.string.settings_reminders_notifications_off),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                TextButton(onClick = { permission.launch(Manifest.permission.POST_NOTIFICATIONS) }) { Text("Allow notifications") }
+                TextButton(onClick = { permission.launch(Manifest.permission.POST_NOTIFICATIONS) }) { Text(stringResource(R.string.settings_reminders_allow_notifications)) }
             }
         }
     }

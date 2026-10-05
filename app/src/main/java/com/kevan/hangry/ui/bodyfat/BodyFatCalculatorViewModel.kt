@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.bodyfat
 
+import com.kevan.hangry.R
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
@@ -239,7 +240,7 @@ class BodyFatCalculatorViewModel(
     fun analyzeWithAi() {
         val state = _uiState.value
         if (state.photos.isEmpty()) {
-            _uiState.update { it.copy(aiErrorMessage = "Please add at least 1 photo for AI vision analysis.") }
+            _uiState.update { it.copy(aiErrorMessage = context.getString(R.string.body_bodyfat_error_add_photo)) }
             return
         }
 
@@ -254,7 +255,7 @@ class BodyFatCalculatorViewModel(
                 _uiState.update {
                     it.copy(
                         isAiAnalyzing = false,
-                        aiErrorMessage = "Could not process selected image files."
+                        aiErrorMessage = context.getString(R.string.body_bodyfat_error_process_images)
                     )
                 }
                 return@launch
@@ -278,7 +279,7 @@ class BodyFatCalculatorViewModel(
                     _uiState.update {
                         it.copy(
                             isAiAnalyzing = false,
-                            aiErrorMessage = analysis.rejectionReason ?: "Physique could not be analyzed."
+                            aiErrorMessage = analysis.rejectionReason ?: context.getString(R.string.body_bodyfat_error_physique_not_analyzed)
                         )
                     }
                 } else {
@@ -292,12 +293,12 @@ class BodyFatCalculatorViewModel(
                 }
             }.onFailure { error ->
                 val message = when (error) {
-                    is OpenRouterException.InvalidApiKey -> "OpenRouter API key is invalid or not set in Settings."
-                    is OpenRouterException.RateLimited -> "Rate limit reached. Please retry in a few moments."
-                    is OpenRouterException.NoNetwork -> "Network error connecting to OpenRouter. Check your connection."
-                    is OpenRouterException.ServerError -> "OpenRouter returned a server error. Try again shortly."
-                    is OpenRouterException.MalformedResponse -> "Unexpected AI response format."
-                    else -> error.localizedMessage ?: "Failed to analyze body fat."
+                    is OpenRouterException.InvalidApiKey -> context.getString(R.string.body_bodyfat_error_invalid_key)
+                    is OpenRouterException.RateLimited -> context.getString(R.string.body_bodyfat_error_rate_limited)
+                    is OpenRouterException.NoNetwork -> context.getString(R.string.body_bodyfat_error_no_network)
+                    is OpenRouterException.ServerError -> context.getString(R.string.body_bodyfat_error_server)
+                    is OpenRouterException.MalformedResponse -> context.getString(R.string.body_bodyfat_error_malformed)
+                    else -> error.localizedMessage ?: context.getString(R.string.body_bodyfat_error_generic)
                 }
                 _uiState.update {
                     it.copy(
@@ -427,7 +428,7 @@ class BodyFatCalculatorViewModel(
             _uiState.update {
                 it.copy(
                     isSaving = false,
-                    saveSuccessMessage = "Body composition scan saved to your health profile."
+                    saveSuccessMessage = context.getString(R.string.body_bodyfat_scan_saved)
                 )
             }
         }

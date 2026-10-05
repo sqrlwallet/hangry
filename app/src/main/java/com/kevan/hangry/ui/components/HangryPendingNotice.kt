@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * Shown in place of a score/metric card from midnight until today's sleep has been recorded.
@@ -48,12 +50,12 @@ fun HangryPendingNotice(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Pending",
+                        text = stringResource(R.string.metrics_components_pending),
                         style = MaterialTheme.typography.titleSmall,
                         color = tokens.textPrimary
                     )
                     if (details != null) {
-                        HangryInfoTip(title = "Pending", body = details)
+                        HangryInfoTip(title = stringResource(R.string.metrics_components_pending), body = details)
                     }
                 }
                 Text(

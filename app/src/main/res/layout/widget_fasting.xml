@@ -27,7 +27,7 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="FASTING"
+            android:text="@string/widget_layout_fasting"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -68,7 +68,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Fasting is off"
+            android:text="@string/widget_layout_fasting_is_off"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold"
@@ -80,7 +80,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Tap to set it up"
+            android:text="@string/widget_layout_tap_to_set_it_up"
             android:textColor="#B5AEB8"
             android:textSize="12sp" />
 
@@ -103,7 +103,7 @@
         android:background="@drawable/bg_widget_button"
         android:gravity="center"
         android:paddingVertical="6dp"
-        android:text="Start fast"
+        android:text="@string/widget_layout_start_fast"
         android:textColor="#F9F4F2"
         android:textSize="12sp"
         android:textStyle="bold" />

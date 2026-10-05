@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="GOALS"
+            android:text="@string/widget_layout_goals"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -182,7 +182,7 @@
         android:layout_marginTop="10dp"
         android:ellipsize="end"
         android:maxLines="2"
-        android:text="Set a weight goal in Settings, or a marker goal in Health Records."
+        android:text="@string/widget_layout_set_a_weight_goal_in_settings_or_a_marke"
         android:textColor="#B5AEB8"
         android:textSize="12sp" />
 </LinearLayout>

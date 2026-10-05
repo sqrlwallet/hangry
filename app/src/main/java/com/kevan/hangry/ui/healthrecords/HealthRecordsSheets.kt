@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.healthrecords
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -42,7 +44,7 @@ import java.util.Locale
 internal fun MarkerPickerDialog(markers: List<MarkerType>, onDismiss: () -> Unit, onPick: (MarkerType) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a reading") },
+        title = { Text(stringResource(R.string.body_records_add_a_reading_title)) },
         text = {
             Column {
                 markers.forEach { type ->
@@ -55,7 +57,7 @@ internal fun MarkerPickerDialog(markers: List<MarkerType>, onDismiss: () -> Unit
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -86,7 +88,7 @@ internal fun AddReadingSheet(
                 .padding(horizontal = HangryTokens.Spacing.m).padding(bottom = HangryTokens.Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Add ${type.label.lowercase()}", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.body_records_add_marker, type.label.lowercase()), style = MaterialTheme.typography.titleLarge)
             if (type.units.size > 1) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     type.units.forEach { u ->
@@ -96,14 +98,14 @@ internal fun AddReadingSheet(
             }
             if (type.hasSecondaryValue) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberField("Systolic (top)", valueText, { valueText = it }, Modifier.weight(1f))
-                    NumberField("Diastolic (bottom)", secondaryText, { secondaryText = it }, Modifier.weight(1f))
+                    NumberField(stringResource(R.string.body_records_systolic_top), valueText, { valueText = it }, Modifier.weight(1f))
+                    NumberField(stringResource(R.string.body_records_diastolic_bottom), secondaryText, { secondaryText = it }, Modifier.weight(1f))
                 }
             } else {
-                NumberField("${type.label} (${unit.label})", valueText, { valueText = it }, Modifier.fillMaxWidth())
+                NumberField(stringResource(R.string.body_records_marker_with_unit, type.label, unit.label), valueText, { valueText = it }, Modifier.fillMaxWidth())
             }
             if (type == MarkerType.BLOOD_GLUCOSE) {
-                Text("When was it taken?", style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
+                Text(stringResource(R.string.body_records_when_taken), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     GlucoseContext.entries.forEach { c ->
                         FilterChip(selected = context == c, onClick = { context = c }, label = { Text(c.label) })
@@ -111,13 +113,13 @@ internal fun AddReadingSheet(
                 }
             }
             OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (date == LocalDate.now()) "Today" else date.format(DATE))
+                Text(if (date == LocalDate.now()) stringResource(R.string.body_records_today) else date.format(DATE))
             }
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text("Note (optional)") },
-                placeholder = { Text("e.g. lab report, after coffee") },
+                label = { Text(stringResource(R.string.body_records_note_optional)) },
+                placeholder = { Text(stringResource(R.string.body_records_note_placeholder)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Button(
@@ -134,9 +136,9 @@ internal fun AddReadingSheet(
                 },
                 enabled = valid,
                 modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) { Text("Save reading") }
+            ) { Text(stringResource(R.string.body_records_save_reading)) }
             Text(
-                "For your own tracking - not medical advice.",
+                stringResource(R.string.body_records_tracking_disclaimer_short),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
@@ -184,12 +186,12 @@ internal fun MarkerDetailSheet(
                 Button(onClick = onAddReading, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Add reading")
+                    Text(stringResource(R.string.body_records_add_reading))
                 }
                 OutlinedButton(onClick = onEditGoal, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(if (records.goal(type) != null) "Edit goal" else "Set a goal")
+                    Text(if (records.goal(type) != null) stringResource(R.string.body_records_edit_goal) else stringResource(R.string.body_records_set_goal))
                 }
             }
             if (records.goal(type) != null) GoalSummary(type = type, records = records)
@@ -198,13 +200,13 @@ internal fun MarkerDetailSheet(
                 MetricBandTable(metric)
                 if (type == MarkerType.BLOOD_GLUCOSE) {
                     Text(
-                        "Ranges shown are for ${(history.firstOrNull()?.glucoseContext ?: GlucoseContext.RANDOM).label.lowercase()} readings; fasting limits are tighter.",
+                        stringResource(R.string.body_records_glucose_ranges_note, (history.firstOrNull()?.glucoseContext ?: GlucoseContext.RANDOM).label.lowercase()),
                         style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
                     )
                 }
             }
             if (history.isNotEmpty()) {
-                Text("History", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
+                Text(stringResource(R.string.body_records_history), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
                 history.take(30).forEach { reading ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -219,17 +221,17 @@ internal fun MarkerDetailSheet(
                             )
                         }
                         IconButton(onClick = { onDeleteReading(reading.id) }) {
-                            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete reading", tint = tokens.textMuted)
+                            Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.body_records_delete_reading), tint = tokens.textMuted)
                         }
                     }
                 }
             }
-            MetricInfoBlock("What it is", metric.info.whatItIs)
-            MetricInfoBlock("Your reading", metric.info.howCalculated)
-            MetricInfoBlock("Why it matters", metric.info.whyItMatters)
-            MetricInfoBlock("Ranges from", metric.info.source)
+            MetricInfoBlock(stringResource(R.string.body_records_what_it_is), metric.info.whatItIs)
+            MetricInfoBlock(stringResource(R.string.body_records_your_reading), metric.info.howCalculated)
+            MetricInfoBlock(stringResource(R.string.body_records_why_it_matters), metric.info.whyItMatters)
+            MetricInfoBlock(stringResource(R.string.body_records_ranges_from), metric.info.source)
             Text(
-                "General adult reference ranges for tracking only - not a diagnosis. Your doctor may set different targets for you.",
+                stringResource(R.string.body_records_reference_disclaimer),
                 style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
             )
         }
@@ -265,9 +267,9 @@ internal fun GoalSheet(
                 .padding(horizontal = HangryTokens.Spacing.m).padding(bottom = HangryTokens.Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("${if (lower) "Lower" else "Raise"} your ${type.label.lowercase()}", style = MaterialTheme.typography.titleLarge)
+            Text(if (lower) stringResource(R.string.body_records_goal_lower_title, type.label.lowercase()) else stringResource(R.string.body_records_goal_raise_title, type.label.lowercase()), style = MaterialTheme.typography.titleLarge)
             Text(
-                "Aim to get ${if (lower) "at or below" else "at or above"} this. We've suggested the edge of the healthy range - if your doctor gave you a target, use theirs.",
+                if (lower) stringResource(R.string.body_records_goal_aim_below) else stringResource(R.string.body_records_goal_aim_above),
                 style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary
             )
             if (type.units.size > 1) {
@@ -283,22 +285,22 @@ internal fun GoalSheet(
             }
             if (type.hasSecondaryValue) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberField("Systolic target", targetText, { targetText = it }, Modifier.weight(1f))
-                    NumberField("Diastolic target", secondaryText, { secondaryText = it }, Modifier.weight(1f))
+                    NumberField(stringResource(R.string.body_records_systolic_target), targetText, { targetText = it }, Modifier.weight(1f))
+                    NumberField(stringResource(R.string.body_records_diastolic_target), secondaryText, { secondaryText = it }, Modifier.weight(1f))
                 }
             } else {
-                NumberField("Target (${unit.label})", targetText, { targetText = it }, Modifier.fillMaxWidth())
+                NumberField(stringResource(R.string.body_records_target_with_unit, unit.label), targetText, { targetText = it }, Modifier.fillMaxWidth())
             }
             OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(date?.let { "By ${it.format(DATE)}" } ?: "Add a target date (optional)")
+                Text(date?.let { stringResource(R.string.body_records_by_date, it.format(DATE)) } ?: stringResource(R.string.body_records_add_target_date))
             }
             Button(
                 onClick = { onSave(target!! * unit.toCanonical, secondary?.times(unit.toCanonical), date) },
                 enabled = target != null && target > 0 && (!type.hasSecondaryValue || secondary != null),
                 modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) { Text("Save goal") }
+            ) { Text(stringResource(R.string.body_records_save_goal)) }
             if (existing != null) {
-                TextButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) { Text("Remove goal") }
+                TextButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.body_records_remove_goal)) }
             }
         }
     }
@@ -317,22 +319,22 @@ internal fun AddProfileItemDialog(kind: HealthProfileKind, onDismiss: () -> Unit
     val isAllergy = kind == HealthProfileKind.ALLERGY
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isAllergy) "Add an allergy" else "Add a condition") },
+        title = { Text(if (isAllergy) stringResource(R.string.body_records_add_allergy) else stringResource(R.string.body_records_add_condition)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it }, singleLine = true,
-                    label = { Text(if (isAllergy) "Allergy" else "Condition") },
-                    placeholder = { Text(if (isAllergy) "e.g. Peanuts, penicillin" else "e.g. Type 2 diabetes, asthma") }
+                    label = { Text(if (isAllergy) stringResource(R.string.body_records_allergy) else stringResource(R.string.body_records_condition)) },
+                    placeholder = { Text(if (isAllergy) stringResource(R.string.body_records_allergy_placeholder) else stringResource(R.string.body_records_condition_placeholder)) }
                 )
                 OutlinedTextField(
                     value = note, onValueChange = { note = it }, singleLine = true,
-                    label = { Text(if (isAllergy) "Reaction (optional)" else "Note (optional)") }
+                    label = { Text(if (isAllergy) stringResource(R.string.body_records_reaction_optional) else stringResource(R.string.body_records_note_optional)) }
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(name, note) }, enabled = name.isNotBlank()) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        confirmButton = { TextButton(onClick = { onSave(name, note) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.body_records_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -343,17 +345,17 @@ internal fun LogPeriodDialog(onDismiss: () -> Unit, onSave: (LocalDate, LocalDat
     var picking by remember { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log a period") },
+        title = { Text(stringResource(R.string.body_records_log_period)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text("Started ${start.format(DATE)}") }
+                OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.body_records_period_started, start.format(DATE))) }
                 OutlinedButton(onClick = { picking = "end" }, modifier = Modifier.fillMaxWidth()) {
-                    Text(end?.let { "Ended ${it.format(DATE)}" } ?: "Still going / add end date")
+                    Text(end?.let { stringResource(R.string.body_records_period_ended, it.format(DATE)) } ?: stringResource(R.string.body_records_period_still_going))
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(start, end) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        confirmButton = { TextButton(onClick = { onSave(start, end) }) { Text(stringResource(R.string.body_records_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
     picking?.let { which ->
         HangryDatePickerDialog(
@@ -383,9 +385,9 @@ internal fun HangryDatePickerDialog(initial: LocalDate, allowFuture: Boolean, on
         confirmButton = {
             TextButton(onClick = {
                 state.selectedDateMillis?.let { onPick(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.body_records_ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     ) { DatePicker(state = state) }
 }
 

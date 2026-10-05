@@ -22,6 +22,8 @@ import com.kevan.hangry.domain.model.MetricTone
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
 import kotlin.math.abs
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 // Shared visuals for any banded metric (Body Metrics, Health Records): status chip, a coloured
 // range bar with the user's marker, a ranges table and the explainer blocks.
@@ -42,14 +44,14 @@ fun MetricBandTable(metric: BodyMetric) {
     val current = metric.band
     val decimals = decimalsFor(metric.bands)
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Ranges", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
+        Text(stringResource(R.string.metrics_components_ranges), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
         metric.bands.forEachIndexed { index, band ->
             val lower = metric.bands.getOrNull(index - 1)?.upTo
             val range = when {
-                lower == null && band.upTo != null -> "under ${fmt(band.upTo, decimals)}"
-                band.upTo == null && lower != null -> "${fmt(lower, decimals)} and over"
-                lower != null && band.upTo != null -> "${fmt(lower, decimals)} – ${fmt(band.upTo, decimals)}"
-                else -> "any"
+                lower == null && band.upTo != null -> stringResource(R.string.metrics_components_range_under, fmt(band.upTo, decimals))
+                band.upTo == null && lower != null -> stringResource(R.string.metrics_components_range_and_over, fmt(lower, decimals))
+                lower != null && band.upTo != null -> stringResource(R.string.metrics_components_range_between, fmt(lower, decimals), fmt(band.upTo, decimals))
+                else -> stringResource(R.string.metrics_components_range_any)
             }
             val isCurrent = metric.isAvailable && band == current
             Row(
@@ -65,7 +67,7 @@ fun MetricBandTable(metric: BodyMetric) {
                 Box(Modifier.size(8.dp).background(metricToneColor(band.tone), RoundedCornerShape(50)))
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    band.label + if (isCurrent) "  (you)" else "",
+                    if (isCurrent) stringResource(R.string.metrics_components_band_you, band.label) else band.label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
                     color = tokens.textPrimary,

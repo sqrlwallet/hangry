@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="BREATHE"
+            android:text="@string/widget_layout_breathe"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -37,7 +37,7 @@
             android:background="@drawable/bg_widget_chip"
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
-            android:text="— min / wk"
+            android:text="@string/widget_layout_none_min_wk"
             android:textColor="#6FC3DF"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -71,7 +71,7 @@
                 android:layout_marginTop="0dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="0 min"
+                android:text="@string/widget_layout_0_min"
                 android:textColor="#FFFFFF"
                 android:textSize="22sp"
                 android:textStyle="bold" />
@@ -83,7 +83,7 @@
                 android:layout_marginTop="0dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="today · tap to start"
+                android:text="@string/widget_layout_today_tap_to_start"
                 android:textColor="#B5AEB8"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -103,7 +103,7 @@
             android:background="@drawable/bg_widget_button"
             android:gravity="center"
             android:paddingVertical="6dp"
-            android:text="6 BPM"
+            android:text="@string/widget_layout_6_bpm"
             android:textColor="#F9F4F2"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -118,7 +118,7 @@
             android:background="@drawable/bg_widget_button"
             android:gravity="center"
             android:paddingVertical="6dp"
-            android:text="4s Box"
+            android:text="@string/widget_layout_4s_box"
             android:textColor="#F9F4F2"
             android:textSize="12sp"
             android:textStyle="bold" />

@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="CYCLE"
+            android:text="@string/widget_layout_cycle"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -62,7 +62,7 @@
         android:layout_marginTop="0dp"
         android:ellipsize="end"
         android:maxLines="2"
-        android:text="Log your period in Health Records"
+        android:text="@string/widget_layout_log_your_period_in_health_records"
         android:textColor="#B5AEB8"
         android:textSize="12sp" />
 </LinearLayout>

@@ -16,6 +16,8 @@ import com.kevan.hangry.data.background.BackgroundReadStatus
 import com.kevan.hangry.ui.coach.DashExpression
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * Asks once - for people who finished onboarding before it had the background step - whether
@@ -39,18 +41,18 @@ fun BackgroundAccessPrompt() {
     AlertDialog(
         onDismissRequest = ::close,
         icon = { DashExpression(mood = DashMood.SLEEPY, size = 72.dp) },
-        title = { Text("Keep Hangry up to date?") },
+        title = { Text(stringResource(R.string.settings_bg_prompt_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.Start) {
                 Text(
-                    "Hangry can now sync every hour while it's closed, so your recovery, widgets and morning brief are ready when you wake up.",
+                    stringResource(R.string.settings_bg_prompt_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = tokens.textSecondary
                 )
                 BackgroundAccessRows(state, actions)
             }
         },
-        confirmButton = { TextButton(onClick = ::close) { Text(if (state?.backgroundSyncWorks == true) "Done" else "Not now") } }
+        confirmButton = { TextButton(onClick = ::close) { Text(if (state?.backgroundSyncWorks == true) stringResource(R.string.settings_done) else stringResource(R.string.settings_not_now)) } }
     )
 }
 

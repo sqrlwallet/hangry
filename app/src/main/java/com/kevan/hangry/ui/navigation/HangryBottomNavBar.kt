@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -55,38 +57,39 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import com.kevan.hangry.R
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
 sealed class BottomNavDestination(
     val route: String,
-    val label: String,
+    @StringRes val labelRes: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 ) {
     data object Today : BottomNavDestination(
         route = Screen.Dashboard.route,
-        label = "Today",
+        labelRes = R.string.body_nav_today,
         selectedIcon = Icons.Filled.Dashboard,
         unselectedIcon = Icons.Outlined.Dashboard
     )
 
     data object Nutrition : BottomNavDestination(
         route = Screen.Nutrition.route,
-        label = "Nutrition",
+        labelRes = R.string.body_nav_nutrition,
         selectedIcon = Icons.Filled.Restaurant,
         unselectedIcon = Icons.Outlined.Restaurant
     )
 
     data object AiCoach : BottomNavDestination(
         route = Screen.AiCoach.route,
-        label = "Ask Dash",
+        labelRes = R.string.body_nav_ask_dash,
         selectedIcon = Icons.Filled.AutoAwesome,
         unselectedIcon = Icons.Outlined.AutoAwesome
     )
 
     data object Workouts : BottomNavDestination(
         route = Screen.Training.route,
-        label = "Workouts",
+        labelRes = R.string.body_nav_workouts,
         selectedIcon = Icons.Filled.FitnessCenter,
         unselectedIcon = Icons.Outlined.FitnessCenter
     )
@@ -94,7 +97,7 @@ sealed class BottomNavDestination(
     /** Trends, posture, body fat and everything else that isn't its own tab. */
     data object More : BottomNavDestination(
         route = Screen.More.route,
-        label = "More",
+        labelRes = R.string.body_nav_more,
         selectedIcon = Icons.Filled.GridView,
         unselectedIcon = Icons.Outlined.GridView
     )
@@ -213,28 +216,29 @@ private fun RowScope.FloatingNavItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val label = stringResource(destination.labelRes)
     val animatedScale by animateFloatAsState(
         targetValue = if (selected) 1.06f else 1.0f,
         animationSpec = spring(dampingRatio = 0.72f, stiffness = 400f),
-        label = "nav_scale_${destination.label}"
+        label = "nav_scale_${destination.route}"
     )
 
     val animatedPillAlpha by animateFloatAsState(
         targetValue = if (selected) 1.0f else 0.0f,
         animationSpec = tween(durationMillis = 200),
-        label = "nav_pill_alpha_${destination.label}"
+        label = "nav_pill_alpha_${destination.route}"
     )
 
     val iconTint by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary else LocalHangryTokens.current.textMuted,
         animationSpec = tween(durationMillis = 200),
-        label = "nav_icon_tint_${destination.label}"
+        label = "nav_icon_tint_${destination.route}"
     )
 
     val textColor by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary else LocalHangryTokens.current.textMuted,
         animationSpec = tween(durationMillis = 200),
-        label = "nav_text_tint_${destination.label}"
+        label = "nav_text_tint_${destination.route}"
     )
 
     Box(
@@ -250,7 +254,7 @@ private fun RowScope.FloatingNavItem(
             .semantics {
                 role = Role.Tab
                 this.selected = selected
-                contentDescription = destination.label
+                contentDescription = label
             },
         contentAlignment = Alignment.Center
     ) {
@@ -292,7 +296,7 @@ private fun RowScope.FloatingNavItem(
             )
             Spacer(modifier = Modifier.height(3.dp))
             Text(
-                text = destination.label,
+                text = label,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold
                 ),

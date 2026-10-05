@@ -177,10 +177,19 @@ object HangryWidgetUpdater {
         val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
         val count = if (doses.isEmpty()) "—" else "${snapshot.takenToday}/${doses.size}"
         val (headline, subtitle) = when {
-            snapshot.supplements.isEmpty() -> "Add your supplements" to "Tap to snap your first bottle"
-            doses.isEmpty() -> "Taking ${snapshot.active.size}" to "Turn on tracking for dose check-offs"
-            next == null -> "All taken today" to "${doses.size} dose${if (doses.size == 1) "" else "s"} done"
-            else -> next.supplement.name to "Next at ${next.time.format(timeFormat)} · ${doses.size - snapshot.takenToday} left today"
+            snapshot.supplements.isEmpty() ->
+                context.getString(R.string.dashboard_widget_supplements_add) to context.getString(R.string.dashboard_widget_supplements_snap_first)
+            doses.isEmpty() ->
+                context.getString(R.string.dashboard_widget_supplements_taking, snapshot.active.size) to context.getString(R.string.dashboard_widget_supplements_turn_on_tracking)
+            next == null -> context.getString(R.string.dashboard_widget_supplements_all_taken) to context.getString(
+                if (doses.size == 1) R.string.dashboard_widget_supplements_dose_done else R.string.dashboard_widget_supplements_doses_done,
+                doses.size
+            )
+            else -> next.supplement.name to context.getString(
+                R.string.dashboard_widget_supplements_next_at,
+                next.time.format(timeFormat),
+                doses.size - snapshot.takenToday
+            )
         }
 
         for (id in ids) {
@@ -217,7 +226,7 @@ object HangryWidgetUpdater {
         val durationStr = if (durationMinutes != null && durationMinutes > 0) {
             val hours = durationMinutes / 60
             val mins = durationMinutes % 60
-            if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+            if (hours > 0) context.getString(R.string.dashboard_widget_hours_minutes, hours, mins) else context.getString(R.string.dashboard_widget_minutes_short, mins)
         } else {
             "—"
         }
@@ -227,16 +236,20 @@ object HangryWidgetUpdater {
         val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
         val zone = ZoneId.systemDefault()
         val subtitleStr = when {
-            !hasSleep -> "No sleep recorded yet"
+            !hasSleep -> context.getString(R.string.dashboard_widget_sleep_none)
             latestSleep != null ->
                 "${latestSleep.startTime.atZone(zone).format(timeFormat)} – ${latestSleep.endTime.atZone(zone).format(timeFormat)}"
-            else -> "Last night"
+            else -> context.getString(R.string.dashboard_widget_sleep_last_night)
         }
         // The night out of 100 leads; time asleep moves to the subtitle.
         val sleepScore = summary?.sleepScore?.takeIf { hasSleep }
-        val headline = sleepScore?.let { "$it/100" } ?: durationStr
-        val subtitle = if (sleepScore != null) "$durationStr asleep · $subtitleStr" else subtitleStr
-        val scoreStr = if (sleepScore != null) "Sleep score" else summary?.sleepConsistencyScore?.takeIf { hasSleep }?.let { "${it.roundToInt()}% steady" }
+        val headline = sleepScore?.let { context.getString(R.string.dashboard_widget_score_out_of_100, it) } ?: durationStr
+        val subtitle = if (sleepScore != null) context.getString(R.string.dashboard_widget_sleep_asleep_subtitle, durationStr, subtitleStr) else subtitleStr
+        val scoreStr = if (sleepScore != null) {
+            context.getString(R.string.dashboard_widget_sleep_score)
+        } else {
+            summary?.sleepConsistencyScore?.takeIf { hasSleep }?.let { context.getString(R.string.dashboard_widget_sleep_steady, it.roundToInt()) }
+        }
 
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_sleep)
@@ -271,13 +284,8 @@ object HangryWidgetUpdater {
         if (ids.isEmpty()) return
 
         val scoreStr = recovery?.score?.let { "$it%" } ?: "—"
-        val badgeStr = when (recovery?.state?.uppercase()) {
-            "PRIMED" -> "PRIMED"
-            "BALANCED" -> "STEADY"
-            "REBUILD" -> "RECOVERING"
-            else -> "CALIBRATING"
-        }
-        val adviceStr = recovery?.supportiveAdvice ?: "Calibrating your physiological baseline"
+        val badgeStr = recoveryBadge(context, recovery?.state)
+        val adviceStr = recovery?.supportiveAdvice ?: context.getString(R.string.dashboard_widget_recovery_calibrating_advice)
         val dashMood = recovery?.state
             ?.let { runCatching { RecoveryState.valueOf(it.uppercase()) }.getOrNull() }
             ?.dashMood() ?: DashMood.THINKING
@@ -305,6 +313,15 @@ object HangryWidgetUpdater {
         }
     }
 
+    private fun recoveryBadge(context: Context, state: String?): String = context.getString(
+        when (state?.uppercase()) {
+            "PRIMED" -> R.string.dashboard_widget_recovery_badge_primed
+            "BALANCED" -> R.string.dashboard_widget_recovery_badge_steady
+            "REBUILD" -> R.string.dashboard_widget_recovery_badge_recovering
+            else -> R.string.dashboard_widget_recovery_badge_calibrating
+        }
+    )
+
     private fun updateOverviewWidgets(
         context: Context,
         manager: AppWidgetManager,
@@ -317,23 +334,18 @@ object HangryWidgetUpdater {
         if (ids.isEmpty()) return
 
         val recoveryScoreStr = recovery?.score?.let { "$it%" } ?: "—"
-        val recoveryBadgeStr = when (recovery?.state?.uppercase()) {
-            "PRIMED" -> "PRIMED"
-            "BALANCED" -> "STEADY"
-            "REBUILD" -> "RECOVERING"
-            else -> "CALIBRATING"
-        }
+        val recoveryBadgeStr = recoveryBadge(context, recovery?.state)
 
-        val stepsStr = summary?.steps?.let { "${String.format("%,d", it)} steps" } ?: "— steps"
-        val caloriesStr = summary?.activeCalories?.let { "${it.roundToInt()} kcal" } ?: "— kcal"
+        val stepsStr = context.getString(R.string.dashboard_widget_steps_value, summary?.steps?.let { String.format("%,d", it) } ?: "—")
+        val caloriesStr = context.getString(R.string.dashboard_widget_kcal_value, summary?.activeCalories?.let { "${it.roundToInt()}" } ?: "—")
 
         val durationMinutes = latestSleep?.durationMinutes ?: summary?.sleepDurationMinutes
         val sleepStr = if (durationMinutes != null && durationMinutes > 0) {
             val h = durationMinutes / 60
             val m = durationMinutes % 60
-            "Sleep: ${h}h ${m}m"
+            context.getString(R.string.dashboard_widget_overview_sleep, context.getString(R.string.dashboard_widget_hours_minutes, h, m))
         } else {
-            "Sleep: —"
+            context.getString(R.string.dashboard_widget_overview_sleep, "—")
         }
 
         for (id in ids) {

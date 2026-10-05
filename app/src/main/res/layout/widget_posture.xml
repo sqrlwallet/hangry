@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="POSTURE"
+            android:text="@string/widget_layout_posture"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -80,7 +80,7 @@
         android:layout_marginTop="0dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="No checks yet"
+        android:text="@string/widget_layout_no_checks_yet"
         android:textColor="#B5AEB8"
         android:textSize="12sp" />
 
@@ -92,7 +92,7 @@
         android:background="@drawable/bg_widget_button"
         android:gravity="center"
         android:paddingVertical="6dp"
-        android:text="New check"
+        android:text="@string/widget_layout_new_check"
         android:textColor="#F9F4F2"
         android:textSize="12sp"
         android:textStyle="bold" />

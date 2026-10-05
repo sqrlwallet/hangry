@@ -118,7 +118,7 @@ fun PermissionSetupScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Connect Health Data", color = androidx.compose.ui.graphics.Color.White) },
+                    title = { Text(stringResource(R.string.settings_onboarding_connect_title), color = androidx.compose.ui.graphics.Color.White) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = androidx.compose.ui.graphics.Color.Transparent
                     )
@@ -147,9 +147,9 @@ fun PermissionSetupScreen(
                     ) {
                         Text(
                             text = when {
-                                hasFullPermissions -> "Continue"
-                                !isAvailable -> "Continue Without Health Connect"
-                                else -> "Continue with Available Permissions"
+                                hasFullPermissions -> stringResource(R.string.settings_continue)
+                                !isAvailable -> stringResource(R.string.settings_onboarding_continue_without_hc)
+                                else -> stringResource(R.string.settings_onboarding_continue_available)
                             },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
@@ -179,20 +179,19 @@ fun PermissionSetupScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Connect Your Health Data",
+                    text = stringResource(R.string.settings_onboarding_connect_heading),
                     style = MaterialTheme.typography.headlineMedium,
                     color = tokens.textPrimary,
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 HangryInfoTip(
-                    title = "Why Health Connect?",
-                    body = "Hangry reads your sleep, heart rate, and activity from Health Connect to " +
-                        "calculate recovery, strain, and training load - entirely on your device."
+                    title = stringResource(R.string.settings_onboarding_why_hc_title),
+                    body = stringResource(R.string.settings_onboarding_why_hc_body)
                 )
             }
 
             Text(
-                text = "Read-only, processed on this device.",
+                text = stringResource(R.string.settings_onboarding_read_only),
                 style = MaterialTheme.typography.bodyMedium,
                 color = tokens.textSecondary
             )
@@ -202,20 +201,20 @@ fun PermissionSetupScreen(
                     OnboardingFeatureRow(
                         icon = Icons.Default.Bedtime,
                         tint = tokens.chartColors.sleep,
-                        title = "Sleep Sessions",
-                        subtitle = "Duration & consistency → sleep debt"
+                        title = stringResource(R.string.settings_privacy_perm_sleep),
+                        subtitle = stringResource(R.string.settings_onboarding_feature_sleep)
                     )
                     OnboardingFeatureRow(
                         icon = Icons.Default.Favorite,
                         tint = tokens.chartColors.hrv,
-                        title = "Heart Rate & HRV",
-                        subtitle = "Autonomic balance vs. your baseline"
+                        title = stringResource(R.string.settings_privacy_perm_heart),
+                        subtitle = stringResource(R.string.settings_onboarding_feature_heart)
                     )
                     OnboardingFeatureRow(
                         icon = Icons.AutoMirrored.Filled.DirectionsRun,
                         tint = tokens.chartColors.trainingLoad,
-                        title = "Workouts & Daily Steps",
-                        subtitle = "Daily strain vs. recovery readiness"
+                        title = stringResource(R.string.settings_onboarding_feature_workouts_title),
+                        subtitle = stringResource(R.string.settings_onboarding_feature_workouts)
                     )
                 }
             }
@@ -233,19 +232,19 @@ fun PermissionSetupScreen(
                         ) {
                             DashExpression(mood = DashMood.CONCERNED, size = 56.dp, contentDescription = null)
                             Text(
-                                text = "Health Connect needs an update.",
+                                text = stringResource(R.string.settings_onboarding_hc_needs_update),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.textPrimary,
                                 modifier = Modifier.weight(1f)
                             )
                             HangryInfoTip(
-                                title = "Update Health Connect",
-                                body = "Health Connect needs an update before Hangry can connect to it."
+                                title = stringResource(R.string.settings_onboarding_update_hc),
+                                body = stringResource(R.string.settings_onboarding_hc_needs_update_info)
                             )
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         TextButton(onClick = { openHealthConnectStoreListing(context) }) {
-                            Text("Update Health Connect")
+                            Text(stringResource(R.string.settings_onboarding_update_hc))
                         }
                     }
                 }
@@ -262,19 +261,19 @@ fun PermissionSetupScreen(
                         ) {
                             DashExpression(mood = DashMood.CONCERNED, size = 56.dp, contentDescription = null)
                             Text(
-                                text = "Health Connect isn't installed.",
+                                text = stringResource(R.string.settings_onboarding_hc_not_installed),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.textPrimary,
                                 modifier = Modifier.weight(1f)
                             )
                             HangryInfoTip(
-                                title = "Health Connect",
-                                body = "Health Connect isn't installed on this device. Hangry has no data to show until it's installed and connected."
+                                title = stringResource(R.string.settings_health_connect),
+                                body = stringResource(R.string.settings_onboarding_hc_not_installed_info)
                             )
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         TextButton(onClick = { openHealthConnectStoreListing(context) }) {
-                            Text("Install Health Connect")
+                            Text(stringResource(R.string.settings_onboarding_install_hc))
                         }
                     }
                 }
@@ -287,7 +286,7 @@ fun PermissionSetupScreen(
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(containerColor = com.kevan.hangry.ui.theme.BlueRibbon, contentColor = androidx.compose.ui.graphics.Color.White)
                 ) {
-                    Text(if (hasFullPermissions) "All Permissions Granted" else "Grant Health Connect Permissions")
+                    Text(if (hasFullPermissions) stringResource(R.string.settings_onboarding_all_granted) else stringResource(R.string.settings_onboarding_grant_permissions))
                 }
             }
 
@@ -336,12 +335,12 @@ private fun PermissionCheckRow(name: String, isGranted: Boolean) {
         if (isGranted) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Granted",
+                contentDescription = stringResource(R.string.settings_onboarding_granted),
                 tint = tokens.scoreColors.primed,
                 modifier = Modifier.size(20.dp)
             )
         } else {
-            Text(text = "Pending", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            Text(text = stringResource(R.string.settings_onboarding_pending), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
         }
     }
 }

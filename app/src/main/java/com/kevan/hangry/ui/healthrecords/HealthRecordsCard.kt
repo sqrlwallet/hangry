@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.healthrecords
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -30,17 +32,20 @@ fun HealthRecordsCard(records: HealthRecordsSnapshot, onClick: () -> Unit, modif
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.MonitorHeart, contentDescription = null, tint = tokens.chartColors.restingHeartRate, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Health Records", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(stringResource(R.string.body_records_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
             }
             Text(
-                if (records.goals.isNotEmpty()) "${records.goals.size} goal${if (records.goals.size == 1) "" else "s"} →" else "Open →",
+                if (records.goals.isNotEmpty()) {
+                    if (records.goals.size == 1) stringResource(R.string.body_records_card_goal_one, records.goals.size)
+                    else stringResource(R.string.body_records_card_goals, records.goals.size)
+                } else stringResource(R.string.body_records_card_open),
                 style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
             )
         }
         Spacer(Modifier.height(HangryTokens.Spacing.s))
         if (recent.isEmpty()) {
             Text(
-                "Track blood pressure, blood sugar, cholesterol and more - and set goals to bring them where you want.",
+                stringResource(R.string.body_records_card_empty),
                 style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary
             )
         } else {

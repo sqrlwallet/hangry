@@ -35,6 +35,8 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 @Composable
 fun EditActivityGoalsDialog(
@@ -51,11 +53,11 @@ fun EditActivityGoalsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Set Daily Activity Goals") },
+        title = { Text(stringResource(R.string.metrics_components_set_activity_goals)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Progress resets every day at midnight.",
+                    text = stringResource(R.string.metrics_components_goals_reset_midnight),
                     style = MaterialTheme.typography.bodySmall,
                     color = LocalHangryTokens.current.textSecondary
                 )
@@ -63,8 +65,8 @@ fun EditActivityGoalsDialog(
                 OutlinedTextField(
                     value = stepText,
                     onValueChange = { stepText = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Daily Steps") },
-                    placeholder = { Text("Default: 6000") },
+                    label = { Text(stringResource(R.string.metrics_components_daily_steps)) },
+                    placeholder = { Text(stringResource(R.string.metrics_components_default_6000)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -73,8 +75,8 @@ fun EditActivityGoalsDialog(
                 OutlinedTextField(
                     value = caloriesText,
                     onValueChange = { caloriesText = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Active Calories (kcal)") },
-                    placeholder = { Text("Default: 500") },
+                    label = { Text(stringResource(R.string.metrics_components_active_calories_kcal)) },
+                    placeholder = { Text(stringResource(R.string.metrics_components_default_500)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -83,9 +85,9 @@ fun EditActivityGoalsDialog(
                 OutlinedTextField(
                     value = minutesText,
                     onValueChange = { minutesText = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Active Time (min)") },
-                    placeholder = { Text("Default: 90") },
-                    supportingText = { Text("Workouts plus 1 min per 150 steps") },
+                    label = { Text(stringResource(R.string.metrics_components_active_time_min)) },
+                    placeholder = { Text(stringResource(R.string.metrics_components_default_90)) },
+                    supportingText = { Text(stringResource(R.string.metrics_components_active_time_hint)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -102,12 +104,12 @@ fun EditActivityGoalsDialog(
                     onSave(s, c, m)
                 }
             ) {
-                Text("Save Goals")
+                Text(stringResource(R.string.metrics_components_save_goals))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

@@ -9,7 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.SyncStateEntity
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.ui.components.HangryCard
@@ -30,12 +32,12 @@ fun DataSourcesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Data Sources & Sync Status") },
+                title = { Text(stringResource(R.string.settings_data_sources_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.settings_back)
                         )
                     }
                 },
@@ -55,17 +57,17 @@ fun DataSourcesScreen(
                 HangryCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Connected Providers",
+                            text = stringResource(R.string.settings_data_sources_connected_providers),
                             style = MaterialTheme.typography.titleMedium,
                             color = tokens.textPrimary
                         )
                         HangryInfoTip(
-                            title = "Connected Providers",
-                            body = "Google Health Connect aggregates readings from your active wearables and fitness tracking applications."
+                            title = stringResource(R.string.settings_data_sources_connected_providers),
+                            body = stringResource(R.string.settings_data_sources_connected_providers_info)
                         )
                     }
                     Text(
-                        text = "Google Health Connect",
+                        text = stringResource(R.string.settings_google_health_connect),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
@@ -74,7 +76,7 @@ fun DataSourcesScreen(
 
             item {
                 Text(
-                    text = "Sync Checkpoints by Data Type",
+                    text = stringResource(R.string.settings_data_sources_checkpoints_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary,
                     modifier = Modifier.padding(top = HangryTokens.Spacing.s)
@@ -85,7 +87,7 @@ fun DataSourcesScreen(
                 item {
                     HangryCard {
                         Text(
-                            text = "No sync records yet. Pull down on Today to sync.",
+                            text = stringResource(R.string.settings_data_sources_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textSecondary
                         )
@@ -112,14 +114,14 @@ private fun SyncStateRow(state: SyncStateEntity) {
             Column {
                 Text(text = state.dataType, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
-                    text = "Status: ${state.syncStatus} • ${state.recordsInserted} inserted",
+                    text = stringResource(R.string.settings_data_sources_status, state.syncStatus, state.recordsInserted),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (state.syncStatus == "SUCCESS") tokens.scoreColors.primed else tokens.scoreColors.balanced
                 )
             }
             if (state.recordsSkipped > 0) {
                 Text(
-                    text = "${state.recordsSkipped} deduplicated",
+                    text = stringResource(R.string.settings_data_sources_deduplicated, state.recordsSkipped),
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )

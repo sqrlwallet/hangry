@@ -10,6 +10,8 @@ import com.kevan.hangry.ui.background.rememberBackgroundAccess
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * Asks for what Hangry needs to stay current while closed: Health Connect background reads,
@@ -29,21 +31,21 @@ fun BackgroundSetupScreen(onNavigateBack: () -> Unit, onContinue: () -> Unit) {
     val allSet = state != null && state.backgroundSyncWorks && state.batteryUnrestricted && state.notifications
 
     OnboardingProfileScaffold(
-        title = "Stay Up to Date",
+        title = stringResource(R.string.settings_onboarding_bg_title),
         step = OnboardingSteps.BACKGROUND,
         onNavigateBack = onNavigateBack,
-        primaryLabel = "Continue",
+        primaryLabel = stringResource(R.string.settings_continue),
         primaryEnabled = true,
         onPrimary = done,
-        secondaryLabel = if (allSet) null else "Not now",
+        secondaryLabel = if (allSet) null else stringResource(R.string.settings_not_now),
         onSecondary = done,
         dashMood = if (allSet) DashMood.CELEBRATE else DashMood.SLEEPY,
-        heading = if (allSet) "All set!" else "Keep Hangry fresh",
-        subheading = "Let Hangry sync while it's closed, so your recovery, widgets and morning brief are ready before you open the app."
+        heading = if (allSet) stringResource(R.string.settings_onboarding_bg_all_set) else stringResource(R.string.settings_onboarding_bg_heading),
+        subheading = stringResource(R.string.settings_onboarding_bg_subheading)
     ) {
         HangryCard { BackgroundAccessRows(state, actions) }
         Text(
-            "Reading happens on this device only - nothing is uploaded. You can change these any time in Settings → Background updates.",
+            stringResource(R.string.settings_onboarding_bg_footer),
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textMuted
         )

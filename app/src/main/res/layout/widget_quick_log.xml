@@ -29,7 +29,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="Log Meal"
+            android:text="@string/widget_layout_log_meal"
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold" />

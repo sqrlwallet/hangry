@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default text in the home-screen widget layouts (most is replaced at runtime). -->
+    <string name="widget_layout_0_min">0 min</string>
+    <string name="widget_layout_30_day_trend">30-day trend</string>
+    <string name="widget_layout_4s_box">4s Box</string>
+    <string name="widget_layout_6_bpm">6 BPM</string>
+    <string name="widget_layout_active_kcal">Active kcal</string>
+    <string name="widget_layout_add_your_supplements">Add your supplements</string>
+    <string name="widget_layout_blood_pressure">Blood pressure</string>
+    <string name="widget_layout_blood_sugar">Blood sugar</string>
+    <string name="widget_layout_breathe">BREATHE</string>
+    <string name="widget_layout_calibrating">CALIBRATING</string>
+    <string name="widget_layout_calibrating_your_baseline">Calibrating your baseline</string>
+    <string name="widget_layout_carbs">Carbs</string>
+    <string name="widget_layout_cycle">CYCLE</string>
+    <string name="widget_layout_daily_activity">DAILY ACTIVITY</string>
+    <string name="widget_layout_eaten_today">EATEN TODAY</string>
+    <string name="widget_layout_fasting">FASTING</string>
+    <string name="widget_layout_fasting_is_off">Fasting is off</string>
+    <string name="widget_layout_fat">Fat</string>
+    <string name="widget_layout_goals">GOALS</string>
+    <string name="widget_layout_health_markers">HEALTH MARKERS</string>
+    <string name="widget_layout_heart">HEART</string>
+    <string name="widget_layout_kcal">kcal</string>
+    <string name="widget_layout_log_a_reading">Log a reading</string>
+    <string name="widget_layout_log_meal">Log Meal</string>
+    <string name="widget_layout_log_your_period_in_health_records">Log your period in Health Records</string>
+    <string name="widget_layout_new_check">New check</string>
+    <string name="widget_layout_no_checks_yet">No checks yet</string>
+    <string name="widget_layout_no_sleep_recorded_yet">No sleep recorded yet</string>
+    <string name="widget_layout_none_kcal">— kcal</string>
+    <string name="widget_layout_none_min_wk">— min / wk</string>
+    <string name="widget_layout_none_steps">— steps</string>
+    <string name="widget_layout_nothing_logged_yet">Nothing logged yet</string>
+    <string name="widget_layout_nutrition_today">NUTRITION TODAY</string>
+    <string name="widget_layout_posture">POSTURE</string>
+    <string name="widget_layout_protein">Protein</string>
+    <string name="widget_layout_recovery">RECOVERY</string>
+    <string name="widget_layout_resting_hr">Resting HR</string>
+    <string name="widget_layout_set_a_weight_goal_in_settings_or_a_marke">Set a weight goal in Settings, or a marker goal in Health Records.</string>
+    <string name="widget_layout_sleep">SLEEP</string>
+    <string name="widget_layout_sleep_none">Sleep: —</string>
+    <string name="widget_layout_snap_a_meal">Snap a meal</string>
+    <string name="widget_layout_start_fast">Start fast</string>
+    <string name="widget_layout_steps">Steps</string>
+    <string name="widget_layout_supplements">SUPPLEMENTS</string>
+    <string name="widget_layout_tap_to_set_it_up">Tap to set it up</string>
+    <string name="widget_layout_tap_to_snap_your_first_bottle">Tap to snap your first bottle</string>
+    <string name="widget_layout_today">Today</string>
+    <string name="widget_layout_today_tap_to_start">today · tap to start</string>
+    <string name="widget_layout_vs_your_4_week_normal">vs your 4-week normal</string>
+    <string name="widget_layout_weight">WEIGHT</string>
+    <string name="widget_layout_weight_over_the_last_30_days">Weight over the last 30 days</string>
+</resources>

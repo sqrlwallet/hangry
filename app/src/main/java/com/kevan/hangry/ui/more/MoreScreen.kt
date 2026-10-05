@@ -27,6 +27,8 @@ import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.settings.SettingsActionRow
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /** One destination on the More tab. */
 data class MoreItem(val icon: ImageVector, val title: String, val subtitle: String, val onClick: () -> Unit)
@@ -51,24 +53,24 @@ fun MoreScreen(
     modifier: Modifier = Modifier
 ) {
     val sections = listOf(
-        "Progress" to listOf(
-            MoreItem(Icons.Default.Cake, "Body Age", "How old your body acts, from your habits and fitness", onOpenBodyAge),
-            MoreItem(Icons.AutoMirrored.Filled.TrendingUp, "Trends", "Recovery, sleep, weight and more over time", onOpenTrends),
-            MoreItem(Icons.Default.AccessibilityNew, "Posture", "Posture checks and your timeline", onOpenPosture),
-            MoreItem(Icons.Default.PieChart, "Body Fat & Composition", "From photos or tape measurements", onOpenBodyFat),
-            MoreItem(Icons.Default.MonitorWeight, "Body Metrics", "BMI, FFMI, maintenance calories and more", onOpenBodyMetrics)
+        stringResource(R.string.settings_more_section_progress) to listOf(
+            MoreItem(Icons.Default.Cake, stringResource(R.string.settings_more_body_age), stringResource(R.string.settings_more_body_age_subtitle), onOpenBodyAge),
+            MoreItem(Icons.AutoMirrored.Filled.TrendingUp, stringResource(R.string.settings_more_trends), stringResource(R.string.settings_more_trends_subtitle), onOpenTrends),
+            MoreItem(Icons.Default.AccessibilityNew, stringResource(R.string.settings_more_posture), stringResource(R.string.settings_more_posture_subtitle), onOpenPosture),
+            MoreItem(Icons.Default.PieChart, stringResource(R.string.settings_more_body_fat), stringResource(R.string.settings_more_body_fat_subtitle), onOpenBodyFat),
+            MoreItem(Icons.Default.MonitorWeight, stringResource(R.string.settings_more_body_metrics), stringResource(R.string.settings_more_body_metrics_subtitle), onOpenBodyMetrics)
         ),
-        "Health" to listOf(
-            MoreItem(Icons.Default.MonitorHeart, "Health Records", "Blood pressure, labs, goals and cycle", onOpenHealthRecords),
-            MoreItem(Icons.Default.Medication, "Supplements", "What you take, with optional reminders", onOpenSupplements),
-            MoreItem(Icons.Default.Timer, "Fasting", "Optional intermittent fasting timer and streak", onOpenFasting),
-            MoreItem(Icons.Default.DirectionsWalk, "Programs", "Step-by-step plans: stress, focus, back, knees, first pull-up…", onOpenPrograms),
-            MoreItem(Icons.Default.Air, "Breathing", "Guided breathing with Dash", onOpenBreathing)
+        stringResource(R.string.settings_more_section_health) to listOf(
+            MoreItem(Icons.Default.MonitorHeart, stringResource(R.string.settings_more_health_records), stringResource(R.string.settings_more_health_records_subtitle), onOpenHealthRecords),
+            MoreItem(Icons.Default.Medication, stringResource(R.string.settings_more_supplements), stringResource(R.string.settings_more_supplements_subtitle), onOpenSupplements),
+            MoreItem(Icons.Default.Timer, stringResource(R.string.settings_more_fasting), stringResource(R.string.settings_more_fasting_subtitle), onOpenFasting),
+            MoreItem(Icons.Default.DirectionsWalk, stringResource(R.string.settings_more_programs), stringResource(R.string.settings_more_programs_subtitle), onOpenPrograms),
+            MoreItem(Icons.Default.Air, stringResource(R.string.settings_more_breathing), stringResource(R.string.settings_more_breathing_subtitle), onOpenBreathing)
         ),
-        "App" to listOf(
-            MoreItem(Icons.Default.DashboardCustomize, "Customize Today", "Choose and reorder the cards on Today", onCustomizeToday),
-            MoreItem(Icons.Default.Widgets, "Home Screen Widgets", "Pin widgets to your home screen", onOpenWidgets),
-            MoreItem(Icons.Default.Settings, "Settings & Privacy", "Goals, sync, AI and your data", onOpenSettings)
+        stringResource(R.string.settings_more_section_app) to listOf(
+            MoreItem(Icons.Default.DashboardCustomize, stringResource(R.string.settings_more_customize_today), stringResource(R.string.settings_more_customize_today_subtitle), onCustomizeToday),
+            MoreItem(Icons.Default.Widgets, stringResource(R.string.settings_more_widgets), stringResource(R.string.settings_more_widgets_subtitle), onOpenWidgets),
+            MoreItem(Icons.Default.Settings, stringResource(R.string.settings_title), stringResource(R.string.settings_more_settings_subtitle), onOpenSettings)
         )
     )
     val tokens = LocalHangryTokens.current
@@ -76,7 +78,7 @@ fun MoreScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("More") },
+                title = { Text(stringResource(R.string.settings_more_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },

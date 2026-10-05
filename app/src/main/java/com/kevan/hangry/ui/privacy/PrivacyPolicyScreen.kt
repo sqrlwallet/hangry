@@ -38,12 +38,12 @@ fun PrivacyPolicyScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Privacy & Data Protection") },
+                title = { Text(stringResource(R.string.settings_privacy_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.settings_back)
                         )
                     }
                 },
@@ -65,62 +65,62 @@ fun PrivacyPolicyScreen(
 
             // Zero-Cloud Commitment
             Text(
-                text = "Zero-Cloud Commitment",
+                text = stringResource(R.string.settings_privacy_zero_cloud),
                 style = MaterialTheme.typography.titleLarge,
                 color = tokens.textPrimary
             )
             HangryCard {
                 PrivacyDetailItem(
                     icon = Icons.Default.CloudOff,
-                    title = "No Servers or Cloud Sync",
-                    description = "Only a local database on your phone."
+                    title = stringResource(R.string.settings_privacy_no_servers_title),
+                    description = stringResource(R.string.settings_privacy_no_servers_body)
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 PrivacyDetailItem(
                     icon = Icons.Default.NoPhotography,
-                    title = "Zero Tracking or Advertising",
-                    description = "No analytics, trackers, or ad SDKs."
+                    title = stringResource(R.string.settings_privacy_no_tracking_title),
+                    description = stringResource(R.string.settings_privacy_no_tracking_body)
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 PrivacyDetailItem(
                     icon = Icons.Default.Lock,
-                    title = "Full Data Sovereignty",
-                    description = "Export as JSON/CSV or delete it all, anytime."
+                    title = stringResource(R.string.settings_privacy_sovereignty_title),
+                    description = stringResource(R.string.settings_privacy_sovereignty_body)
                 )
             }
 
             // Permission Audit
             Text(
-                text = "Health Connect Permissions",
+                text = stringResource(R.string.settings_privacy_hc_permissions),
                 style = MaterialTheme.typography.titleLarge,
                 color = tokens.textPrimary
             )
             HangryCard {
-                PrivacyPermissionRow(category = "Sleep Sessions", purpose = "Sleep debt, consistency & quality")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_sleep), purpose = stringResource(R.string.settings_privacy_perm_sleep_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Heart Rate & HRV", purpose = "Recovery & autonomic tone vs. baseline")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_heart), purpose = stringResource(R.string.settings_privacy_perm_heart_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Workouts & Exercise", purpose = "Strain, HR zones & training load")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_workouts), purpose = stringResource(R.string.settings_privacy_perm_workouts_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Steps, Distance & Calories", purpose = "Daily activity & energy burn")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_activity), purpose = stringResource(R.string.settings_privacy_perm_activity_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Body Weight", purpose = "Body mass trend over time")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_weight), purpose = stringResource(R.string.settings_privacy_perm_weight_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Blood Pressure & Blood Sugar", purpose = "Health Records tracking & goals; readings you enter are also written back for other apps")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_markers), purpose = stringResource(R.string.settings_privacy_perm_markers_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Menstruation (female only)", purpose = "Cycle tracking & predictions")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_cycle), purpose = stringResource(R.string.settings_privacy_perm_cycle_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Medical Records (Android 16+)", purpose = "Lab results, vitals, conditions & allergies - read only")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_medical), purpose = stringResource(R.string.settings_privacy_perm_medical_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Historical Data", purpose = "One-time read on setup to build your baseline")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_history), purpose = stringResource(R.string.settings_privacy_perm_history_purpose))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = tokens.cardBorder)
-                PrivacyPermissionRow(category = "Background Read", purpose = "Refreshes readiness before you open the app")
+                PrivacyPermissionRow(category = stringResource(R.string.settings_privacy_perm_background), purpose = stringResource(R.string.settings_privacy_perm_background_purpose))
             }
 
             // System Control Action
             HangryCard {
                 Text(
-                    text = "Review or revoke Health Connect permissions anytime in Android Settings.",
+                    text = stringResource(R.string.settings_privacy_review_permissions),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -134,25 +134,19 @@ fun PrivacyPolicyScreen(
                 ) {
                     Icon(imageVector = Icons.Default.Settings, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Manage in Android Settings")
+                    Text(stringResource(R.string.settings_privacy_manage_in_settings))
                 }
             }
 
             // AI Features (Optional) - the one place this data flow differs from the rest of the app
             Text(
-                text = "AI Features (Optional)",
+                text = stringResource(R.string.settings_privacy_ai_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = tokens.textPrimary
             )
             HangryCard {
                 Text(
-                    text = "Off by default. When you enable it and add your own OpenRouter key, " +
-                        "photos/text you submit for food, supplement or posture analysis - and photos " +
-                        "you send to Ask Dash - are sent directly " +
-                        "from your device to OpenRouter - never through a Hangry server. When you " +
-                        "chat with Ask Dash, your recent health data (including Health Records such " +
-                        "as lab results, allergies, conditions, pregnancy and cycle, plus your supplements) is included so " +
-                        "answers use your real numbers. Turn it off anytime in Settings.",
+                    text = stringResource(R.string.settings_privacy_ai_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )

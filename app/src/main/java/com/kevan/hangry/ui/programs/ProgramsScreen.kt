@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.programs
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import com.kevan.hangry.ui.components.DashEmptyScene
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.coach.DashExpression
@@ -71,9 +73,9 @@ fun ProgramsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Programs") },
+                title = { Text(stringResource(R.string.coach_programs_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.coach_back)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -90,7 +92,7 @@ fun ProgramsScreen(
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
         ) {
             Text(
-                "Simple step-by-step programs. Each is off until you start it - do a short session, say how it felt, and move up a level when it feels easy.",
+                stringResource(R.string.coach_programs_intro),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
@@ -99,27 +101,27 @@ fun ProgramsScreen(
             if (active.isEmpty()) {
                 DashEmptyState(
                     scene = DashEmptyScene.PROGRAMS,
-                    title = "Pick a path",
-                    body = "Start one program - you can add more any time.",
+                    title = stringResource(R.string.coach_programs_empty_title),
+                    body = stringResource(R.string.coach_programs_empty_body),
                     imageSize = 130.dp
                 )
             }
             if (active.isNotEmpty()) {
-                SectionTitle("Your programs")
+                SectionTitle(stringResource(R.string.coach_programs_yours))
                 active.forEach { ProgramRow(it, onOpenProgram) }
             }
             val mind = all.filter { !it.enabled && it.program.kind == ProgramKind.MIND }
             val body = all.filter { !it.enabled && it.program.kind == ProgramKind.BODY }
             if (mind.isNotEmpty()) {
-                SectionTitle("Mind")
+                SectionTitle(stringResource(R.string.coach_programs_mind))
                 mind.forEach { ProgramRow(it, onOpenProgram) }
             }
             if (body.isNotEmpty()) {
-                SectionTitle("Body")
+                SectionTitle(stringResource(R.string.coach_programs_body))
                 body.forEach { ProgramRow(it, onOpenProgram) }
             }
             Text(
-                "General wellbeing and fitness guidance, not medical advice. Check with a professional before starting if you have pain, an injury or a health condition.",
+                stringResource(R.string.coach_programs_disclaimer),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted,
                 modifier = Modifier.padding(top = 8.dp)
@@ -143,8 +145,10 @@ private fun ProgramRow(s: ProgramSnapshot, onOpen: (String) -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(s.program.title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
-                    if (s.enabled) "Level ${s.level} of ${s.program.levels.size} · ${s.sessionsThisWeek}/${s.program.sessionsPerWeek} this week" +
-                        if (s.doneToday) " · done today ✓" else ""
+                    if (s.enabled) stringResource(
+                        if (s.doneToday) R.string.coach_programs_row_progress_done else R.string.coach_programs_row_progress,
+                        s.level, s.program.levels.size, s.sessionsThisWeek, s.program.sessionsPerWeek
+                    )
                     else s.program.tagline,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (s.enabled) tokens.scoreColors.primed else tokens.textSecondary

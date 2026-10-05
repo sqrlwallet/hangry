@@ -112,18 +112,20 @@ fun DashboardScreen(
     // Goal celebrations: each activity goal gets one confetti moment the day it's reached.
     val context = LocalContext.current
     var celebration by remember { mutableStateOf<String?>(null) }
+    var celebrationIsStreak by remember { mutableStateOf(false) }
     val isTodaySelected = uiState.selectedDate == LocalDate.now()
     LaunchedEffect(isTodaySelected, uiState.isLoading, uiState.todayActiveCalories, uiState.dailySummary?.steps, uiState.todayActiveMinutes) {
         if (!isTodaySelected || uiState.isLoading) return@LaunchedEffect
         val day = LocalDate.now()
         val reached = buildList {
-            if (uiState.todayActiveCalories >= uiState.dailyActiveCaloriesGoal && Celebrations.claim(context, "activity_kcal_$day")) add("active calories")
-            if ((uiState.dailySummary?.steps ?: 0L) >= uiState.dailyStepGoal && Celebrations.claim(context, "activity_steps_$day")) add("steps")
-            if (uiState.todayActiveMinutes >= uiState.dailyActivityMinutesGoal && Celebrations.claim(context, "activity_minutes_$day")) add("active time")
+            if (uiState.todayActiveCalories >= uiState.dailyActiveCaloriesGoal && Celebrations.claim(context, "activity_kcal_$day")) add(context.getString(R.string.dashboard_goal_active_calories))
+            if ((uiState.dailySummary?.steps ?: 0L) >= uiState.dailyStepGoal && Celebrations.claim(context, "activity_steps_$day")) add(context.getString(R.string.dashboard_goal_steps))
+            if (uiState.todayActiveMinutes >= uiState.dailyActivityMinutesGoal && Celebrations.claim(context, "activity_minutes_$day")) add(context.getString(R.string.dashboard_goal_active_time))
         }
         if (reached.isNotEmpty()) {
-            val goals = if (reached.size == 1) reached[0] else reached.dropLast(1).joinToString(", ") + " and " + reached.last()
-            celebration = "You hit your $goals goal${if (reached.size > 1) "s" else ""} today."
+            val goals = if (reached.size == 1) reached[0] else context.getString(R.string.dashboard_goal_list_and, reached.dropLast(1).joinToString(context.getString(R.string.dashboard_list_separator)), reached.last())
+            celebration = if (reached.size > 1) context.getString(R.string.dashboard_celebration_goals, goals) else context.getString(R.string.dashboard_celebration_goal, goals)
+            celebrationIsStreak = false
         }
     }
     // Streak milestones (7, 14, 30... days): celebrated once per run, the highest one reached.
@@ -134,17 +136,18 @@ fun DashboardScreen(
             val newlyReached = StreakCalculator.milestonesReached(streak)
                 .filter { Celebrations.claim(context, "streak_${streak.type.name}_${start}_$it") }
             val top = newlyReached.maxOrNull() ?: continue
-            celebration = "$top-day ${streak.type.label.lowercase()} streak! Keep it going."
+            celebration = context.getString(R.string.dashboard_celebration_streak, top, streak.type.label.lowercase())
+            celebrationIsStreak = true
             break
         }
     }
 
     celebration?.let { message ->
         DashCelebration(
-            title = if (message.contains("streak")) "Streak milestone!" else "Goal reached!",
+            title = if (celebrationIsStreak) stringResource(R.string.dashboard_celebration_streak_title) else stringResource(R.string.dashboard_celebration_goal_title),
             message = message,
             onDismiss = { celebration = null },
-            mood = if (message.contains("streak")) DashMood.STREAK else DashMood.CELEBRATE
+            mood = if (celebrationIsStreak) DashMood.STREAK else DashMood.CELEBRATE
         )
     }
 
@@ -152,8 +155,8 @@ fun DashboardScreen(
     LaunchedEffect(nutritionUiState?.lastSavedEntry) {
         val saved = nutritionUiState?.lastSavedEntry ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "Logged: ${saved.foodName} · ${saved.calories} kcal",
-            actionLabel = "Edit",
+            message = context.getString(R.string.dashboard_snackbar_logged, saved.foodName, saved.calories),
+            actionLabel = context.getString(R.string.dashboard_snackbar_edit),
             duration = SnackbarDuration.Short
         )
         if (result == SnackbarResult.ActionPerformed) {
@@ -210,14 +213,14 @@ fun DashboardScreen(
                     } else {
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Log Meal",
+                            contentDescription = stringResource(R.string.dashboard_log_meal),
                             tint = Color.White,
                             modifier = Modifier.size(19.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isAnalyzingMeal) "Reading your meal…" else "Log Meal",
+                        text = if (isAnalyzingMeal) stringResource(R.string.dashboard_reading_your_meal) else stringResource(R.string.dashboard_log_meal),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.2.sp
@@ -267,8 +270,8 @@ fun DashboardScreen(
             uiState.errorMessage?.let { error ->
                 DashAlertCard(
                     mood = DashMood.SYNC_ERROR,
-                    title = "Sync didn't finish",
-                    message = "$error\nPull down to try again.",
+                    title = stringResource(R.string.dashboard_sync_failed_title),
+                    message = stringResource(R.string.dashboard_sync_failed_message, error),
                     onDismiss = { viewModel.clearError() }
                 )
             }
@@ -389,9 +392,9 @@ fun DashboardScreen(
                 val syncTime = uiState.lastSyncFormatted
                 Text(
                     text = when {
-                        uiState.isSyncing -> "Syncing…"
+                        uiState.isSyncing -> stringResource(R.string.dashboard_syncing)
                         syncTime != null -> stringResource(R.string.sync_success, syncTime)
-                        else -> "Not synced yet"
+                        else -> stringResource(R.string.dashboard_not_synced_yet)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
@@ -475,14 +478,14 @@ private fun HeartMetricsRow(
             )
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             val rhr = uiState.dailySummary?.restingHeartRate
-            val rhrText = if (rhr != null) "${rhr.toInt()} bpm" else "—"
+            val rhrText = if (rhr != null) stringResource(R.string.dashboard_bpm_value, rhr.toInt()) else "—"
             Text(
                 text = rhrText,
                 style = MaterialTheme.typography.headlineMedium,
                 color = tokens.chartColors.restingHeartRate
             )
             if (rhr == null) {
-                Text("No reading yet", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                Text(stringResource(R.string.dashboard_no_reading_yet), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
             }
         }
 
@@ -501,14 +504,14 @@ private fun HeartMetricsRow(
             )
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
             val hrv = uiState.dailySummary?.hrvRmssd
-            val hrvText = if (hrv != null) "${hrv.toInt()} ms" else "—"
+            val hrvText = if (hrv != null) stringResource(R.string.dashboard_ms_value, hrv.toInt()) else "—"
             Text(
                 text = hrvText,
                 style = MaterialTheme.typography.headlineMedium,
                 color = tokens.chartColors.hrv
             )
             if (hrv == null) {
-                Text("Not every device reports HRV", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                Text(stringResource(R.string.dashboard_hrv_not_reported), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
             }
         }
     }
@@ -530,20 +533,22 @@ private fun CalorieBurnCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Calories Burned",
+                    text = stringResource(R.string.dashboard_calories_burned),
                     style = MaterialTheme.typography.titleMedium,
                     color = tokens.textPrimary
                 )
                 HangryInfoTip(
-                    title = "Calories Burned",
-                    body = (burn?.supportiveNote ?: "Set up your profile in Settings to estimate calorie burn.") +
-                        "\n\nBMR is your resting metabolism, NEAT is everyday movement, and Exercise is logged workouts."
+                    title = stringResource(R.string.dashboard_calories_burned),
+                    body = stringResource(
+                        R.string.dashboard_calories_burned_info,
+                        burn?.supportiveNote ?: stringResource(R.string.dashboard_calories_burned_setup_profile)
+                    )
                 )
             }
             val goal = uiState.calorieGoal
             if (goal?.dailyCalorieTarget != null) {
                 Text(
-                    text = "Goal: ${goal.dailyCalorieTarget} kcal",
+                    text = stringResource(R.string.dashboard_calorie_goal, goal.dailyCalorieTarget),
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
@@ -553,7 +558,7 @@ private fun CalorieBurnCard(
 
         val total = burn?.totalBurnedCalories
         Text(
-            text = if (total != null) "${total.toInt()} kcal" else "—",
+            text = if (total != null) stringResource(R.string.dashboard_kcal_value, total.toInt()) else "—",
             style = MaterialTheme.typography.headlineLarge,
             color = tokens.chartColors.trainingLoad
         )
@@ -564,16 +569,16 @@ private fun CalorieBurnCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
-                CalorieComponentLabel("BMR", burn.bmrCalories, tokens.textSecondary)
-                CalorieComponentLabel("NEAT", burn.neatCalories, tokens.textSecondary)
-                CalorieComponentLabel("Exercise", burn.exerciseCalories, tokens.textSecondary)
+                CalorieComponentLabel(stringResource(R.string.dashboard_bmr), burn.bmrCalories, tokens.textSecondary)
+                CalorieComponentLabel(stringResource(R.string.dashboard_neat), burn.neatCalories, tokens.textSecondary)
+                CalorieComponentLabel(stringResource(R.string.dashboard_exercise), burn.exerciseCalories, tokens.textSecondary)
             }
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
         }
 
         if (burn?.bmrCalories == null) {
             Text(
-                text = "Add your profile in Settings to estimate.",
+                text = stringResource(R.string.dashboard_calories_burned_add_profile),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
@@ -622,13 +627,13 @@ private fun BodyFatCompositionWidget(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Body Composition",
+                    text = stringResource(R.string.dashboard_body_composition),
                     style = MaterialTheme.typography.titleMedium,
                     color = tokens.textPrimary
                 )
             }
             Text(
-                text = "All body metrics →",
+                text = stringResource(R.string.dashboard_all_body_metrics),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
@@ -647,7 +652,7 @@ private fun BodyFatCompositionWidget(
                         color = tokens.scoreColors.primed
                     )
                     Text(
-                        text = "Body Fat",
+                        text = stringResource(R.string.dashboard_body_fat),
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted
                     )
@@ -655,12 +660,12 @@ private fun BodyFatCompositionWidget(
                 if (scan.leanMassKg != null) {
                     Column {
                         Text(
-                            text = String.format(java.util.Locale.US, "%.1f kg", scan.leanMassKg),
+                            text = stringResource(R.string.dashboard_kg_value, String.format(java.util.Locale.US, "%.1f", scan.leanMassKg)),
                             style = MaterialTheme.typography.titleMedium,
                             color = tokens.textPrimary
                         )
                         Text(
-                            text = "Lean Mass",
+                            text = stringResource(R.string.dashboard_lean_mass),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -669,12 +674,12 @@ private fun BodyFatCompositionWidget(
                 if (scan.fatMassKg != null) {
                     Column {
                         Text(
-                            text = String.format(java.util.Locale.US, "%.1f kg", scan.fatMassKg),
+                            text = stringResource(R.string.dashboard_kg_value, String.format(java.util.Locale.US, "%.1f", scan.fatMassKg)),
                             style = MaterialTheme.typography.titleMedium,
                             color = tokens.textSecondary
                         )
                         Text(
-                            text = "Fat Mass",
+                            text = stringResource(R.string.dashboard_fat_mass),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -683,13 +688,13 @@ private fun BodyFatCompositionWidget(
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = scan.category ?: "Tap to run your first assessment",
+                text = scan.category ?: stringResource(R.string.dashboard_body_fat_first_assessment),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
         } else {
             Text(
-                text = "No scan yet.",
+                text = stringResource(R.string.dashboard_no_scan_yet),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )

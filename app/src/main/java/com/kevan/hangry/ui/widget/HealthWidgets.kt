@@ -98,15 +98,18 @@ internal object HealthWidgets {
         val usual = BreathingPattern.fromId(container.breathingRepository.getRecentSessions(1).first().firstOrNull()?.patternId)
         val others = BreathingPattern.entries.filter { it != usual }.take(2)
         val subtitle = if (stats.sessionsToday == 0) {
-            "Tap to start ${usual.shortLabel}"
+            context.getString(R.string.dashboard_widget_breathe_tap_to_start, usual.shortLabel)
         } else {
-            "today · ${stats.sessionsToday} session${if (stats.sessionsToday == 1) "" else "s"}"
+            context.getString(
+                if (stats.sessionsToday == 1) R.string.dashboard_widget_breathe_today_session else R.string.dashboard_widget_breathe_today_sessions,
+                stats.sessionsToday
+            )
         }
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_breathe)
-            views.setTextViewText(R.id.tv_breathe_today, "${stats.minutesToday} min")
+            views.setTextViewText(R.id.tv_breathe_today, context.getString(R.string.dashboard_widget_minutes_value, stats.minutesToday))
             views.setTextViewText(R.id.tv_breathe_subtitle, subtitle)
-            views.setTextViewText(R.id.tv_breathe_week, "${stats.minutesThisWeek} min / 7d")
+            views.setTextViewText(R.id.tv_breathe_week, context.getString(R.string.dashboard_widget_breathe_week_minutes, stats.minutesThisWeek))
             views.setTextViewText(R.id.btn_breathe_a, others[0].shortLabel)
             views.setTextViewText(R.id.btn_breathe_b, others[1].shortLabel)
             views.setOnClickPendingIntent(R.id.widget_breathe_root, open(context, Screen.Breathing.createRoute(usual.id, start = true), RC_BREATHE))
@@ -128,14 +131,14 @@ internal object HealthWidgets {
         val hrv = WidgetText.heartReading(summaries, today) { it.hrvRmssd }
         val subtitle = when {
             hide -> WidgetText.HIDDEN_SUBTITLE
-            rhr == null && hrv == null -> "No heart data synced yet"
-            rhr?.baseline == null && hrv?.baseline == null -> "Building your 4-week normal"
-            else -> "vs your 4-week normal"
+            rhr == null && hrv == null -> context.getString(R.string.dashboard_widget_heart_no_data)
+            rhr?.baseline == null && hrv?.baseline == null -> context.getString(R.string.dashboard_widget_heart_building_baseline)
+            else -> context.getString(R.string.dashboard_widget_heart_vs_baseline)
         }
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_heart)
-            bindHeartRow(views, R.id.tv_heart_rhr, R.id.tv_heart_rhr_delta, rhr, "bpm", higherIsBetter = false, hide)
-            bindHeartRow(views, R.id.tv_heart_hrv, R.id.tv_heart_hrv_delta, hrv, "ms", higherIsBetter = true, hide)
+            bindHeartRow(views, R.id.tv_heart_rhr, R.id.tv_heart_rhr_delta, rhr, context.getString(R.string.dashboard_widget_unit_bpm), higherIsBetter = false, hide)
+            bindHeartRow(views, R.id.tv_heart_hrv, R.id.tv_heart_hrv_delta, hrv, context.getString(R.string.dashboard_widget_unit_ms), higherIsBetter = true, hide)
             views.setTextViewText(R.id.tv_heart_subtitle, subtitle)
             views.setOnClickPendingIntent(R.id.widget_heart_root, open(context, Screen.HeartMetrics.route, RC_HEART))
             manager.updateAppWidget(id, views)
@@ -206,14 +209,14 @@ internal object HealthWidgets {
         weights: List<WeightMeasurementEntity>, weightGoalKg: Double?, hide: Boolean
     ) {
         val rows = buildList {
-            weightGoalRow(weights, weightGoalKg)?.let(::add)
+            weightGoalRow(context, weights, weightGoalKg)?.let(::add)
             records.goals.filter { it.type.isVisibleFor(records.sex) }.forEach { goal ->
                 val latest = records.latest(goal.type)
                 val progress = HealthMarkerCalculator.progress(goal, latest)
                 val unit = goal.type.canonicalUnit
                 val detail = when {
-                    latest == null -> "No reading yet"
-                    progress.reached -> "Reached"
+                    latest == null -> context.getString(R.string.dashboard_widget_no_reading_yet)
+                    progress.reached -> context.getString(R.string.dashboard_widget_goal_reached)
                     else -> "${HealthMarkerCalculator.format(goal.type, latest.value, latest.secondaryValue)} → " +
                         "${HealthMarkerCalculator.format(goal.type, goal.targetValue, goal.targetSecondary)} $unit"
                 }
@@ -237,7 +240,7 @@ internal object HealthWidgets {
             }
             views.setViewVisibility(R.id.tv_goals_empty, if (rows.isEmpty()) View.VISIBLE else View.GONE)
             val reached = rows.count { it.reached }
-            views.setTextViewText(R.id.tv_goals_count, if (rows.isEmpty()) "" else "$reached/${rows.size} reached")
+            views.setTextViewText(R.id.tv_goals_count, if (rows.isEmpty()) "" else context.getString(R.string.dashboard_widget_goals_reached_count, reached, rows.size))
             views.setViewVisibility(R.id.tv_goals_count, if (rows.isEmpty()) View.GONE else View.VISIBLE)
             views.setOnClickPendingIntent(R.id.widget_goals_root, open(context, Screen.HealthRecords.route, RC_GOALS))
             manager.updateAppWidget(id, views)
@@ -248,9 +251,10 @@ internal object HealthWidgets {
      * Progress is measured from the oldest weigh-in in the last 6 months - the app doesn't
      * store when the goal was set, and that's the closest honest starting point.
      */
-    private fun weightGoalRow(weights: List<WeightMeasurementEntity>, goalKg: Double?): GoalRow? {
+    private fun weightGoalRow(context: Context, weights: List<WeightMeasurementEntity>, goalKg: Double?): GoalRow? {
         goalKg ?: return null
-        val latest = weights.firstOrNull()?.weightKg ?: return GoalRow("Weight", "No weigh-in yet", null, false)
+        val weightLabel = context.getString(R.string.dashboard_widget_goal_weight)
+        val latest = weights.firstOrNull()?.weightKg ?: return GoalRow(weightLabel, context.getString(R.string.dashboard_widget_no_weigh_in_yet), null, false)
         val start = weights.lastOrNull { Duration.between(it.timestamp, Instant.now()).toDays() <= 183 }?.weightKg
         val reached = when {
             start == null || abs(start - goalKg) < 0.05 -> abs(latest - goalKg) < 0.25
@@ -262,8 +266,12 @@ internal object HealthWidgets {
             start == null || abs(start - goalKg) < 0.05 -> null
             else -> ((start - latest) / (start - goalKg)).coerceIn(0.0, 1.0)
         }
-        val detail = if (reached) "Reached" else String.format(Locale.US, "%.1f → %.1f kg", latest, goalKg)
-        return GoalRow("Weight", detail, fraction, reached)
+        val detail = if (reached) {
+            context.getString(R.string.dashboard_widget_goal_reached)
+        } else {
+            context.getString(R.string.dashboard_widget_weight_goal_progress, String.format(Locale.US, "%.1f", latest), String.format(Locale.US, "%.1f", goalKg))
+        }
+        return GoalRow(weightLabel, detail, fraction, reached)
     }
 
     // endregion
@@ -278,18 +286,18 @@ internal object HealthWidgets {
         val chart = if (!hide && month.size >= 2) drawSparkline(month.map { it.weightKg }) else null
         val subtitle = when {
             hide -> WidgetText.HIDDEN_SUBTITLE
-            latest == null -> "No weigh-ins yet"
-            month.size < 2 -> "Log more weigh-ins to see a trend"
-            else -> "Last 30 days"
+            latest == null -> context.getString(R.string.dashboard_widget_no_weigh_ins_yet)
+            month.size < 2 -> context.getString(R.string.dashboard_widget_weight_need_more)
+            else -> context.getString(R.string.dashboard_widget_last_30_days)
         }
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_weight)
             views.setTextViewText(R.id.tv_weight_value, when {
                 latest == null -> "—"
                 hide -> WidgetText.HIDDEN_VALUE
-                else -> String.format(Locale.US, "%.1f kg", latest.weightKg)
+                else -> context.getString(R.string.dashboard_widget_kg_value, String.format(Locale.US, "%.1f", latest.weightKg))
             })
-            val changeText = if (hide || change == null) "" else String.format(Locale.US, "%+.1f kg", change)
+            val changeText = if (hide || change == null) "" else context.getString(R.string.dashboard_widget_kg_value, String.format(Locale.US, "%+.1f", change))
             views.setTextViewText(R.id.tv_weight_change, changeText)
             views.setViewVisibility(R.id.tv_weight_change, if (changeText.isEmpty()) View.GONE else View.VISIBLE)
             views.setTextViewText(R.id.tv_weight_subtitle, subtitle)
@@ -353,11 +361,13 @@ internal object HealthWidgets {
     ) {
         val latest = container.postureScanRepository.getLatest().first()
         val subtitle = when {
-            latest == null -> "No checks yet"
+            latest == null -> context.getString(R.string.dashboard_widget_posture_no_checks)
             else -> {
                 val days = ChronoUnit.DAYS.between(latest.date, today)
-                val nudge = if (days >= WidgetText.POSTURE_RECHECK_DAYS) " · time for another" else ""
-                "Checked ${WidgetText.daysAgoText(latest.date, today)}$nudge"
+                context.getString(
+                    if (days >= WidgetText.POSTURE_RECHECK_DAYS) R.string.dashboard_widget_posture_checked_recheck else R.string.dashboard_widget_posture_checked,
+                    WidgetText.daysAgoText(latest.date, today)
+                )
             }
         }
         for (id in ids) {
@@ -384,8 +394,8 @@ internal object HealthWidgets {
 
     private fun updateCycle(context: Context, manager: AppWidgetManager, ids: IntArray, records: HealthRecordsSnapshot, today: LocalDate, hide: Boolean) {
         val text = when {
-            !records.showsFemaleHealth -> WidgetText.CycleText("—", "Set your sex to female in Settings to track your cycle", "")
-            hide -> WidgetText.CycleText("Cycle", WidgetText.HIDDEN_SUBTITLE, "")
+            !records.showsFemaleHealth -> WidgetText.CycleText("—", context.getString(R.string.dashboard_widget_cycle_set_sex), "")
+            hide -> WidgetText.CycleText(context.getString(R.string.dashboard_widget_cycle), WidgetText.HIDDEN_SUBTITLE, "")
             else -> WidgetText.cycleText(
                 HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, today),
                 today

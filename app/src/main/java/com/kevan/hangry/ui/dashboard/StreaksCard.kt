@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.dashboard
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,12 +37,12 @@ fun StreaksCard(streaks: List<Streak>, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = tokens.chartColors.trainingLoad, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Streaks", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Text(stringResource(R.string.dashboard_streaks_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
         if (streaks.isEmpty()) {
             Text(
-                "Streaks start once you log a meal, add a supplement, or sync steps and sleep from Health Connect.",
+                stringResource(R.string.dashboard_streaks_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary
             )
@@ -60,9 +62,9 @@ private fun StreakTile(streak: Streak, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     val (icon, color) = streak.type.look()
     val status = when {
-        streak.doneToday -> "Done today ✓"
-        streak.current > 0 -> "Keep it going today"
-        else -> "Start today"
+        streak.doneToday -> stringResource(R.string.dashboard_streak_done_today)
+        streak.current > 0 -> stringResource(R.string.dashboard_streak_keep_going)
+        else -> stringResource(R.string.dashboard_streak_start_today)
     }
     Column(
         modifier = modifier
@@ -79,14 +81,14 @@ private fun StreakTile(streak: Streak, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text("${streak.current}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = tokens.textPrimary)
             Text(
-                if (streak.current == 1) " day" else " days",
+                if (streak.current == 1) stringResource(R.string.dashboard_streak_day_suffix) else stringResource(R.string.dashboard_streak_days_suffix),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary,
                 modifier = Modifier.padding(bottom = 3.dp)
             )
         }
         Text(
-            status + if (streak.best > streak.current) " · best ${streak.best}" else "",
+            if (streak.best > streak.current) stringResource(R.string.dashboard_streak_status_with_best, status, streak.best) else status,
             style = MaterialTheme.typography.labelSmall,
             color = if (streak.doneToday) tokens.scoreColors.primed else tokens.textMuted
         )

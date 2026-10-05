@@ -46,6 +46,8 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * Settings > AI Features. Off by default - the toggle only flips on after the consent dialog
@@ -87,17 +89,17 @@ fun AiFeaturesSection(
                     )
                     Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
                     Text(
-                        text = "Enable AI Features",
+                        text = stringResource(R.string.settings_ai_enable),
                         style = MaterialTheme.typography.titleSmall,
                         color = tokens.textPrimary
                     )
                     HangryInfoTip(
-                        title = "AI Features",
-                        body = "Off by default. Powers Ask Dash, food logging, and posture analysis using OpenRouter with your own key."
+                        title = stringResource(R.string.settings_ai_features),
+                        body = stringResource(R.string.settings_ai_features_info)
                     )
                 }
                 Text(
-                    text = "Uses your own OpenRouter key",
+                    text = stringResource(R.string.settings_ai_uses_own_key),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -121,21 +123,21 @@ fun AiFeaturesSection(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
             SettingsActionRow(
                 icon = Icons.Default.SmartToy,
-                title = "OpenRouter API Key",
-                subtitle = if (secureKeyStore.getApiKey() != null) "Key saved - tap to change" else "Not set - AI features won't work yet",
+                title = stringResource(R.string.settings_ai_openrouter_api_key),
+                subtitle = if (secureKeyStore.getApiKey() != null) stringResource(R.string.settings_ai_key_saved) else stringResource(R.string.settings_ai_key_not_set),
                 onClick = { showApiKeyDialog = true }
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
             SettingsActionRow(
                 icon = Icons.Default.SmartToy,
-                title = "AI Model",
+                title = stringResource(R.string.settings_ai_model),
                 subtitle = AiDefaults.analysisModel(profile?.preferredAiModel),
                 onClick = { showModelDialog = true }
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
             SettingsActionRow(
                 icon = Icons.Default.SmartToy,
-                title = "Ask Dash Model",
+                title = stringResource(R.string.settings_ai_dash_model),
                 subtitle = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
                 onClick = { showCoachModelDialog = true }
             )
@@ -156,6 +158,7 @@ fun AiFeaturesSection(
     }
 
     if (showApiKeyDialog) {
+        val apiKeySavedMessage = stringResource(R.string.settings_ai_api_key_saved)
         ApiKeyDialog(
             secureKeyStore = secureKeyStore,
             openRouterClient = openRouterClient,
@@ -163,15 +166,15 @@ fun AiFeaturesSection(
             onDismiss = { showApiKeyDialog = false },
             onSaved = {
                 showApiKeyDialog = false
-                coroutineScope.launch { snackbarHostState.showSnackbar("API key saved.") }
+                coroutineScope.launch { snackbarHostState.showSnackbar(apiKeySavedMessage) }
             }
         )
     }
 
     if (showModelDialog) {
         ModelDialog(
-            title = "AI Model",
-            description = "Used for food, posture, body-fat & supplement photos and the weekly nutrition review",
+            title = stringResource(R.string.settings_ai_model),
+            description = stringResource(R.string.settings_ai_model_description),
             currentModel = AiDefaults.analysisModel(profile?.preferredAiModel),
             onDismiss = { showModelDialog = false },
             onSave = { newModel ->
@@ -186,8 +189,8 @@ fun AiFeaturesSection(
 
     if (showCoachModelDialog) {
         ModelDialog(
-            title = "Ask Dash Model",
-            description = "Used when you chat with Ask Dash",
+            title = stringResource(R.string.settings_ai_dash_model),
+            description = stringResource(R.string.settings_ai_dash_model_description),
             currentModel = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
             onDismiss = { showCoachModelDialog = false },
             onSave = { newModel ->
@@ -205,20 +208,17 @@ fun AiFeaturesSection(
 private fun AiConsentDialog(onDismiss: () -> Unit, onAccept: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Enable AI Features") },
+        title = { Text(stringResource(R.string.settings_ai_enable)) },
         text = {
             Text(
-                "When enabled, photos and text you submit for analysis are sent directly from " +
-                    "your device to OpenRouter and the model you choose, using your own API key. " +
-                    "Hangry has no server and never sees this data. Nothing is sent unless you " +
-                    "tap Analyze. You can disable this anytime."
+                stringResource(R.string.settings_ai_consent_body)
             )
         },
         confirmButton = {
-            Button(onClick = onAccept) { Text("I Understand, Enable") }
+            Button(onClick = onAccept) { Text(stringResource(R.string.settings_ai_consent_accept)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -236,21 +236,23 @@ private fun ApiKeyDialog(
     var keyInput by remember { mutableStateOf(secureKeyStore.getApiKey() ?: "") }
     var isTesting by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<String?>(null) }
+    val connectionWorksMessage = stringResource(R.string.settings_ai_connection_works)
+    val couldNotVerifyMessage = stringResource(R.string.settings_ai_could_not_verify)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("OpenRouter API Key") },
+        title = { Text(stringResource(R.string.settings_ai_openrouter_api_key)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Get a key at openrouter.ai. Stored only on this device.",
+                    text = stringResource(R.string.settings_ai_get_key_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
                 OutlinedTextField(
                     value = keyInput,
                     onValueChange = { keyInput = it; testResult = null },
-                    label = { Text("API Key") },
+                    label = { Text(stringResource(R.string.settings_ai_api_key_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -270,8 +272,8 @@ private fun ApiKeyDialog(
                                 userText = "Respond with OK to confirm this connection works."
                             )
                             testResult = result.fold(
-                                onSuccess = { "Connection works." },
-                                onFailure = { e -> (e as? OpenRouterException)?.message ?: "Couldn't verify the key." }
+                                onSuccess = { connectionWorksMessage },
+                                onFailure = { e -> (e as? OpenRouterException)?.message ?: couldNotVerifyMessage }
                             )
                             isTesting = false
                         }
@@ -279,9 +281,9 @@ private fun ApiKeyDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (isTesting) {
-                        DashSpinner(size = 24.dp, contentDescription = "Testing connection")
+                        DashSpinner(size = 24.dp, contentDescription = stringResource(R.string.settings_ai_testing_connection))
                     } else {
-                        Text("Test Connection")
+                        Text(stringResource(R.string.settings_ai_test_connection))
                     }
                 }
             }
@@ -293,10 +295,10 @@ private fun ApiKeyDialog(
                     secureKeyStore.setApiKey(keyInput)
                     onSaved()
                 }
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.settings_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -328,7 +330,7 @@ private fun ModelDialog(
                 OutlinedTextField(
                     value = modelInput,
                     onValueChange = { modelInput = it },
-                    label = { Text("Model") },
+                    label = { Text(stringResource(R.string.settings_ai_model_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -338,10 +340,10 @@ private fun ModelDialog(
             TextButton(
                 enabled = modelInput.isNotBlank(),
                 onClick = { onSave(modelInput.trim()) }
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.settings_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

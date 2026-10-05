@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.coach
 
+import androidx.compose.ui.res.stringResource
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
@@ -419,11 +420,12 @@ private fun rememberDashTap(): DashTapState {
     var showHearts by remember { mutableStateOf(false) }
     var lastTapTime by remember { mutableStateOf(0L) }
     var resetJob by remember { mutableStateOf<Job?>(null) }
+    val petLabel = stringResource(R.string.coach_pet_dash, MASCOT_NAME)
 
     val modifier = Modifier.clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
-        onClickLabel = "Pet $MASCOT_NAME"
+        onClickLabel = petLabel
     ) {
         val now = System.currentTimeMillis()
         val isDoubleTap = (now - lastTapTime) < 380L
@@ -796,7 +798,7 @@ fun DashAlertCard(
             }
             if (onDismiss != null) {
                 IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = tokens.textMuted, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.coach_dismiss), tint = tokens.textMuted, modifier = Modifier.size(16.dp))
                 }
             }
         }

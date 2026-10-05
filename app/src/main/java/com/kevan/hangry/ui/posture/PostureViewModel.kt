@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.posture
 
+import com.kevan.hangry.R
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
@@ -87,7 +88,7 @@ class PostureViewModel(
 
         val base64Photos = photos.mapNotNull { context.readImageAsBase64Jpeg(it) }
         if (base64Photos.size != photos.size) {
-            _uiState.update { it.copy(errorMessage = "Couldn't read one of the photos. Try retaking it.") }
+            _uiState.update { it.copy(errorMessage = context.getString(R.string.body_posture_error_read_photo)) }
             return
         }
 
@@ -116,11 +117,14 @@ class PostureViewModel(
                             it.copy(
                                 isAnalyzing = false,
                                 errorMessage = if (result.invalidPhotoIndices.isNotEmpty()) {
-                                    "Photo${if (result.invalidPhotoIndices.size > 1) "s" else ""} " +
-                                        "${result.invalidPhotoIndices.map { i -> i + 1 }} need${if (result.invalidPhotoIndices.size == 1) "s" else ""} " +
-                                        "a retake$reasonSuffix"
+                                    val photoList = result.invalidPhotoIndices.map { i -> i + 1 }.toString()
+                                    if (result.invalidPhotoIndices.size > 1) {
+                                        context.getString(R.string.body_posture_error_photos_retake, photoList, reasonSuffix)
+                                    } else {
+                                        context.getString(R.string.body_posture_error_photo_retake, photoList, reasonSuffix)
+                                    }
                                 } else {
-                                    result.rejectionReason ?: "Analysis failed. Try again with clearer photos."
+                                    result.rejectionReason ?: context.getString(R.string.body_posture_error_analysis_failed)
                                 }
                             )
                         }
@@ -130,7 +134,7 @@ class PostureViewModel(
                     _uiState.update {
                         it.copy(
                             isAnalyzing = false,
-                            errorMessage = (e as? OpenRouterException)?.message ?: "Couldn't analyze those photos. Try again."
+                            errorMessage = (e as? OpenRouterException)?.message ?: context.getString(R.string.body_posture_error_analyze)
                         )
                     }
                 }

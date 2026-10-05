@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.coach
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,7 +40,7 @@ fun DashCelebration(title: String, message: String, onDismiss: () -> Unit, mood:
                 Text(message, style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary, textAlign = TextAlign.Center)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Nice!") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.coach_celebration_nice)) } }
     )
 }
 

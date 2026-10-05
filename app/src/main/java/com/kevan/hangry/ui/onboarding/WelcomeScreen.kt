@@ -163,7 +163,7 @@ fun WelcomeScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "100% LOCAL-FIRST & PRIVATE",
+                            text = stringResource(R.string.settings_onboarding_local_first_badge),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.2.sp
@@ -189,7 +189,7 @@ fun WelcomeScreen(
                     )
                 ) {
                     Text(
-                        text = "Get Started",
+                        text = stringResource(R.string.settings_onboarding_get_started),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp

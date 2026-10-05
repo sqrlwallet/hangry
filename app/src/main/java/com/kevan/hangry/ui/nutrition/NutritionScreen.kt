@@ -50,17 +50,19 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.annotation.StringRes
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 
-private enum class MealBucket(val title: String) {
-    BREAKFAST("Breakfast"),
-    LUNCH("Lunch"),
-    DINNER("Dinner"),
-    SNACKS("Snacks")
+private enum class MealBucket(@StringRes val titleRes: Int) {
+    BREAKFAST(R.string.nutrition_meal_breakfast),
+    LUNCH(R.string.nutrition_meal_lunch),
+    DINNER(R.string.nutrition_meal_dinner),
+    SNACKS(R.string.nutrition_meal_snacks)
 }
 
 private fun getMealBucket(timestamp: Instant, zone: ZoneId = ZoneId.systemDefault()): MealBucket {
@@ -73,22 +75,23 @@ private fun getMealBucket(timestamp: Instant, zone: ZoneId = ZoneId.systemDefaul
     }
 }
 
-private val NUTRITION_INFO_SECTIONS = listOf(
+@Composable
+private fun nutritionInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "How it works",
-        "Take or choose a food photo, or describe a meal in text - the AI estimates calories, macros and fiber and logs it immediately. Got it wrong? Tap the entry to fix it."
+        stringResource(R.string.nutrition_info_how_title),
+        stringResource(R.string.nutrition_info_how_body)
     ),
     HangryInfoSection(
-        "Weekly review",
-        "Looks back at your last 7 days of logged meals: daily averages against your targets, what to add and how to fit it in. With AI on, Dash reviews the actual meals you ate."
+        stringResource(R.string.nutrition_info_weekly_title),
+        stringResource(R.string.nutrition_info_weekly_body)
     ),
     HangryInfoSection(
-        "Saved Meals",
-        "Every food you log is saved automatically. Log it again in one tap from Quick add or Saved Meals - no retyping, no AI call."
+        stringResource(R.string.nutrition_info_saved_title),
+        stringResource(R.string.nutrition_info_saved_body)
     ),
     HangryInfoSection(
-        "Health Connect",
-        "Entries are written to Health Connect as nutrition records alongside the local daily log."
+        stringResource(R.string.nutrition_info_hc_title),
+        stringResource(R.string.nutrition_info_hc_body)
     )
 )
 
@@ -106,6 +109,7 @@ fun NutritionScreen(
     val uiState by viewModel.uiState.collectAsState()
     val dashboardState by dashboardViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     // No target until there's enough data for a real one - never an assumed 2000 kcal.
     val calorieTarget = dashboardState.calorieGoal?.dailyCalorieTarget
@@ -137,8 +141,8 @@ fun NutritionScreen(
     LaunchedEffect(uiState.lastSavedEntry) {
         val saved = uiState.lastSavedEntry ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "Logged: ${saved.foodName} · ${saved.calories} kcal",
-            actionLabel = "Edit",
+            message = context.getString(R.string.nutrition_logged_snackbar, saved.foodName, saved.calories),
+            actionLabel = context.getString(R.string.nutrition_edit),
             duration = SnackbarDuration.Short
         )
         if (result == SnackbarResult.ActionPerformed) {
@@ -155,19 +159,19 @@ fun NutritionScreen(
                 // A tab, so no back arrow.
                 title = { Text(stringResource(R.string.title_nutrition)) },
                 actions = {
-                    HangryInfoIconButton(title = "About Nutrition", sections = NUTRITION_INFO_SECTIONS)
+                    HangryInfoIconButton(title = stringResource(R.string.nutrition_about_title), sections = nutritionInfoSections())
                     IconButton(onClick = onNavigateToMealPlan) {
-                        Icon(imageVector = Icons.Default.RestaurantMenu, contentDescription = "Saved meals")
+                        Icon(imageVector = Icons.Default.RestaurantMenu, contentDescription = stringResource(R.string.nutrition_cd_saved_meals))
                     }
                     // Typing a meal in by hand is deliberately tucked away here: the photo is the
                     // default path everywhere, and AI fills in the details.
                     Box {
                         IconButton(onClick = { showOverflowMenu = true }) {
-                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More options")
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = stringResource(R.string.nutrition_cd_more_options))
                         }
                         DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
                             DropdownMenuItem(
-                                text = { Text("Enter meal manually") },
+                                text = { Text(stringResource(R.string.nutrition_enter_manually)) },
                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -209,17 +213,17 @@ fun NutritionScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "AI Auto-Estimation is Off",
+                                        text = stringResource(R.string.nutrition_ai_off_title),
                                         style = MaterialTheme.typography.titleSmall,
                                         color = tokens.textPrimary
                                     )
                                     HangryInfoTip(
-                                        title = "AI Auto-Estimation",
-                                        body = "You can log meals quickly below. Tap here to configure AI in Settings for auto-detection from photos."
+                                        title = stringResource(R.string.nutrition_ai_tip_title),
+                                        body = stringResource(R.string.nutrition_ai_tip_body)
                                     )
                                 }
                                 Text(
-                                    text = "Tap to set up in Settings",
+                                    text = stringResource(R.string.nutrition_ai_off_subtitle),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textMuted
                                 )
@@ -256,14 +260,14 @@ fun NutritionScreen(
                 ) {
                     LogActionButton(
                         icon = Icons.Default.CameraAlt,
-                        label = "Take Photo",
+                        label = stringResource(R.string.nutrition_action_take_photo),
                         enabled = !uiState.isAnalyzing,
                         onClick = { photoLauncher.takePhoto() },
                         modifier = Modifier.weight(1f)
                     )
                     LogActionButton(
                         icon = Icons.Default.Image,
-                        label = "Gallery",
+                        label = stringResource(R.string.nutrition_action_gallery),
                         enabled = !uiState.isAnalyzing,
                         onClick = { photoLauncher.pickFromGallery() },
                         modifier = Modifier.weight(1f)
@@ -271,7 +275,7 @@ fun NutritionScreen(
                     if (uiState.aiFeaturesEnabled) {
                         LogActionButton(
                             icon = Icons.Default.Edit,
-                            label = "Describe",
+                            label = stringResource(R.string.nutrition_action_describe),
                             enabled = !uiState.isAnalyzing,
                             onClick = { showDescribeDialog = true },
                             modifier = Modifier.weight(1f)
@@ -279,7 +283,7 @@ fun NutritionScreen(
                     }
                     LogActionButton(
                         icon = Icons.Default.Bookmarks,
-                        label = "Saved",
+                        label = stringResource(R.string.nutrition_action_saved),
                         enabled = true,
                         onClick = onNavigateToMealPlan,
                         modifier = Modifier.weight(1f)
@@ -296,7 +300,7 @@ fun NutritionScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         DashSpinner(size = 44.dp, contentDescription = null)
                         Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
-                        Text("Analyzing and logging…", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                        Text(stringResource(R.string.nutrition_analyzing), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                     }
                 }
             }
@@ -315,7 +319,7 @@ fun NutritionScreen(
             }
 
             item {
-                Text(text = dayHeading("Log", uiState.selectedDate), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = dayHeading(stringResource(R.string.nutrition_log_heading), uiState.selectedDate), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
             }
 
             if (uiState.todayEntries.isEmpty()) {
@@ -323,8 +327,8 @@ fun NutritionScreen(
                     HangryCard(modifier = Modifier.fillMaxWidth()) {
                         DashEmptyState(
                             scene = DashEmptyScene.MEALS,
-                            title = "Nothing logged yet",
-                            body = "Snap a photo, or tap a food in Quick add to log it in one go.",
+                            title = stringResource(R.string.nutrition_empty_title),
+                            body = stringResource(R.string.nutrition_empty_body),
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
@@ -353,12 +357,12 @@ fun NutritionScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = bucket.title,
+                                text = stringResource(bucket.titleRes),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = tokens.textSecondary
                             )
                             Text(
-                                text = "${bucketEntries.sumOf { it.calories }} kcal",
+                                text = stringResource(R.string.nutrition_kcal, bucketEntries.sumOf { it.calories }),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.chartColors.activeCalories
                             )
@@ -385,10 +389,10 @@ fun NutritionScreen(
                 item {
                     val totalKcal = uiState.todayEntries.sumOf { it.calories }
                     val count = uiState.todayEntries.size
-                    val itemText = if (count == 1) "1 item" else "$count items"
+                    val itemText = if (count == 1) stringResource(R.string.nutrition_one_item) else stringResource(R.string.nutrition_n_items, count)
                     DashNote(
                         mood = DashMood.NUTRITION,
-                        text = "Great fueling! $totalKcal kcal tracked across $itemText. Keep up the mindful nourishment.",
+                        text = stringResource(R.string.nutrition_great_fueling, totalKcal, itemText),
                         modifier = Modifier.padding(top = HangryTokens.Spacing.xs)
                     )
                 }
@@ -468,7 +472,7 @@ fun NutritionScreen(
 @Composable
 private fun WeeklyReviewEntryCard(onClick: () -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open weekly review", onClick = onClick)) {
+    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.nutrition_weekly_open_label), onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -481,9 +485,9 @@ private fun WeeklyReviewEntryCard(onClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Weekly review", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(stringResource(R.string.nutrition_info_weekly_title), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
-                    "Your last 7 days of eating, and what to add next",
+                    stringResource(R.string.nutrition_weekly_entry_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textMuted
                 )
@@ -509,10 +513,10 @@ private fun QuickAddRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(text = "Quick add", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                Text(text = "Hold for ½× or 2×", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                Text(text = stringResource(R.string.nutrition_quick_add), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.nutrition_quick_add_hint), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
             }
-            TextButton(onClick = onSeeAll) { Text("All saved meals") }
+            TextButton(onClick = onSeeAll) { Text(stringResource(R.string.nutrition_all_saved_meals)) }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(recent, key = { "saved_${it.id}" }) { meal ->
@@ -540,8 +544,8 @@ private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -
                 .heightIn(min = 32.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .combinedClickable(
-                    onClickLabel = "Log $name",
-                    onLongClickLabel = "Choose portion",
+                    onClickLabel = stringResource(R.string.nutrition_log_item_label, name),
+                    onLongClickLabel = stringResource(R.string.nutrition_choose_portion),
                     onClick = { onLog(1.0) },
                     onLongClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -556,7 +560,7 @@ private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -
                 Icon(Icons.Default.Add, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "$name · $calories",
+                    text = stringResource(R.string.nutrition_name_dot_value, name, calories),
                     style = MaterialTheme.typography.labelLarge,
                     color = tokens.textPrimary,
                     maxLines = 1,
@@ -568,7 +572,7 @@ private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
             PORTIONS.forEach { portion ->
                 DropdownMenuItem(
-                    text = { Text("${portionLabel(portion)}× · ${(calories * portion).roundToInt()} kcal") },
+                    text = { Text(stringResource(R.string.nutrition_portion_kcal, portionLabel(portion), (calories * portion).roundToInt())) },
                     onClick = {
                         menuOpen = false
                         onLog(portion)
@@ -618,14 +622,14 @@ private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = entry.foodName, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
-                    text = "${entry.calories} kcal · P${entry.proteinG.toInt()} C${entry.carbsG.toInt()} F${entry.fatG.toInt()}" +
-                        if (entry.fiberG >= 0.5) " · Fiber ${entry.fiberG.roundToInt()}g" else "",
+                    text = stringResource(R.string.nutrition_entry_macros, entry.calories, entry.proteinG.toInt(), entry.carbsG.toInt(), entry.fatG.toInt()) +
+                        if (entry.fiberG >= 0.5) stringResource(R.string.nutrition_entry_fiber_suffix, entry.fiberG.roundToInt()) else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
             }
             IconButton(onClick = onDelete) {
-                Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Delete", tint = tokens.textMuted)
+                Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.nutrition_delete), tint = tokens.textMuted)
             }
         }
     }
@@ -636,20 +640,20 @@ private fun DescribeFoodDialog(onDismiss: () -> Unit, onAnalyze: (String) -> Uni
     var text by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Describe Your Meal") },
+        title = { Text(stringResource(R.string.nutrition_describe_title)) },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                placeholder = { Text("e.g. Chicken sandwich & fries") },
+                placeholder = { Text(stringResource(R.string.nutrition_describe_placeholder)) },
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
-            TextButton(enabled = text.isNotBlank(), onClick = { onAnalyze(text) }) { Text("Log It") }
+            TextButton(enabled = text.isNotBlank(), onClick = { onAnalyze(text) }) { Text(stringResource(R.string.nutrition_log_it)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -675,7 +679,7 @@ private fun EditFoodEntryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Entry") },
+        title = { Text(stringResource(R.string.nutrition_edit_entry_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (entry.photoPath != null && File(entry.photoPath).exists()) {
@@ -692,19 +696,19 @@ private fun EditFoodEntryDialog(
                 if (entry.source == FoodLogSource.HEALTH_CONNECT) {
                     // Health Connect only lets the app that wrote a record change it.
                     Text(
-                        "Logged by another app. Changes here stay in Hangry. To change Health Connect, edit the meal in that app.",
+                        stringResource(R.string.nutrition_edit_hc_notice),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                OutlinedTextField(value = foodName, onValueChange = { foodName = it }, label = { Text("Food") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = foodName, onValueChange = { foodName = it }, label = { Text(stringResource(R.string.nutrition_field_food)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text(stringResource(R.string.nutrition_field_calories)) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("Protein g") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Carbs g") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("Fat g") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text(stringResource(R.string.nutrition_field_protein_g)) }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text(stringResource(R.string.nutrition_field_carbs_g)) }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text(stringResource(R.string.nutrition_field_fat_g)) }, modifier = Modifier.weight(1f))
                 }
-                OutlinedTextField(value = fiber, onValueChange = { fiber = it }, label = { Text("Fiber g") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = fiber, onValueChange = { fiber = it }, label = { Text(stringResource(R.string.nutrition_field_fiber_g)) }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -722,12 +726,12 @@ private fun EditFoodEntryDialog(
                         )
                     )
                 }
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.nutrition_save)) }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = onDelete) { Text("Delete") }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDelete) { Text(stringResource(R.string.nutrition_delete)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
             }
         }
     )

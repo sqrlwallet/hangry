@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="HEART"
+            android:text="@string/widget_layout_heart"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -43,7 +43,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Resting HR"
+            android:text="@string/widget_layout_resting_hr"
             android:textColor="#B5AEB8"
             android:textSize="12sp" />
 
@@ -107,7 +107,7 @@
         android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="vs your 4-week normal"
+        android:text="@string/widget_layout_vs_your_4_week_normal"
         android:textColor="#B5AEB8"
         android:textSize="11sp" />
 </LinearLayout>

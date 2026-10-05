@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.dashboard
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -43,6 +45,8 @@ fun DashPullIndicator(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val syncingDescription = stringResource(R.string.dashboard_pull_syncing, MASCOT_NAME)
+    val pullDescription = stringResource(R.string.dashboard_pull_to_sync)
     val fraction = state.distanceFraction
     if (fraction <= 0f && !isRefreshing) return
 
@@ -61,7 +65,7 @@ fun DashPullIndicator(
         shadowElevation = 6.dp,
         modifier = modifier
             .size(INDICATOR_SIZE)
-            .semantics { contentDescription = if (isRefreshing) "$MASCOT_NAME is syncing" else "Pull to sync" }
+            .semantics { contentDescription = if (isRefreshing) syncingDescription else pullDescription }
             .graphicsLayer {
                 val pulled = min(fraction, 1.4f)
                 // Starts tucked above the screen and slides down with your finger.

@@ -27,10 +27,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.Fast
 import com.kevan.hangry.domain.model.FastingMath
 import com.kevan.hangry.domain.model.FastingPlan
@@ -57,27 +59,13 @@ internal val FastingColor = Color(0xFF9C7CE0)
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
 private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
 
-private val FASTING_INFO = listOf(
-    HangryInfoSection(
-        "How it works",
-        "Pick a plan, tap Start fast when you finish eating and End fast at your next meal. Hangry counts the hours, tells you when you hit your goal, and keeps a streak of the days you reach it."
-    ),
-    HangryInfoSection(
-        "Plans",
-        "16:8 means 16 hours fasting and an 8-hour eating window. 13:11 and 14:10 are gentle places to start; 18:6, 20:4 and one meal a day are harder. Change plan any time - a running fast takes the new goal."
-    ),
-    HangryInfoSection(
-        "Stages",
-        "The stages (fat burning, ketosis...) are rough guides from common fasting apps. The hours vary a lot between people with diet, activity and metabolism."
-    ),
-    HangryInfoSection(
-        "Is it for you?",
-        "Fasting isn't advised if you're pregnant or breastfeeding, under 18, have a history of eating disorders, or take medication for diabetes or blood pressure - check with your doctor first. Stop if you feel unwell."
-    ),
-    HangryInfoSection(
-        "Turning it off",
-        "Fasting is optional. Turn it off at the bottom of this screen: the timer, reminder and streak stop, and your history is kept in case you come back."
-    )
+@Composable
+private fun fastingInfoSections(): List<HangryInfoSection> = listOf(
+    HangryInfoSection(stringResource(R.string.nutrition_info_how_title), stringResource(R.string.nutrition_fasting_info_how_body)),
+    HangryInfoSection(stringResource(R.string.nutrition_fasting_info_plans_title), stringResource(R.string.nutrition_fasting_info_plans_body)),
+    HangryInfoSection(stringResource(R.string.nutrition_fasting_info_stages_title), stringResource(R.string.nutrition_fasting_info_stages_body)),
+    HangryInfoSection(stringResource(R.string.nutrition_fasting_info_for_you_title), stringResource(R.string.nutrition_fasting_info_for_you_body)),
+    HangryInfoSection(stringResource(R.string.nutrition_fasting_info_off_title), stringResource(R.string.nutrition_fasting_info_off_body))
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,11 +90,11 @@ fun FastingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Fasting") },
+                title = { Text(stringResource(R.string.nutrition_fasting_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nutrition_cd_back)) }
                 },
-                actions = { HangryInfoIconButton(title = "About Fasting", sections = FASTING_INFO) },
+                actions = { HangryInfoIconButton(title = stringResource(R.string.nutrition_fasting_about), sections = fastingInfoSections()) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
@@ -154,7 +142,7 @@ fun FastingScreen(
                 )
             }
             Text(
-                "For your own tracking - not medical advice.",
+                stringResource(R.string.nutrition_fasting_disclaimer),
                 style = MaterialTheme.typography.labelSmall,
                 color = LocalHangryTokens.current.textMuted
             )
@@ -191,14 +179,14 @@ private fun IntroCard(
     HangryCard(modifier = Modifier.fillMaxWidth()) {
         DashExpression(mood = DashMood.FASTING, size = 96.dp, contentDescription = null)
         Spacer(Modifier.height(8.dp))
-        Text("Intermittent fasting", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+        Text(stringResource(R.string.nutrition_fasting_intro_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         Text(
-            "An optional timer for eating windows like 16:8. Start a fast when you finish eating, get a nudge when you hit your goal, and build a streak. Turn it off any time.",
+            stringResource(R.string.nutrition_fasting_intro_body),
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textSecondary
         )
         Spacer(Modifier.height(12.dp))
-        Text("Choose a plan", style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
+        Text(stringResource(R.string.nutrition_fasting_choose_plan), style = MaterialTheme.typography.labelLarge, color = tokens.textPrimary)
         Spacer(Modifier.height(4.dp))
         PlanChips(snapshot, onPickPlan)
         Spacer(Modifier.height(12.dp))
@@ -208,7 +196,7 @@ private fun IntroCard(
         }
         Surface(color = tokens.brandAccentContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
             Text(
-                "Skip fasting if you're pregnant or breastfeeding, under 18, have had an eating disorder, or take diabetes or blood pressure medication - ask your doctor first.",
+                stringResource(R.string.nutrition_fasting_intro_caution),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textPrimary,
                 modifier = Modifier.padding(12.dp)
@@ -216,7 +204,7 @@ private fun IntroCard(
         }
         Spacer(Modifier.height(12.dp))
         Button(onClick = onTurnOn, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            Text("Turn on fasting")
+            Text(stringResource(R.string.nutrition_fasting_turn_on))
         }
     }
 }
@@ -229,7 +217,7 @@ private fun PregnancyWarning() {
             Icon(Icons.Default.WarningAmber, contentDescription = null, tint = tokens.scoreColors.rebuild, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
             Text(
-                "Your Health Records say you're pregnant. Fasting isn't recommended during pregnancy - please talk to your midwife or doctor first.",
+                stringResource(R.string.nutrition_fasting_pregnancy_warning),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textPrimary
             )
@@ -251,7 +239,7 @@ private fun PlanChips(snapshot: FastingSnapshot, onPickPlan: (FastingPlan, Int?)
         }
     }
     Text(
-        if (snapshot.plan == FastingPlan.CUSTOM) "${snapshot.targetHours}h fast" else snapshot.plan.blurb,
+        if (snapshot.plan == FastingPlan.CUSTOM) stringResource(R.string.nutrition_fasting_custom_hours_fast, snapshot.targetHours) else snapshot.plan.blurb,
         style = MaterialTheme.typography.bodySmall,
         color = tokens.textSecondary
     )
@@ -264,7 +252,7 @@ private fun PlanChips(snapshot: FastingSnapshot, onPickPlan: (FastingPlan, Int?)
             valueRange = FastingPlan.MIN_CUSTOM_HOURS.toFloat()..FastingPlan.MAX_CUSTOM_HOURS.toFloat(),
             steps = FastingPlan.MAX_CUSTOM_HOURS - FastingPlan.MIN_CUSTOM_HOURS - 1
         )
-        Text("${hours.toInt()} hours", style = MaterialTheme.typography.labelMedium, color = tokens.textPrimary)
+        Text(stringResource(R.string.nutrition_fasting_hours, hours.toInt()), style = MaterialTheme.typography.labelMedium, color = tokens.textPrimary)
     }
 }
 
@@ -299,25 +287,25 @@ private fun TimerCard(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (active != null) {
                         val reached = active.reachedGoal(now)
-                        Text(if (reached) "Goal reached!" else "Fasting", style = MaterialTheme.typography.labelLarge, color = if (reached) tokens.scoreColors.primed else tokens.textSecondary)
+                        Text(if (reached) stringResource(R.string.nutrition_fasting_goal_reached) else stringResource(R.string.nutrition_fasting_title), style = MaterialTheme.typography.labelLarge, color = if (reached) tokens.scoreColors.primed else tokens.textSecondary)
                         Text(formatClock(active.elapsed(now)), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = tokens.textPrimary)
                         Text(
-                            if (reached) "+" + FastingMath.formatDuration(Duration.between(active.goalAt(), now)) + " past ${active.targetMinutes / 60}h"
-                            else FastingMath.formatDuration(Duration.between(now, active.goalAt())) + " to go",
+                            if (reached) stringResource(R.string.nutrition_fasting_past_goal, FastingMath.formatDuration(Duration.between(active.goalAt(), now)), active.targetMinutes / 60)
+                            else stringResource(R.string.nutrition_fasting_to_go, FastingMath.formatDuration(Duration.between(now, active.goalAt()))),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
                     } else {
-                        Text("Eating window", style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
+                        Text(stringResource(R.string.nutrition_fasting_eating_window), style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
                         val sinceLast = snapshot.lastFinished?.endAt?.let { Duration.between(it, now) }
                         Text(
-                            sinceLast?.let { formatClock(it) } ?: "${snapshot.targetHours}h",
+                            sinceLast?.let { formatClock(it) } ?: stringResource(R.string.nutrition_fasting_hours_short, snapshot.targetHours),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = tokens.textPrimary
                         )
                         Text(
-                            if (sinceLast != null) "since your last fast" else "${snapshot.plan.label} fast",
+                            if (sinceLast != null) stringResource(R.string.nutrition_fasting_since_last) else stringResource(R.string.nutrition_fasting_plan_fast, snapshot.plan.label),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -330,7 +318,7 @@ private fun TimerCard(
                 val zone = ZoneId.systemDefault()
                 if (active.reachedGoal(now)) DashExpression(mood = DashMood.FASTING_DONE, size = 72.dp, contentDescription = null)
                 Text(
-                    "Started ${active.startAt.atZone(zone).format(TIME_FORMAT)} · goal ${active.goalAt().atZone(zone).format(TIME_FORMAT)}",
+                    stringResource(R.string.nutrition_fasting_started_goal, active.startAt.atZone(zone).format(TIME_FORMAT), active.goalAt().atZone(zone).format(TIME_FORMAT)),
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
@@ -340,13 +328,13 @@ private fun TimerCard(
                 Button(
                     onClick = { if (active.reachedGoal(now)) onEnd() else confirmEnd = true },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) { Text("End fast") }
-                TextButton(onClick = { picker = TimePick.EDIT_START }) { Text("Edit start time") }
+                ) { Text(stringResource(R.string.nutrition_fasting_end_fast)) }
+                TextButton(onClick = { picker = TimePick.EDIT_START }) { Text(stringResource(R.string.nutrition_fasting_edit_start)) }
             } else {
                 Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-                    Text("Start ${snapshot.targetHours}h fast")
+                    Text(stringResource(R.string.nutrition_fasting_start_hours_fast, snapshot.targetHours))
                 }
-                TextButton(onClick = { picker = TimePick.STARTED_EARLIER }) { Text("I started earlier") }
+                TextButton(onClick = { picker = TimePick.STARTED_EARLIER }) { Text(stringResource(R.string.nutrition_fasting_started_earlier)) }
             }
         }
     }
@@ -355,7 +343,7 @@ private fun TimerCard(
         val zone = ZoneId.systemDefault()
         val initial = if (mode == TimePick.EDIT_START && active != null) active.startAt.atZone(zone).toLocalTime() else LocalTime.now().minusHours(1)
         FastingTimePicker(
-            title = if (mode == TimePick.EDIT_START) "When did this fast start?" else "When did you stop eating?",
+            title = if (mode == TimePick.EDIT_START) stringResource(R.string.nutrition_fasting_picker_edit_title) else stringResource(R.string.nutrition_fasting_picker_start_title),
             initial = initial,
             onDismiss = { picker = null },
             onPick = { time ->
@@ -367,15 +355,14 @@ private fun TimerCard(
     if (confirmEnd && active != null) {
         AlertDialog(
             onDismissRequest = { confirmEnd = false },
-            title = { Text("End fast early?") },
+            title = { Text(stringResource(R.string.nutrition_fasting_end_early_title)) },
             text = {
                 Text(
-                    "You're ${FastingMath.formatDuration(active.elapsed(now))} in, ${FastingMath.formatDuration(Duration.between(now, active.goalAt()))} short of your goal. " +
-                        "It's saved to your history but won't count toward your streak."
+                    stringResource(R.string.nutrition_fasting_end_early_body, FastingMath.formatDuration(active.elapsed(now)), FastingMath.formatDuration(Duration.between(now, active.goalAt())))
                 )
             },
-            confirmButton = { TextButton(onClick = { confirmEnd = false; onEnd() }) { Text("End fast") } },
-            dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text("Keep going") } }
+            confirmButton = { TextButton(onClick = { confirmEnd = false; onEnd() }) { Text(stringResource(R.string.nutrition_fasting_end_fast)) } },
+            dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text(stringResource(R.string.nutrition_fasting_keep_going)) } }
         )
     }
 }
@@ -397,7 +384,7 @@ private fun StageRow(stage: FastingStage) {
             Text(stage.title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
             Text(stage.detail, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
         }
-        Text("~${stage.fromHours}h+", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+        Text(stringResource(R.string.nutrition_fasting_stage_from, stage.fromHours), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
     }
 }
 
@@ -405,11 +392,11 @@ private fun StageRow(stage: FastingStage) {
 private fun PlanCard(snapshot: FastingSnapshot, onPickPlan: (FastingPlan, Int?) -> Unit) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
-        Text("Your plan", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+        Text(stringResource(R.string.nutrition_fasting_your_plan), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
         Spacer(Modifier.height(4.dp))
         PlanChips(snapshot, onPickPlan)
         if (snapshot.active != null) {
-            Text("Changing plan updates the goal of the fast you're on.", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+            Text(stringResource(R.string.nutrition_fasting_plan_change_note), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
         }
     }
 }
@@ -422,14 +409,24 @@ private fun StatsCard(snapshot: FastingSnapshot) {
     val longest = snapshot.history.maxOfOrNull { it.elapsed() }
     HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Progress", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.nutrition_fasting_progress), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
             if (snapshot.streak >= 3) DashExpression(mood = DashMood.STREAK, size = 44.dp, contentDescription = null)
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile("Streak", "${snapshot.streak} ${if (snapshot.streak == 1) "day" else "days"}", "best ${snapshot.bestStreak}", Modifier.weight(1f))
-            StatTile("This week", "${week.count { it.reachedGoal() }}/${week.size}", "fasts hit goal", Modifier.weight(1f))
-            StatTile("Average", average?.let(FastingMath::formatDuration) ?: "—", longest?.let { "longest " + FastingMath.formatDuration(it) } ?: "last 7 days", Modifier.weight(1f))
+            StatTile(
+                stringResource(R.string.nutrition_fasting_streak),
+                if (snapshot.streak == 1) stringResource(R.string.nutrition_fasting_one_day) else stringResource(R.string.nutrition_fasting_n_days, snapshot.streak),
+                stringResource(R.string.nutrition_fasting_best, snapshot.bestStreak),
+                Modifier.weight(1f)
+            )
+            StatTile(stringResource(R.string.nutrition_fasting_this_week), stringResource(R.string.nutrition_fasting_ratio, week.count { it.reachedGoal() }, week.size), stringResource(R.string.nutrition_fasting_fasts_hit_goal), Modifier.weight(1f))
+            StatTile(
+                stringResource(R.string.nutrition_fasting_average),
+                average?.let(FastingMath::formatDuration) ?: "—",
+                longest?.let { stringResource(R.string.nutrition_fasting_longest, FastingMath.formatDuration(it)) } ?: stringResource(R.string.nutrition_fasting_last_7_days),
+                Modifier.weight(1f)
+            )
         }
     }
 }
@@ -455,28 +452,28 @@ private fun HistoryCard(history: List<Fast>, onDelete: (Long) -> Unit) {
     var deleting by remember { mutableStateOf<Fast?>(null) }
     val zone = ZoneId.systemDefault()
     HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
-        Text("Recent fasts", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+        Text(stringResource(R.string.nutrition_fasting_recent), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
         history.take(MAX_HISTORY).forEach { fast ->
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        fast.startAt.atZone(zone).format(DAY_FORMAT) + " · " + FastingMath.formatDuration(fast.elapsed()),
+                        stringResource(R.string.nutrition_fasting_history_day, fast.startAt.atZone(zone).format(DAY_FORMAT), FastingMath.formatDuration(fast.elapsed())),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary
                     )
                     Text(
-                        "${fast.startAt.atZone(zone).format(TIME_FORMAT)} – ${fast.endAt?.atZone(zone)?.format(TIME_FORMAT).orEmpty()} · goal ${fast.targetMinutes / 60}h",
+                        stringResource(R.string.nutrition_fasting_history_range, fast.startAt.atZone(zone).format(TIME_FORMAT), fast.endAt?.atZone(zone)?.format(TIME_FORMAT).orEmpty(), fast.targetMinutes / 60),
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted
                     )
                 }
                 Text(
-                    if (fast.reachedGoal()) "✓ Goal" else "Early",
+                    if (fast.reachedGoal()) stringResource(R.string.nutrition_fasting_history_goal) else stringResource(R.string.nutrition_fasting_history_early),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (fast.reachedGoal()) tokens.scoreColors.primed else tokens.textMuted
                 )
                 IconButton(onClick = { deleting = fast }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Delete fast", tint = tokens.textMuted, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.nutrition_fasting_delete_cd), tint = tokens.textMuted, modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -484,10 +481,10 @@ private fun HistoryCard(history: List<Fast>, onDelete: (Long) -> Unit) {
     deleting?.let { fast ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Delete this fast?") },
-            text = { Text("${FastingMath.formatDuration(fast.elapsed())} on ${fast.startAt.atZone(zone).format(DAY_FORMAT)}. This can change your streak.") },
-            confirmButton = { TextButton(onClick = { onDelete(fast.id); deleting = null }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } }
+            title = { Text(stringResource(R.string.nutrition_fasting_delete_title)) },
+            text = { Text(stringResource(R.string.nutrition_fasting_delete_body, FastingMath.formatDuration(fast.elapsed()), fast.startAt.atZone(zone).format(DAY_FORMAT))) },
+            confirmButton = { TextButton(onClick = { onDelete(fast.id); deleting = null }) { Text(stringResource(R.string.nutrition_delete), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 }
@@ -501,29 +498,29 @@ private fun SettingsCard(snapshot: FastingSnapshot, onGoalReminder: (Boolean) ->
     HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Goal reminder", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                Text("A notification when your fast reaches its goal", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                Text(stringResource(R.string.nutrition_fasting_goal_reminder), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(stringResource(R.string.nutrition_fasting_goal_reminder_body), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
             }
             Switch(checked = snapshot.goalReminder, onCheckedChange = onGoalReminder)
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
         TextButton(onClick = { confirmOff = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Turn off fasting", color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.nutrition_fasting_turn_off), color = MaterialTheme.colorScheme.error)
         }
     }
     if (confirmOff) {
         AlertDialog(
             onDismissRequest = { confirmOff = false },
-            title = { Text("Turn off fasting?") },
+            title = { Text(stringResource(R.string.nutrition_fasting_turn_off_title)) },
             text = {
                 Text(
-                    (if (snapshot.active != null) "Your current fast ends and is saved. " else "") +
-                        "The timer, reminder, streak and widget stop. Your history is kept if you turn it back on.",
+                    (if (snapshot.active != null) stringResource(R.string.nutrition_fasting_turn_off_active_prefix) else "") +
+                        stringResource(R.string.nutrition_fasting_turn_off_body),
                     textAlign = TextAlign.Start
                 )
             },
-            confirmButton = { TextButton(onClick = { confirmOff = false; onTurnOff() }) { Text("Turn off") } },
-            dismissButton = { TextButton(onClick = { confirmOff = false }) { Text("Cancel") } }
+            confirmButton = { TextButton(onClick = { confirmOff = false; onTurnOff() }) { Text(stringResource(R.string.nutrition_fasting_turn_off_confirm)) } },
+            dismissButton = { TextButton(onClick = { confirmOff = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 }
@@ -539,13 +536,13 @@ private fun FastingTimePicker(title: String, initial: LocalTime, onDismiss: () -
             Column {
                 TimePicker(state = state)
                 Text(
-                    "A time later than now means yesterday.",
+                    stringResource(R.string.nutrition_fasting_picker_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = LocalHangryTokens.current.textMuted
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onPick(LocalTime.of(state.hour, state.minute)) }) { Text("OK") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        confirmButton = { TextButton(onClick = { onPick(LocalTime.of(state.hour, state.minute)) }) { Text(stringResource(R.string.nutrition_fasting_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

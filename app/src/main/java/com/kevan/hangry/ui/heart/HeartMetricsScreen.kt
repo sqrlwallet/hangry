@@ -32,32 +32,32 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-private val HEART_INFO_SECTIONS = listOf(
+@Composable
+private fun heartInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "Heart Rate Variability (RMSSD)",
-        "Reflects the millisecond variance between consecutive heartbeats - how smoothly your nervous system shifts between sympathetic activation (performance) and parasympathetic restoration (recovery)."
+        stringResource(R.string.metrics_heart_info_hrv_title),
+        stringResource(R.string.metrics_heart_info_hrv_body)
     ),
     HangryInfoSection(
-        "If HRV is missing",
-        "Continuous and resting heart rate can come through even when HRV doesn't - it depends on whether a connected app reports RMSSD to Health Connect. Oura, Whoop, Garmin, and Polar commonly do; Samsung Health currently does not."
+        stringResource(R.string.metrics_heart_info_missing_title),
+        stringResource(R.string.metrics_heart_hrv_missing_body)
     ),
     HangryInfoSection(
-        "Below baseline",
-        "Suggests sympathetic nervous system dominance from recent training strain, stress, or incomplete sleep recovery."
+        stringResource(R.string.metrics_heart_info_below_title),
+        stringResource(R.string.metrics_heart_info_below_body)
     ),
     HangryInfoSection(
-        "Elevated above baseline",
-        "High parasympathetic activity, indicating strong recovery capacity or deep rest."
+        stringResource(R.string.metrics_heart_info_elevated_title),
+        stringResource(R.string.metrics_heart_info_elevated_body)
     ),
     HangryInfoSection(
-        "Resting Heart Rate deviations",
-        "A lower resting pulse indicates strong cardiovascular restoration. Mild elevations often reflect training fatigue, dehydration, or late meals."
+        stringResource(R.string.metrics_heart_info_rhr_title),
+        stringResource(R.string.metrics_heart_rhr_dynamics_body)
     )
 )
 
@@ -106,12 +106,12 @@ fun HeartMetricsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.metrics_components_back)
                         )
                     }
                 },
                 actions = {
-                    HangryInfoIconButton(title = "About Heart & HRV", sections = HEART_INFO_SECTIONS)
+                    HangryInfoIconButton(title = stringResource(R.string.metrics_heart_about), sections = heartInfoSections())
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -132,7 +132,7 @@ fun HeartMetricsScreen(
                 item {
                     DashNote(
                         mood = DashMood.HEART,
-                        text = "Your HRV of ${currentHrv.toInt()} ms is at or above your normal of ${hrvMean.toInt()} ms. Your body is well recovered."
+                        text = stringResource(R.string.metrics_heart_dash_hrv_good, currentHrv.toInt(), hrvMean.toInt())
                     )
                 }
             }
@@ -160,13 +160,13 @@ fun HeartMetricsScreen(
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = if (currentRhr != null) "${currentRhr.toInt()} bpm" else "—",
+                            text = if (currentRhr != null) stringResource(R.string.metrics_components_bpm_value, currentRhr.toInt()) else "—",
                             style = MaterialTheme.typography.headlineLarge,
                             color = tokens.chartColors.restingHeartRate
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (hasRhrBaseline) "28-day avg: ${rhrMean.toInt()} bpm" else "Resting Baseline",
+                            text = if (hasRhrBaseline) stringResource(R.string.metrics_heart_28_day_avg_bpm, rhrMean.toInt()) else stringResource(R.string.metrics_heart_resting_baseline),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -189,13 +189,13 @@ fun HeartMetricsScreen(
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Text(
-                            text = if (currentHrv != null) "${currentHrv.toInt()} ms" else "—",
+                            text = if (currentHrv != null) stringResource(R.string.metrics_components_ms_value, currentHrv.toInt()) else "—",
                             style = MaterialTheme.typography.headlineLarge,
                             color = tokens.chartColors.hrv
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (hasHrvBaseline) "28-day avg: ${hrvMean.toInt()} ms" else "RMSSD Metric",
+                            text = if (hasHrvBaseline) stringResource(R.string.metrics_heart_28_day_avg_ms, hrvMean.toInt()) else stringResource(R.string.metrics_heart_rmssd_metric),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -209,11 +209,10 @@ fun HeartMetricsScreen(
                     HangryCard {
                         DashEmptyState(
                             scene = DashEmptyScene.HRV,
-                            title = "No HRV data yet",
-                            body = "Not every app reports HRV.",
-                            infoTitle = "No HRV Data Yet",
-                            infoBody = "No RMSSD records from Health Connect yet - not every connected app reports this metric.\n\n" +
-                                    "Continuous and resting heart rate can come through even when HRV doesn't - it depends on whether a connected app reports RMSSD to Health Connect. Oura, Whoop, Garmin, and Polar commonly do; Samsung Health currently does not.",
+                            title = stringResource(R.string.metrics_heart_no_hrv_title),
+                            body = stringResource(R.string.metrics_heart_no_hrv_body),
+                            infoTitle = stringResource(R.string.metrics_heart_no_hrv_info_title),
+                            infoBody = stringResource(R.string.metrics_heart_no_hrv_info_intro) + "\n\n" + stringResource(R.string.metrics_heart_hrv_missing_body),
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
@@ -233,31 +232,29 @@ fun HeartMetricsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "HRV Baseline Band",
+                                text = stringResource(R.string.metrics_heart_hrv_band),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
                             HangryInfoTip(
-                                title = "HRV Optimal Baseline Band",
-                                body = "Your personal normal range: the mean of your recent HRV readings ± one standard deviation. " +
-                                    "Below the band suggests sympathetic nervous system dominance from recent training strain, stress, or incomplete sleep recovery. " +
-                                    "Above it indicates high parasympathetic activity - strong recovery capacity or deep rest."
+                                title = stringResource(R.string.metrics_heart_hrv_band_info_title),
+                                body = stringResource(R.string.metrics_heart_hrv_band_info_body)
                             )
                         }
 
                         val statusBadgeText: String
                         val statusBadgeColor: androidx.compose.ui.graphics.Color
                         if (currentHrv == null) {
-                            statusBadgeText = "NO READING"
+                            statusBadgeText = stringResource(R.string.metrics_heart_badge_no_reading)
                             statusBadgeColor = tokens.textMuted
                         } else if (currentHrv < hrvLowerBand) {
-                            statusBadgeText = "BELOW BASELINE"
+                            statusBadgeText = stringResource(R.string.metrics_heart_badge_below)
                             statusBadgeColor = tokens.scoreColors.rebuild
                         } else if (currentHrv > hrvUpperBand) {
-                            statusBadgeText = "ELEVATED"
+                            statusBadgeText = stringResource(R.string.metrics_heart_badge_elevated)
                             statusBadgeColor = tokens.chartColors.hrv
                         } else {
-                            statusBadgeText = "OPTIMAL RANGE"
+                            statusBadgeText = stringResource(R.string.metrics_heart_badge_optimal)
                             statusBadgeColor = tokens.scoreColors.primed
                         }
 
@@ -282,16 +279,16 @@ fun HeartMetricsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text(text = "Lower Band", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                            Text(text = "${hrvLowerBand.toInt()} ms", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                            Text(text = stringResource(R.string.metrics_heart_lower_band), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                            Text(text = stringResource(R.string.metrics_components_ms_value, hrvLowerBand.toInt()), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "Personal Mean", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                            Text(text = "${hrvMean.toInt()} ms", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                            Text(text = stringResource(R.string.metrics_heart_personal_mean), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                            Text(text = stringResource(R.string.metrics_components_ms_value, hrvMean.toInt()), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text(text = "Upper Band", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                            Text(text = "${hrvUpperBand.toInt()} ms", style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
+                            Text(text = stringResource(R.string.metrics_heart_upper_band), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                            Text(text = stringResource(R.string.metrics_components_ms_value, hrvUpperBand.toInt()), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         }
                     }
 
@@ -338,10 +335,10 @@ fun HeartMetricsScreen(
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
 
                     val physiologicalBandNote = when {
-                        currentHrv == null -> "Wear your device during sleep to capture HRV."
-                        currentHrv < hrvLowerBand -> "Below your typical baseline."
-                        currentHrv > hrvUpperBand -> "Elevated above your baseline."
-                        else -> "Within your normal range - ready for training."
+                        currentHrv == null -> stringResource(R.string.metrics_heart_note_no_hrv)
+                        currentHrv < hrvLowerBand -> stringResource(R.string.metrics_heart_note_below)
+                        currentHrv > hrvUpperBand -> stringResource(R.string.metrics_heart_note_elevated)
+                        else -> stringResource(R.string.metrics_heart_note_normal)
                     }
 
                     Text(
@@ -358,22 +355,22 @@ fun HeartMetricsScreen(
                     HangryCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Cardiovascular Recovery",
+                                text = stringResource(R.string.metrics_heart_cardio_recovery),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
                             HangryInfoTip(
-                                title = "Cardiovascular Recovery Dynamics",
-                                body = "A lower resting pulse indicates strong cardiovascular restoration. Mild elevations often reflect training fatigue, dehydration, or late meals."
+                                title = stringResource(R.string.metrics_heart_cardio_recovery_info_title),
+                                body = stringResource(R.string.metrics_heart_rhr_dynamics_body)
                             )
                         }
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
                         val rhrDelta = currentRhr - rhrMean
                         val rhrExplanation = when {
-                            rhrDelta < -2.0 -> String.format(Locale.US, "%.1f bpm below your 28-day average (%d bpm).", kotlin.math.abs(rhrDelta), rhrMean.toInt())
-                            rhrDelta > 2.0 -> String.format(Locale.US, "%.1f bpm above your 28-day average (%d bpm).", rhrDelta, rhrMean.toInt())
-                            else -> String.format(Locale.US, "Within 1 bpm of your 28-day average (%d bpm).", rhrMean.toInt())
+                            rhrDelta < -2.0 -> stringResource(R.string.metrics_heart_rhr_below_avg, kotlin.math.abs(rhrDelta), rhrMean.toInt())
+                            rhrDelta > 2.0 -> stringResource(R.string.metrics_heart_rhr_above_avg, rhrDelta, rhrMean.toInt())
+                            else -> stringResource(R.string.metrics_heart_rhr_within_avg, rhrMean.toInt())
                         }
 
                         Text(
@@ -388,7 +385,7 @@ fun HeartMetricsScreen(
             // Recent Observations List
             item {
                 Text(
-                    text = "Recent Daily Readings",
+                    text = stringResource(R.string.metrics_heart_recent_readings),
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary,
                     modifier = Modifier.padding(top = HangryTokens.Spacing.s)
@@ -400,8 +397,8 @@ fun HeartMetricsScreen(
                     HangryCard {
                         DashEmptyState(
                             scene = DashEmptyScene.HRV,
-                            title = "No resting heart rate yet",
-                            body = "A watch or ring that reports resting heart rate to Health Connect fills this in.",
+                            title = stringResource(R.string.metrics_heart_no_rhr_title),
+                            body = stringResource(R.string.metrics_heart_no_rhr_body),
                             imageSize = 120.dp,
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
@@ -424,7 +421,7 @@ fun HeartMetricsScreen(
                                 color = tokens.textPrimary
                             )
                             Text(
-                                text = "Source: ${item.sourcePackageName?.substringAfterLast('.') ?: "Health Connect"}",
+                                text = stringResource(R.string.data_source_label, item.sourcePackageName?.substringAfterLast('.') ?: "Health Connect"),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.textMuted
                             )
@@ -433,20 +430,20 @@ fun HeartMetricsScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "${item.restingBpm.toInt()} bpm",
+                                    text = stringResource(R.string.metrics_components_bpm_value, item.restingBpm.toInt()),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = tokens.chartColors.restingHeartRate
                                 )
-                                Text(text = "RHR", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                                Text(text = stringResource(R.string.metrics_heart_rhr_short), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                val hrvText = if (matchingHrv != null) "${matchingHrv.rmssd.toInt()} ms" else "Not available"
+                                val hrvText = if (matchingHrv != null) stringResource(R.string.metrics_components_ms_value, matchingHrv.rmssd.toInt()) else stringResource(R.string.metrics_heart_not_available)
                                 Text(
                                     text = hrvText,
                                     style = MaterialTheme.typography.titleSmall,
                                     color = tokens.chartColors.hrv
                                 )
-                                Text(text = "HRV", style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                                Text(text = stringResource(R.string.metrics_heart_hrv_short), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                             }
                         }
                     }

@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.kevan.hangry.R
 import com.kevan.hangry.data.ai.OpenRouterException
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.local.entity.FoodLogEntity
@@ -147,7 +148,7 @@ class NutritionViewModel(
      */
     fun logMealFromPhoto(uri: Uri) {
         if (!_uiState.value.aiFeaturesEnabled) {
-            openManualReview(uri, "Turn on AI Features in Settings and meals are filled in from the photo automatically.")
+            openManualReview(uri, context.getString(R.string.nutrition_manual_review_ai_off))
             return
         }
         analyzePhoto(uri, note = null)
@@ -156,7 +157,7 @@ class NutritionViewModel(
     fun analyzePhoto(uri: Uri, note: String?) {
         val base64 = context.readImageAsBase64Jpeg(uri, maxDimension = FOOD_PHOTO_MAX_DIMENSION)
         if (base64 == null) {
-            _uiState.update { it.copy(errorMessage = "Couldn't read that photo. Try again.") }
+            _uiState.update { it.copy(errorMessage = context.getString(R.string.nutrition_error_read_photo)) }
             return
         }
         _uiState.update { it.copy(isAnalyzing = true) }
@@ -165,7 +166,7 @@ class NutritionViewModel(
                 onSuccess = { result -> autoSave(result, FoodLogSource.PHOTO, uri) },
                 onFailure = { e ->
                     _uiState.update { it.copy(isAnalyzing = false) }
-                    openManualReview(uri, "AI couldn't read this one: ${e.messageOrDefault()}")
+                    openManualReview(uri, context.getString(R.string.nutrition_manual_review_ai_failed, e.messageOrDefault()))
                 }
             )
         }
@@ -201,7 +202,7 @@ class NutritionViewModel(
         fatG: Double = 0.0,
         fiberG: Double = 0.0
     ) {
-        val safeName = foodName.ifBlank { "Meal" }
+        val safeName = foodName.ifBlank { context.getString(R.string.nutrition_default_meal_name) }
         val safeCalories = calories.coerceAtLeast(0)
         viewModelScope.launch {
             val permanentPhotoPath = photoUri?.let { movePhotoToPermanentStorage(it) }
@@ -269,7 +270,7 @@ class NutritionViewModel(
             it.copy(
                 isAnalyzing = false,
                 lastSavedEntry = saved,
-                errorMessage = if (!synced) "Logged, but couldn't sync to Health Connect." else null,
+                errorMessage = if (!synced) context.getString(R.string.nutrition_error_hc_sync_log) else null,
                 allergenAlert = analysis.allergenWarnings.takeIf { w -> w.isNotEmpty() }?.let { w -> AllergenAlert(saved, w) }
             )
         }
@@ -303,7 +304,7 @@ class NutritionViewModel(
             healthConnectDataSource.deleteNutritionRecord(previous)
             val synced = healthConnectDataSource.writeNutritionRecord(updated)
             foodLogRepository.update(updated.copy(healthConnectSynced = synced))
-            if (!synced) _uiState.update { it.copy(errorMessage = "Saved, but couldn't update Health Connect.") }
+            if (!synced) _uiState.update { it.copy(errorMessage = context.getString(R.string.nutrition_error_hc_sync_edit)) }
         }
     }
 
@@ -427,7 +428,7 @@ class NutritionViewModel(
     }
 
     private fun Throwable.messageOrDefault(): String =
-        (this as? OpenRouterException)?.message ?: "Something went wrong analyzing that. Try again."
+        (this as? OpenRouterException)?.message ?: context.getString(R.string.nutrition_error_analyze_generic)
 
     companion object {
         fun provideFactory(

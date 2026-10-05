@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.kevan.hangry.R
 import com.kevan.hangry.data.ai.OpenRouterException
 import com.kevan.hangry.domain.model.Supplement
 import com.kevan.hangry.domain.model.SupplementIngredient
@@ -74,7 +75,7 @@ class SupplementsViewModel(
         val photos = (current.photos + uris).take(MAX_PHOTOS)
         _editor.value = current.copy(photos = photos)
         if (aiEnabled.value) analyze(photos) else {
-            _editor.update { it?.copy(analysisError = "Turn on AI Features in Settings to fill this in from the photo automatically.") }
+            _editor.update { it?.copy(analysisError = context.getString(R.string.nutrition_supplements_ai_off)) }
         }
     }
 
@@ -152,7 +153,7 @@ class SupplementsViewModel(
     private fun analyze(photos: List<Uri>) {
         val images = photos.mapNotNull { context.readImageAsBase64Jpeg(it) }
         if (images.isEmpty()) {
-            _editor.update { it?.copy(analysisError = "Couldn't read that photo. Try again.") }
+            _editor.update { it?.copy(analysisError = context.getString(R.string.nutrition_error_read_photo)) }
             return
         }
         _editor.update { it?.copy(isAnalyzing = true, analysisError = null) }
@@ -172,7 +173,7 @@ class SupplementsViewModel(
                             times = if (e.isNew) listOf(defaultTimeFor(r.suggestedTiming)) else e.times,
                             notes = r.notes ?: e.notes,
                             cautions = r.cautions,
-                            analysisError = if (r.name == "Unknown") r.notes ?: "That doesn't look like a supplement label." else null
+                            analysisError = if (r.name == "Unknown") r.notes ?: context.getString(R.string.nutrition_supplements_not_label) else null
                         )
                     }
                 },
@@ -180,7 +181,7 @@ class SupplementsViewModel(
                     _editor.update {
                         it?.copy(
                             isAnalyzing = false,
-                            analysisError = (err as? OpenRouterException)?.message ?: "Couldn't analyze the photo. Fill it in below."
+                            analysisError = (err as? OpenRouterException)?.message ?: context.getString(R.string.nutrition_supplements_analyze_failed)
                         )
                     }
                 }

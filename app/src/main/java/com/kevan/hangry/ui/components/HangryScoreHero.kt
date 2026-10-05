@@ -122,14 +122,14 @@ fun HangryScoreHero(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 shownDrivers.forEach { (isPositive, driver) ->
                     Text(
-                        text = "• $driver",
+                        text = stringResource(R.string.metrics_components_bullet_item, driver),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isPositive) tokens.scoreColors.primed else tokens.scoreColors.rebuild
                     )
                 }
                 if (hiddenCount > 0) {
                     Text(
-                        text = "+$hiddenCount more factor${if (hiddenCount > 1) "s" else ""}",
+                        text = if (hiddenCount > 1) stringResource(R.string.metrics_components_more_factor_many, hiddenCount) else stringResource(R.string.metrics_components_more_factor_one, hiddenCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted
                     )
@@ -163,7 +163,7 @@ private fun PendingRecoveryHero(modifier: Modifier = Modifier) {
                 shape = RoundedCornerShape(HangryTokens.CornerRadii.pill)
             ) {
                 Text(
-                    text = "PENDING",
+                    text = stringResource(R.string.metrics_components_pending_caps),
                     color = tokens.scoreColors.buildingBaseline,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -189,7 +189,7 @@ private fun PendingRecoveryHero(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
         Text(
-            text = "Log or sync last night's sleep to unlock today's recovery.",
+            text = stringResource(R.string.metrics_components_pending_recovery_body),
             style = MaterialTheme.typography.bodyMedium,
             color = tokens.textPrimary
         )

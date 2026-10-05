@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="DAILY ACTIVITY"
+            android:text="@string/widget_layout_daily_activity"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -35,7 +35,7 @@
             android:id="@+id/tv_activity_sync_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Today"
+            android:text="@string/widget_layout_today"
             android:textColor="#948D98"
             android:textSize="11sp" />
     </LinearLayout>
@@ -76,7 +76,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Steps"
+                android:text="@string/widget_layout_steps"
                 android:textColor="#B5AEB8"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -108,7 +108,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Active kcal"
+                android:text="@string/widget_layout_active_kcal"
                 android:textColor="#B5AEB8"
                 android:textSize="11sp" />
         </LinearLayout>

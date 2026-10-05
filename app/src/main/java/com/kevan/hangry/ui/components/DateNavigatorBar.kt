@@ -30,6 +30,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /**
  * Reusable obsidian-styled Date Navigator Bar.
@@ -54,12 +56,10 @@ fun DateNavigatorBar(
 
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val formattedDateText = remember(selectedDate) {
-        when {
-            isToday -> "Today, ${selectedDate.format(DateTimeFormatter.ofPattern("MMM d"))}"
-            isYesterday -> "Yesterday, ${selectedDate.format(DateTimeFormatter.ofPattern("MMM d"))}"
-            else -> selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
-        }
+    val formattedDateText = when {
+        isToday -> stringResource(R.string.metrics_components_date_today_with_date, selectedDate.format(DateTimeFormatter.ofPattern("MMM d")))
+        isYesterday -> stringResource(R.string.metrics_components_date_yesterday_with_date, selectedDate.format(DateTimeFormatter.ofPattern("MMM d")))
+        else -> selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
     }
 
     Column(
@@ -85,7 +85,7 @@ fun DateNavigatorBar(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Previous Day",
+                    contentDescription = stringResource(R.string.metrics_components_previous_day),
                     tint = tokens.textSecondary,
                     modifier = Modifier.size(18.dp)
                 )
@@ -109,7 +109,7 @@ fun DateNavigatorBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = "Select Date",
+                        contentDescription = stringResource(R.string.metrics_components_select_date),
                         tint = if (!isToday) MaterialTheme.colorScheme.primary else tokens.textSecondary,
                         modifier = Modifier.size(16.dp)
                     )
@@ -148,12 +148,12 @@ fun DateNavigatorBar(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.RestartAlt,
-                                contentDescription = "Jump to Today",
+                                contentDescription = stringResource(R.string.metrics_components_jump_to_today),
                                 tint = tokens.textMuted,
                                 modifier = Modifier.size(13.dp)
                             )
                             Text(
-                                text = "Today",
+                                text = stringResource(R.string.metrics_components_today),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = tokens.textSecondary
                             )
@@ -174,7 +174,7 @@ fun DateNavigatorBar(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Next Day",
+                        contentDescription = stringResource(R.string.metrics_components_next_day),
                         tint = if (canGoForward) tokens.textSecondary else tokens.textMuted.copy(alpha = 0.3f),
                         modifier = Modifier.size(18.dp)
                     )
@@ -200,12 +200,12 @@ fun DateNavigatorBar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Viewing ${selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))}",
+                        text = stringResource(R.string.metrics_components_viewing_date, selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))),
                         style = MaterialTheme.typography.labelMedium,
                         color = tokens.scoreColors.balanced
                     )
                     Text(
-                        text = "Reset",
+                        text = stringResource(R.string.metrics_components_reset),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = tokens.scoreColors.balanced,
                         modifier = Modifier.clickable {
@@ -249,12 +249,12 @@ fun DateNavigatorBar(
                         showDatePicker = false
                     }
                 ) {
-                    Text("Select", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.metrics_components_select), color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = tokens.textSecondary)
+                    Text(stringResource(R.string.cancel), color = tokens.textSecondary)
                 }
             }
         ) {

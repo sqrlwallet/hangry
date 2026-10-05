@@ -29,26 +29,27 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
-private val RECOVERY_INFO_SECTIONS = listOf(
+@Composable
+private fun recoveryInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "Heart Rate Variability — 35% weight",
-        "Reflects parasympathetic autonomic tone, from readings taken while you slept. Scored by how far last night is from your own 30-day normal, allowing for how much your HRV usually varies. If your device doesn't report HRV, we count it as excellent - and you can change that to how you actually feel."
+        stringResource(R.string.metrics_recovery_info_hrv_title),
+        stringResource(R.string.metrics_recovery_info_hrv_body)
     ),
     HangryInfoSection(
-        "Resting Heart Rate — 25% weight",
-        "Your lowest 5-minute average heart rate during last night's sleep (a daytime estimate if your device doesn't record heart rate overnight), against your monthly average. At or below it scores 100; each bpm above it takes off 2 points."
+        stringResource(R.string.metrics_recovery_info_rhr_title),
+        stringResource(R.string.metrics_recovery_info_rhr_body)
     ),
     HangryInfoSection(
-        "Sleep — 25% weight",
-        "How much of your sleep need you got (your sleep goal, plus recent sleep debt and extra after a hard day), with a quarter for how well you slept."
+        stringResource(R.string.metrics_recovery_info_sleep_title),
+        stringResource(R.string.metrics_recovery_info_sleep_body)
     ),
     HangryInfoSection(
-        "Strain Balance — 15% weight",
-        "Yesterday's strain against the target it was given. In range or lighter scores 100 (lighter means you have room to push today); each point over the target takes off 12, because your body needs to recover. Sleep consistency is part of your Sleep Score instead."
+        stringResource(R.string.metrics_recovery_info_strain_title),
+        stringResource(R.string.metrics_recovery_info_strain_body)
     ),
     HangryInfoSection(
-        "Algorithm",
-        "Compared with your own last 30 days. A breathing rate well above your usual lowers the score, since it's often an early sign of illness."
+        stringResource(R.string.metrics_recovery_info_algorithm_title),
+        stringResource(R.string.metrics_recovery_info_algorithm_body)
     )
 )
 
@@ -72,12 +73,12 @@ fun RecoveryDetailsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.metrics_components_back)
                         )
                     }
                 },
                 actions = {
-                    HangryInfoIconButton(title = "About Recovery", sections = RECOVERY_INFO_SECTIONS)
+                    HangryInfoIconButton(title = stringResource(R.string.metrics_recovery_about), sections = recoveryInfoSections())
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -98,8 +99,8 @@ fun RecoveryDetailsScreen(
 
             if (isPending) {
                 HangryPendingNotice(
-                    message = "Waiting for today's sleep.",
-                    details = "Recovery is calculated once today's sleep is recorded. Log it manually from the Sleep screen, or sync after waking.",
+                    message = stringResource(R.string.metrics_recovery_pending_message),
+                    details = stringResource(R.string.metrics_recovery_pending_details),
                     dashMood = DashMood.SLEEPY
                 )
                 return@Column
@@ -109,12 +110,12 @@ fun RecoveryDetailsScreen(
                 val breathingUp = scoreEntity.negativeContributors.contains("Breathing rate")
                 DashNote(
                     mood = if (breathingUp) DashMood.UNWELL else state.dashMood(),
-                    text = if (breathingUp) "Your breathing rate is up - you might be coming down with something. Take it easy today." else state.dashLine()
+                    text = if (breathingUp) stringResource(R.string.metrics_recovery_breathing_up) else state.dashLine()
                 )
             }
 
             Text(
-                text = "Component Contributions",
+                text = stringResource(R.string.metrics_recovery_component_contributions),
                 style = MaterialTheme.typography.titleLarge,
                 color = tokens.textPrimary
             )
@@ -125,23 +126,23 @@ fun RecoveryDetailsScreen(
                 HrvFeelingCard(selected = uiState.hrvFeeling, onSelect = viewModel::setHrvFeeling)
             } else {
                 RecoveryComponentRow(
-                    label = "Heart Rate Variability",
+                    label = stringResource(R.string.metrics_recovery_hrv),
                     valueColor = tokens.chartColors.hrv,
                     score = scoreEntity?.hrvComponentScore
                 )
             }
             RecoveryComponentRow(
-                label = "Resting Heart Rate",
+                label = stringResource(R.string.metrics_recovery_rhr),
                 valueColor = tokens.chartColors.restingHeartRate,
                 score = scoreEntity?.rhrComponentScore
             )
             RecoveryComponentRow(
-                label = "Sleep",
+                label = stringResource(R.string.metrics_recovery_sleep),
                 valueColor = tokens.chartColors.sleep,
                 score = scoreEntity?.sleepComponentScore
             )
             RecoveryComponentRow(
-                label = "Strain Balance",
+                label = stringResource(R.string.metrics_recovery_strain_balance),
                 valueColor = tokens.chartColors.trainingLoad,
                 score = scoreEntity?.trainingLoadComponentScore
             )
@@ -160,7 +161,7 @@ private fun HrvFeelingCard(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit)
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Heart Rate Variability",
+                text = stringResource(R.string.metrics_recovery_hrv),
                 style = MaterialTheme.typography.titleMedium,
                 color = tokens.chartColors.hrv
             )
@@ -173,9 +174,9 @@ private fun HrvFeelingCard(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = if (selected == HrvFeeling.DEFAULT) {
-                "Your device didn't report HRV today, so we're counting it as excellent. Feeling different? Pick what fits and your recovery updates."
+                stringResource(R.string.metrics_recovery_hrv_missing_default)
             } else {
-                "Your device didn't report HRV today, so we're using how you feel: ${selected.description.lowercase()}."
+                stringResource(R.string.metrics_recovery_hrv_missing_feeling, selected.description.lowercase())
             },
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textSecondary
@@ -201,7 +202,7 @@ private fun RecoveryComponentRow(
     label: String,
     valueColor: androidx.compose.ui.graphics.Color,
     score: Double?,
-    missingLabel: String = "Calibrating"
+    missingLabel: String = stringResource(R.string.metrics_components_calibrating)
 ) {
     val tokens = LocalHangryTokens.current
     HangryCard {
@@ -216,7 +217,7 @@ private fun RecoveryComponentRow(
                 color = valueColor
             )
             Text(
-                text = score?.let { "${it.toInt()}%" } ?: missingLabel,
+                text = score?.let { stringResource(R.string.metrics_components_percent_value, it.toInt()) } ?: missingLabel,
                 style = if (score != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium,
                 color = if (score != null) tokens.textPrimary else tokens.textSecondary
             )
@@ -224,9 +225,10 @@ private fun RecoveryComponentRow(
     }
 }
 
+@Composable
 private fun RecoveryState.dashLine(): String = when (this) {
-    RecoveryState.PRIMED -> "You're primed. A great day to push."
-    RecoveryState.BALANCED -> "Nicely balanced. Train as planned."
-    RecoveryState.REBUILD -> "Recovery is low today. Go easy and prioritise sleep."
-    RecoveryState.BUILDING_BASELINE -> "Still learning your baseline. Keep syncing and I'll sharpen up."
+    RecoveryState.PRIMED -> stringResource(R.string.metrics_recovery_dash_primed)
+    RecoveryState.BALANCED -> stringResource(R.string.metrics_recovery_dash_balanced)
+    RecoveryState.REBUILD -> stringResource(R.string.metrics_recovery_dash_rebuild)
+    RecoveryState.BUILDING_BASELINE -> stringResource(R.string.metrics_recovery_dash_baseline)
 }

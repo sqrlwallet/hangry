@@ -40,6 +40,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 
 /** The onboarding steps, in order - the step indicator on every screen counts from this. */
 object OnboardingSteps {
@@ -115,37 +117,45 @@ fun AboutYouScreen(
     }
 
     OnboardingProfileScaffold(
-        title = "About You",
+        title = stringResource(R.string.settings_onboarding_about_you_title),
         step = OnboardingSteps.ABOUT_YOU,
         onNavigateBack = onNavigateBack,
-        primaryLabel = "Continue",
+        primaryLabel = stringResource(R.string.settings_continue),
         primaryEnabled = dateOfBirth != null && sex != null && validHeight != null && validWeight != null,
         onPrimary = { onContinue(ProfileBasics(dateOfBirth!!, sex!!, validHeight!!, BodyUnits.round1(validWeight!!))) },
-        secondaryLabel = "I'll add these later",
+        secondaryLabel = stringResource(R.string.settings_onboarding_add_later),
         onSecondary = onSkip,
         dashMood = DashMood.WAVE,
-        heading = "Let's get to know you",
-        subheading = "Your burn, body metrics and Body Age are worked out from these - so they're about you, not an average person. On this device only."
+        heading = stringResource(R.string.settings_onboarding_about_you_heading),
+        subheading = stringResource(R.string.settings_onboarding_about_you_subheading)
     ) {
         HangryCard {
             Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
-                FieldLabel("Date of birth")
+                FieldLabel(stringResource(R.string.settings_onboarding_date_of_birth))
                 OutlinedButton(onClick = { pickingBirthday = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Cake, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        dateOfBirth?.let { "${it.format(DateTimeFormatter.ofPattern("d MMM yyyy"))} · ${AgeMath.years(it)} years old" }
-                            ?: "Choose your birthday"
+                        dateOfBirth?.let { stringResource(R.string.settings_onboarding_birthday_age, it.format(DateTimeFormatter.ofPattern("d MMM yyyy")), AgeMath.years(it)) }
+                            ?: stringResource(R.string.settings_onboarding_choose_birthday)
                     )
                 }
 
-                FieldLabel("Biological sex", "Resting metabolism and body-fat formulas differ by sex.")
+                FieldLabel(stringResource(R.string.settings_biological_sex), stringResource(R.string.settings_onboarding_sex_why))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     BiologicalSex.entries.forEach { option ->
                         FilterChip(
                             selected = sex == option,
                             onClick = { sex = option },
-                            label = { Text(option.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                            label = {
+                                Text(
+                                    when (option) {
+                                        BiologicalSex.MALE -> stringResource(R.string.settings_sex_male)
+                                        BiologicalSex.FEMALE -> stringResource(R.string.settings_sex_female)
+                                        BiologicalSex.OTHER -> stringResource(R.string.settings_sex_other)
+                                    }
+                                )
+                            }
                         )
                     }
                 }
@@ -153,14 +163,14 @@ fun AboutYouScreen(
                 HorizontalDivider(color = tokens.cardBorder)
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Units", style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.settings_onboarding_units), style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary, modifier = Modifier.weight(1f))
                     FilterChip(selected = !imperial, onClick = {
                         if (imperial) {
                             parsedHeight?.let { heightCm = "${it.toInt()}" }
                             parsedWeight?.let { weight = "${BodyUnits.round1(it)}" }
                             onImperialChange(false)
                         }
-                    }, label = { Text("cm · kg") })
+                    }, label = { Text(stringResource(R.string.settings_onboarding_units_metric)) })
                     Spacer(modifier = Modifier.width(8.dp))
                     FilterChip(selected = imperial, onClick = {
                         if (!imperial) {
@@ -168,25 +178,25 @@ fun AboutYouScreen(
                             parsedWeight?.let { weight = "${BodyUnits.round1(BodyUnits.kgToLb(it))}" }
                             onImperialChange(true)
                         }
-                    }, label = { Text("ft · lb") })
+                    }, label = { Text(stringResource(R.string.settings_onboarding_units_imperial)) })
                 }
 
                 val heightError = heightTyped && validHeight == null
                 if (imperial) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        NumberField(heightFt, { heightFt = it }, "Height (ft)", Modifier.weight(1f), decimal = false, isError = heightError)
-                        NumberField(heightIn, { heightIn = it }, "(in)", Modifier.weight(1f), isError = heightError)
+                        NumberField(heightFt, { heightFt = it }, stringResource(R.string.settings_onboarding_height_ft), Modifier.weight(1f), decimal = false, isError = heightError)
+                        NumberField(heightIn, { heightIn = it }, stringResource(R.string.settings_onboarding_height_in), Modifier.weight(1f), isError = heightError)
                     }
                 } else {
-                    NumberField(heightCm, { heightCm = it }, "Height (cm)", Modifier.fillMaxWidth(), isError = heightError,
-                        supporting = if (heightError) "That doesn't look like a height in cm" else null)
+                    NumberField(heightCm, { heightCm = it }, stringResource(R.string.settings_height_cm_label), Modifier.fillMaxWidth(), isError = heightError,
+                        supporting = if (heightError) stringResource(R.string.settings_onboarding_height_error) else null)
                 }
                 val weightError = weight.isNotEmpty() && validWeight == null
                 NumberField(
-                    weight, { weight = it }, if (imperial) "Weight (lb)" else "Weight (kg)", Modifier.fillMaxWidth(),
+                    weight, { weight = it }, if (imperial) stringResource(R.string.settings_onboarding_weight_lb) else stringResource(R.string.settings_onboarding_weight_kg), Modifier.fillMaxWidth(),
                     isError = weightError,
-                    supporting = if (weightError) "That doesn't look like a weight in ${if (imperial) "lb" else "kg"}" else
-                        "Synced weigh-ins from Health Connect take over when they arrive",
+                    supporting = if (weightError) stringResource(R.string.settings_onboarding_weight_error, if (imperial) stringResource(R.string.settings_unit_lb) else stringResource(R.string.settings_unit_kg)) else
+                        stringResource(R.string.settings_onboarding_weight_synced_hint),
                     last = true
                 )
             }
@@ -214,7 +224,9 @@ fun ProfileExtrasScreen(
     val tokens = LocalHangryTokens.current
     fun toDisplay(kg: Double) = BodyUnits.round1(if (imperial) BodyUnits.kgToLb(kg) else kg)
     fun toKg(value: Double) = if (imperial) BodyUnits.lbToKg(value) else value
-    val lengthUnit = if (imperial) "in" else "cm"
+    val lengthUnit = if (imperial) stringResource(R.string.settings_unit_in) else stringResource(R.string.settings_unit_cm)
+    val weightUnit = if (imperial) stringResource(R.string.settings_unit_lb) else stringResource(R.string.settings_unit_kg)
+    val context = LocalContext.current
     fun lengthToCm(text: String) = text.toDoubleOrNull()?.let { if (imperial) it * 2.54 else it }
 
     var goalWeight by rememberSaveable { mutableStateOf(profile?.weightGoalKg?.let { "${toDisplay(it)}" } ?: "") }
@@ -232,9 +244,9 @@ fun ProfileExtrasScreen(
 
     val goalKg = goalWeight.toDoubleOrNull()?.let(::toKg)?.let(BodyUnits::plausibleWeight)
     val direction = if (goalKg != null && currentWeightKg != null) when {
-        goalKg < currentWeightKg - 0.5 -> "Lose ${toDisplay(currentWeightKg - goalKg)} ${if (imperial) "lb" else "kg"}"
-        goalKg > currentWeightKg + 0.5 -> "Gain ${toDisplay(goalKg - currentWeightKg)} ${if (imperial) "lb" else "kg"}"
-        else -> "Maintain your weight"
+        goalKg < currentWeightKg - 0.5 -> stringResource(R.string.settings_onboarding_goal_lose, toDisplay(currentWeightKg - goalKg).toString(), weightUnit)
+        goalKg > currentWeightKg + 0.5 -> stringResource(R.string.settings_onboarding_goal_gain, toDisplay(goalKg - currentWeightKg).toString(), weightUnit)
+        else -> stringResource(R.string.settings_onboarding_goal_maintain)
     } else null
 
     fun splitOthers(text: String) = text.split(',').map { it.trim() }.filter { it.isNotEmpty() }
@@ -258,59 +270,59 @@ fun ProfileExtrasScreen(
     }
 
     OnboardingProfileScaffold(
-        title = "Make It Yours",
+        title = stringResource(R.string.settings_onboarding_extras_title),
         step = OnboardingSteps.EXTRAS,
         onNavigateBack = onNavigateBack,
-        primaryLabel = "Save & Continue",
+        primaryLabel = stringResource(R.string.settings_onboarding_save_continue),
         primaryEnabled = true,
         onPrimary = { onDone(collect()) },
-        secondaryLabel = "Skip for now",
+        secondaryLabel = stringResource(R.string.settings_onboarding_skip_for_now),
         onSecondary = onSkip,
         dashMood = DashMood.THINKING,
-        heading = "A few optional extras",
-        subheading = "Answer any, all or none - each one makes Hangry a bit smarter. You can change them any time in Settings."
+        heading = stringResource(R.string.settings_onboarding_extras_heading),
+        subheading = stringResource(R.string.settings_onboarding_extras_subheading)
     ) {
-        ExtrasSection("Your goal", "Dash paces your calories and checks progress against it.") {
+        ExtrasSection(stringResource(R.string.settings_onboarding_goal_title), stringResource(R.string.settings_onboarding_goal_why)) {
             NumberField(
-                goalWeight, { goalWeight = it }, if (imperial) "Goal weight (lb)" else "Goal weight (kg)", Modifier.fillMaxWidth(),
+                goalWeight, { goalWeight = it }, if (imperial) stringResource(R.string.settings_onboarding_goal_weight_lb) else stringResource(R.string.settings_onboarding_goal_weight_kg), Modifier.fillMaxWidth(),
                 isError = goalWeight.isNotEmpty() && goalKg == null,
                 supporting = direction
             )
             if (goalKg != null) {
                 OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(targetDate?.let { "By ${it.format(DateTimeFormatter.ofPattern("d MMM yyyy"))}" } ?: "Pick a target date (optional)")
+                    Text(targetDate?.let { stringResource(R.string.settings_onboarding_goal_by, it.format(DateTimeFormatter.ofPattern("d MMM yyyy"))) } ?: stringResource(R.string.settings_onboarding_pick_target_date))
                 }
             }
         }
 
-        ExtrasSection("Sleep goal", "Sets your sleep need, sleep debt and bedtime reminder. Most adults need 7-9 hours.") {
+        ExtrasSection(stringResource(R.string.settings_onboarding_sleep_goal_title), stringResource(R.string.settings_onboarding_sleep_goal_why)) {
             ChoiceChips(listOf(7.0, 7.5, 8.0, 8.5, 9.0), sleepHours, { sleepHours = it }) {
-                if (it % 1.0 == 0.0) "${it.toInt()} h" else "$it h"
+                context.getString(R.string.settings_onboarding_hours_value, if (it % 1.0 == 0.0) it.toInt().toString() else it.toString())
             }
         }
 
-        ExtrasSection("Daily step goal", "Your step target, streak and the Today ring.") {
-            ChoiceChips(listOf(6_000L, 8_000L, 10_000L, 12_000L), steps, { steps = it }) { "${it / 1000}k" }
+        ExtrasSection(stringResource(R.string.settings_onboarding_steps_title), stringResource(R.string.settings_onboarding_steps_why)) {
+            ChoiceChips(listOf(6_000L, 8_000L, 10_000L, 12_000L), steps, { steps = it }) { context.getString(R.string.settings_onboarding_steps_value, it / 1000) }
         }
 
-        ExtrasSection("Allergies", "Dash warns you when a logged meal or a meal idea may contain these.") {
+        ExtrasSection(stringResource(R.string.settings_onboarding_allergies_title), stringResource(R.string.settings_onboarding_allergies_why)) {
             ToggleChips(COMMON_ALLERGIES, allergies) { allergies = it }
             OutlinedTextField(
                 value = otherAllergy,
                 onValueChange = { otherAllergy = it },
-                label = { Text("Others (comma-separated)") },
+                label = { Text(stringResource(R.string.settings_onboarding_others_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
-        ExtrasSection("Health conditions", "Helps Dash keep advice about food, exercise and supplements safe for you.") {
+        ExtrasSection(stringResource(R.string.settings_onboarding_conditions_title), stringResource(R.string.settings_onboarding_conditions_why)) {
             ToggleChips(COMMON_CONDITIONS, conditions) { conditions = it }
             OutlinedTextField(
                 value = otherCondition,
                 onValueChange = { otherCondition = it },
-                label = { Text("Others (comma-separated)") },
+                label = { Text(stringResource(R.string.settings_onboarding_others_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth()
@@ -318,21 +330,21 @@ fun ProfileExtrasScreen(
         }
 
         ExtrasSection(
-            "Tape measurements",
-            "With a tape measure, Hangry estimates body fat (U.S. Navy method) - no photo needed. Measure at the narrowest part of the neck and at the navel."
+            stringResource(R.string.settings_onboarding_tape_title),
+            stringResource(R.string.settings_onboarding_tape_why)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberField(neck, { neck = it }, "Neck ($lengthUnit)", Modifier.weight(1f))
-                NumberField(waist, { waist = it }, "Waist ($lengthUnit)", Modifier.weight(1f), last = sex != BiologicalSex.FEMALE)
+                NumberField(neck, { neck = it }, stringResource(R.string.settings_onboarding_neck_unit, lengthUnit), Modifier.weight(1f))
+                NumberField(waist, { waist = it }, stringResource(R.string.settings_onboarding_waist_unit, lengthUnit), Modifier.weight(1f), last = sex != BiologicalSex.FEMALE)
             }
             // The Navy formula for women also uses hips.
             if (sex == BiologicalSex.FEMALE) {
-                NumberField(hips, { hips = it }, "Hips ($lengthUnit)", Modifier.fillMaxWidth(), last = true)
+                NumberField(hips, { hips = it }, stringResource(R.string.settings_onboarding_hips_unit, lengthUnit), Modifier.fillMaxWidth(), last = true)
             }
         }
 
         Text(
-            "Stays on this device. Allergies and conditions also appear in Health Records, where you can edit them.",
+            stringResource(R.string.settings_onboarding_extras_footer),
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textMuted
         )
@@ -382,7 +394,7 @@ internal fun OnboardingProfileScaffold(
                     title = { Text(title, color = Color.White) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back), tint = Color.White)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -533,10 +545,10 @@ private fun GoalDatePickerDialog(initial: LocalDate?, onDismiss: () -> Unit, onP
             TextButton(
                 enabled = state.selectedDateMillis != null,
                 onClick = { state.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(utc).toLocalDate()) } }
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.settings_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     ) {
-        DatePicker(state = state, title = { Text("Reach your goal by", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) })
+        DatePicker(state = state, title = { Text(stringResource(R.string.settings_onboarding_reach_goal_by), modifier = Modifier.padding(start = 24.dp, top = 16.dp)) })
     }
 }

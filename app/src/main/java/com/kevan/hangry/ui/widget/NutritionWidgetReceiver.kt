@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.widget
 
+import com.kevan.hangry.R
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -40,18 +41,18 @@ class NutritionWidgetReceiver : BroadcastReceiver() {
                         ?.toLogEntry(today)
                 }
                 if (entry == null) {
-                    "That meal isn't saved anymore"
+                    app.getString(R.string.dashboard_widget_nutrition_meal_gone)
                 } else {
                     val id = container.foodLogRepository.insert(entry)
                     if (container.healthConnectDataSource.writeNutritionRecord(entry.copy(id = id))) {
                         container.foodLogRepository.markSyncedToHealthConnect(id)
                     }
-                    "Logged ${entry.foodName} · ${entry.calories} kcal"
+                    app.getString(R.string.dashboard_widget_nutrition_logged, entry.foodName, entry.calories)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (_: Exception) {
-                "Couldn't log that. Try again from the app."
+                app.getString(R.string.dashboard_widget_nutrition_log_failed)
             }
             try {
                 withContext(Dispatchers.Main) { Toast.makeText(app, message, Toast.LENGTH_SHORT).show() }

@@ -24,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 /** A heading + explanatory paragraph shown inside a [HangryInfoIconButton] dialog. */
 data class HangryInfoSection(val heading: String, val body: String)
@@ -49,7 +51,7 @@ fun HangryInfoIconButton(
     ) {
         Icon(
             imageVector = if (compact) Icons.Outlined.Info else Icons.Default.Info,
-            contentDescription = "About $title",
+            contentDescription = stringResource(R.string.metrics_components_about_title, title),
             tint = tokens.textMuted,
             modifier = if (compact) Modifier.size(18.dp) else Modifier
         )
@@ -85,7 +87,7 @@ fun HangryInfoIconButton(
             },
             confirmButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("Got it")
+                    Text(stringResource(R.string.metrics_components_got_it))
                 }
             }
         )

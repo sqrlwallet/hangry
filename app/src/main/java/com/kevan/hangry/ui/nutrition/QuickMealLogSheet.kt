@@ -20,10 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.savedMealKey
 import com.kevan.hangry.domain.model.FoodAnalysisResult
@@ -47,6 +50,7 @@ fun QuickMealLogSheet(
 ) {
     val tokens = LocalHangryTokens.current
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var photoUri by remember { mutableStateOf(initialPhotoUri) }
     var foodName by remember { mutableStateOf("") }
@@ -61,7 +65,13 @@ fun QuickMealLogSheet(
     var estimateError by remember { mutableStateOf<String?>(null) }
     var allergenWarnings by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    val quickMealTypes = listOf("Breakfast", "Lunch", "Dinner", "Snack")
+    val quickMealTypes = listOf(
+        stringResource(R.string.nutrition_meal_breakfast),
+        stringResource(R.string.nutrition_meal_lunch),
+        stringResource(R.string.nutrition_meal_dinner),
+        stringResource(R.string.nutrition_meal_snack)
+    )
+    val defaultMealName = stringResource(R.string.nutrition_default_meal_name)
 
     fun applyPick(pick: FoodPick) {
         foodName = pick.name
@@ -98,12 +108,12 @@ fun QuickMealLogSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Meal details",
+                    text = stringResource(R.string.nutrition_meal_details_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = tokens.textMuted)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.nutrition_cd_close), tint = tokens.textMuted)
                 }
             }
 
@@ -135,7 +145,7 @@ fun QuickMealLogSheet(
                 ) {
                     AsyncImage(
                         model = uri,
-                        contentDescription = "Captured Meal",
+                        contentDescription = stringResource(R.string.nutrition_cd_captured_meal),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -149,7 +159,7 @@ fun QuickMealLogSheet(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Remove Photo",
+                            contentDescription = stringResource(R.string.nutrition_cd_remove_photo),
                             tint = tokens.textPrimary,
                             modifier = Modifier.size(18.dp)
                         )
@@ -162,7 +172,7 @@ fun QuickMealLogSheet(
             if (mealPlans.isNotEmpty() && onLogMealPlan != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = if (photoUri != null) "Fill from a saved meal" else "Log a saved meal",
+                        text = if (photoUri != null) stringResource(R.string.nutrition_fill_from_saved) else stringResource(R.string.nutrition_log_saved_meal),
                         style = MaterialTheme.typography.labelMedium,
                         color = tokens.textMuted
                     )
@@ -182,7 +192,7 @@ fun QuickMealLogSheet(
                                         onDismiss()
                                     }
                                 },
-                                label = { Text("${plan.name} (${plan.calories} kcal)") },
+                                label = { Text(stringResource(R.string.nutrition_saved_meal_chip, plan.name, plan.calories)) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(
                                     containerColor = tokens.cardBackground,
                                     labelColor = tokens.textPrimary
@@ -219,8 +229,8 @@ fun QuickMealLogSheet(
             OutlinedTextField(
                 value = foodName,
                 onValueChange = { foodName = it },
-                label = { Text("Meal / Food Name") },
-                placeholder = { Text("e.g. Oatmeal with blueberries") },
+                label = { Text(stringResource(R.string.nutrition_field_meal_name)) },
+                placeholder = { Text(stringResource(R.string.nutrition_meal_name_placeholder)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -248,7 +258,7 @@ fun QuickMealLogSheet(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(pick.name, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                                     Text(
-                                        text = "${pick.calories} kcal",
+                                        text = stringResource(R.string.nutrition_kcal, pick.calories),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.textMuted
                                     )
@@ -266,7 +276,7 @@ fun QuickMealLogSheet(
                     onValueChange = { input ->
                         if (input.all { it.isDigit() }) caloriesText = input
                     },
-                    label = { Text("Calories (kcal)") },
+                    label = { Text(stringResource(R.string.nutrition_field_calories_kcal)) },
                     placeholder = { Text("500") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
@@ -283,7 +293,7 @@ fun QuickMealLogSheet(
                                 val current = caloriesText.toIntOrNull() ?: 0
                                 caloriesText = (current + bump).toString()
                             },
-                            label = { Text("+$bump kcal") },
+                            label = { Text(stringResource(R.string.nutrition_plus_kcal, bump)) },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -312,7 +322,7 @@ fun QuickMealLogSheet(
                                     showMacros = true
                                 },
                                 onFailure = { err ->
-                                    estimateError = err.message ?: "Failed to estimate food."
+                                    estimateError = err.message ?: context.getString(R.string.nutrition_estimate_failed)
                                 }
                             )
                             isEstimating = false
@@ -324,20 +334,20 @@ fun QuickMealLogSheet(
                     if (isEstimating) {
                         DashSpinner(size = 26.dp, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Estimating with AI...")
+                        Text(stringResource(R.string.nutrition_estimating_ai))
                     } else {
                         Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.tertiary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Auto-Estimate with AI")
+                        Text(stringResource(R.string.nutrition_auto_estimate_ai))
                     }
                 }
 
                 if (allergenWarnings.isNotEmpty()) {
                     Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(HangryTokens.CornerRadii.small), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Possible allergen", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer)
+                            Text(stringResource(R.string.nutrition_allergen_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer)
                             allergenWarnings.forEach {
-                                Text("• $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                                Text(stringResource(R.string.nutrition_bullet_item, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
                             }
                         }
                     }
@@ -363,7 +373,7 @@ fun QuickMealLogSheet(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(if (showMacros) "Hide optional macros" else "Add macros (optional)")
+                Text(if (showMacros) stringResource(R.string.nutrition_hide_macros) else stringResource(R.string.nutrition_add_macros))
             }
 
             AnimatedVisibility(visible = showMacros) {
@@ -375,7 +385,7 @@ fun QuickMealLogSheet(
                     OutlinedTextField(
                         value = proteinText,
                         onValueChange = { if (it.all { c -> c.isDigit() }) proteinText = it },
-                        label = { Text("Protein (g)") },
+                        label = { Text(stringResource(R.string.nutrition_field_protein_paren_g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -383,7 +393,7 @@ fun QuickMealLogSheet(
                     OutlinedTextField(
                         value = carbsText,
                         onValueChange = { if (it.all { c -> c.isDigit() }) carbsText = it },
-                        label = { Text("Carbs (g)") },
+                        label = { Text(stringResource(R.string.nutrition_field_carbs_paren_g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -391,7 +401,7 @@ fun QuickMealLogSheet(
                     OutlinedTextField(
                         value = fatText,
                         onValueChange = { if (it.all { c -> c.isDigit() }) fatText = it },
-                        label = { Text("Fat (g)") },
+                        label = { Text(stringResource(R.string.nutrition_field_fat_paren_g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -400,7 +410,7 @@ fun QuickMealLogSheet(
                 OutlinedTextField(
                     value = fiberText,
                     onValueChange = { if (it.all { c -> c.isDigit() }) fiberText = it },
-                    label = { Text("Fiber (g)") },
+                    label = { Text(stringResource(R.string.nutrition_field_fiber_paren_g)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -413,7 +423,7 @@ fun QuickMealLogSheet(
             // Primary Log Button
             Button(
                 onClick = {
-                    val finalName = foodName.ifBlank { "Meal" }
+                    val finalName = foodName.ifBlank { defaultMealName }
                     val finalCalories = caloriesText.toIntOrNull() ?: 0
                     val protein = proteinText.toDoubleOrNull() ?: 0.0
                     val carbs = carbsText.toDoubleOrNull() ?: 0.0
@@ -432,7 +442,7 @@ fun QuickMealLogSheet(
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Log Meal",
+                    text = stringResource(R.string.nutrition_log_meal),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )

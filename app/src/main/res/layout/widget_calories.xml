@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="EATEN TODAY"
+            android:text="@string/widget_layout_eaten_today"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -78,7 +78,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="kcal"
+                android:text="@string/widget_layout_kcal"
                 android:textColor="#B5AEB8"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -92,7 +92,7 @@
         android:ellipsize="end"
         android:gravity="center_horizontal"
         android:maxLines="1"
-        android:text="Nothing logged yet"
+        android:text="@string/widget_layout_nothing_logged_yet"
         android:textColor="#B5AEB8"
         android:textSize="11sp" />
 </LinearLayout>

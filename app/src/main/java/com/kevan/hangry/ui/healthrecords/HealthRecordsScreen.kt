@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.healthrecords
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
@@ -48,24 +50,34 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val HEALTH_RECORDS_INFO = listOf(
+@Composable
+private fun healthRecordsInfo(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "For tracking, not medical advice",
-        "Hangry helps you keep your own numbers in one place and see trends. The ranges shown are general adult reference ranges from public guidelines - they aren't a diagnosis and can't account for your history or medication. Always talk to a doctor about your results."
+        stringResource(R.string.body_records_info_tracking_title),
+        stringResource(R.string.body_records_info_tracking_body)
     ),
     HangryInfoSection(
-        "Your data stays yours",
-        "Hangry is open source. These records are stored on your phone, not on anyone's server. The only time they leave it is when you chat with Ask Dash: they're included in the message sent to the AI provider you set up with your own key, so Dash can answer with your real numbers."
+        stringResource(R.string.body_records_info_data_title),
+        stringResource(R.string.body_records_info_data_body)
     ),
     HangryInfoSection(
-        "Health Connect",
-        "Blood pressure and blood sugar from home monitors are read from Health Connect. On phones that support Health Connect medical records (Android 16+), lab results, conditions and allergies shared by your clinic are imported too. Hangry never writes to your medical records."
+        stringResource(R.string.body_records_info_hc_title),
+        stringResource(R.string.body_records_info_hc_body)
     ),
     HangryInfoSection(
-        "Goals",
-        "Set a target for any marker - lower blood pressure, blood sugar or LDL, or raise HDL - and Hangry tracks how far you've come from where you started."
+        stringResource(R.string.body_records_info_goals_title),
+        stringResource(R.string.body_records_info_goals_body)
     )
 )
+
+/** Tab ids double as stable keys; this maps them to their on-screen labels. */
+@Composable
+private fun tabLabel(id: String): String = when (id) {
+    "Markers" -> stringResource(R.string.body_records_tab_markers)
+    "Profile" -> stringResource(R.string.body_records_tab_profile)
+    "Cycle" -> stringResource(R.string.body_records_tab_cycle)
+    else -> id
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,11 +98,14 @@ fun HealthRecordsScreen(
                 Celebrations.claim(context, "marker_goal_${goal.type.id}_${goal.targetValue}_${goal.targetSecondary}")
         }
         if (reached.isNotEmpty()) {
-            celebration = "You reached your ${reached.joinToString(" and ") { it.type.label.lowercase() }} goal."
+            celebration = context.getString(
+                R.string.body_records_goal_reached_message,
+                reached.joinToString(context.getString(R.string.body_records_goal_join)) { it.type.label.lowercase() }
+            )
         }
     }
     celebration?.let { message ->
-        DashCelebration(title = "Goal reached!", message = message, onDismiss = { celebration = null })
+        DashCelebration(title = stringResource(R.string.body_records_goal_reached_title), message = message, onDismiss = { celebration = null })
     }
     val import by viewModel.import.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -123,11 +138,11 @@ fun HealthRecordsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Health Records") },
+                title = { Text(stringResource(R.string.body_records_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back)) }
                 },
-                actions = { HangryInfoIconButton(title = "About Health Records", sections = HEALTH_RECORDS_INFO) },
+                actions = { HangryInfoIconButton(title = stringResource(R.string.body_records_about), sections = healthRecordsInfo()) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
@@ -136,7 +151,7 @@ fun HealthRecordsScreen(
                 ExtendedFloatingActionButton(
                     onClick = { showAddPicker = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("Add reading") }
+                    text = { Text(stringResource(R.string.body_records_add_reading)) }
                 )
             }
         },
@@ -150,7 +165,7 @@ fun HealthRecordsScreen(
         ) {
             PrimaryTabRow(selectedTabIndex = selectedTab, containerColor = MaterialTheme.colorScheme.background) {
                 tabs.forEachIndexed { index, title ->
-                    Tab(selected = selectedTab == index, onClick = { tab = index }, text = { Text(title) })
+                    Tab(selected = selectedTab == index, onClick = { tab = index }, text = { Text(tabLabel(title)) })
                 }
             }
             Column(
@@ -240,7 +255,7 @@ private fun DisclaimerCard() {
         Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.Default.Lock, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(18.dp))
             Text(
-                "For your own tracking - not medical advice. Hangry is open source and keeps these records on your phone. Talk to a doctor about your results.",
+                stringResource(R.string.body_records_disclaimer),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textPrimary
             )
@@ -257,23 +272,23 @@ private fun HealthConnectCard(state: HealthConnectImportState, onConnect: () -> 
             Icon(Icons.Default.Favorite, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Health Connect", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                Text(stringResource(R.string.body_records_health_connect), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(
                     text = when {
                         state.permissionsToRequest.isNotEmpty() ->
-                            "Allow access to import blood pressure and blood sugar" +
-                                if (state.medicalRecordsSupported) ", plus lab results, conditions and allergies from your medical records." else "."
-                        state.medicalRecordsSupported -> "Importing vitals and medical records."
-                        else -> "Importing vitals. Medical records need Android 16 or later."
+                            if (state.medicalRecordsSupported) stringResource(R.string.body_records_hc_allow_with_medical)
+                            else stringResource(R.string.body_records_hc_allow_vitals)
+                        state.medicalRecordsSupported -> stringResource(R.string.body_records_hc_importing_all)
+                        else -> stringResource(R.string.body_records_hc_importing_vitals)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
             }
             when {
-                state.isImporting -> DashSpinner(size = 32.dp, contentDescription = "Importing")
-                state.permissionsToRequest.isNotEmpty() -> TextButton(onClick = onConnect) { Text("Allow") }
-                else -> IconButton(onClick = onImport) { Icon(Icons.Default.Sync, contentDescription = "Import now") }
+                state.isImporting -> DashSpinner(size = 32.dp, contentDescription = stringResource(R.string.body_records_importing))
+                state.permissionsToRequest.isNotEmpty() -> TextButton(onClick = onConnect) { Text(stringResource(R.string.body_records_allow)) }
+                else -> IconButton(onClick = onImport) { Icon(Icons.Default.Sync, contentDescription = stringResource(R.string.body_records_import_now)) }
             }
         }
     }
@@ -298,7 +313,7 @@ private fun MarkerCard(records: HealthRecordsSnapshot, type: MarkerType, onClick
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 } else {
-                    Text("No readings yet", style = MaterialTheme.typography.bodySmall, color = tokens.textMuted)
+                    Text(stringResource(R.string.body_records_no_readings), style = MaterialTheme.typography.bodySmall, color = tokens.textMuted)
                 }
             }
             Row(verticalAlignment = Alignment.Bottom) {
@@ -331,16 +346,17 @@ internal fun GoalSummary(type: MarkerType, records: HealthRecordsSnapshot) {
         Icon(Icons.Default.Flag, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(
-            text = "Goal $arrow $target ${type.canonicalUnit}" + (goal.targetDate?.let { " by ${it.format(DATE)}" } ?: ""),
+            text = stringResource(R.string.body_records_goal_summary, arrow, target, type.canonicalUnit) +
+                (goal.targetDate?.let { stringResource(R.string.body_records_goal_by_date, it.format(DATE)) } ?: ""),
             style = MaterialTheme.typography.labelMedium,
             color = tokens.textSecondary,
             modifier = Modifier.weight(1f)
         )
         Text(
             text = when {
-                progress.reached -> "Reached"
-                progress.remaining != null -> "${HealthMarkerCalculator.format(type, progress.remaining)} to go"
-                else -> "Add a reading"
+                progress.reached -> stringResource(R.string.body_records_goal_reached)
+                progress.remaining != null -> stringResource(R.string.body_records_goal_to_go, HealthMarkerCalculator.format(type, progress.remaining))
+                else -> stringResource(R.string.body_records_goal_add_reading)
             },
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
@@ -365,15 +381,15 @@ private fun ProfileTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsV
     var adding by remember { mutableStateOf<HealthProfileKind?>(null) }
 
     ProfileSection(
-        title = "Allergies",
-        hint = "Dash avoids these in every food suggestion.",
+        title = stringResource(R.string.body_records_allergies),
+        hint = stringResource(R.string.body_records_allergies_hint),
         items = records.allergies,
         onAdd = { adding = HealthProfileKind.ALLERGY },
         onDelete = viewModel::deleteProfileItem
     )
     ProfileSection(
-        title = "Conditions",
-        hint = "Dash keeps these in mind for exercise and nutrition advice.",
+        title = stringResource(R.string.body_records_conditions),
+        hint = stringResource(R.string.body_records_conditions_hint),
         items = records.conditions,
         onAdd = { adding = HealthProfileKind.CONDITION },
         onDelete = viewModel::deleteProfileItem
@@ -384,9 +400,9 @@ private fun ProfileTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsV
         HangryCard(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Pregnant", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(stringResource(R.string.body_records_pregnant), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                     Text(
-                        "Dash keeps exercise and nutrition suggestions pregnancy-appropriate and won't suggest a calorie deficit.",
+                        stringResource(R.string.body_records_pregnant_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
@@ -396,7 +412,7 @@ private fun ProfileTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsV
             if (records.isPregnant) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { pickingDueDate = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(records.pregnancyDueDate?.let { "Due date: ${it.format(DATE)}" } ?: "Add due date (optional)")
+                    Text(records.pregnancyDueDate?.let { stringResource(R.string.body_records_due_date, it.format(DATE)) } ?: stringResource(R.string.body_records_add_due_date))
                 }
             }
         }
@@ -413,7 +429,7 @@ private fun ProfileTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsV
         }
     } else if (records.sex == null) {
         Text(
-            "Set your sex to Female in Settings to track pregnancy and your menstrual cycle.",
+            stringResource(R.string.body_records_set_sex_female),
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textMuted
         )
@@ -447,14 +463,15 @@ private fun ProfileSection(
                 Text(title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(hint, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
             }
-            TextButton(onClick = onAdd) { Text("Add") }
+            TextButton(onClick = onAdd) { Text(stringResource(R.string.body_records_add)) }
         }
         if (items.isEmpty()) {
-            Text("None added", style = MaterialTheme.typography.bodySmall, color = tokens.textMuted, modifier = Modifier.padding(top = 4.dp))
+            Text(stringResource(R.string.body_records_none_added), style = MaterialTheme.typography.bodySmall, color = tokens.textMuted, modifier = Modifier.padding(top = 4.dp))
         } else {
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items.forEach { item ->
+                    val removeLabel = stringResource(R.string.body_records_remove_item, item.name)
                     // The whole chip is the remove button - a 16dp icon alone is too small to hit.
                     InputChip(
                         selected = false,
@@ -463,7 +480,7 @@ private fun ProfileSection(
                         trailingIcon = {
                             Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
-                        modifier = Modifier.semantics { onClick(label = "Remove ${item.name}", action = null) }
+                        modifier = Modifier.semantics { onClick(label = removeLabel, action = null) }
                     )
                 }
             }
@@ -481,30 +498,30 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
         if (stats.lastPeriodStart == null) {
             DashEmptyState(
                 scene = DashEmptyScene.RECORDS,
-                title = "No periods logged yet",
-                body = "Log your periods here, or allow Health Connect on the Markers tab to import them from another app. Predictions start after two periods.",
+                title = stringResource(R.string.body_records_no_periods_title),
+                body = stringResource(R.string.body_records_no_periods_body),
                 imageSize = 130.dp
             )
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
-                CycleStat(if (stats.inPeriodNow) "On period" else "Cycle day", stats.currentCycleDay?.toString() ?: "—", Modifier.weight(1f))
-                CycleStat("Next period", stats.predictedNextStart?.format(DATE) ?: "Need 2 cycles", Modifier.weight(1f))
+                CycleStat(if (stats.inPeriodNow) stringResource(R.string.body_records_on_period) else stringResource(R.string.body_records_cycle_day), stats.currentCycleDay?.toString() ?: "—", Modifier.weight(1f))
+                CycleStat(stringResource(R.string.body_records_next_period), stats.predictedNextStart?.format(DATE) ?: stringResource(R.string.body_records_need_two_cycles), Modifier.weight(1f))
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
-                CycleStat("Avg cycle", stats.averageCycleDays?.let { String.format(Locale.US, "%.0f days", it) } ?: "—", Modifier.weight(1f))
-                CycleStat("Avg period", stats.averagePeriodDays?.let { String.format(Locale.US, "%.0f days", it) } ?: "—", Modifier.weight(1f))
+                CycleStat(stringResource(R.string.body_records_avg_cycle), stats.averageCycleDays?.let { stringResource(R.string.body_records_days_value, it) } ?: "—", Modifier.weight(1f))
+                CycleStat(stringResource(R.string.body_records_avg_period), stats.averagePeriodDays?.let { stringResource(R.string.body_records_days_value, it) } ?: "—", Modifier.weight(1f))
             }
         }
         Spacer(Modifier.height(12.dp))
         Button(onClick = { logging = true }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Log a period")
+            Text(stringResource(R.string.body_records_log_period))
         }
     }
     Text(
-        "Predictions are estimates from your own history and aren't reliable for contraception or fertility planning.",
+        stringResource(R.string.body_records_prediction_disclaimer),
         style = MaterialTheme.typography.labelSmall,
         color = tokens.textMuted
     )
@@ -516,14 +533,14 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            period.startDate.format(DATE) + (period.endDate?.let { " – ${it.format(DATE)}" } ?: " – ongoing"),
+                            period.startDate.format(DATE) + (period.endDate?.let { " – ${it.format(DATE)}" } ?: stringResource(R.string.body_records_period_ongoing)),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textPrimary
                         )
                         Text(period.source.label, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                     }
                     IconButton(onClick = { viewModel.deletePeriod(period.id) }) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete period", tint = tokens.textMuted)
+                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.body_records_delete_period), tint = tokens.textMuted)
                     }
                 }
             }

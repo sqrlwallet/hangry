@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 import com.kevan.hangry.data.background.BackgroundReadStatus
 import com.kevan.hangry.data.background.BackgroundSyncLog
 import com.kevan.hangry.ui.background.BackgroundAccessRows
@@ -25,12 +27,12 @@ internal fun BackgroundSection() {
     val (state, actions) = rememberBackgroundAccess()
 
     SettingsCollapsibleSection(
-        title = "Background updates",
+        title = stringResource(R.string.settings_background_title),
         summary = when (state?.healthRead) {
-            null -> "Checking…"
-            BackgroundReadStatus.GRANTED -> if (state.batteryUnrestricted) "Hourly sync on" else "Hourly sync on · battery limited"
-            BackgroundReadStatus.NOT_GRANTED -> "Off - syncs only when open"
-            BackgroundReadStatus.UNSUPPORTED -> "Syncs only when open"
+            null -> stringResource(R.string.settings_background_checking)
+            BackgroundReadStatus.GRANTED -> if (state.batteryUnrestricted) stringResource(R.string.settings_background_hourly_on) else stringResource(R.string.settings_background_hourly_on_battery_limited)
+            BackgroundReadStatus.NOT_GRANTED -> stringResource(R.string.settings_background_off_syncs_when_open)
+            BackgroundReadStatus.UNSUPPORTED -> stringResource(R.string.settings_background_syncs_when_open)
         },
         icon = Icons.Default.CloudSync
     ) {
@@ -40,10 +42,10 @@ internal fun BackgroundSection() {
         val result = BackgroundSyncLog.lastResult(context)
         Text(
             when {
-                last == null -> "No background sync yet."
-                result == BackgroundSyncLog.SYNCED -> "Last background sync ${relative(last.toEpochMilli())}."
-                result == BackgroundSyncLog.SKIPPED_NO_PERMISSION -> "Last background run ${relative(last.toEpochMilli())} was skipped - background sync isn't allowed."
-                else -> "Last background sync ${relative(last.toEpochMilli())} didn't finish; it will try again."
+                last == null -> stringResource(R.string.settings_background_no_sync_yet)
+                result == BackgroundSyncLog.SYNCED -> stringResource(R.string.settings_background_last_sync, relative(last.toEpochMilli()))
+                result == BackgroundSyncLog.SKIPPED_NO_PERMISSION -> stringResource(R.string.settings_background_last_run_skipped, relative(last.toEpochMilli()))
+                else -> stringResource(R.string.settings_background_last_sync_unfinished, relative(last.toEpochMilli()))
             },
             style = MaterialTheme.typography.bodySmall,
             color = tokens.textMuted

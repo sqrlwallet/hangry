@@ -45,7 +45,7 @@ class FastingViewModel(
 
     companion object {
         fun mostRecent(time: LocalTime, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): Instant {
-            val today = LocalDate.ofInstant(now, zone).atTime(time).atZone(zone).toInstant()
+            val today = now.atZone(zone).toLocalDate().atTime(time).atZone(zone).toInstant()
             return if (today.isAfter(now)) today.minusSeconds(24 * 3600) else today
         }
 

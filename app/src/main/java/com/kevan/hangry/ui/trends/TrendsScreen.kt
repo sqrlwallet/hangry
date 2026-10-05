@@ -1,5 +1,9 @@
 package com.kevan.hangry.ui.trends
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -64,28 +68,35 @@ enum class TrendTimeframe(val label: String, val days: Long?) {
     ALL_TIME("All", null)
 }
 
+/** Localised chip text for a [TrendTimeframe] ("7D", "All", ...). */
+@Composable
+private fun TrendTimeframe.displayLabel(): String = when (this) {
+    TrendTimeframe.ALL_TIME -> stringResource(R.string.body_trends_timeframe_all)
+    else -> stringResource(R.string.body_trends_timeframe_days, days?.toInt() ?: 0)
+}
+
 enum class TrendMetricCategory(
-    val label: String,
+    @StringRes val labelRes: Int,
     val icon: ImageVector,
     val unit: String
 ) {
-    RECOVERY("Recovery", Icons.AutoMirrored.Filled.TrendingUp, "%"),
-    STRAIN("Strain", Icons.Default.LocalFireDepartment, ""),
-    SLEEP("Sleep", Icons.Default.Bedtime, "h"),
-    HRV("HRV", Icons.Default.Favorite, "ms"),
-    RHR("RHR", Icons.Default.HeartBroken, "bpm"),
-    STEPS("Steps", Icons.AutoMirrored.Filled.DirectionsRun, "steps"),
-    ACTIVE_CALORIES("Active Burn", Icons.Default.Whatshot, "kcal"),
-    NUTRITION_CALORIES("Calories In", Icons.Default.Restaurant, "kcal"),
-    WEIGHT("Weight", Icons.Default.MonitorWeight, "kg")
+    RECOVERY(R.string.body_trends_metric_recovery, Icons.AutoMirrored.Filled.TrendingUp, "%"),
+    STRAIN(R.string.body_trends_metric_strain, Icons.Default.LocalFireDepartment, ""),
+    SLEEP(R.string.body_trends_metric_sleep, Icons.Default.Bedtime, "h"),
+    HRV(R.string.body_trends_metric_hrv, Icons.Default.Favorite, "ms"),
+    RHR(R.string.body_trends_metric_rhr, Icons.Default.HeartBroken, "bpm"),
+    STEPS(R.string.body_trends_metric_steps, Icons.AutoMirrored.Filled.DirectionsRun, "steps"),
+    ACTIVE_CALORIES(R.string.body_trends_metric_active_burn, Icons.Default.Whatshot, "kcal"),
+    NUTRITION_CALORIES(R.string.body_trends_metric_calories_in, Icons.Default.Restaurant, "kcal"),
+    WEIGHT(R.string.body_trends_metric_weight, Icons.Default.MonitorWeight, "kg")
 }
 
-private enum class HistoryFilter(val label: String) {
-    ALL("All Days"),
-    WORKOUTS("Workouts"),
-    PRIMED("Primed (67%+)"),
-    REBUILD("Rebuild (<34%)"),
-    NUTRITION("Has Meals")
+private enum class HistoryFilter(@StringRes val labelRes: Int) {
+    ALL(R.string.body_trends_filter_all_days),
+    WORKOUTS(R.string.body_trends_filter_workouts),
+    PRIMED(R.string.body_trends_filter_primed),
+    REBUILD(R.string.body_trends_filter_rebuild),
+    NUTRITION(R.string.body_trends_filter_has_meals)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,6 +115,7 @@ fun TrendsScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
     val zone = remember { ZoneId.systemDefault() }
     val today = remember { LocalDate.now(zone) }
 
@@ -213,7 +225,7 @@ fun TrendsScreen(
             TrendMetricCategory.STRAIN -> String.format(Locale.US, "%.1f", v)
             TrendMetricCategory.SLEEP -> {
                 val totalMin = (v * 60).toInt()
-                "${totalMin / 60}h ${totalMin % 60}m"
+                context.getString(R.string.body_trends_duration_hm, totalMin / 60, totalMin % 60)
             }
             TrendMetricCategory.HRV -> "${v.toInt()}"
             TrendMetricCategory.RHR -> "${v.toInt()}"
@@ -248,12 +260,12 @@ fun TrendsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Trends") },
+                title = { Text(stringResource(R.string.body_trends_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.body_back)
                         )
                     }
                 },
@@ -261,7 +273,7 @@ fun TrendsScreen(
                     IconButton(onClick = { showJumpDatePicker = true }) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Jump to Date",
+                            contentDescription = stringResource(R.string.body_trends_jump_to_date),
                             tint = tokens.textSecondary
                         )
                     }
@@ -312,7 +324,7 @@ fun TrendsScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = timeframe.label,
+                                    text = timeframe.displayLabel(),
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                     ),
@@ -341,7 +353,7 @@ fun TrendsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Metric Explorer",
+                                text = stringResource(R.string.body_trends_metric_explorer),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
@@ -352,7 +364,7 @@ fun TrendsScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "${chronologicalDates.size} Days Logged",
+                                text = stringResource(R.string.body_trends_days_logged, chronologicalDates.size),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.textSecondary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -394,7 +406,7 @@ fun TrendsScreen(
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
-                                        text = metric.label,
+                                        text = stringResource(metric.labelRes),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = if (isChosen) FontWeight.Bold else FontWeight.Medium
                                         ),
@@ -432,14 +444,14 @@ fun TrendsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             HighlightPill(
-                                label = "Period Avg",
+                                label = stringResource(R.string.body_trends_period_avg),
                                 value = formatMetricValue(avg),
                                 color = metricColor,
                                 modifier = Modifier.weight(1f)
                             )
                             if (peak != null && peak.value != null) {
                                 HighlightPill(
-                                    label = "Peak (${peak.date.format(DateTimeFormatter.ofPattern("MMM d"))})",
+                                    label = stringResource(R.string.body_trends_peak_on, peak.date.format(DateTimeFormatter.ofPattern("MMM d"))),
                                     value = formatMetricValue(peak.value),
                                     color = tokens.scoreColors.primed,
                                     modifier = Modifier.weight(1f)
@@ -447,7 +459,7 @@ fun TrendsScreen(
                             }
                             if (low != null && low.value != null) {
                                 HighlightPill(
-                                    label = "Low (${low.date.format(DateTimeFormatter.ofPattern("MMM d"))})",
+                                    label = stringResource(R.string.body_trends_low_on, low.date.format(DateTimeFormatter.ofPattern("MMM d"))),
                                     value = formatMetricValue(low.value),
                                     color = tokens.textMuted,
                                     modifier = Modifier.weight(1f)
@@ -475,7 +487,7 @@ fun TrendsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Body Weight & Composition",
+                                text = stringResource(R.string.body_trends_weight_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
@@ -487,7 +499,7 @@ fun TrendsScreen(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = "HEALTH CONNECT",
+                                    text = stringResource(R.string.body_trends_health_connect_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = tokens.textSecondary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -508,12 +520,12 @@ fun TrendsScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = String.format(Locale.US, "%.1f kg", weightKg),
+                                    text = stringResource(R.string.body_trends_kg_value, weightKg),
                                     style = MaterialTheme.typography.displayMedium,
                                     color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = String.format(Locale.US, "≈ %.1f lbs", weightLbs),
+                                    text = stringResource(R.string.body_trends_lbs_approx, weightLbs),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textMuted
                                 )
@@ -522,12 +534,12 @@ fun TrendsScreen(
                             if (rollingAvgWeight != null) {
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = String.format(Locale.US, "%.1f kg", rollingAvgWeight),
+                                        text = stringResource(R.string.body_trends_kg_value, rollingAvgWeight!!),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = tokens.chartColors.sleep
                                     )
                                     Text(
-                                        text = "7-Day Moving Avg",
+                                        text = stringResource(R.string.body_trends_moving_avg_7d),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.textSecondary
                                     )
@@ -539,10 +551,10 @@ fun TrendsScreen(
 
                         val delta = rollingAvgWeight?.let { weightKg - it }
                         val trendNote = when {
-                            delta == null -> "Stable baseline"
-                            abs(delta) < 0.3 -> "Stable, within normal variance."
-                            delta > 0 -> String.format(Locale.US, "+%.1f kg vs 7-day average.", delta)
-                            else -> String.format(Locale.US, "%.1f kg vs 7-day average.", delta)
+                            delta == null -> stringResource(R.string.body_trends_weight_stable_baseline)
+                            abs(delta) < 0.3 -> stringResource(R.string.body_trends_weight_stable_variance)
+                            delta > 0 -> stringResource(R.string.body_trends_weight_delta_up, delta)
+                            else -> stringResource(R.string.body_trends_weight_delta_down, delta)
                         }
 
                         Text(
@@ -580,12 +592,12 @@ fun TrendsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Weight Trajectory",
+                                    text = stringResource(R.string.body_trends_weight_trajectory),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = tokens.textMuted
                                 )
                                 Text(
-                                    text = String.format(Locale.US, "%s%.1f kg in %s", if (netChange > 0) "+" else "", netChange, selectedTimeframe.label),
+                                    text = stringResource(R.string.body_trends_weight_net_change, if (netChange > 0) "+" else "", netChange, selectedTimeframe.displayLabel()),
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = if (netChange <= 0) tokens.scoreColors.primed else tokens.scoreColors.rebuild
                                 )
@@ -617,7 +629,7 @@ fun TrendsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Body Fat % Trend",
+                                text = stringResource(R.string.body_trends_body_fat_trend),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.textMuted
                             )
@@ -645,7 +657,7 @@ fun TrendsScreen(
                         if (bf != null) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Latest Body Fat: ",
+                                    text = stringResource(R.string.body_trends_latest_body_fat),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textSecondary
                                 )
@@ -656,7 +668,7 @@ fun TrendsScreen(
                                 )
                             }
                             Text(
-                                text = "More scans will reveal a trend",
+                                text = stringResource(R.string.body_trends_more_scans),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.textMuted
                             )
@@ -670,7 +682,7 @@ fun TrendsScreen(
                     ) {
                         Icon(imageVector = Icons.Default.AccessibilityNew, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("AI Body Fat & Composition Calculator")
+                        Text(stringResource(R.string.body_trends_body_fat_calculator_button))
                     }
                 }
             }
@@ -692,14 +704,14 @@ fun TrendsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Nutrition & Macro Trends",
+                                text = stringResource(R.string.body_trends_nutrition_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = tokens.textPrimary
                             )
                         }
 
                         Text(
-                            text = "${foodLogsByDate.keys.size} Days Tracked",
+                            text = stringResource(R.string.body_trends_days_tracked, foodLogsByDate.keys.size),
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -720,26 +732,26 @@ fun TrendsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             HighlightPill(
-                                label = "Avg Intake",
-                                value = "$avgCaloriesPerDay kcal",
+                                label = stringResource(R.string.body_trends_avg_intake),
+                                value = stringResource(R.string.body_trends_kcal_value, avgCaloriesPerDay),
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f)
                             )
                             HighlightPill(
-                                label = "Avg Protein",
-                                value = "${avgProtein.toInt()}g",
+                                label = stringResource(R.string.body_trends_avg_protein),
+                                value = stringResource(R.string.body_trends_grams_value, avgProtein.toInt()),
                                 color = tokens.scoreColors.primed,
                                 modifier = Modifier.weight(1f)
                             )
                             HighlightPill(
-                                label = "Avg Carbs",
-                                value = "${avgCarbs.toInt()}g",
+                                label = stringResource(R.string.body_trends_avg_carbs),
+                                value = stringResource(R.string.body_trends_grams_value, avgCarbs.toInt()),
                                 color = tokens.scoreColors.balanced,
                                 modifier = Modifier.weight(1f)
                             )
                             HighlightPill(
-                                label = "Avg Fat",
-                                value = "${avgFat.toInt()}g",
+                                label = stringResource(R.string.body_trends_avg_fat),
+                                value = stringResource(R.string.body_trends_grams_value, avgFat.toInt()),
                                 color = tokens.chartColors.sleep,
                                 modifier = Modifier.weight(1f)
                             )
@@ -753,20 +765,20 @@ fun TrendsScreen(
                         val fatPct = 100 - proteinPct - carbsPct
 
                         Text(
-                            text = "Macro Split: $proteinPct% Protein · $carbsPct% Carbs · $fatPct% Fat",
+                            text = stringResource(R.string.body_trends_macro_split, proteinPct, carbsPct, fatPct),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "No food logged in this range",
+                                text = stringResource(R.string.body_trends_no_food_in_range),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.textSecondary
                             )
                             HangryInfoTip(
-                                title = "Nutrition & Macro Trends",
-                                body = "No food logged in this timeframe. Log meals using the camera or text prompt to track macro trends."
+                                title = stringResource(R.string.body_trends_nutrition_title),
+                                body = stringResource(R.string.body_trends_no_food_tip)
                             )
                         }
                     }
@@ -777,7 +789,7 @@ fun TrendsScreen(
             item {
                 HangryCard {
                     Text(
-                        text = "Weekly Performance Recap",
+                        text = stringResource(R.string.body_trends_weekly_recap_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = tokens.textPrimary
                     )
@@ -793,15 +805,15 @@ fun TrendsScreen(
                     val lastAvgSteps = lastWeekSummaries.mapNotNull { it.steps?.toDouble() }.averageOrNull()
 
                     WeeklyRecapRow(
-                        label = "Avg Recovery",
+                        label = stringResource(R.string.body_trends_avg_recovery),
                         thisWeek = thisAvgRecovery,
                         lastWeek = lastAvgRecovery,
                         color = tokens.scoreColors.primed,
-                        format = { "${it.toInt()}%" }
+                        format = { context.getString(R.string.body_trends_percent_value, it.toInt()) }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                     WeeklyRecapRow(
-                        label = "Avg Daily Strain",
+                        label = stringResource(R.string.body_trends_avg_daily_strain),
                         thisWeek = thisAvgStrain,
                         lastWeek = lastAvgStrain,
                         color = tokens.chartColors.trainingLoad,
@@ -809,16 +821,16 @@ fun TrendsScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                     WeeklyRecapRow(
-                        label = "Avg Sleep",
+                        label = stringResource(R.string.body_trends_avg_sleep),
                         thisWeek = thisAvgSleep,
                         lastWeek = lastAvgSleep,
                         color = tokens.chartColors.sleep,
-                        format = { "${(it / 60).toInt()}h ${(it % 60).toInt()}m" },
-                        deltaFormat = { "${it.toInt()}m" }
+                        format = { context.getString(R.string.body_trends_duration_hm, (it / 60).toInt(), (it % 60).toInt()) },
+                        deltaFormat = { context.getString(R.string.body_trends_minutes_value, it.toInt()) }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                     WeeklyRecapRow(
-                        label = "Avg Daily Steps",
+                        label = stringResource(R.string.body_trends_avg_daily_steps),
                         thisWeek = thisAvgSteps,
                         lastWeek = lastAvgSteps,
                         color = tokens.chartColors.steps,
@@ -839,15 +851,15 @@ fun TrendsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Daily Biometric History",
+                            text = stringResource(R.string.body_trends_history_title),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = tokens.textPrimary,
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         HangryInfoTip(
-                            title = "Daily Biometric History",
-                            body = "Tap any day to see its details or open it on Today."
+                            title = stringResource(R.string.body_trends_history_title),
+                            body = stringResource(R.string.body_trends_history_tip)
                         )
                     }
 
@@ -869,7 +881,7 @@ fun TrendsScreen(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = "Pick Date",
+                                text = stringResource(R.string.body_trends_pick_date),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = tokens.textPrimary
                             )
@@ -904,7 +916,7 @@ fun TrendsScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = filter.label,
+                                    text = stringResource(filter.labelRes),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     ),
@@ -921,8 +933,8 @@ fun TrendsScreen(
                     HangryCard(cornerRadius = HangryTokens.CornerRadii.large) {
                         DashEmptyState(
                             scene = DashEmptyScene.RECORDS,
-                            title = "No history for this range yet",
-                            body = "Days appear here once they sync from Health Connect.",
+                            title = stringResource(R.string.body_trends_history_empty_title),
+                            body = stringResource(R.string.body_trends_history_empty_body),
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
@@ -969,7 +981,7 @@ fun TrendsScreen(
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Text(
-                                                text = "TODAY",
+                                                text = stringResource(R.string.body_trends_today_badge),
                                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                                 color = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -980,7 +992,7 @@ fun TrendsScreen(
 
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = if (scoreVal != null) "Recovery: $scoreVal% (${matchingScore.state})" else "Baseline Calibrating",
+                                    text = if (scoreVal != null) stringResource(R.string.body_trends_history_recovery, scoreVal, matchingScore.state) else stringResource(R.string.body_trends_history_baseline_calibrating),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = scoreColor
                                 )
@@ -993,14 +1005,14 @@ fun TrendsScreen(
                                         val h = matchingSummary.sleepDurationMinutes / 60
                                         val m = matchingSummary.sleepDurationMinutes % 60
                                         Text(
-                                            text = "Sleep: ${h}h ${m}m",
+                                            text = stringResource(R.string.body_trends_history_sleep, h, m),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = tokens.chartColors.sleep
                                         )
                                     }
                                     if (matchingWorkouts.isNotEmpty()) {
                                         Text(
-                                            text = "• ${matchingWorkouts.size} workout${if (matchingWorkouts.size > 1) "s" else ""}",
+                                            text = if (matchingWorkouts.size > 1) stringResource(R.string.body_trends_history_workouts, matchingWorkouts.size) else stringResource(R.string.body_trends_history_workout_one, matchingWorkouts.size),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = tokens.chartColors.trainingLoad
                                         )
@@ -1008,7 +1020,7 @@ fun TrendsScreen(
                                     if (matchingFood.isNotEmpty()) {
                                         val cals = matchingFood.sumOf { it.calories }
                                         Text(
-                                            text = "• $cals kcal in",
+                                            text = stringResource(R.string.body_trends_history_kcal_in, cals),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -1022,20 +1034,20 @@ fun TrendsScreen(
                             ) {
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = String.format(Locale.US, "%.1f strain", trainingLoad),
+                                        text = stringResource(R.string.body_trends_history_strain, trainingLoad),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = tokens.chartColors.trainingLoad
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "${matchingSummary?.steps ?: 0} steps",
+                                        text = stringResource(R.string.body_trends_history_steps, matchingSummary?.steps ?: 0L),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.textMuted
                                     )
                                     if (matchingSummary?.restingHeartRate != null) {
                                         Text(
-                                            text = "RHR: ${matchingSummary.restingHeartRate.toInt()} bpm",
+                                            text = stringResource(R.string.body_trends_history_rhr, matchingSummary.restingHeartRate.toInt()),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = tokens.chartColors.restingHeartRate
                                         )
@@ -1044,7 +1056,7 @@ fun TrendsScreen(
 
                                 Icon(
                                     imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = "Inspect",
+                                    contentDescription = stringResource(R.string.body_trends_inspect),
                                     tint = tokens.textMuted,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -1096,12 +1108,12 @@ fun TrendsScreen(
                         showJumpDatePicker = false
                     }
                 ) {
-                    Text("Inspect Day", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.body_trends_inspect_day), color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showJumpDatePicker = false }) {
-                    Text("Cancel", color = tokens.textSecondary)
+                    Text(stringResource(R.string.cancel), color = tokens.textSecondary)
                 }
             }
         ) {

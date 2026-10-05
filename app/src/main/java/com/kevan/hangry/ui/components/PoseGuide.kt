@@ -18,27 +18,29 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 
 /** One pose in a photo guide, illustrated by Dash. */
 data class GuidePose(
-    val title: String,
-    val subtitle: String,
-    val tip: String,
+    @StringRes val title: Int,
+    @StringRes val subtitle: Int,
+    @StringRes val tip: Int,
     @DrawableRes val imageRes: Int
 )
 
 val POSTURE_POSES = listOf(
-    GuidePose("Front", "Anterior", "Stand relaxed, arms un-obscured.", R.drawable.posture_pose_front),
-    GuidePose("Side", "Lateral", "Capture your natural spinal curve. Hold still.", R.drawable.posture_pose_side),
-    GuidePose("Back", "Posterior", "Checks spinal and shoulder-blade symmetry.", R.drawable.posture_pose_back),
-    GuidePose("Arms overhead", "Mobility", "From behind, raise both arms to test shoulder mobility.", R.drawable.posture_pose_overhead),
-    GuidePose("Biceps flex", "Optional", "Flex both biceps to show muscle development.", R.drawable.posture_pose_flex)
+    GuidePose(R.string.metrics_components_pose_front, R.string.metrics_components_pose_anterior, R.string.metrics_components_pose_tip_posture_front, R.drawable.posture_pose_front),
+    GuidePose(R.string.metrics_components_pose_side, R.string.metrics_components_pose_lateral, R.string.metrics_components_pose_tip_posture_side, R.drawable.posture_pose_side),
+    GuidePose(R.string.metrics_components_pose_back, R.string.metrics_components_pose_posterior, R.string.metrics_components_pose_tip_posture_back, R.drawable.posture_pose_back),
+    GuidePose(R.string.metrics_components_pose_arms_overhead, R.string.metrics_components_pose_mobility, R.string.metrics_components_pose_tip_posture_overhead, R.drawable.posture_pose_overhead),
+    GuidePose(R.string.metrics_components_pose_biceps_flex, R.string.metrics_components_pose_optional, R.string.metrics_components_pose_tip_posture_flex, R.drawable.posture_pose_flex)
 )
 
 val BODY_FAT_POSES = listOf(
-    GuidePose("Front", "Anterior", "Stand relaxed, arms at sides. Even lighting, full body in frame.", R.drawable.bodyfat_pose_front),
-    GuidePose("Side", "Lateral", "Turn 90°, keep your natural curve. Skip bulky clothing.", R.drawable.bodyfat_pose_side),
-    GuidePose("Back", "Posterior", "Arms slightly out from your sides to show fat distribution.", R.drawable.bodyfat_pose_back)
+    GuidePose(R.string.metrics_components_pose_front, R.string.metrics_components_pose_anterior, R.string.metrics_components_pose_tip_bodyfat_front, R.drawable.bodyfat_pose_front),
+    GuidePose(R.string.metrics_components_pose_side, R.string.metrics_components_pose_lateral, R.string.metrics_components_pose_tip_bodyfat_side, R.drawable.bodyfat_pose_side),
+    GuidePose(R.string.metrics_components_pose_back, R.string.metrics_components_pose_posterior, R.string.metrics_components_pose_tip_bodyfat_back, R.drawable.bodyfat_pose_back)
 )
 
 /** Horizontal row of pose cards showing which photos to take. */
@@ -47,7 +49,7 @@ fun PoseGuide(poses: List<GuidePose>, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)) {
         Text(
-            text = "How to pose",
+            text = stringResource(R.string.metrics_components_how_to_pose),
             style = MaterialTheme.typography.titleMedium,
             color = tokens.textPrimary
         )
@@ -65,6 +67,7 @@ fun PoseGuide(poses: List<GuidePose>, modifier: Modifier = Modifier) {
 @Composable
 private fun PoseCard(number: Int, pose: GuidePose) {
     val tokens = LocalHangryTokens.current
+    val title = stringResource(pose.title)
     Column(
         modifier = Modifier
             .width(140.dp)
@@ -73,7 +76,7 @@ private fun PoseCard(number: Int, pose: GuidePose) {
     ) {
         Image(
             painter = painterResource(pose.imageRes),
-            contentDescription = "Dash demonstrating the ${pose.title.lowercase()} pose",
+            contentDescription = stringResource(R.string.metrics_components_pose_image_description, title.lowercase()),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,18 +84,18 @@ private fun PoseCard(number: Int, pose: GuidePose) {
         )
         Column(modifier = Modifier.padding(10.dp)) {
             Text(
-                text = "$number. ${pose.title}",
+                text = stringResource(R.string.metrics_components_pose_numbered_title, number, title),
                 style = MaterialTheme.typography.titleSmall,
                 color = tokens.textPrimary
             )
             Text(
-                text = pose.subtitle,
+                text = stringResource(pose.subtitle),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = pose.tip,
+                text = stringResource(pose.tip),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary,
                 minLines = 3

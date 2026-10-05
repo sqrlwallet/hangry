@@ -24,6 +24,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,23 +47,25 @@ fun HistoricalSyncSetupScreen(
         }
     }
 
-    val allTimeLabel = remember(earliestDate) {
+    val allDataFromTemplate = stringResource(R.string.settings_sync_all_data_from)
+    val allDataFullHistoryLabel = stringResource(R.string.settings_sync_all_data_full_history)
+    val allTimeLabel = remember(earliestDate, allDataFromTemplate, allDataFullHistoryLabel) {
         val date = earliestDate
         if (date != null) {
             val years = ChronoUnit.DAYS.between(date, LocalDate.now()) / 365.25
             val dateStr = date.format(DateTimeFormatter.ofPattern("MMM yyyy"))
-            "All available data (From $dateStr · %.1f yrs - Recommended)".format(years)
+            allDataFromTemplate.format(dateStr, years)
         } else {
-            "All available data (Full history - Recommended)"
+            allDataFullHistoryLabel
         }
     }
 
     val ranges = listOf(
         Pair(-1, allTimeLabel),
-        Pair(365, "Last 365 days (Annual history)"),
-        Pair(90, "Last 90 days (Deeper trends)"),
-        Pair(30, "Last 30 days (Standard baseline)"),
-        Pair(7, "Last 7 days (Fastest setup)")
+        Pair(365, stringResource(R.string.settings_sync_range_365)),
+        Pair(90, stringResource(R.string.settings_sync_range_90)),
+        Pair(30, stringResource(R.string.settings_sync_range_30)),
+        Pair(7, stringResource(R.string.settings_sync_range_7))
     )
 
     Box(
@@ -91,12 +94,12 @@ fun HistoricalSyncSetupScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Historical Import", color = androidx.compose.ui.graphics.Color.White) },
+                    title = { Text(stringResource(R.string.settings_sync_historical_import), color = androidx.compose.ui.graphics.Color.White) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
+                                contentDescription = stringResource(R.string.settings_back),
                                 tint = androidx.compose.ui.graphics.Color.White
                             )
                         }
@@ -126,7 +129,7 @@ fun HistoricalSyncSetupScreen(
                         )
                     ) {
                         Text(
-                            text = "Start Historical Import",
+                            text = stringResource(R.string.settings_sync_start_import),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             ),
@@ -151,7 +154,7 @@ fun HistoricalSyncSetupScreen(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Choose Historical Range",
+                        text = stringResource(R.string.settings_sync_choose_range),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         ),
@@ -159,19 +162,19 @@ fun HistoricalSyncSetupScreen(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     HangryInfoIconButton(
-                        title = "Historical Import",
+                        title = stringResource(R.string.settings_sync_historical_import),
                         sections = listOf(
                             HangryInfoSection(
-                                "Why import history",
-                                "Importing your past health records allows Hangry to calculate your personalized 7-day and 28-day baselines immediately upon launch."
+                                stringResource(R.string.settings_sync_info_why_heading),
+                                stringResource(R.string.settings_sync_info_why_body)
                             ),
                             HangryInfoSection(
-                                "All available data",
-                                "Imports your entire Health Connect history without date cutoffs."
+                                stringResource(R.string.settings_sync_info_all_heading),
+                                stringResource(R.string.settings_sync_info_all_body)
                             ),
                             HangryInfoSection(
-                                "Safe Memory Batching",
-                                "Hangry processes historical records in 14-day bounded batches with duplicate suppression. You can cancel or re-sync at any time."
+                                stringResource(R.string.settings_sync_info_batching_heading),
+                                stringResource(R.string.settings_sync_info_batching_body)
                             )
                         ),
                         compact = true
@@ -179,7 +182,7 @@ fun HistoricalSyncSetupScreen(
                 }
 
                 Text(
-                    text = "More history, better baselines.",
+                    text = stringResource(R.string.settings_sync_more_history),
                     style = MaterialTheme.typography.bodyMedium,
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.70f)
                 )
@@ -212,7 +215,7 @@ fun HistoricalSyncSetupScreen(
                                 )
                                 if (days == -1) {
                                     Text(
-                                        text = "No date cutoff",
+                                        text = stringResource(R.string.settings_sync_no_cutoff),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = tokens.scoreColors.primed
                                     )

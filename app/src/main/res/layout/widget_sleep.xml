@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="SLEEP"
+            android:text="@string/widget_layout_sleep"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -61,7 +61,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text="No sleep recorded yet"
+        android:text="@string/widget_layout_no_sleep_recorded_yet"
         android:textColor="#B5AEB8"
         android:textSize="12sp" />
 </LinearLayout>

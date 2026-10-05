@@ -19,8 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.R
 import com.kevan.hangry.domain.calculation.NutritionTargets
 import com.kevan.hangry.domain.model.FiberGuide
 import com.kevan.hangry.domain.model.NutritionReview
@@ -60,10 +62,10 @@ fun WeeklyReviewSheet(
         ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Weekly review", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+                    Text(stringResource(R.string.nutrition_info_weekly_title), style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
                     state.summary?.let {
                         Text(
-                            "${it.start.format(RANGE_FORMAT)} – ${it.end.format(RANGE_FORMAT)} · ${it.daysLogged} of 7 days logged",
+                            stringResource(R.string.nutrition_weekly_range, it.start.format(RANGE_FORMAT), it.end.format(RANGE_FORMAT), it.daysLogged),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -71,21 +73,21 @@ fun WeeklyReviewSheet(
                 }
                 if (state.aiAvailable && !state.isAiLoading && (state.summary?.daysLogged ?: 0) > 0) {
                     IconButton(onClick = onRefresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Review again", tint = tokens.textMuted)
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.nutrition_weekly_review_again), tint = tokens.textMuted)
                     }
                 }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = tokens.textMuted)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.nutrition_cd_close), tint = tokens.textMuted)
                 }
             }
 
             val summary = state.summary
             when {
-                state.isLoading || summary == null -> LoadingRow("Crunching your week…")
+                state.isLoading || summary == null -> LoadingRow(stringResource(R.string.nutrition_weekly_crunching))
                 summary.daysLogged == 0 -> DashEmptyState(
                     scene = DashEmptyScene.MEALS,
-                    title = "Nothing logged this week",
-                    body = "Log your meals for a few days and come back - the review looks at your last 7 days of eating.",
+                    title = stringResource(R.string.nutrition_weekly_empty_title),
+                    body = stringResource(R.string.nutrition_weekly_empty_body),
                     modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                 )
                 else -> {
@@ -93,11 +95,11 @@ fun WeeklyReviewSheet(
 
                     if (state.aiAvailable) {
                         when {
-                            state.isAiLoading -> LoadingRow("Dash is reviewing your meals…")
+                            state.isAiLoading -> LoadingRow(stringResource(R.string.nutrition_weekly_ai_loading))
                             state.aiReview != null -> AiReviewContent(state.aiReview)
                             state.aiError != null -> Column {
                                 Text(state.aiError, style = MaterialTheme.typography.bodySmall, color = tokens.scoreColors.rebuild)
-                                TextButton(onClick = onRefresh) { Text("Try again") }
+                                TextButton(onClick = onRefresh) { Text(stringResource(R.string.nutrition_try_again)) }
                             }
                         }
                     } else {
@@ -110,7 +112,7 @@ fun WeeklyReviewSheet(
                                 Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(10.dp))
                                 Text(
-                                    "Turn on AI Features for a personal review of what you ate, with foods to add and how.",
+                                    stringResource(R.string.nutrition_weekly_ai_off),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textPrimary
                                 )
@@ -119,7 +121,7 @@ fun WeeklyReviewSheet(
                     }
 
                     if (state.tips.isNotEmpty()) {
-                        SectionTitle(if (state.aiReview != null) "By the numbers" else "Recommendations")
+                        SectionTitle(if (state.aiReview != null) stringResource(R.string.nutrition_weekly_by_numbers) else stringResource(R.string.nutrition_weekly_recommendations))
                         state.tips.forEach { tip -> ReviewCard(title = tip.title, body = tip.body) }
                     }
 
@@ -152,21 +154,21 @@ private fun AveragesGrid(summary: NutritionWeekSummary, calorieTarget: Int?) {
     val macros = NutritionTargets.macros(calorieTarget)
     val fiberTarget = NutritionTargets.fiberG(calorieTarget)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Daily average", style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
+        Text(stringResource(R.string.nutrition_weekly_daily_average), style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AverageTile("Calories", "${summary.avgCalories}", calorieTarget?.let { "of $it kcal" } ?: "kcal",
+            AverageTile(stringResource(R.string.nutrition_field_calories), "${summary.avgCalories}", calorieTarget?.let { stringResource(R.string.nutrition_weekly_of_kcal, it) } ?: stringResource(R.string.nutrition_kcal_unit),
                 summary.avgCalories.toDouble(), calorieTarget?.toDouble(), tokens.macroColors.calories, Modifier.weight(1f))
-            AverageTile("Protein", "${summary.avgProteinG.roundToInt()}g", macros?.let { "of ${it.proteinG.roundToInt()}g" } ?: "",
+            AverageTile(stringResource(R.string.nutrition_macro_protein), stringResource(R.string.nutrition_grams, summary.avgProteinG.roundToInt()), macros?.let { stringResource(R.string.nutrition_weekly_of_grams, it.proteinG.roundToInt()) } ?: "",
                 summary.avgProteinG, macros?.proteinG, tokens.macroColors.protein, Modifier.weight(1f))
-            AverageTile("Fiber", "${summary.avgFiberG.roundToInt()}g", "of ${fiberTarget.roundToInt()}g",
+            AverageTile(stringResource(R.string.nutrition_macro_fiber), stringResource(R.string.nutrition_grams, summary.avgFiberG.roundToInt()), stringResource(R.string.nutrition_weekly_of_grams, fiberTarget.roundToInt()),
                 summary.avgFiberG, fiberTarget, tokens.macroColors.fiber, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AverageTile("Carbs", "${summary.avgCarbsG.roundToInt()}g", macros?.let { "of ${it.carbsG.roundToInt()}g" } ?: "",
+            AverageTile(stringResource(R.string.nutrition_macro_carbs), stringResource(R.string.nutrition_grams, summary.avgCarbsG.roundToInt()), macros?.let { stringResource(R.string.nutrition_weekly_of_grams, it.carbsG.roundToInt()) } ?: "",
                 summary.avgCarbsG, macros?.carbsG, tokens.macroColors.carbs, Modifier.weight(1f))
-            AverageTile("Fat", "${summary.avgFatG.roundToInt()}g", macros?.let { "of ${it.fatG.roundToInt()}g" } ?: "",
+            AverageTile(stringResource(R.string.nutrition_macro_fat), stringResource(R.string.nutrition_grams, summary.avgFatG.roundToInt()), macros?.let { stringResource(R.string.nutrition_weekly_of_grams, it.fatG.roundToInt()) } ?: "",
                 summary.avgFatG, macros?.fatG, tokens.macroColors.fat, Modifier.weight(1f))
-            AverageTile("Sodium", "${summary.avgSodiumMg.roundToInt()}mg", "under 2300mg",
+            AverageTile(stringResource(R.string.nutrition_weekly_sodium), stringResource(R.string.nutrition_mg, summary.avgSodiumMg.roundToInt()), stringResource(R.string.nutrition_weekly_sodium_limit),
                 summary.avgSodiumMg, 2300.0, tokens.textSecondary, Modifier.weight(1f))
         }
     }
@@ -221,17 +223,17 @@ private fun AiReviewContent(review: NutritionReview) {
             Text(review.overview, style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
         }
         if (review.wins.isNotEmpty()) {
-            SectionTitle("What's working")
-            review.wins.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary) }
+            SectionTitle(stringResource(R.string.nutrition_weekly_whats_working))
+            review.wins.forEach { Text(stringResource(R.string.nutrition_bullet_item, it), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary) }
         }
         if (review.recommendations.isNotEmpty()) {
-            SectionTitle("Try this week")
+            SectionTitle(stringResource(R.string.nutrition_weekly_try_this_week))
             review.recommendations.forEach { rec ->
                 ReviewCard(title = rec.title, body = rec.why, detail = rec.how)
             }
         }
         if (review.foodsToAdd.isNotEmpty()) {
-            SectionTitle("Foods to add")
+            SectionTitle(stringResource(R.string.nutrition_weekly_foods_to_add))
             review.foodsToAdd.forEach { food ->
                 Row {
                     Text("+ ", style = MaterialTheme.typography.bodyMedium, color = tokens.macroColors.carbs, fontWeight = FontWeight.Bold)
@@ -245,7 +247,7 @@ private fun AiReviewContent(review: NutritionReview) {
             }
         }
         if (review.fiberPlan.isNotBlank()) {
-            ReviewCard(title = "Your fiber plan", body = review.fiberPlan, accent = tokens.macroColors.fiber)
+            ReviewCard(title = stringResource(R.string.nutrition_weekly_fiber_plan), body = review.fiberPlan, accent = tokens.macroColors.fiber)
         }
     }
 }
@@ -263,7 +265,7 @@ private fun ReviewCard(title: String, body: String, detail: String? = null, acce
             Text(title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, fontWeight = FontWeight.SemiBold)
             if (body.isNotBlank()) Text(body, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
             detail?.takeIf { it.isNotBlank() }?.let {
-                Text("How: $it", style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary)
+                Text(stringResource(R.string.nutrition_weekly_how, it), style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary)
             }
         }
     }
@@ -277,13 +279,13 @@ private fun FiberGuideSection() {
         TextButton(onClick = { expanded = !expanded }) {
             Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("How to eat more fiber")
+            Text(stringResource(R.string.nutrition_weekly_eat_more_fiber))
         }
         AnimatedVisibility(visible = expanded) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(horizontal = 4.dp)) {
                 Text(FiberGuide.SUMMARY, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                 FiberGuide.HOW_TO.forEach {
-                    Text("• $it", style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary)
+                    Text(stringResource(R.string.nutrition_bullet_item, it), style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary)
                 }
             }
         }

@@ -45,20 +45,22 @@ import com.kevan.hangry.ui.theme.CtaGradient
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
-private val ALIGNMENT_ZONE_SECTIONS = listOf(
-    HangryInfoSection("Cervical Spine & Head", "Forward head angle & suboccipital compression"),
-    HangryInfoSection("Thoracic & Scapulae", "Rounded shoulder posture & upper-crossed pattern"),
-    HangryInfoSection("Lumbopelvic Rhythm", "Anterior/posterior pelvic tilt & spinal neutrality")
+@Composable
+private fun alignmentZoneSections(): List<HangryInfoSection> = listOf(
+    HangryInfoSection(stringResource(R.string.body_posture_zone_cervical), stringResource(R.string.body_posture_zone_cervical_info)),
+    HangryInfoSection(stringResource(R.string.body_posture_zone_thoracic), stringResource(R.string.body_posture_zone_thoracic_info)),
+    HangryInfoSection(stringResource(R.string.body_posture_zone_lumbopelvic), stringResource(R.string.body_posture_zone_lumbopelvic_info))
 )
 
-private val POSTURE_INFO_SECTIONS = listOf(
+@Composable
+private fun postureInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
-        "How it works",
-        "Submit 1–5 photos following the pose guide: front, side, back, arms overhead, and an optional biceps flex. Athletic or casual clothing is fine. The AI evaluates posture alignment and suggests corrective exercises."
+        stringResource(R.string.body_posture_info_how_title),
+        stringResource(R.string.body_posture_info_how_body)
     ),
     HangryInfoSection(
-        "Your photos",
-        "Kept only in this app's private storage on your device, for your own before/after comparison - never re-uploaded anywhere after the one analysis call."
+        stringResource(R.string.body_posture_info_photos_title),
+        stringResource(R.string.body_posture_info_photos_body)
     )
 )
 
@@ -83,11 +85,11 @@ fun PostureScreen(
                 title = { Text(stringResource(R.string.title_posture)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back))
                     }
                 },
                 actions = {
-                    HangryInfoIconButton(title = "About Posture", sections = POSTURE_INFO_SECTIONS)
+                    HangryInfoIconButton(title = stringResource(R.string.body_posture_about), sections = postureInfoSections())
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -102,9 +104,9 @@ fun PostureScreen(
                     .padding(HangryTokens.Spacing.m),
                 verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
-                HangryPendingNotice(message = "Enable AI Features in Settings to run a posture check.")
+                HangryPendingNotice(message = stringResource(R.string.body_posture_enable_ai))
                 HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {
-                    Text("Go to AI Settings", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(stringResource(R.string.body_posture_go_to_ai_settings), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 }
             }
             return@Scaffold
@@ -129,10 +131,10 @@ fun PostureScreen(
                     else -> tokens.scoreColors.rebuild
                 }
                 val statusText = when {
-                    score == null -> "Baseline Pending"
-                    score >= 80 -> "Optimal Alignment"
-                    score >= 60 -> "Mild Imbalance Detected"
-                    else -> "Correction Recommended"
+                    score == null -> stringResource(R.string.body_posture_status_pending)
+                    score >= 80 -> stringResource(R.string.body_posture_status_optimal)
+                    score >= 60 -> stringResource(R.string.body_posture_status_mild)
+                    else -> stringResource(R.string.body_posture_status_correction)
                 }
 
                 HangryCard(
@@ -146,14 +148,14 @@ fun PostureScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Biomechanical Score",
+                                text = stringResource(R.string.body_posture_score_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = tokens.textPrimary
                             )
                             HangryInfoTip(
-                                title = "Biomechanical Score",
-                                body = "Take 1-5 photos to analyze head, shoulder, and pelvic alignment. Front and lateral kinetic chain verified via computer vision."
+                                title = stringResource(R.string.body_posture_score_title),
+                                body = stringResource(R.string.body_posture_score_tip)
                             )
                         }
                         Surface(
@@ -190,7 +192,7 @@ fun PostureScreen(
                                     color = scoreColor
                                 )
                                 Text(
-                                    text = "/ 100",
+                                    text = stringResource(R.string.body_posture_out_of_100),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = tokens.textMuted
                                 )
@@ -202,7 +204,7 @@ fun PostureScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             if (latest != null) {
                                 Text(
-                                    text = "Latest Assessment",
+                                    text = stringResource(R.string.body_posture_latest_assessment),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = tokens.textMuted
                                 )
@@ -215,14 +217,14 @@ fun PostureScreen(
                                 )
                             } else {
                                 Text(
-                                    text = "No Scans Logged",
+                                    text = stringResource(R.string.body_posture_no_scans_logged),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.textPrimary
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Take 1–5 photos to get a score.",
+                                    text = stringResource(R.string.body_posture_take_photos_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textSecondary
                                 )
@@ -269,7 +271,7 @@ fun PostureScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (latest != null) "New Posture Check" else "Start First Posture Scan",
+                                text = if (latest != null) stringResource(R.string.body_posture_new_check) else stringResource(R.string.body_posture_start_first),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White
@@ -292,14 +294,14 @@ fun PostureScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Kinetic Alignment Focus",
+                                text = stringResource(R.string.body_posture_alignment_focus),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = tokens.textPrimary
                             )
                             HangryInfoIconButton(
-                                title = "Alignment Zones",
-                                sections = ALIGNMENT_ZONE_SECTIONS,
+                                title = stringResource(R.string.body_posture_alignment_zones),
+                                sections = alignmentZoneSections(),
                                 compact = true
                             )
                         }
@@ -314,20 +316,20 @@ fun PostureScreen(
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
                     AlignmentZoneRow(
-                        title = "Cervical Spine & Head",
-                        status = "Craniovertebral Axis",
+                        title = stringResource(R.string.body_posture_zone_cervical),
+                        status = stringResource(R.string.body_posture_zone_cervical_status),
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     AlignmentZoneRow(
-                        title = "Thoracic & Scapulae",
-                        status = "Acromial Balance",
+                        title = stringResource(R.string.body_posture_zone_thoracic),
+                        status = stringResource(R.string.body_posture_zone_thoracic_status),
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     AlignmentZoneRow(
-                        title = "Lumbopelvic Rhythm",
-                        status = "Pelvic Neutral",
+                        title = stringResource(R.string.body_posture_zone_lumbopelvic),
+                        status = stringResource(R.string.body_posture_zone_lumbopelvic_status),
                         color = tokens.chartColors.sleep
                     )
                 }
@@ -353,14 +355,14 @@ fun PostureScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "3-Min Posture Reset",
+                                text = stringResource(R.string.body_posture_reset_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = tokens.textPrimary
                             )
                             HangryInfoTip(
-                                title = "Posture Reset",
-                                body = "Quick restorative drills to counteract desk slouching and decompress the spine."
+                                title = stringResource(R.string.body_posture_reset_tip_title),
+                                body = stringResource(R.string.body_posture_reset_tip_body)
                             )
                         }
                         Surface(
@@ -368,7 +370,7 @@ fun PostureScreen(
                             shape = RoundedCornerShape(100.dp)
                         ) {
                             Text(
-                                text = "Daily Habit",
+                                text = stringResource(R.string.body_posture_daily_habit),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.tertiary,
                                 fontWeight = FontWeight.SemiBold,
@@ -381,23 +383,23 @@ fun PostureScreen(
 
                     PostureDrillItem(
                         step = "1",
-                        name = "Chin Tucks",
-                        reps = "3 sets · 10 reps",
-                        benefit = "Retracts cervical spine & eases neck strain"
+                        name = stringResource(R.string.body_posture_drill_chin_tucks),
+                        reps = stringResource(R.string.body_posture_sets_reps, 3, 10),
+                        benefit = stringResource(R.string.body_posture_drill_chin_tucks_benefit)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     PostureDrillItem(
                         step = "2",
-                        name = "Scapular Wall Slides",
-                        reps = "2 sets · 12 reps",
-                        benefit = "Activates lower trapezius & opens chest"
+                        name = stringResource(R.string.body_posture_drill_wall_slides),
+                        reps = stringResource(R.string.body_posture_sets_reps, 2, 12),
+                        benefit = stringResource(R.string.body_posture_drill_wall_slides_benefit)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     PostureDrillItem(
                         step = "3",
-                        name = "Glute Bridge & Hip Opener",
-                        reps = "2 sets · 15 reps",
-                        benefit = "Restores neutral pelvic alignment"
+                        name = stringResource(R.string.body_posture_drill_glute_bridge),
+                        reps = stringResource(R.string.body_posture_sets_reps, 2, 15),
+                        benefit = stringResource(R.string.body_posture_drill_glute_bridge_benefit)
                     )
 
                     if (onNavigateToAiCoach != null) {
@@ -428,7 +430,7 @@ fun PostureScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Ask Dash for personal drills",
+                                        text = stringResource(R.string.body_posture_ask_dash_drills),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = tokens.textPrimary,
                                         fontWeight = FontWeight.Medium
@@ -449,7 +451,7 @@ fun PostureScreen(
             // History Section Header
             item {
                 Text(
-                    text = "Scan History",
+                    text = stringResource(R.string.body_posture_scan_history),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = tokens.textPrimary,
@@ -462,8 +464,8 @@ fun PostureScreen(
                     HangryCard {
                         DashEmptyState(
                             scene = DashEmptyScene.POSTURE,
-                            title = "No scans yet",
-                            body = "Your posture timeline appears here, kept privately on this device.",
+                            title = stringResource(R.string.body_posture_no_scans_title),
+                            body = stringResource(R.string.body_posture_no_scans_body),
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
@@ -622,7 +624,7 @@ private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelet
                         color = tokens.textPrimary
                     )
                     Text(
-                        text = if (score >= 80) "Optimal Alignment" else if (score >= 60) "Minor Imbalance" else "Correction Needed",
+                        text = if (score >= 80) stringResource(R.string.body_posture_status_optimal) else if (score >= 60) stringResource(R.string.body_posture_row_minor) else stringResource(R.string.body_posture_row_correction),
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textMuted
                     )
@@ -632,7 +634,7 @@ private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelet
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onDelete()
             }) {
-                Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Delete", tint = tokens.textMuted)
+                Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.body_posture_delete), tint = tokens.textMuted)
             }
         }
     }

@@ -17,6 +17,8 @@ import com.kevan.hangry.domain.model.StressResult
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 @Composable
 fun StressCard(
@@ -29,10 +31,10 @@ fun StressCard(
     val score = stressResult.score
 
     val (badgeColor, containerColor, badgeLabel) = when (level) {
-        StressLevel.LOW -> Triple(tokens.scoreColors.primed, tokens.scoreColors.primedContainer, "LOW STRESS")
-        StressLevel.MODERATE -> Triple(tokens.scoreColors.balanced, tokens.scoreColors.balancedContainer, "MODERATE")
-        StressLevel.ELEVATED -> Triple(tokens.scoreColors.rebuild, tokens.scoreColors.rebuildContainer, "ELEVATED")
-        StressLevel.HIGH, StressLevel.BUILDING_BASELINE -> Triple(tokens.scoreColors.rebuild, tokens.scoreColors.rebuildContainer, "HIGH STRESS")
+        StressLevel.LOW -> Triple(tokens.scoreColors.primed, tokens.scoreColors.primedContainer, stringResource(R.string.metrics_components_stress_low))
+        StressLevel.MODERATE -> Triple(tokens.scoreColors.balanced, tokens.scoreColors.balancedContainer, stringResource(R.string.metrics_components_stress_moderate))
+        StressLevel.ELEVATED -> Triple(tokens.scoreColors.rebuild, tokens.scoreColors.rebuildContainer, stringResource(R.string.metrics_components_stress_elevated))
+        StressLevel.HIGH, StressLevel.BUILDING_BASELINE -> Triple(tokens.scoreColors.rebuild, tokens.scoreColors.rebuildContainer, stringResource(R.string.metrics_components_stress_high))
     }
 
     HangryCard(modifier = modifier.fillMaxWidth()) {
@@ -51,12 +53,12 @@ fun StressCard(
                     )
                     Spacer(modifier = Modifier.width(HangryTokens.Spacing.xs))
                     Text(
-                        text = "Autonomic Stress",
+                        text = stringResource(R.string.metrics_components_autonomic_stress),
                         style = MaterialTheme.typography.titleMedium,
                         color = tokens.textPrimary
                     )
                     HangryInfoTip(
-                        title = "Autonomic Stress",
+                        title = stringResource(R.string.metrics_components_autonomic_stress),
                         body = stressResult.supportiveAdvice
                     )
                 }
@@ -117,15 +119,15 @@ fun StressCard(
                 ) {
                     stressResult.hrvDeviationRatio?.let { ratio ->
                         val pct = ((ratio - 1.0) * 100).roundToInt()
-                        val text = if (pct >= 0) "+$pct% vs baseline" else "$pct% vs baseline"
+                        val text = if (pct >= 0) stringResource(R.string.metrics_components_vs_baseline_positive, pct) else stringResource(R.string.metrics_components_vs_baseline_negative, pct)
                         val col = if (pct >= 0) tokens.scoreColors.primed else tokens.scoreColors.rebuild
-                        MarkerIndicator(label = "HRV Balance", value = text, valueColor = col)
+                        MarkerIndicator(label = stringResource(R.string.metrics_components_hrv_balance), value = text, valueColor = col)
                     }
 
                     stressResult.rhrDeviationBpm?.let { diff ->
-                        val text = if (diff >= 0) "+${diff.roundToInt()} bpm" else "${diff.roundToInt()} bpm"
+                        val text = if (diff >= 0) stringResource(R.string.metrics_components_bpm_signed_positive, diff.roundToInt()) else stringResource(R.string.metrics_components_bpm_value, diff.roundToInt())
                         val col = if (diff <= 1) tokens.scoreColors.primed else tokens.scoreColors.rebuild
-                        MarkerIndicator(label = "Resting Pulse", value = text, valueColor = col)
+                        MarkerIndicator(label = stringResource(R.string.metrics_components_resting_pulse), value = text, valueColor = col)
                     }
                 }
             }

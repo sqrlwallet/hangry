@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="WEIGHT"
+            android:text="@string/widget_layout_weight"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -62,7 +62,7 @@
         android:layout_marginTop="0dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="30-day trend"
+        android:text="@string/widget_layout_30_day_trend"
         android:textColor="#B5AEB8"
         android:textSize="11sp" />
 
@@ -73,5 +73,5 @@
         android:layout_marginTop="6dp"
         android:layout_weight="1"
         android:scaleType="fitXY"
-        android:contentDescription="Weight over the last 30 days" />
+        android:contentDescription="@string/widget_layout_weight_over_the_last_30_days" />
 </LinearLayout>

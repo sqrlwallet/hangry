@@ -16,6 +16,8 @@ import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 @Composable
 fun VitalsCard(
@@ -48,7 +50,7 @@ fun VitalsCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "Key Vitals & Cardio",
+                        text = stringResource(R.string.metrics_components_key_vitals_cardio),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = tokens.textPrimary
@@ -68,13 +70,13 @@ fun VitalsCard(
                 horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
             ) {
                 VitalItem(
-                    label = "Blood Oxygen",
+                    label = stringResource(R.string.metrics_components_blood_oxygen),
                     value = summary?.spo2Percentage?.let { String.format(Locale.US, "%.0f%%", it) } ?: "—",
                     subtitle = when (val spo2 = summary?.spo2Percentage) {
-                        null -> "No data yet"
-                        in 95.0..100.0 -> "Normal (95–100%)"
-                        in 90.0..95.0 -> "A little low"
-                        else -> "Low - worth checking"
+                        null -> stringResource(R.string.metrics_components_no_data_yet)
+                        in 95.0..100.0 -> stringResource(R.string.metrics_components_spo2_normal)
+                        in 90.0..95.0 -> stringResource(R.string.metrics_components_spo2_little_low)
+                        else -> stringResource(R.string.metrics_components_spo2_low)
                     },
                     valueColor = when (val spo2 = summary?.spo2Percentage) {
                         null -> tokens.textMuted
@@ -85,10 +87,10 @@ fun VitalsCard(
                 )
 
                 VitalItem(
-                    label = "VO₂ Max",
+                    label = stringResource(R.string.metrics_components_vo2_max),
                     value = summary?.vo2Max?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
                     unit = if (summary?.vo2Max != null) "mL/kg/min" else null,
-                    subtitle = if (summary?.vo2Max != null) "Cardio Fitness" else "No data yet",
+                    subtitle = if (summary?.vo2Max != null) stringResource(R.string.metrics_components_cardio_fitness) else stringResource(R.string.metrics_components_no_data_yet),
                     valueColor = if (summary?.vo2Max != null) tokens.scoreColors.primed else tokens.textMuted,
                     modifier = Modifier.weight(1f)
                 )

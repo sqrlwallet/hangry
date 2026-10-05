@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.bodyfat
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -73,10 +75,10 @@ fun BodyFatCalculatorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Body Fat & Composition") },
+                title = { Text(stringResource(R.string.body_bodyfat_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -110,31 +112,31 @@ fun BodyFatCalculatorScreen(
                         modifier = Modifier.size(32.dp)
                     )
                     Text(
-                        text = "Dual-Engine Body Composition",
+                        text = stringResource(R.string.body_bodyfat_banner_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = tokens.textPrimary,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     HangryInfoTip(
-                        title = "Body Composition",
-                        body = "Combine U.S. Navy tape measurements with AI multimodal vision for accurate body fat and lean mass tracking."
+                        title = stringResource(R.string.body_bodyfat_banner_tip_title),
+                        body = stringResource(R.string.body_bodyfat_banner_tip_body)
                     )
                 }
             }
 
             // 1. Biometrics & Circumferences Section
-            Text(text = "1. Biometrics & Circumferences", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Text(text = stringResource(R.string.body_bodyfat_section_biometrics), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
             HangryCard {
                 // Sex selection
-                Text(text = "Biological Sex", style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
+                Text(text = stringResource(R.string.body_bodyfat_biological_sex), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     BiologicalSex.values().forEach { sex ->
                         val isSelected = uiState.biologicalSex == sex
                         FilterChip(
                             selected = isSelected,
                             onClick = { viewModel.onSexSelected(sex) },
-                            label = { Text(sex.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                            label = { Text(sexLabel(sex)) }
                         )
                     }
                 }
@@ -145,21 +147,21 @@ fun BodyFatCalculatorScreen(
                     OutlinedTextField(
                         value = uiState.heightCm,
                         onValueChange = viewModel::onHeightChanged,
-                        label = { Text("Height (cm)") },
+                        label = { Text(stringResource(R.string.body_bodyfat_height_cm)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = uiState.weightKg,
                         onValueChange = viewModel::onWeightChanged,
-                        label = { Text("Weight (kg)") },
+                        label = { Text(stringResource(R.string.body_bodyfat_weight_kg)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = uiState.age,
                         onValueChange = viewModel::onAgeChanged,
-                        label = { Text("Age") },
+                        label = { Text(stringResource(R.string.body_bodyfat_age)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(0.8f)
                     )
@@ -171,13 +173,13 @@ fun BodyFatCalculatorScreen(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Tape Circumferences (cm)",
+                        text = stringResource(R.string.body_bodyfat_tape_circumferences),
                         style = MaterialTheme.typography.labelMedium,
                         color = tokens.textSecondary
                     )
                     HangryInfoTip(
-                        title = "How to measure",
-                        body = "Measure at narrowest point for waist and neck; widest point for hips and chest."
+                        title = stringResource(R.string.body_bodyfat_how_to_measure_title),
+                        body = stringResource(R.string.body_bodyfat_how_to_measure_body)
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -186,14 +188,14 @@ fun BodyFatCalculatorScreen(
                     OutlinedTextField(
                         value = uiState.neckCm,
                         onValueChange = viewModel::onNeckChanged,
-                        label = { Text("Neck (cm)") },
+                        label = { Text(stringResource(R.string.body_bodyfat_neck_cm)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = uiState.chestCm,
                         onValueChange = viewModel::onChestChanged,
-                        label = { Text("Chest (cm)") },
+                        label = { Text(stringResource(R.string.body_bodyfat_chest_cm)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
@@ -203,14 +205,14 @@ fun BodyFatCalculatorScreen(
                     OutlinedTextField(
                         value = uiState.waistCm,
                         onValueChange = viewModel::onWaistChanged,
-                        label = { Text("Waist (cm)") },
+                        label = { Text(stringResource(R.string.body_bodyfat_waist_cm)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = uiState.hipCm,
                         onValueChange = viewModel::onHipChanged,
-                        label = { Text("Hips (cm)") },
+                        label = { Text(stringResource(R.string.body_bodyfat_hips_cm)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
@@ -226,25 +228,25 @@ fun BodyFatCalculatorScreen(
                     ) {
                         alg.waistToHeightRatio?.let { whtr ->
                             MetricBadge(
-                                label = "Waist/Height",
+                                label = stringResource(R.string.body_bodyfat_waist_height),
                                 value = String.format(Locale.US, "%.2f", whtr),
-                                status = if (whtr <= 0.5) "Healthy" else "Elevated",
+                                status = if (whtr <= 0.5) stringResource(R.string.body_bodyfat_status_healthy) else stringResource(R.string.body_bodyfat_status_elevated),
                                 modifier = Modifier.weight(1f)
                             )
                         }
                         alg.waistToHipRatio?.let { whr ->
                             MetricBadge(
-                                label = "Waist/Hip",
+                                label = stringResource(R.string.body_bodyfat_waist_hip),
                                 value = String.format(Locale.US, "%.2f", whr),
-                                status = if (whr <= 0.9) "Optimal" else "Elevated",
+                                status = if (whr <= 0.9) stringResource(R.string.body_bodyfat_status_optimal) else stringResource(R.string.body_bodyfat_status_elevated),
                                 modifier = Modifier.weight(1f)
                             )
                         }
                         alg.chestToWaistRatio?.let { ctwr ->
                             MetricBadge(
-                                label = "V-Taper",
+                                label = stringResource(R.string.body_bodyfat_v_taper),
                                 value = String.format(Locale.US, "%.2f", ctwr),
-                                status = if (ctwr >= 1.2) "Athletic" else "Balanced",
+                                status = if (ctwr >= 1.2) stringResource(R.string.body_bodyfat_status_athletic) else stringResource(R.string.body_bodyfat_status_balanced),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -253,17 +255,17 @@ fun BodyFatCalculatorScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(onClick = onNavigateToBodyMetrics, modifier = Modifier.align(Alignment.End)) {
-                    Text("See all body metrics")
+                    Text(stringResource(R.string.body_bodyfat_see_all_metrics))
                     Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             }
 
             // 2. Dedicated Calculation from Personal Biometric History
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "2. Health History Estimate", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.body_bodyfat_section_history), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 HangryInfoTip(
-                    title = "Health History Estimate",
-                    body = "Calculated automatically from your recorded height, weight history, age, and sex using the clinical Deurenberg body composition model. No measuring tape or photos required."
+                    title = stringResource(R.string.body_bodyfat_history_tip_title),
+                    body = stringResource(R.string.body_bodyfat_history_tip_body)
                 )
             }
             HangryCard {
@@ -276,13 +278,13 @@ fun BodyFatCalculatorScreen(
                     ) {
                         Column {
                             Text(
-                                text = "${hist.bodyFatPercentage}%",
+                                text = stringResource(R.string.body_bodyfat_percent_value, hist.bodyFatPercentage.toString()),
                                 style = MaterialTheme.typography.headlineLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = tokens.scoreColors.primed
                             )
                             Text(
-                                text = "Biometric History Estimate",
+                                text = stringResource(R.string.body_bodyfat_history_estimate_label),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = tokens.textSecondary
                             )
@@ -294,18 +296,18 @@ fun BodyFatCalculatorScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
-                                Text(text = "Lean Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                Text(text = stringResource(R.string.body_bodyfat_lean_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                                 Text(
-                                    text = "${hist.leanMassKg} kg",
+                                    text = stringResource(R.string.body_bodyfat_kg_value, hist.leanMassKg.toString()),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.scoreColors.primed
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(text = "Fat Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                Text(text = stringResource(R.string.body_bodyfat_fat_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                                 Text(
-                                    text = "${hist.fatMassKg} kg",
+                                    text = stringResource(R.string.body_bodyfat_kg_value, hist.fatMassKg.toString()),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.textPrimary
@@ -322,17 +324,21 @@ fun BodyFatCalculatorScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save History Estimate")
+                        Text(stringResource(R.string.body_bodyfat_save_history))
                     }
                 } else {
+                    val heightLabel = stringResource(R.string.body_bodyfat_field_height)
+                    val weightLabel = stringResource(R.string.body_bodyfat_field_weight)
+                    val ageLabel = stringResource(R.string.body_bodyfat_field_age)
+                    val sexFieldLabel = stringResource(R.string.body_bodyfat_field_sex)
                     val missing = buildList {
-                        if (uiState.heightCm.isBlank()) add("Height")
-                        if (uiState.weightKg.isBlank()) add("Weight")
-                        if (uiState.age.isBlank()) add("Age")
-                        if (uiState.biologicalSex == null) add("Sex")
+                        if (uiState.heightCm.isBlank()) add(heightLabel)
+                        if (uiState.weightKg.isBlank()) add(weightLabel)
+                        if (uiState.age.isBlank()) add(ageLabel)
+                        if (uiState.biologicalSex == null) add(sexFieldLabel)
                     }
                     Text(
-                        text = "Enter ${missing.joinToString(", ")} above to estimate.",
+                        text = stringResource(R.string.body_bodyfat_enter_to_estimate, missing.joinToString(", ")),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textSecondary
                     )
@@ -341,10 +347,10 @@ fun BodyFatCalculatorScreen(
 
             // 3. U.S. Navy Standard Calculation
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "3. U.S. Navy Tape Method", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.body_bodyfat_section_navy), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 HangryInfoTip(
-                    title = "U.S. Navy Method",
-                    body = "U.S. Navy standard calculation from your tape circumferences (neck, waist, and hips for women) plus height."
+                    title = stringResource(R.string.body_bodyfat_navy_tip_title),
+                    body = stringResource(R.string.body_bodyfat_navy_tip_body)
                 )
             }
             HangryCard {
@@ -357,13 +363,13 @@ fun BodyFatCalculatorScreen(
                     ) {
                         Column {
                             Text(
-                                text = "${alg.bodyFatPercentage}%",
+                                text = stringResource(R.string.body_bodyfat_percent_value, alg.bodyFatPercentage.toString()),
                                 style = MaterialTheme.typography.headlineLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = tokens.chartColors.trainingLoad
                             )
                             Text(
-                                text = "Estimated Body Fat",
+                                text = stringResource(R.string.body_bodyfat_estimated_body_fat),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = tokens.textSecondary
                             )
@@ -375,18 +381,18 @@ fun BodyFatCalculatorScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
-                                Text(text = "Lean Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                Text(text = stringResource(R.string.body_bodyfat_lean_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                                 Text(
-                                    text = "${alg.leanMassKg} kg",
+                                    text = stringResource(R.string.body_bodyfat_kg_value, alg.leanMassKg.toString()),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.scoreColors.primed
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(text = "Fat Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                Text(text = stringResource(R.string.body_bodyfat_fat_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                                 Text(
-                                    text = "${alg.fatMassKg} kg",
+                                    text = stringResource(R.string.body_bodyfat_kg_value, alg.fatMassKg.toString()),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.textPrimary
@@ -403,21 +409,26 @@ fun BodyFatCalculatorScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save Navy Estimate")
+                        Text(stringResource(R.string.body_bodyfat_save_navy))
                     }
                 } else {
+                    val heightLabel = stringResource(R.string.body_bodyfat_field_height)
+                    val neckLabel = stringResource(R.string.body_bodyfat_field_neck)
+                    val waistLabel = stringResource(R.string.body_bodyfat_field_waist)
+                    val hipsLabel = stringResource(R.string.body_bodyfat_field_hips)
+                    val sexFieldLabel = stringResource(R.string.body_bodyfat_field_sex)
                     val missing = buildList {
-                        if (uiState.heightCm.isBlank()) add("Height")
-                        if (uiState.neckCm.isBlank()) add("Neck")
-                        if (uiState.waistCm.isBlank()) add("Waist")
-                        if (uiState.biologicalSex == BiologicalSex.FEMALE && uiState.hipCm.isBlank()) add("Hips")
-                        if (uiState.biologicalSex == null) add("Sex")
+                        if (uiState.heightCm.isBlank()) add(heightLabel)
+                        if (uiState.neckCm.isBlank()) add(neckLabel)
+                        if (uiState.waistCm.isBlank()) add(waistLabel)
+                        if (uiState.biologicalSex == BiologicalSex.FEMALE && uiState.hipCm.isBlank()) add(hipsLabel)
+                        if (uiState.biologicalSex == null) add(sexFieldLabel)
                     }
                     Text(
                         text = if (missing.isNotEmpty()) {
-                            "Enter ${missing.joinToString(", ")} above to calculate."
+                            stringResource(R.string.body_bodyfat_enter_to_calculate, missing.joinToString(", "))
                         } else {
-                            "Waist must exceed neck to calculate."
+                            stringResource(R.string.body_bodyfat_waist_must_exceed_neck)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textSecondary
@@ -427,16 +438,16 @@ fun BodyFatCalculatorScreen(
 
             // 4. AI Multimodal Vision Analysis
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "4. AI Photo Analysis", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.body_bodyfat_section_ai), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 HangryInfoTip(
-                    title = "AI Photo Analysis",
-                    body = "Take up to 3 photos following the pose guide: front, side, and back. Use even lighting with your full body in frame, and wear fitted gym clothes, shorts, or swimwear so your silhouette is clear."
+                    title = stringResource(R.string.body_bodyfat_ai_tip_title),
+                    body = stringResource(R.string.body_bodyfat_ai_tip_body)
                 )
             }
             PoseGuide(poses = BODY_FAT_POSES)
             HangryCard {
                 Text(
-                    text = "Add 1–3 photos, one per pose above",
+                    text = stringResource(R.string.body_bodyfat_add_photos_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = tokens.textSecondary
                 )
@@ -453,7 +464,7 @@ fun BodyFatCalculatorScreen(
                         Box(modifier = Modifier.size(100.dp)) {
                             AsyncImage(
                                 model = uri,
-                                contentDescription = "Physique photo ${index + 1}",
+                                contentDescription = stringResource(R.string.body_bodyfat_physique_photo, index + 1),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -468,7 +479,7 @@ fun BodyFatCalculatorScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove",
+                                    contentDescription = stringResource(R.string.body_bodyfat_remove),
                                     tint = tokens.textPrimary,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -484,9 +495,9 @@ fun BodyFatCalculatorScreen(
                             contentPadding = PaddingValues(4.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = "Camera")
+                                Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = stringResource(R.string.body_bodyfat_camera))
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Camera", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.body_bodyfat_camera), style = MaterialTheme.typography.labelSmall)
                             }
                         }
 
@@ -497,9 +508,9 @@ fun BodyFatCalculatorScreen(
                             contentPadding = PaddingValues(4.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(imageVector = Icons.Default.PhotoLibrary, contentDescription = "Gallery")
+                                Icon(imageVector = Icons.Default.PhotoLibrary, contentDescription = stringResource(R.string.body_bodyfat_gallery))
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Gallery", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.body_bodyfat_gallery), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -523,12 +534,12 @@ fun BodyFatCalculatorScreen(
                             Icon(imageVector = Icons.Default.VpnKey, contentDescription = null, tint = tokens.scoreColors.primed)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (!uiState.isAiEnabled) "Enable AI Features in Settings" else "Configure OpenRouter API Key",
+                                    text = if (!uiState.isAiEnabled) stringResource(R.string.body_bodyfat_enable_ai) else stringResource(R.string.body_bodyfat_configure_api_key),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = "Needed for AI photo analysis",
+                                    text = stringResource(R.string.body_bodyfat_needed_for_ai),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textSecondary
                                 )
@@ -545,11 +556,11 @@ fun BodyFatCalculatorScreen(
                         if (uiState.isAiAnalyzing) {
                             DashSpinner(size = 28.dp, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Analyzing physique…")
+                            Text(stringResource(R.string.body_bodyfat_analyzing))
                         } else {
                             Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Analyze with AI (${uiState.photos.size}/3 photos)")
+                            Text(stringResource(R.string.body_bodyfat_analyze_with_ai, uiState.photos.size))
                         }
                     }
                 }
@@ -573,14 +584,14 @@ fun BodyFatCalculatorScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "${ai.bodyFatPercentage}%",
+                                        text = stringResource(R.string.body_bodyfat_percent_value, ai.bodyFatPercentage.toString()),
                                         style = MaterialTheme.typography.headlineLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = tokens.scoreColors.primed
                                     )
                                     if (ai.confidenceRangeMin != null && ai.confidenceRangeMax != null) {
                                         Text(
-                                            text = "Confidence: ${ai.confidenceRangeMin}% – ${ai.confidenceRangeMax}%",
+                                            text = stringResource(R.string.body_bodyfat_confidence_range, ai.confidenceRangeMin.toString(), ai.confidenceRangeMax.toString()),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = tokens.textSecondary
                                         )
@@ -592,18 +603,18 @@ fun BodyFatCalculatorScreen(
                             if (ai.leanMassKg != null && ai.fatMassKg != null) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Column {
-                                        Text(text = "Lean Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                        Text(text = stringResource(R.string.body_bodyfat_lean_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                                         Text(
-                                            text = "${ai.leanMassKg} kg",
+                                            text = stringResource(R.string.body_bodyfat_kg_value, ai.leanMassKg.toString()),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = tokens.scoreColors.primed
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
-                                        Text(text = "Fat Mass", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                                        Text(text = stringResource(R.string.body_bodyfat_fat_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                                         Text(
-                                            text = "${ai.fatMassKg} kg",
+                                            text = stringResource(R.string.body_bodyfat_kg_value, ai.fatMassKg.toString()),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = tokens.textPrimary
@@ -614,7 +625,7 @@ fun BodyFatCalculatorScreen(
 
                             if (ai.visualObservations.isNotEmpty()) {
                                 Text(
-                                    text = "Visual Observations",
+                                    text = stringResource(R.string.body_bodyfat_visual_observations),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.textPrimary
@@ -629,7 +640,7 @@ fun BodyFatCalculatorScreen(
 
                             if (ai.healthInsights.isNotEmpty()) {
                                 Text(
-                                    text = "Health Insights",
+                                    text = stringResource(R.string.body_bodyfat_health_insights),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.textPrimary
@@ -644,7 +655,7 @@ fun BodyFatCalculatorScreen(
 
                             ai.circumferenceConsistencyNote?.let { note ->
                                 Text(
-                                    text = "Tape Measurement Alignment",
+                                    text = stringResource(R.string.body_bodyfat_tape_alignment),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = tokens.textPrimary
@@ -659,7 +670,7 @@ fun BodyFatCalculatorScreen(
                             ) {
                                 Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Save AI Scan")
+                                Text(stringResource(R.string.body_bodyfat_save_ai))
                             }
                         }
                     }
@@ -668,7 +679,7 @@ fun BodyFatCalculatorScreen(
 
             // 5. Past Composition Scans History
             if (uiState.savedScans.isNotEmpty()) {
-                Text(text = "5. Scan History", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(text = stringResource(R.string.body_bodyfat_section_history_scans), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 HangryCard {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         uiState.savedScans.take(10).forEachIndexed { index, scan ->
@@ -691,13 +702,13 @@ fun BodyFatCalculatorScreen(
                                             else -> tokens.chartColors.trainingLoad
                                         }
                                         val methodLabel = when (scan.method) {
-                                            "AI_MULTIMODAL" -> "AI Vision"
-                                            "BIOMETRIC_HISTORY" -> "Health History"
-                                            "REPORTED" -> "Reported"
-                                            else -> "US Navy"
+                                            "AI_MULTIMODAL" -> stringResource(R.string.body_bodyfat_method_ai)
+                                            "BIOMETRIC_HISTORY" -> stringResource(R.string.body_bodyfat_method_history)
+                                            "REPORTED" -> stringResource(R.string.body_bodyfat_method_reported)
+                                            else -> stringResource(R.string.body_bodyfat_method_navy)
                                         }
                                         Text(
-                                            text = "${scan.bodyFatPercentage}%",
+                                            text = stringResource(R.string.body_bodyfat_percent_value, scan.bodyFatPercentage.toString()),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = methodColor
@@ -709,11 +720,10 @@ fun BodyFatCalculatorScreen(
                                         )
                                     }
                                     val dateStr = scan.date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
-                                    val metricsStr = buildList {
-                                        scan.weightKg?.let { add("${it}kg") }
-                                        scan.leanMassKg?.let { add("LBM: ${it}kg") }
-                                        scan.fatMassKg?.let { add("Fat: ${it}kg") }
-                                    }.joinToString(" • ")
+                                    val weightStr = scan.weightKg?.let { stringResource(R.string.body_bodyfat_scan_weight, it.toString()) }
+                                    val lbmStr = scan.leanMassKg?.let { stringResource(R.string.body_bodyfat_scan_lbm, it.toString()) }
+                                    val fatStr = scan.fatMassKg?.let { stringResource(R.string.body_bodyfat_scan_fat, it.toString()) }
+                                    val metricsStr = listOfNotNull(weightStr, lbmStr, fatStr).joinToString(" • ")
                                     Text(
                                         text = "$dateStr • $metricsStr",
                                         style = MaterialTheme.typography.bodySmall,
@@ -723,7 +733,7 @@ fun BodyFatCalculatorScreen(
                                 IconButton(onClick = { viewModel.deleteScan(scan.id) }) {
                                     Icon(
                                         imageVector = Icons.Default.DeleteOutline,
-                                        contentDescription = "Delete scan",
+                                        contentDescription = stringResource(R.string.body_bodyfat_delete_scan),
                                         tint = tokens.textMuted,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -758,6 +768,22 @@ private fun MetricBadge(
 }
 
 @Composable
+private fun sexLabel(sex: BiologicalSex): String = when (sex) {
+    BiologicalSex.MALE -> stringResource(R.string.body_bodyfat_sex_male)
+    BiologicalSex.FEMALE -> stringResource(R.string.body_bodyfat_sex_female)
+    BiologicalSex.OTHER -> stringResource(R.string.body_bodyfat_sex_other)
+}
+
+@Composable
+private fun categoryLabel(category: BodyFatCategory): String = when (category) {
+    BodyFatCategory.ESSENTIAL_FAT -> stringResource(R.string.body_bodyfat_category_essential_fat)
+    BodyFatCategory.ATHLETIC -> stringResource(R.string.body_bodyfat_category_athletic)
+    BodyFatCategory.FITNESS -> stringResource(R.string.body_bodyfat_category_fitness)
+    BodyFatCategory.AVERAGE -> stringResource(R.string.body_bodyfat_category_average)
+    BodyFatCategory.ABOVE_AVERAGE -> stringResource(R.string.body_bodyfat_category_above_average)
+}
+
+@Composable
 private fun CategoryChip(category: BodyFatCategory) {
     val tokens = LocalHangryTokens.current
     val color = when (category) {
@@ -772,7 +798,7 @@ private fun CategoryChip(category: BodyFatCategory) {
         shape = RoundedCornerShape(16.dp)
     ) {
         Text(
-            text = category.displayName,
+            text = categoryLabel(category),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = color,

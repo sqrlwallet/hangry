@@ -35,6 +35,8 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.math.abs
+import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.R
 
 private fun years(value: Double) = String.format(Locale.US, "%.1f", abs(value))
 
@@ -45,23 +47,25 @@ internal fun BodyAgeResult.mood(): DashMood = when {
     else -> DashMood.CONCERNED
 }
 
+@Composable
 internal fun BodyAgeResult.comparison(): String {
     val real = String.format(Locale.US, "%.1f", chronologicalAge)
     return when {
-        difference <= -0.5 -> "${years(difference)} years younger than your real age of $real"
-        difference >= 0.5 -> "${years(difference)} years older than your real age of $real"
-        else -> "Right on your real age of $real"
+        difference <= -0.5 -> stringResource(R.string.metrics_bodyage_years_younger, years(difference), real)
+        difference >= 0.5 -> stringResource(R.string.metrics_bodyage_years_older, years(difference), real)
+        else -> stringResource(R.string.metrics_bodyage_right_on, real)
     }
 }
 
+@Composable
 internal fun BodyAgeSnapshot.trend(): String? {
     val now = current ?: return null
     val before = previous ?: return null
     val change = now.bodyAge - before.bodyAge
     return when {
-        change <= -0.1 -> "▼ ${years(change)} years since last month"
-        change >= 0.1 -> "▲ ${years(change)} years since last month"
-        else -> "Steady since last month"
+        change <= -0.1 -> stringResource(R.string.metrics_bodyage_trend_down, years(change))
+        change >= 0.1 -> stringResource(R.string.metrics_bodyage_trend_up, years(change))
+        else -> stringResource(R.string.metrics_bodyage_trend_steady)
     }
 }
 
@@ -70,18 +74,18 @@ internal fun BodyAgeSnapshot.trend(): String? {
 fun BodyAgeCard(snapshot: BodyAgeSnapshot?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     val result = snapshot?.current
-    HangryCard(modifier = modifier.fillMaxWidth().clickable(onClickLabel = "Open Body Age") { onClick() }) {
+    HangryCard(modifier = modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.metrics_bodyage_open)) { onClick() }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 64.dp, contentDescription = null, interactive = false)
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Body Age", style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
+                Text(stringResource(R.string.metrics_bodyage_title), style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
                 if (snapshot?.needsBirthday == true) {
-                    Text("Add your birthday", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                    Text("Tap to see how old your body acts", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                    Text(stringResource(R.string.metrics_bodyage_add_birthday), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Text(stringResource(R.string.metrics_bodyage_tap_see_how_old), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                 } else if (result == null) {
-                    Text("Needs a little more data", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                    Text("Tap to see what's missing", style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                    Text(stringResource(R.string.metrics_bodyage_needs_more_data), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                    Text(stringResource(R.string.metrics_bodyage_tap_see_missing), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                 } else {
                     Text(
                         String.format(Locale.US, "%.1f", result.bodyAge),
@@ -117,9 +121,9 @@ fun BodyAgeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Body Age") },
+                title = { Text(stringResource(R.string.metrics_bodyage_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.metrics_components_back)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -138,20 +142,20 @@ fun BodyAgeScreen(
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 140.dp)
                     if (snapshot?.needsBirthday == true) {
-                        Text("When's your birthday?", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+                        Text(stringResource(R.string.metrics_bodyage_when_birthday), style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Body Age compares your body with your exact age, so it needs your date of birth. It stays on your phone.",
+                            stringResource(R.string.metrics_bodyage_birthday_explainer),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textSecondary
                         )
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                        Button(onClick = { pickingBirthday = true }) { Text("Add my birthday") }
+                        Button(onClick = { pickingBirthday = true }) { Text(stringResource(R.string.metrics_bodyage_add_my_birthday)) }
                     } else if (result == null) {
-                        Text("Not enough data yet", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+                        Text(stringResource(R.string.metrics_bodyage_not_enough_data), style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
                         Spacer(modifier = Modifier.height(6.dp))
                         snapshot?.needs.orEmpty().forEach {
-                            Text("• $it", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                            Text(stringResource(R.string.metrics_components_bullet_item, it), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                         }
                     } else {
                         Text(
@@ -171,24 +175,24 @@ fun BodyAgeScreen(
 
             if (result != null && snapshot.exactAge == false) {
                 HangryCard(modifier = Modifier.fillMaxWidth()) {
-                    Text("Make it exact", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(stringResource(R.string.metrics_bodyage_make_exact), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                     Text(
-                        "You entered your age as a whole number. Add your birthday so Body Age uses your exact age and keeps up as birthdays pass.",
+                        stringResource(R.string.metrics_bodyage_make_exact_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
-                    TextButton(onClick = { pickingBirthday = true }) { Text("Add my birthday") }
+                    TextButton(onClick = { pickingBirthday = true }) { Text(stringResource(R.string.metrics_bodyage_add_my_birthday)) }
                 }
             }
 
             if (result != null) {
-                Text("What's shaping it", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Text(stringResource(R.string.metrics_bodyage_whats_shaping), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                 result.factors.forEach { FactorRow(it) }
                 if (result.missing.isNotEmpty()) {
                     HangryCard(modifier = Modifier.fillMaxWidth()) {
-                        Text("Not counted yet", style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                        Text(stringResource(R.string.metrics_bodyage_not_counted), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                         Text(
-                            result.missing.joinToString(", ") + ". These count once there's data - VO₂ max needs a watch that estimates it, body composition needs a weight or a body-fat scan.",
+                            stringResource(R.string.metrics_bodyage_not_counted_body, result.missing.joinToString(", ")),
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
@@ -197,7 +201,7 @@ fun BodyAgeScreen(
             }
 
             Text(
-                "Body Age compares your last 30 days - sleep, activity, fitness, heart and body composition - with typical values for your age and sex. It's an estimate to motivate healthy habits, not a medical measurement.",
+                stringResource(R.string.metrics_bodyage_disclaimer),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textMuted
             )
@@ -224,8 +228,8 @@ private fun FactorRow(factor: BodyAgeFactor) {
             }
             Text(
                 text = when {
-                    younger -> "−${years(factor.years)} yrs"
-                    older -> "+${years(factor.years)} yrs"
+                    younger -> stringResource(R.string.metrics_bodyage_factor_younger, years(factor.years))
+                    older -> stringResource(R.string.metrics_bodyage_factor_older, years(factor.years))
                     else -> "±0"
                 },
                 style = MaterialTheme.typography.labelLarge,
@@ -262,10 +266,10 @@ internal fun BirthdayPickerDialog(initial: LocalDate? = null, onDismiss: () -> U
             TextButton(
                 enabled = state.selectedDateMillis != null,
                 onClick = { state.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(utc).toLocalDate()) } }
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.metrics_components_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     ) {
-        DatePicker(state = state, title = { Text("Your date of birth", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) })
+        DatePicker(state = state, title = { Text(stringResource(R.string.metrics_bodyage_your_dob), modifier = Modifier.padding(start = 24.dp, top = 16.dp)) })
     }
 }

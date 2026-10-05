@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.breathing
 
+import androidx.compose.ui.res.stringResource
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -50,7 +51,7 @@ fun DashBreathing(
     ) { frame ->
         Image(
             painter = painterResource(frame),
-            contentDescription = "$MASCOT_NAME breathing along with you",
+            contentDescription = stringResource(R.string.coach_breathing_dash_breathing_along, MASCOT_NAME),
             contentScale = ContentScale.Fit
         )
     }

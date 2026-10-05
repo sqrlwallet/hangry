@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="HEALTH MARKERS"
+            android:text="@string/widget_layout_health_markers"
             android:textColor="#B5AEB8"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -37,7 +37,7 @@
             android:background="@drawable/bg_widget_icon_button"
             android:padding="8dp"
             android:src="@drawable/ic_widget_add"
-            android:contentDescription="Log a reading" />
+            android:contentDescription="@string/widget_layout_log_a_reading" />
     </LinearLayout>
 
     <LinearLayout
@@ -51,7 +51,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Blood pressure"
+            android:text="@string/widget_layout_blood_pressure"
             android:textColor="#B5AEB8"
             android:textSize="11sp" />
 
@@ -90,7 +90,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Blood sugar"
+            android:text="@string/widget_layout_blood_sugar"
             android:textColor="#B5AEB8"
             android:textSize="11sp" />
 

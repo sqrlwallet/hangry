@@ -15,7 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.FiberGuide
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
@@ -61,13 +63,13 @@ fun MacroProgressBar(
             ) {
                 Column {
                     Text(
-                        text = "Daily Nutrition Target",
+                        text = stringResource(R.string.nutrition_daily_target_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = tokens.textPrimary
                     )
                     Text(
-                        text = if (targetCalories != null) "$totalCalories of $targetCalories kcal"
-                        else "$totalCalories kcal eaten · add your details in Settings for a target",
+                        text = if (targetCalories != null) stringResource(R.string.nutrition_kcal_of_target, totalCalories, targetCalories)
+                        else stringResource(R.string.nutrition_kcal_eaten_no_target, totalCalories),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
@@ -76,7 +78,7 @@ fun MacroProgressBar(
                 if (targetCalories != null && targetCalories > 0) {
                     val percent = ((totalCalories.toDouble() / targetCalories) * 100).roundToInt()
                     Text(
-                        text = "$percent%",
+                        text = stringResource(R.string.nutrition_percent, percent),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (percent > 100) tokens.scoreColors.rebuild else tokens.chartColors.activeCalories
@@ -105,21 +107,21 @@ fun MacroProgressBar(
                 horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
             ) {
                 MacroPill(
-                    label = "Protein",
+                    label = stringResource(R.string.nutrition_macro_protein),
                     currentG = proteinG,
                     goalG = proteinGoalG,
                     color = tokens.macroColors.protein,
                     modifier = Modifier.weight(1f)
                 )
                 MacroPill(
-                    label = "Carbs",
+                    label = stringResource(R.string.nutrition_macro_carbs),
                     currentG = carbsG,
                     goalG = carbsGoalG,
                     color = tokens.macroColors.carbs,
                     modifier = Modifier.weight(1f)
                 )
                 MacroPill(
-                    label = "Fat",
+                    label = stringResource(R.string.nutrition_macro_fat),
                     currentG = fatG,
                     goalG = fatGoalG,
                     color = tokens.macroColors.fat,
@@ -134,9 +136,10 @@ fun MacroProgressBar(
     }
 }
 
-private val FIBER_INFO_SECTIONS = listOf(
-    HangryInfoSection("Why fiber", FiberGuide.SUMMARY),
-    HangryInfoSection("How to get more", FiberGuide.HOW_TO.joinToString("\n\n") { "• $it" })
+@Composable
+private fun fiberInfoSections(): List<HangryInfoSection> = listOf(
+    HangryInfoSection(stringResource(R.string.nutrition_fiber_info_why), FiberGuide.SUMMARY),
+    HangryInfoSection(stringResource(R.string.nutrition_fiber_info_how), FiberGuide.HOW_TO.joinToString("\n\n") { "• $it" })
 )
 
 /** Fiber against the day's target, with a one-line nudge on how to close the gap. */
@@ -165,25 +168,25 @@ private fun FiberRow(currentG: Double, goalG: Double) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Fiber",
+                    text = stringResource(R.string.nutrition_macro_fiber),
                     style = MaterialTheme.typography.labelMedium,
                     color = color,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "${currentG.roundToInt()}g",
+                    text = stringResource(R.string.nutrition_grams, currentG.roundToInt()),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = tokens.textPrimary
                 )
                 Text(
-                    text = " / ${goalG.roundToInt()}g",
+                    text = stringResource(R.string.nutrition_grams_of_goal, goalG.roundToInt()),
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                HangryInfoIconButton(title = "Fiber", sections = FIBER_INFO_SECTIONS, compact = true)
+                HangryInfoIconButton(title = stringResource(R.string.nutrition_macro_fiber), sections = fiberInfoSections(), compact = true)
             }
             LinearProgressIndicator(
                 progress = { animProgress },
@@ -198,9 +201,9 @@ private fun FiberRow(currentG: Double, goalG: Double) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = when {
-                    remaining <= 0 -> "Fiber target hit - nice. Keep up the water too."
-                    currentG < 1 -> "Beans, oats, berries, whole grains and veg are the easiest fiber sources."
-                    else -> "${remaining}g to go - a cup of berries (~8g) or half a cup of lentils (~8g) gets you there."
+                    remaining <= 0 -> stringResource(R.string.nutrition_fiber_hit)
+                    currentG < 1 -> stringResource(R.string.nutrition_fiber_none)
+                    else -> stringResource(R.string.nutrition_fiber_remaining, remaining)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary,
@@ -245,7 +248,7 @@ private fun MacroPill(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = goalG?.let { "${it.roundToInt()}g" } ?: "",
+                    text = goalG?.let { stringResource(R.string.nutrition_grams, it.roundToInt()) } ?: "",
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textMuted
                 )
@@ -254,7 +257,7 @@ private fun MacroPill(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "${currentG.roundToInt()}g",
+                text = stringResource(R.string.nutrition_grams, currentG.roundToInt()),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = tokens.textPrimary

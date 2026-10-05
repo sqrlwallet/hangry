@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.dashboard
 
+import com.kevan.hangry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -56,21 +58,21 @@ fun CustomizeDashboardSheet(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Customize Today",
+                        text = stringResource(R.string.dashboard_customize_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = tokens.textPrimary
                     )
                     HangryInfoTip(
-                        title = "Customize Today",
-                        body = "Show, hide, or reorder the cards on Today. You can also create a card for a specific metric."
+                        title = stringResource(R.string.dashboard_customize_title),
+                        body = stringResource(R.string.dashboard_customize_info)
                     )
                 }
                 Row {
                     TextButton(onClick = onResetDefaults) {
-                        Text("Reset Defaults", color = tokens.scoreColors.rebuild)
+                        Text(stringResource(R.string.dashboard_reset_defaults), color = tokens.scoreColors.rebuild)
                     }
                     TextButton(onClick = onDismiss) {
-                        Text("Done")
+                        Text(stringResource(R.string.dashboard_done))
                     }
                 }
             }
@@ -84,7 +86,7 @@ fun CustomizeDashboardSheet(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Create Custom Widget")
+                Text(stringResource(R.string.dashboard_create_custom_widget))
             }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
@@ -117,7 +119,7 @@ fun CustomizeDashboardSheet(
                                 )
                                 if (widget.type == WidgetType.CUSTOM_METRIC) {
                                     Text(
-                                        text = "Custom: ${widget.metricType?.name?.replace('_', ' ') ?: ""} (${widget.displayStyle.name})",
+                                        text = stringResource(R.string.dashboard_custom_widget_subtitle, widget.metricType?.name?.replace('_', ' ') ?: "", widget.displayStyle.name),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.scoreColors.primed
                                     )
@@ -138,7 +140,7 @@ fun CustomizeDashboardSheet(
                                     enabled = index > 0,
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move Up")
+                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.dashboard_move_up))
                                 }
 
                                 // Reorder down
@@ -154,7 +156,7 @@ fun CustomizeDashboardSheet(
                                     enabled = index < widgets.size - 1,
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move Down")
+                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.dashboard_move_down))
                                 }
 
                                 // Delete custom widget
@@ -165,7 +167,7 @@ fun CustomizeDashboardSheet(
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
-                                            contentDescription = "Delete Widget",
+                                            contentDescription = stringResource(R.string.dashboard_delete_widget),
                                             tint = tokens.scoreColors.rebuild,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -223,14 +225,14 @@ fun CreateCustomWidgetDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Create a Today card") },
+        title = { Text(stringResource(R.string.dashboard_create_card_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Widget Title") },
-                    placeholder = { Text("e.g. My Steps Goal") },
+                    label = { Text(stringResource(R.string.dashboard_widget_title_label)) },
+                    placeholder = { Text(stringResource(R.string.dashboard_widget_title_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -244,7 +246,7 @@ fun CreateCustomWidgetDialog(
                         value = selectedMetric.name.replace('_', ' '),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Select Health Metric") },
+                        label = { Text(stringResource(R.string.dashboard_select_metric)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = metricDropdownExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -279,15 +281,15 @@ fun CreateCustomWidgetDialog(
                             targetGoalText = filtered
                         }
                     },
-                    label = { Text("Target Goal (Optional)") },
-                    placeholder = { Text("e.g. ${defaultGoalSuggestions[selectedMetric]?.first ?: "100"}") },
+                    label = { Text(stringResource(R.string.dashboard_target_goal_label)) },
+                    placeholder = { Text(stringResource(R.string.dashboard_target_goal_placeholder, defaultGoalSuggestions[selectedMetric]?.first ?: "100")) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // Display Style Selector
-                Text("Display Style", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.dashboard_display_style), style = MaterialTheme.typography.labelMedium)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -325,12 +327,12 @@ fun CreateCustomWidgetDialog(
                     onCreate(newWidget)
                 }
             ) {
-                Text("Add to Today")
+                Text(stringResource(R.string.dashboard_add_to_today))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

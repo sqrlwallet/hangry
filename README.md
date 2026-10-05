@@ -4,7 +4,7 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-green.svg)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room-2.7.2-orange.svg)](https://developer.android.com/training/data-storage/room)
 [![Health Connect](https://img.shields.io/badge/Health%20Connect-1.1.0-red.svg)](https://developer.android.com/health-and-fitness/guides/health-connect)
-[![Tests](https://img.shields.io/badge/Tests-141%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-288%20Passed-brightgreen.svg)]()
 
 **Hangry** is a local-first, open-source Android wellness and fitness app. It reads your health data through Android Health Connect, stores it on your phone in Room, and turns it into recovery, sleep, strain, nutrition and body-composition insights - plus **Dash**, an AI companion that knows your data and can log things for you.
 
@@ -35,13 +35,22 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - **Hangry Recovery (0–100)** from HRV, resting heart rate and sleep against your own 7-day baseline. No HRV from your device? It counts as excellent by default, and you can set how you actually feel.
 - **Sleep & Strain** - sleep score, debt and consistency, plus a 0–21 day strain and training load.
 - **Daily Activity rings** for steps and active calories with editable goals.
-- **Customizable dashboard** - reorder, hide or add metric cards, plus home-screen widgets (activity, sleep, recovery, overview, quick meal log, supplements).
+- **Customizable dashboard** - reorder, hide or add metric cards, plus home-screen widgets (activity, sleep, recovery, overview, heart, weight, goals, calories, nutrition, fasting, breathing, quick meal log, supplements and more).
 
 ### Nutrition
-- **Snap to log** - Log Meal opens the camera; AI estimates calories and macros and logs it straight away, with an Edit shortcut. Manual entry is still there in the menu.
+- **Snap to log** - Log Meal opens the camera; AI (Gemini 3.8 Flash by default) weighs each part of the plate, estimates calories, macros and fiber and logs it straight away, with an Edit shortcut. Manual entry is still there in the menu.
+- **Fiber tracking** - a daily fiber target (about 14g per 1,000 kcal) with practical ways to close the gap.
+- **Weekly review** - your last 7 days of eating against your targets, with recommendations on what to add and how; with AI on, Dash reviews the meals you actually logged.
+- **Saved meals & quick add** - every food you log is saved for one-tap logging again, in ½×, 1× or 2× portions, plus 56 common foods ready from day one.
+- **Intermittent fasting** - fasting timer, schedules, reminders and streaks.
 - **Allergy alerts** - if you've added allergies, meal photos are checked against them.
 - **Calorie target from real life** - maintenance = BMR + everyday steps + workouts + 10% for digesting food, from your last 7 full days. Set a goal weight and date for a daily target and safe deficit.
-- Meal plans for one-tap logging; entries sync to Health Connect.
+- Entries sync to Health Connect, and edits update the Health Connect record.
+
+### Training
+- Today's workouts from your watch or fitness apps, with duration, distance, pace and calories.
+- 5-zone heart-rate breakdown set from your own heart-rate reserve.
+- **Guided programs** with levels you move up through.
 
 ### Body Metrics
 - 20+ metrics from your height, weight, age, sex, tape measurements and body-fat scans: BMI, healthy weight range, FFMI, fat mass index, waist-to-height, waist-to-hip, body roundness index, conicity, V-taper, BMR (Mifflin–St Jeor / Katch–McArdle), protein and water targets and more.
@@ -72,6 +81,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 ## 🔒 Privacy
 
 - All data is stored locally in Room on your device; there is no Hangry backend.
+- Nothing goes to Google's cloud backup. **Settings → Backup & restore** saves everything to a file you choose, and restores it on this or a new phone.
 - Health Connect access is requested per category and can be revoked any time in Android settings.
 - AI features are **off by default**. When on, the photos and text you submit - and, when you chat with Dash, your health context - are sent from your phone to OpenRouter using your own key.
 - See [PRIVACY.md](PRIVACY.md) and the in-app Privacy screen for details.
@@ -115,7 +125,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 
 ### Prerequisites
 - Android Studio Ladybug / Meerkat or newer
-- Android SDK Platform 36 (`compileSdk = 36`, `minSdk = 28`, `targetSdk = 35`)
+- Android SDK Platform 36 (`compileSdk = 36`, `minSdk = 28`, `targetSdk = 36`)
 - JDK 17+ (e.g. Android Studio's bundled JBR)
 
 ### Run Unit Tests

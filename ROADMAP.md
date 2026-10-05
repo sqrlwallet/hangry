@@ -23,11 +23,11 @@
 
 ---
 
-## Phase 3: Historical Data Import & Bounded Sync
-- [ ] User-selectable historical import range (7 days, 30 days, 90 days, 365 days, All).
-- [ ] Bounded 14-day chunking to prevent memory spikes.
-- [ ] Real-time progress bar reporting imported chunks and data types.
-- [ ] Overlap window for late-arriving records.
+## Phase 3: Historical Data Import & Bounded Sync — COMPLETED
+- [x] User-selectable historical import range (7 days to 365 days, or all available data) in `HistoricalSyncSetupScreen`.
+- [x] Bounded 14-day chunking to prevent memory spikes (`DefaultHealthSyncManager`).
+- [x] Real-time progress reporting imported chunks and data types (`SyncProgressScreen`).
+- [x] 2-hour overlap window for late-arriving records, on full and incremental syncs.
 
 ---
 
@@ -36,15 +36,28 @@
 - [x] Recovery-scaled daily strain target recommendation on the dashboard.
 - [x] Personal sleep-need, sleep performance %, and estimated bedtime (`HangrySleepCalculator`) — see CALCULATIONS.md §7.
 - [x] Trend charts (Recovery, Strain, Sleep Duration, HRV, RHR) and a Weekly Performance Recap card on the Trends screen.
-- [ ] 28-day baseline trend views for HRV and Resting Heart Rate (current charts cover the screen's selected timeframe; a dedicated 28-day baseline-stability view is still open).
-- [ ] Daily subjective Journal flow (perceived recovery, stress, soreness).
+- [x] 28-day baseline views for HRV and Resting Heart Rate on the Heart & HRV screen, plus the Heart widget against your 4-week normal.
+- [ ] Daily subjective Journal flow (perceived recovery, stress, soreness). A post-reading HRV "how do you feel" check-in exists; a full daily journal is still open.
 - [x] Acute-to-chronic training load balance ratio (`TrainingLoadCalculator.calculateDailyLoad`), shown on the Training screen.
 
 ---
 
 ## Phase 5: Privacy Hardening & Production Release
-- [ ] Export local data as JSON and CSV to local Downloads directory.
-- [ ] One-tap "Delete All Health Data" and selective record deletion verification.
+- [x] Export local data as JSON or CSV to a file of the user's choosing (Settings, via the system file picker).
+- [x] One-tap "Delete All Health Data" with confirmation in Settings; individual meals, scans and records can be deleted where they're shown.
 - [ ] Room migration tests.
 - [ ] Google Play Console Health Apps declaration review.
-- [ ] Release APK assembly and performance benchmarks.
+- [x] Release APK assembly: debug-signed sideload APKs on GitHub Releases (`-Psideload`); Play builds use the upload key.
+- [ ] Performance benchmarks.
+- [ ] Move hard-coded UI text into string resources so the app can be translated.
+
+---
+
+## Shipped since v1.20 (see CHANGELOG.md)
+- Saved meals, common foods and portions (v1.22); calories & nutrition widgets (v1.23).
+- Intermittent fasting and simpler supplements (v1.24).
+- Rebuilt recovery, sleep score out of 100 and live strain (v1.25–v1.26).
+- Guided programs and new Dash poses (v1.27). The longevity pillars from that release were removed again in v1.30.
+- Portion-accurate photo nutrition and Health Connect meal edit sync (v1.28–v1.29.1).
+- Sleep stage timeline and 7-night stage chart (v1.29).
+- Weekly nutrition review, fiber tracking and Gemini 3.8 Flash for photo analysis (v1.30).

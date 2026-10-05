@@ -63,6 +63,7 @@ import java.time.ZoneOffset
 fun SettingsScreen(
     syncManager: HealthSyncManager,
     exportManager: LocalExportManager,
+    backupManager: com.kevan.hangry.data.backup.HangryBackupManager,
     localStorageManager: LocalStorageManager,
     userProfileRepository: UserProfileRepository,
     weightDao: WeightDao,
@@ -341,6 +342,8 @@ fun SettingsScreen(
                     snackbarHostState = snackbarHostState
                 )
             }
+
+            BackupRestoreSection(backupManager = backupManager, snackbarHostState = snackbarHostState)
 
             // Data Sovereignty & Export Section
             SettingsCollapsibleSection(

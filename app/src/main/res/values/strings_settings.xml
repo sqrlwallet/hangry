@@ -183,11 +183,11 @@
     <string name="settings_privacy_title">Privacy &amp; Data Protection</string>
     <string name="settings_privacy_zero_cloud">Zero-Cloud Commitment</string>
     <string name="settings_privacy_no_servers_title">No Servers or Cloud Sync</string>
-    <string name="settings_privacy_no_servers_body">Only a local database on your phone.</string>
+    <string name="settings_privacy_no_servers_body">Only a local database on your phone - not even Google cloud backup.</string>
     <string name="settings_privacy_no_tracking_title">Zero Tracking or Advertising</string>
     <string name="settings_privacy_no_tracking_body">No analytics, trackers, or ad SDKs.</string>
     <string name="settings_privacy_sovereignty_title">Full Data Sovereignty</string>
-    <string name="settings_privacy_sovereignty_body">Export as JSON/CSV or delete it all, anytime.</string>
+    <string name="settings_privacy_sovereignty_body">Back up to a file you choose, export as JSON/CSV, or delete it all, anytime.</string>
     <string name="settings_privacy_hc_permissions">Health Connect Permissions</string>
     <string name="settings_privacy_perm_sleep">Sleep Sessions</string>
     <string name="settings_privacy_perm_sleep_purpose">Sleep debt, consistency &amp; quality</string>
@@ -378,4 +378,24 @@
     <string name="settings_sync_enter_hangry">Enter Hangry</string>
     <string name="settings_sync_continue_to_today">Continue to Today</string>
 
+    <!-- Backup & restore -->
+    <string name="settings_backup_section_title">Backup &amp; restore</string>
+    <string name="settings_backup_section_summary">Keep a copy of everything, or move to a new phone</string>
+    <string name="settings_backup_title">Back up everything</string>
+    <string name="settings_backup_subtitle">Saves all your data, photos and settings to one file you choose</string>
+    <string name="settings_backup_info">Hangry doesn\'t upload your health data to Google\'s cloud backup. Save this file somewhere safe - your Drive, a computer or a USB stick - and restore it on this or a new phone. Your OpenRouter API key isn\'t included; add it again after restoring.</string>
+    <string name="settings_backup_working">Backing up…</string>
+    <string name="settings_backup_saved">Backup saved.</string>
+    <string name="settings_backup_failed">Backup failed: %1$s</string>
+    <string name="settings_backup_cant_write">Couldn\'t write to that location.</string>
+    <string name="settings_restore_title">Restore from backup</string>
+    <string name="settings_restore_subtitle">Replace everything in Hangry with a backup file</string>
+    <string name="settings_restore_confirm_title">Restore this backup?</string>
+    <string name="settings_restore_confirm_body">Everything in Hangry on this phone - meals, scores, health records, photos and settings - will be replaced by what\'s in the backup. This can\'t be undone. Hangry will restart when it\'s done, and you\'ll need to add your OpenRouter API key again.</string>
+    <string name="settings_restore_confirm_action">Replace and restore</string>
+    <string name="settings_restore_working">Restoring…</string>
+    <string name="settings_restore_done">Restored. Restarting Hangry…</string>
+    <string name="settings_restore_cant_read">Couldn\'t read that file.</string>
+    <string name="settings_restore_failed_title">Couldn\'t restore</string>
+    <string name="settings_restore_ok">OK</string>
 </resources>

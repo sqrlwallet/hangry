@@ -25,16 +25,18 @@ Hangry is designed on the principle that your body's physiological metrics belon
 - **No User Accounts**: No email, username, or login required.
 - **No Analytics / Advertising SDKs**: No Google Analytics, Firebase, Facebook SDK, or ad tracking frameworks are bundled in the binary.
 - **App-Private Storage**: All health data resides in the app's protected internal SQLite sandbox (`/data/user/0/com.kevan.hangry/databases/hangry.db`), guarded by Android Linux filesystem permissions and SELinux policies.
+- **No Google Cloud Backup**: Android Auto Backup is switched off for everything Hangry stores (`data_extraction_rules.xml`, `backup_rules.xml`), so the database, photos and settings are never uploaded to the user's Google Drive backup. A direct phone-to-phone transfer (cable or local Wi-Fi during new-phone setup) can still carry the data across, since it never touches the cloud; the encrypted OpenRouter key is excluded from that too.
 
 ---
 
 ## 2. User Data Controls & Sovereignty
 
 Hangry puts full data management in the user's hands:
-1. **Export Local Data**: Export the entire database as plain, unencrypted JSON or CSV files to the user's local filesystem at any time.
-2. **Delete Selected Records**: Remove specific dates, workouts, or sleep sessions.
-3. **Delete All Health Data**: Execute a complete local purge of all imported records and derived metrics.
-4. **App Reset**: Clears database tables, SharedPreferences, and resets onboarding state.
+1. **Back Up & Restore**: Settings → Backup & restore saves everything (database, photos and app settings) as one `.zip` file to a location the user picks, and restores it on the same or a new phone. The backup is unencrypted, so it should be stored somewhere the user trusts. The OpenRouter API key is never included.
+2. **Export Daily Summaries**: Export daily summaries and recovery scores as plain JSON or CSV for use in a spreadsheet or another tool.
+3. **Delete Selected Records**: Remove specific dates, workouts, or sleep sessions.
+4. **Delete All Health Data**: Execute a complete local purge of all imported records and derived metrics.
+5. **App Reset**: Clears database tables, SharedPreferences, and resets onboarding state.
 
 ---
 

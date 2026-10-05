@@ -578,6 +578,7 @@ fun HangryNavGraph(
                 expandAiInitially = expandAi,
                 syncManager = appContainer.healthSyncManager,
                 exportManager = appContainer.localExportManager,
+                backupManager = appContainer.backupManager,
                 localStorageManager = appContainer.localStorageManager,
                 userProfileRepository = appContainer.userProfileRepository,
                 weightDao = appContainer.database.weightDao(),

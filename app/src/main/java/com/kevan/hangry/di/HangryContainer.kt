@@ -56,6 +56,7 @@ interface AppContainer {
     val healthSyncManager: HealthSyncManager
     val userProfileRepository: UserProfileRepository
     val localExportManager: LocalExportManager
+    val backupManager: com.kevan.hangry.data.backup.HangryBackupManager
     val localStorageManager: LocalStorageManager
     val bodyFatRepository: BodyFatRepository
     val breathingRepository: BreathingRepository
@@ -222,6 +223,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val userProfileRepository: UserProfileRepository by lazy {
         DefaultUserProfileRepository(database.userProfileDao())
+    }
+
+    override val backupManager: com.kevan.hangry.data.backup.HangryBackupManager by lazy {
+        com.kevan.hangry.data.backup.HangryBackupManager(context)
     }
 
     override val localExportManager: LocalExportManager by lazy {

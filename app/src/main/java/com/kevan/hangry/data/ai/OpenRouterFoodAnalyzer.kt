@@ -15,14 +15,14 @@ METHOD - work component by component, never from a stock recipe:
 1. Identify every separate component on the plate: each food, side, sauce, dressing, topping, garnish and drink. Also list cooking fat as its own component whenever the food is fried, sauteed, roasted or glossy (e.g. "Olive oil (absorbed)", ~5-15g), plus butter, cheese or sauce that is visible or clearly implied.
 2. Establish scale from reference objects before judging size: a standard dinner plate is ~26-28cm across, a side plate ~20cm, a cereal bowl ~15cm, a fork ~19cm, a tablespoon ~4cm across the bowl, a 330ml can is 12cm tall, an adult palm is ~9cm wide, a phone ~15cm long. Say which reference you used.
 3. Estimate each component's weight in grams from what is actually visible: its footprint (the fraction of the plate it covers), its height/thickness, and its density; or count discrete pieces (e.g. 3 chicken nuggets, 2 slices of bread, 12 fries) and multiply by a typical piece weight. Use the cooked, as-served weight. If the plate is partly eaten, only count what is left. Do not round the portion up or down to a "standard serving" - a small scoop of rice is a small scoop of rice.
-4. For each component give nutrition per 100g for that food as prepared (e.g. cooked white rice ~130 kcal/100g, grilled chicken breast ~165 kcal/100g). The app multiplies these by your gram estimate, so the per-100g values must describe the food itself, independent of portion size. fiberG is total dietary fiber: never leave it at 0 for plant foods - vegetables, fruit, whole grains, legumes, nuts and seeds all carry fiber (e.g. cooked lentils ~8g/100g, broccoli ~3g/100g, brown rice ~1.8g/100g, white rice ~0.4g/100g).
+4. For each component give the TOTAL nutrition for your estimated gram amount of that food as prepared (e.g. if you estimated 150g of cooked white rice, give the macros for 150g). The app sums these up. fiberG is total dietary fiber: never leave it at 0 for plant foods - vegetables, fruit, whole grains, legumes, nuts and seeds all carry fiber.
 5. Quantities the user states (e.g. "200g chicken", "half portion", "2 eggs", "I ate half") override your visual estimate. Packaged food with a visible label: use the label's values.
 6. foodName: a specific, clear name for the whole meal highlighting key items and preparation (e.g. "Pan-Seared Salmon with Jasmine Rice & Steamed Broccoli").
 7. portionNote: one short sentence on the scale reference and key assumptions (e.g. "Scaled from a 27cm dinner plate; rice mound ~2cm deep; assumed pan-fried in oil").
 
 OUTPUT FORMAT:
 Respond with ONLY a single JSON object. No markdown code fences, no introductory or concluding text:
-{"foodName": string, "items": [{"name": string, "grams": number, "per100g": {"calories": number, "proteinG": number, "carbsG": number, "fatG": number, "fiberG": number, "sugarG": number, "sodiumMg": number}}], "portionNote": string}"""
+{"foodName": string, "items": [{"name": string, "grams": number, "nutrition": {"calories": number, "proteinG": number, "carbsG": number, "fatG": number, "fiberG": number, "sugarG": number, "sodiumMg": number}}], "portionNote": string}"""
 
 @Serializable
 internal data class FoodNutrientsJson(
@@ -39,7 +39,8 @@ internal data class FoodNutrientsJson(
 internal data class FoodItemJson(
     val name: String,
     val grams: Double,
-    val per100g: FoodNutrientsJson = FoodNutrientsJson()
+    val per100g: FoodNutrientsJson? = null,
+    val nutrition: FoodNutrientsJson? = null
 )
 
 @Serializable
@@ -60,8 +61,8 @@ internal data class FoodAnalysisJson(
 )
 
 /**
- * Totals come from summing each component's grams x per-100g values, so the logged numbers scale
- * with the portion actually on the plate rather than whatever the model pictures as "a serving".
+ * Totals come from summing each component's values. If the AI provides 'nutrition', it uses those
+ * directly. If it provides 'per100g', it multiplies it by (grams / 100.0).
  */
 internal fun FoodAnalysisJson.toResult(checkAllergens: Boolean): FoodAnalysisResult {
     val warnings = if (checkAllergens) allergenWarnings.filter { it.isNotBlank() } else emptyList()
@@ -73,7 +74,11 @@ internal fun FoodAnalysisJson.toResult(checkAllergens: Boolean): FoodAnalysisRes
             confidenceNote = confidenceNote.ifBlank { portionNote }, allergenWarnings = warnings
         )
     }
-    fun total(nutrient: (FoodNutrientsJson) -> Double) = weighed.sumOf { it.grams / 100.0 * nutrient(it.per100g) }
+    fun total(nutrient: (FoodNutrientsJson) -> Double) = weighed.sumOf { item ->
+        if (item.nutrition != null) nutrient(item.nutrition)
+        else if (item.per100g != null) item.grams / 100.0 * nutrient(item.per100g)
+        else 0.0
+    }
     fun Double.round1() = Math.round(this * 10) / 10.0
     val breakdown = weighed.joinToString(", ") { "~${Math.round(it.grams)}g ${it.name}" }
     return FoodAnalysisResult(

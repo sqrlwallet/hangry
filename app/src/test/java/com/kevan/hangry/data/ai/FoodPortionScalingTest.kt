@@ -37,6 +37,28 @@ class FoodPortionScalingTest {
     }
 
     @Test
+    fun itemizedResponse_usesTotalNutritionWhenProvided() {
+        val result = parse(
+            """
+            {"foodName": "Grilled Chicken with Rice",
+             "items": [
+               {"name": "grilled chicken breast", "grams": 150, "nutrition": {"calories": 247.5, "proteinG": 46.5, "carbsG": 0, "fatG": 5.4, "sodiumMg": 111}},
+               {"name": "white rice", "grams": 90, "nutrition": {"calories": 117, "proteinG": 2.43, "carbsG": 25.2, "fatG": 0.27, "fiberG": 0.36, "sodiumMg": 0.9}},
+               {"name": "olive oil (absorbed)", "grams": 5, "nutrition": {"calories": 44.2, "fatG": 5}}
+             ],
+             "portionNote": "Scaled from a 27cm dinner plate."}
+            """
+        )
+        assertEquals(409, result.calories)
+        assertEquals(48.9, result.proteinG, 0.01)
+        assertEquals(25.2, result.carbsG, 0.01)
+        assertEquals(10.7, result.fatG, 0.01)
+        assertEquals(112.0, result.sodiumMg, 0.01)
+        assertTrue(result.confidenceNote.startsWith("Estimated ~245g total: ~150g grilled chicken breast, ~90g white rice"))
+        assertTrue(result.confidenceNote.endsWith("Scaled from a 27cm dinner plate."))
+    }
+
+    @Test
     fun halfThePortion_halvesTheNutrition() {
         fun rice(grams: Int) = parse(
             """{"foodName": "Rice", "items": [{"name": "rice", "grams": $grams, "per100g": {"calories": 130, "carbsG": 28}}]}"""

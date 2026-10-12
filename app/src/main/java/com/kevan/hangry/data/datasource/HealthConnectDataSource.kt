@@ -38,6 +38,18 @@ interface HealthConnectDataSource {
     /** Removes the record Hangry wrote for [entry]. Returns false on any failure. */
     suspend fun deleteNutritionRecord(entry: FoodLogEntity): Boolean
 
+    /** The permission needed to copy water logged in Hangry into Health Connect; empty when unavailable. */
+    fun hydrationWritePermissions(): Set<String> = emptySet()
+
+    /** True when Hangry may write HydrationRecords. */
+    suspend fun hasHydrationWritePermission(): Boolean = false
+
+    /** Writes one drink logged in Hangry as a HydrationRecord. Returns false on any failure or without access. */
+    suspend fun writeHydrationRecord(entry: WaterLogEntity): Boolean = false
+
+    /** Removes the HydrationRecord Hangry wrote for [entry]. Returns false on any failure. */
+    suspend fun deleteHydrationRecord(entry: WaterLogEntity): Boolean = false
+
     /**
      * Write permissions needed to log breathing sessions on this device: a Mindfulness session
      * where Health Connect supports it, otherwise a Guided Breathing exercise session.

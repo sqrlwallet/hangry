@@ -54,6 +54,9 @@ import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryInteractiveTrendChart
 import com.kevan.hangry.ui.components.TrendPoint
+import com.kevan.hangry.ui.components.LogWeightSheet
+import com.kevan.hangry.ui.components.rememberBodyUnitFormatter
+import com.kevan.hangry.domain.calculation.WeightTrend
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.Instant
@@ -120,6 +123,7 @@ fun TrendsScreen(
     onNavigateToDashboardForDate: (LocalDate) -> Unit = {},
     onNavigateToNutritionForDate: (LocalDate) -> Unit = {},
     onNavigateToBodyFatCalculator: () -> Unit = {},
+    onLogWeight: ((kg: Double, takenAt: java.time.Instant) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
@@ -160,9 +164,11 @@ fun TrendsScreen(
     val allBodyFatScans by (bodyFatRepository?.getAllScans() ?: kotlinx.coroutines.flow.flowOf(emptyList()))
         .collectAsState(initial = emptyList())
 
-    // Weight tracking metrics
+    // Weight tracking metrics: the smoothed trend and weekly rate (see WeightTrend)
     val latestWeight by weightDao.getLatestWeight().collectAsState(initial = null)
-    val rollingAvgWeight by weightDao.getRollingAverageWeight().collectAsState(initial = null)
+    val weightTrend = remember(allWeights, today) { WeightTrend.summarize(allWeights, today, zone) }
+    val units = rememberBodyUnitFormatter()
+    var loggingWeight by remember { mutableStateOf(false) }
 
     // Weekly recap: always last 7 days vs the 7 days before that
     val thisWeekScores by remember { dailySummaryRepository.getScoresBetween(today.minusDays(6), today) }
@@ -182,10 +188,8 @@ fun TrendsScreen(
     val foodLogsByDate = remember(foodLogs) {
         foodLogs.groupBy { it.date }
     }
-    // Map weights by date
-    val weightsByDate = remember(allWeights) {
-        allWeights.associateBy { it.timestamp.atZone(zone).toLocalDate() }
-    }
+    // Map weights by date (a day's weigh-ins averaged)
+    val weightsByDate = remember(allWeights) { WeightTrend.dailyWeights(allWeights, zone).toMap() }
 
     // Chronological date list
     val scoreByDate = remember(scores) { scores.associateBy { it.date } }
@@ -200,7 +204,7 @@ fun TrendsScreen(
 
     // Generate trend points for currently selected metric
     val fahrenheit = UnitPrefs.fahrenheit(context)
-    val trendPoints = remember(selectedMetric, chronologicalDates, scoreByDate, summaryByDate, foodLogsByDate, weightsByDate, fahrenheit) {
+    val trendPoints = remember(selectedMetric, chronologicalDates, scoreByDate, summaryByDate, foodLogsByDate, weightsByDate, fahrenheit, units) {
         chronologicalDates.map { date ->
             val value = when (selectedMetric) {
                 TrendMetricCategory.RECOVERY -> scoreByDate[date]?.score?.toDouble()
@@ -215,7 +219,7 @@ fun TrendsScreen(
                 TrendMetricCategory.STEPS -> summaryByDate[date]?.steps?.toDouble()
                 TrendMetricCategory.ACTIVE_CALORIES -> summaryByDate[date]?.activeCalories
                 TrendMetricCategory.NUTRITION_CALORIES -> foodLogsByDate[date]?.sumOf { it.calories }?.toDouble()
-                TrendMetricCategory.WEIGHT -> weightsByDate[date]?.weightKg
+                TrendMetricCategory.WEIGHT -> weightsByDate[date]?.let(units::weightNumber)
             }
             TrendPoint(date = date, value = value)
         }
@@ -450,7 +454,11 @@ fun TrendsScreen(
                     HangryInteractiveTrendChart(
                         points = trendPoints,
                         color = metricColor,
-                        unit = if (selectedMetric == TrendMetricCategory.SKIN_TEMP && fahrenheit) "°F" else selectedMetric.unit,
+                        unit = when {
+                            selectedMetric == TrendMetricCategory.SKIN_TEMP && fahrenheit -> "°F"
+                            selectedMetric == TrendMetricCategory.WEIGHT -> units.weightSymbol
+                            else -> selectedMetric.unit
+                        },
                         formatValue = formatMetricValue,
                         onPointClicked = { tappedDate ->
                             inspectingDate = tappedDate
@@ -524,6 +532,19 @@ fun TrendsScreen(
                             )
                         }
 
+                        HangryInfoTip(
+                            title = stringResource(R.string.body_trends_trend_weight),
+                            body = stringResource(R.string.body_trends_weight_info)
+                        )
+                        if (onLogWeight != null) {
+                            IconButton(onClick = { loggingWeight = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = stringResource(R.string.body_log_weight_action),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         TextButton(
                             onClick = onNavigateToBodyFatCalculator,
                             contentPadding = PaddingValues(horizontal = 8.dp)
@@ -538,7 +559,6 @@ fun TrendsScreen(
 
                     val weightKg = latestWeight?.weightKg
                     if (weightKg != null) {
-                        val weightLbs = weightKg * 2.20462
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -546,26 +566,25 @@ fun TrendsScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = stringResource(R.string.body_trends_kg_value, weightKg),
+                                    text = units.weight(weightKg),
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = stringResource(R.string.body_trends_lbs_approx, weightLbs),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.textMuted
+                                    text = stringResource(R.string.body_trends_latest_weigh_in),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = tokens.textSecondary
                                 )
                             }
-
-                            if (rollingAvgWeight != null) {
+                            weightTrend.trendKg?.let { trendKg ->
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = stringResource(R.string.body_trends_kg_value, rollingAvgWeight!!),
+                                        text = units.weight(trendKg),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = tokens.chartColors.sleep
                                     )
                                     Text(
-                                        text = stringResource(R.string.body_trends_moving_avg_7d),
+                                        text = stringResource(R.string.body_trends_trend_weight),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.textSecondary
                                     )
@@ -575,43 +594,27 @@ fun TrendsScreen(
 
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
-                        val delta = rollingAvgWeight?.let { weightKg - it }
-                        val trendNote = when {
-                            delta == null -> stringResource(R.string.body_trends_weight_stable_baseline)
-                            abs(delta) < 0.3 -> stringResource(R.string.body_trends_weight_stable_variance)
-                            delta > 0 -> stringResource(R.string.body_trends_weight_delta_up, delta)
-                            else -> stringResource(R.string.body_trends_weight_delta_down, delta)
-                        }
-
+                        val weekly = weightTrend.weeklyChangeKg
                         Text(
-                            text = trendNote,
+                            text = when {
+                                weekly == null -> stringResource(R.string.body_trends_weight_rate_needs_data)
+                                abs(weekly) < STEADY_KG_PER_WEEK -> stringResource(R.string.body_trends_weight_steady, units.weeklyRate(weekly))
+                                else -> stringResource(R.string.body_trends_weight_rate, units.weeklyRate(weekly))
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = tokens.textSecondary
                         )
 
-                        // Weight chart if multiple weigh-ins exist
-                        val weightPoints = remember(allWeights, queryStartDate) {
-                            allWeights
-                                .filter {
-                                    val wDate = it.timestamp.atZone(zone).toLocalDate()
-                                    !wDate.isBefore(queryStartDate) && !wDate.isAfter(today)
-                                }
-                                .sortedBy { it.timestamp }
-                                .map {
-                                    TrendPoint(
-                                        date = it.timestamp.atZone(zone).toLocalDate(),
-                                        value = it.weightKg
-                                    )
-                                }
+                        // One dot per weigh-in day in the timeframe, the trend as the line.
+                        val inRange = remember(weightTrend, queryStartDate) {
+                            weightTrend.points.filter { !it.date.isBefore(queryStartDate) && !it.date.isAfter(today) }
                         }
-
-                        if (weightPoints.size >= 2) {
+                        if (inRange.size >= 2) {
                             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
                             HorizontalDivider(color = tokens.cardBorder.copy(alpha = 0.5f))
                             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
-                            val firstWeight = weightPoints.first().value ?: weightKg
-                            val netChange = weightKg - firstWeight
+                            val netChange = inRange.last().trendKg - inRange.first().trendKg
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -623,16 +626,17 @@ fun TrendsScreen(
                                     color = tokens.textMuted
                                 )
                                 Text(
-                                    text = stringResource(R.string.body_trends_weight_net_change, if (netChange > 0) "+" else "", netChange, selectedTimeframe.displayLabel()),
+                                    text = stringResource(R.string.body_trends_weight_net_change, units.weightChange(netChange), selectedTimeframe.displayLabel()),
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = if (netChange <= 0) tokens.scoreColors.primed else tokens.scoreColors.rebuild
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             HangryInteractiveTrendChart(
-                                points = weightPoints,
+                                points = inRange.map { TrendPoint(date = it.date, value = units.weightNumber(it.weighInKg)) },
+                                trend = inRange.map { units.weightNumber(it.trendKg) },
                                 color = tokens.chartColors.sleep,
-                                unit = "kg",
+                                unit = units.weightSymbol,
                                 formatValue = { String.format(Locale.US, "%.1f", it) }
                             )
                         }
@@ -993,6 +997,17 @@ fun TrendsScreen(
     }
 
     // Direct Jump To Date Calendar Picker
+    if (loggingWeight && onLogWeight != null) {
+        LogWeightSheet(
+            lastWeightKg = latestWeight?.weightKg,
+            onDismiss = { loggingWeight = false },
+            onSave = { kg, at ->
+                onLogWeight(kg, at)
+                loggingWeight = false
+            }
+        )
+    }
+
     if (showJumpDatePicker) {
         val initialMillis = remember { today.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }
         val datePickerState = rememberDatePickerState(
@@ -1039,6 +1054,9 @@ fun TrendsScreen(
         }
     }
 }
+
+/** Under this many kg a week either way, the trend reads as holding steady. */
+private const val STEADY_KG_PER_WEEK = 0.05
 
 private fun List<Double>.averageOrNull(): Double? = if (isEmpty()) null else average()
 

@@ -6,7 +6,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.kevan.hangry.HangryApplication
 import com.kevan.hangry.R
+import com.kevan.hangry.data.local.entity.WaterLogEntity
+import com.kevan.hangry.data.repository.WaterLogRepository
+import com.kevan.hangry.domain.calculation.WaterIntake
+import com.kevan.hangry.domain.repository.DailySummaryRepository
 import com.kevan.hangry.data.ai.OpenRouterException
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.local.entity.FoodLogEntity
@@ -39,6 +44,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -65,7 +71,11 @@ class NutritionViewModel(
     /** Source of the user's allergies for meal allergen alerts; none recorded means no check. */
     private val healthRecordsRepository: HealthRecordsRepository? = null,
     /** Writes the AI half of the weekly review; null leaves only the rule-based tips. */
-    private val nutritionReviewer: NutritionReviewer? = null
+    private val nutritionReviewer: NutritionReviewer? = null,
+    /** Water logged in Hangry; null hides the water row. */
+    private val waterLogRepository: WaterLogRepository? = null,
+    /** Other apps' water, synced from Health Connect into the daily summary. */
+    private val dailySummaryRepository: DailySummaryRepository? = null
 ) : ViewModel() {
 
     private suspend fun allergies(): List<String> =
@@ -130,6 +140,29 @@ class NutritionViewModel(
                         aiFeaturesEnabled = sources.profile?.aiFeaturesEnabled ?: false
                     )
                 }
+            }
+        }
+    }
+
+    init {
+        // Water for the selected day: other apps' drinks (from the sync) plus what's logged here.
+        val water = waterLogRepository
+        if (water != null) {
+            viewModelScope.launch {
+                _selectedDate.flatMapLatest { date ->
+                    combine(
+                        water.observeLoggedMl(date),
+                        dailySummaryRepository?.getSummaryForDate(date) ?: flowOf(null),
+                        userProfileRepository.getProfile()
+                    ) { logged, summary, profile ->
+                        val weight = profile?.currentWeightKg?.takeIf { it > 0 }
+                        WaterProgress(
+                            intakeMl = WaterIntake.totalMl(summary?.hydrationLiters, logged),
+                            targetMl = WaterIntake.targetMl(weight),
+                            targetFromWeight = weight != null
+                        )
+                    }
+                }.collect { progress -> _uiState.update { it.copy(water = progress) } }
             }
         }
     }
@@ -343,6 +376,42 @@ class NutritionViewModel(
         }
     }
 
+    /** Logs [ml] of water on the selected day. The first time, asks to copy it to Health Connect. */
+    fun logWater(ml: Int) {
+        val repo = waterLogRepository ?: return
+        viewModelScope.launch {
+            val entry = repo.log(_selectedDate.value, ml)
+            val ask = repo.shouldAskForWriteAccess()
+            _uiState.update {
+                it.copy(
+                    lastWaterEntry = entry,
+                    waterPermissionRequest = if (ask) healthConnectDataSource.hydrationWritePermissions() else emptySet()
+                )
+            }
+        }
+    }
+
+    /** The snackbar's Undo: removes the drink just added, here and in Health Connect. */
+    fun undoWater(entry: WaterLogEntity) {
+        val repo = waterLogRepository ?: return
+        viewModelScope.launch(NonCancellable) { repo.remove(entry) }
+    }
+
+    fun clearLastWater() {
+        _uiState.update { it.copy(lastWaterEntry = null) }
+    }
+
+    /** The permission dialog is about to open - don't open it again on recomposition. */
+    fun consumeWaterPermissionRequest() {
+        _uiState.update { it.copy(waterPermissionRequest = emptySet()) }
+    }
+
+    /** After the Health Connect dialog closes: copy anything logged meanwhile if access was given. */
+    fun onWaterPermissionResult() {
+        val repo = waterLogRepository ?: return
+        viewModelScope.launch { repo.syncPending() }
+    }
+
     /** Adds a saved meal by hand, or saves changes to one (a rename replaces the old entry). */
     fun saveMeal(meal: MealPlanEntity, replacing: MealPlanEntity? = null) {
         viewModelScope.launch {
@@ -487,6 +556,9 @@ class NutritionViewModel(
         (this as? OpenRouterException)?.message ?: context.getString(R.string.nutrition_error_analyze_generic)
 
     companion object {
+        private fun appContainer(context: Context) =
+            (context.applicationContext as? HangryApplication)?.container
+
         fun provideFactory(
             context: Context,
             foodLogRepository: FoodLogRepository,
@@ -495,7 +567,9 @@ class NutritionViewModel(
             healthConnectDataSource: HealthConnectDataSource,
             userProfileRepository: UserProfileRepository,
             healthRecordsRepository: HealthRecordsRepository? = null,
-            nutritionReviewer: NutritionReviewer? = null
+            nutritionReviewer: NutritionReviewer? = null,
+            waterLogRepository: WaterLogRepository? = null,
+            dailySummaryRepository: DailySummaryRepository? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -507,7 +581,10 @@ class NutritionViewModel(
                     healthConnectDataSource = healthConnectDataSource,
                     userProfileRepository = userProfileRepository,
                     healthRecordsRepository = healthRecordsRepository,
-                    nutritionReviewer = nutritionReviewer
+                    nutritionReviewer = nutritionReviewer,
+                    // Falls back to the app container so callers needn't pass them.
+                    waterLogRepository = waterLogRepository ?: appContainer(context)?.waterLogRepository,
+                    dailySummaryRepository = dailySummaryRepository ?: appContainer(context)?.dailySummaryRepository
                 ) as T
             }
         }

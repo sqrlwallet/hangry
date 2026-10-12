@@ -31,6 +31,7 @@
          explicitly enabled. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.health.WRITE_NUTRITION" />
+    <uses-permission android:name="android.permission.health.WRITE_HYDRATION" />
 
     <!-- Breathing exercises: log completed sessions to Health Connect (Mindfulness where
          supported, otherwise a Guided Breathing exercise session), and keep the session's

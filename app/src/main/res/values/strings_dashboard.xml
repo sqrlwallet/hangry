@@ -135,7 +135,6 @@
     <string name="dashboard_body_composition">Body Composition</string>
     <string name="dashboard_all_body_metrics">All body metrics →</string>
     <string name="dashboard_body_fat">Body Fat</string>
-    <string name="dashboard_kg_value">%1$s kg</string>
     <string name="dashboard_lean_mass">Lean Mass</string>
     <string name="dashboard_fat_mass">Fat Mass</string>
     <string name="dashboard_no_scan_yet">No scan yet.</string>

@@ -59,6 +59,7 @@ interface AppContainer {
     val localStorageManager: LocalStorageManager
     val bodyFatRepository: BodyFatRepository
     val breathingRepository: BreathingRepository
+    val waterLogRepository: com.kevan.hangry.data.repository.WaterLogRepository
     val breathingSessionController: BreathingSessionController
 
     // AI features (opt-in): OpenRouter-backed calorie & posture analysis + AI Coach
@@ -245,6 +246,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val breathingRepository: BreathingRepository by lazy {
         DefaultBreathingRepository(database.breathingSessionDao(), healthConnectDataSource)
+    }
+
+    override val waterLogRepository: com.kevan.hangry.data.repository.WaterLogRepository by lazy {
+        com.kevan.hangry.data.repository.WaterLogRepository(context, database.waterLogDao(), healthConnectDataSource)
     }
 
     override val breathingSessionController: BreathingSessionController by lazy {

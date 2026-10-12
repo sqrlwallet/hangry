@@ -19,6 +19,7 @@ import com.kevan.hangry.data.healthrecords.FhirHealthRecordParser
 import com.kevan.hangry.data.local.entity.*
 import com.kevan.hangry.domain.calculation.HealthDedup
 import com.kevan.hangry.domain.calculation.NightlyVitals
+import com.kevan.hangry.domain.calculation.WaterIntake
 import com.kevan.hangry.domain.model.SleepStage
 import com.kevan.hangry.domain.model.SleepStageCodec
 import com.kevan.hangry.domain.model.SleepStageSegment
@@ -51,6 +52,8 @@ class RealHealthConnectDataSource(
         // Write-only - used solely to log breathing sessions the user completed in the app.
         const val PERMISSION_WRITE_MINDFULNESS = "android.permission.health.WRITE_MINDFULNESS"
         val PERMISSION_WRITE_EXERCISE = HealthPermission.getWritePermission(ExerciseSessionRecord::class)
+        /** Water logged in Hangry, copied to Health Connect. Asked for in context the first time water is logged. */
+        val PERMISSION_WRITE_HYDRATION = HealthPermission.getWritePermission(HydrationRecord::class)
 
         // Health records (read-only): home vitals plus clinical records, where supported.
         val PERMISSION_READ_BLOOD_PRESSURE = HealthPermission.getReadPermission(BloodPressureRecord::class)
@@ -91,7 +94,9 @@ class RealHealthConnectDataSource(
             HealthPermission.getReadPermission(BloodPressureRecord::class),
             // Write-only - used solely by the opt-in AI calorie tracker to log a food entry
             // the user explicitly saved.
-            HealthPermission.getWritePermission(NutritionRecord::class)
+            HealthPermission.getWritePermission(NutritionRecord::class),
+            // Write-only - drinks the user logs in Hangry's Nutrition tab.
+            PERMISSION_WRITE_HYDRATION
         )
 
         /**
@@ -656,9 +661,71 @@ class RealHealthConnectDataSource(
             .mapValues { (_, nights) -> nights.flatMap { it.deltas }.map { it.delta.inCelsius }.average() }
     }
 
-    override suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double> =
-        // Aggregated so a drink logged in one app and mirrored to another counts once.
-        dailyTotals(start, end, HydrationRecord.VOLUME_TOTAL).mapValues { it.value.first.inLiters }.filterValues { it > 0 }
+    /**
+     * Other apps' water per day. Read record by record (not aggregated) so Hangry's own writes
+     * can be left out - they're already counted from the local water log - and a drink another
+     * app mirrored counts once. See [WaterIntake.externalDailyLiters].
+     */
+    override suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        if (client == null) return emptyMap()
+        val zone = ZoneId.systemDefault()
+        val records = try {
+            readAllRecords(HydrationRecord::class, TimeRangeFilter.between(start.atStartOfDay(), end.plusDays(1).atStartOfDay()))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading hydration: ${e.message}")
+            return emptyMap()
+        }
+        val drinks = records.map {
+            WaterIntake.Drink(it.startTime, it.metadata.dataOrigin.packageName, it.volume.inMilliliters, it.metadata.clientRecordId)
+        }
+        return WaterIntake.externalDailyLiters(drinks, context.packageName, zone, start, end)
+    }
+
+    override fun hydrationWritePermissions(): Set<String> =
+        if (client == null) emptySet() else setOf(PERMISSION_WRITE_HYDRATION)
+
+    override suspend fun hasHydrationWritePermission(): Boolean =
+        PERMISSION_WRITE_HYDRATION in grantedPermissions()
+
+    override suspend fun writeHydrationRecord(entry: WaterLogEntity): Boolean {
+        val activeClient = client ?: return false
+        if (!hasHydrationWritePermission()) return false
+        return try {
+            val offset = ZoneId.systemDefault().rules.getOffset(entry.timestamp)
+            // Stable client id: a retry replaces rather than duplicates, delete can find it, and
+            // the next sync knows it's ours and doesn't count it a second time.
+            val metadata = androidx.health.connect.client.records.metadata.Metadata.manualEntry(
+                clientRecordId = WaterIntake.clientId(entry.id)
+            )
+            activeClient.insertRecords(
+                listOf(
+                    HydrationRecord(
+                        startTime = entry.timestamp.minusSeconds(60),
+                        startZoneOffset = offset,
+                        endTime = entry.timestamp,
+                        endZoneOffset = offset,
+                        metadata = metadata,
+                        volume = androidx.health.connect.client.units.Volume.milliliters(entry.volumeMl.toDouble())
+                    )
+                )
+            )
+            true
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed writing hydration record: ${e.message}")
+            false
+        }
+    }
+
+    override suspend fun deleteHydrationRecord(entry: WaterLogEntity): Boolean {
+        val activeClient = client ?: return false
+        return try {
+            activeClient.deleteRecords(HydrationRecord::class, recordIdsList = emptyList(), clientRecordIdsList = listOf(WaterIntake.clientId(entry.id)))
+            true
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed deleting hydration record: ${e.message}")
+            false
+        }
+    }
 
     override suspend fun fetchBodyFat(start: Instant, end: Instant): Map<LocalDate, Double> {
         val records = try {

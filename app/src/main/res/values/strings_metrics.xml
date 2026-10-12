@@ -43,7 +43,6 @@
     <string name="metrics_components_respiratory_rate">Respiratory Rate</string>
     <string name="metrics_components_rpm_value">%1$d rpm</string>
     <string name="metrics_components_hydration_intake">Hydration Intake</string>
-    <string name="metrics_components_liters_value">%1$.1f L</string>
     <string name="metrics_components_body_fat">Body Fat</string>
     <string name="metrics_components_percent_decimal_value">%1$.1f%%</string>
     <string name="metrics_components_workouts_count">Workouts (%1$d)</string>
@@ -136,6 +135,7 @@
     <string name="metrics_components_chart_vs_avg_positive">+%1$s vs avg</string>
     <string name="metrics_components_chart_vs_avg">%1$s vs avg</string>
     <string name="metrics_components_chart_tap_inspect">Tap to inspect day</string>
+    <string name="metrics_components_chart_trend">Trend %1$s</string>
     <string name="metrics_components_chart_avg">Avg: %1$s %2$s</string>
     <string name="metrics_components_chart_high">High: %1$s</string>
     <string name="metrics_components_chart_low">Low: %1$s</string>

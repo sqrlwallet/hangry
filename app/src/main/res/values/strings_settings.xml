@@ -69,7 +69,7 @@
     <string name="settings_height">Height</string>
     <string name="settings_current_weight">Current weight</string>
     <string name="settings_weight_goal">Weight goal</string>
-    <string name="settings_weight_goal_by">%1$s kg by %2$s</string>
+    <string name="settings_weight_goal_by">%1$s by %2$s</string>
     <string name="settings_add_body_metrics_hint">Add body metrics to estimate burn</string>
     <string name="settings_edit_goals_title">Edit Goals &amp; Body Metrics</string>
     <string name="settings_edit_goals_subtitle">Age, height, weight &amp; goals</string>
@@ -145,8 +145,6 @@
     <string name="settings_sex_other">Other</string>
     <string name="settings_height_cm_label">Height (cm)</string>
     <string name="settings_height_synced_priority">Synced height takes priority</string>
-    <string name="settings_current_weight_kg_label">Current Weight (kg)</string>
-    <string name="settings_weight_goal_kg_label">Weight goal (kg)</string>
     <string name="settings_sleep_goal_hours_label">Sleep goal (hours)</string>
     <string name="settings_sleep_goal_supporting">Used for sleep need, debt and your target</string>
     <string name="settings_max_hr_label">Max heart rate (optional)</string>
@@ -157,10 +155,6 @@
     <string name="settings_body_circumferences_optional">Body Circumferences (Optional)</string>
     <string name="settings_body_circumferences">Body Circumferences</string>
     <string name="settings_body_circumferences_info">Tape circumferences enable the algorithmic U.S. Navy body fat calculator and enhance AI vision accuracy.</string>
-    <string name="settings_neck_cm_label">Neck (cm)</string>
-    <string name="settings_chest_cm_label">Chest (cm)</string>
-    <string name="settings_waist_cm_label">Waist (cm)</string>
-    <string name="settings_hips_cm_label">Hips (cm)</string>
     <string name="settings_state_expanded">Expanded</string>
     <string name="settings_state_collapsed">Collapsed</string>
     <string name="settings_collapse_section">Collapse %1$s</string>
@@ -240,8 +234,12 @@
     <string name="settings_bg_allow">Allow</string>
     <string name="settings_health_data_title">Health data</string>
     <string name="settings_units_title">Units</string>
-    <string name="settings_units_celsius">Temperature in °C</string>
-    <string name="settings_units_fahrenheit">Temperature in °F</string>
+    <string name="settings_units_summary">%1$s · %2$s · %3$s</string>
+    <string name="settings_unit_celsius">°C</string>
+    <string name="settings_unit_fahrenheit">°F</string>
+    <string name="settings_unit_st_lb">st &amp; lb</string>
+    <string name="settings_units_weight_title">Weight</string>
+    <string name="settings_units_length_title">Height &amp; measurements</string>
     <string name="settings_units_temp_title">Show temperature in °F</string>
     <string name="settings_units_temp_subtitle">Skin temperature changes in Fahrenheit instead of Celsius.</string>
     <string name="settings_data_by_app_title">Where your data comes from</string>

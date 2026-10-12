@@ -47,6 +47,9 @@ data class TrendPoint(
  * Supports touch-and-drag scrubbing to inspect past data points with date, exact value,
  * and deviation from the period average. Features gradient area fill, dashed baseline average,
  * and high/low indicators.
+ *
+ * With [trend] (one value per point, e.g. a smoothed weight), the line and fill follow the trend
+ * and the raw [points] are drawn as dots around it.
  */
 @Composable
 fun HangryInteractiveTrendChart(
@@ -55,7 +58,8 @@ fun HangryInteractiveTrendChart(
     unit: String,
     modifier: Modifier = Modifier,
     formatValue: (Double) -> String = { String.format(Locale.US, "%.1f", it) },
-    onPointClicked: ((LocalDate) -> Unit)? = null
+    onPointClicked: ((LocalDate) -> Unit)? = null,
+    trend: List<Double?>? = null
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
@@ -80,13 +84,18 @@ fun HangryInteractiveTrendChart(
     val validValues = remember(validPoints) { validPoints.mapNotNull { it.value } }
     val minValue = remember(validValues) { validValues.minOrNull() ?: 0.0 }
     val maxValue = remember(validValues) { validValues.maxOrNull() ?: 100.0 }
+    // The line: the trend when given (index-aligned with points), otherwise the points themselves.
+    val hasTrend = trend != null && trend.size == points.size
+    val lineValues = remember(points, trend) { if (hasTrend) trend!! else points.map { it.value } }
+    val plotMin = remember(lineValues, minValue) { minOf(minValue, lineValues.filterNotNull().minOrNull() ?: minValue) }
+    val plotMax = remember(lineValues, maxValue) { maxOf(maxValue, lineValues.filterNotNull().maxOrNull() ?: maxValue) }
     val avgValue = remember(validValues) { if (validValues.isNotEmpty()) validValues.average() else 0.0 }
 
     // Add 10% vertical padding so chart lines don't clamp strictly at canvas edges
-    val rawRange = maxValue - minValue
+    val rawRange = plotMax - plotMin
     val padding = if (rawRange <= 0.0) 1.0 else rawRange * 0.12
-    val yMin = minValue - padding
-    val yMax = maxValue + padding
+    val yMin = plotMin - padding
+    val yMax = plotMax + padding
     val yRange = (yMax - yMin).let { if (it <= 0.0) 1.0 else it }
 
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
@@ -132,10 +141,12 @@ fun HangryInteractiveTrendChart(
                                     deltaFromAvg > 0 -> stringResource(R.string.metrics_components_chart_vs_avg_positive, formatValue(deltaFromAvg))
                                     else -> stringResource(R.string.metrics_components_chart_vs_avg, formatValue(deltaFromAvg))
                                 }
+                                val trendValue = if (hasTrend) lineValues.getOrNull(selectedIndex ?: -1) else null
                                 Text(
-                                    text = deltaText,
+                                    text = trendValue?.let { stringResource(R.string.metrics_components_chart_trend, formatValue(it)) } ?: deltaText,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (deltaFromAvg >= 0) tokens.scoreColors.primed else tokens.scoreColors.rebuild
+                                    color = if (trendValue != null) tokens.textSecondary
+                                    else if (deltaFromAvg >= 0) tokens.scoreColors.primed else tokens.scoreColors.rebuild
                                 )
                             }
                         }
@@ -263,10 +274,10 @@ fun HangryInteractiveTrendChart(
                 var firstValidX = 0f
 
                 for (i in 0 until count) {
-                    val pt = points[i]
+                    val lineValue = lineValues[i]
                     val x = i * stepX
-                    if (pt.value != null) {
-                        val y = yFor(pt.value)
+                    if (lineValue != null) {
+                        val y = yFor(lineValue)
                         if (!isPathStarted) {
                             linePath.moveTo(x, y)
                             areaPath.moveTo(x, height)
@@ -315,14 +326,14 @@ fun HangryInteractiveTrendChart(
                     )
                 )
 
-                // Draw data point circles (small)
-                val pointRadius = 2.dp.toPx()
+                // Draw data point circles (small; a little larger as dots around a trend line)
+                val pointRadius = if (hasTrend) 2.5.dp.toPx() else 2.dp.toPx()
                 points.forEachIndexed { i, pt ->
                     if (pt.value != null) {
                         val cx = i * stepX
                         val cy = yFor(pt.value)
                         drawCircle(
-                            color = color.copy(alpha = 0.7f),
+                            color = color.copy(alpha = if (hasTrend) 0.45f else 0.7f),
                             radius = pointRadius,
                             center = Offset(cx, cy)
                         )

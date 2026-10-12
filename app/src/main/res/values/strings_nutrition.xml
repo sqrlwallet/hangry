@@ -318,4 +318,24 @@
     <string name="nutrition_describe_ai_off">Turn on AI Features in Settings to log a meal from a description, or enter it manually.</string>
     <string name="nutrition_estimate_ai_off">AI Features are off. Turn them on in Settings to estimate meals automatically.</string>
     <string name="nutrition_entry_deleted_snackbar">Deleted %1$s</string>
+    <!-- Water -->
+    <string name="nutrition_water">Water</string>
+    <string name="nutrition_water_ml">%1$d ml</string>
+    <string name="nutrition_water_liters">%1$.1f L</string>
+    <string name="nutrition_water_progress">%1$.1f / %2$.1f L</string>
+    <string name="nutrition_water_add">Add water</string>
+    <string name="nutrition_water_glass">Glass · +%1$s</string>
+    <string name="nutrition_water_bottle">Bottle · +%1$s</string>
+    <string name="nutrition_water_custom">Custom amount…</string>
+    <string name="nutrition_water_custom_title">Add water</string>
+    <string name="nutrition_water_custom_label">Amount (ml)</string>
+    <string name="nutrition_water_custom_invalid">Enter 1–%1$d ml</string>
+    <string name="nutrition_water_add_button">Add</string>
+    <string name="nutrition_water_cancel">Cancel</string>
+    <string name="nutrition_water_added_snackbar">Added %1$s of water</string>
+    <string name="nutrition_water_tip_title">Water target</string>
+    <string name="nutrition_water_tip_body_weight">About 30–35 ml per kg of body weight a day (%1$s for you), before exercise. Add roughly 0.5–1 L for each hour of exercise or on hot days. Counts water you log here plus drinks other apps share through Health Connect. Food covers about a fifth of your needs on top.</string>
+    <string name="nutrition_water_tip_body_default">A general %1$s a day for adults, because there\'s no weight on file yet. Add your weight to get a target of 30–35 ml per kg. Counts water you log here plus drinks other apps share through Health Connect.</string>
+    <string name="nutrition_water_widget_add">+%1$s</string>
+    <string name="nutrition_water_widget_logged">Logged %1$s of water</string>
 </resources>

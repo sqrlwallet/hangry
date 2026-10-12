@@ -45,7 +45,10 @@ fun MacroProgressBar(
     fatGoalG: Double?,
     fiberG: Double,
     fiberGoalG: Double,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The day's water; null hides the row. */
+    water: WaterProgress? = null,
+    onAddWater: (Int) -> Unit = {}
 ) {
     val tokens = LocalHangryTokens.current
 
@@ -140,6 +143,11 @@ fun MacroProgressBar(
                     modifier = Modifier.weight(1f)
                 )
                 FiberStat(currentG = fiberG, goalG = fiberGoalG, modifier = Modifier.weight(1f))
+            }
+
+            if (water != null) {
+                Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                WaterRow(water = water, onAdd = onAddWater)
             }
         }
     }

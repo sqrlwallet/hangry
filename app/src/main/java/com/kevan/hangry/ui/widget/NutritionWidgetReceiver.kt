@@ -7,7 +7,10 @@ import android.content.Intent
 import android.widget.Toast
 import com.kevan.hangry.HangryApplication
 import com.kevan.hangry.data.local.entity.toLogEntry
+import com.kevan.hangry.domain.calculation.WaterIntake
 import com.kevan.hangry.domain.model.CommonFoods
+import com.kevan.hangry.ui.nutrition.WaterFormat
+import com.kevan.hangry.ui.nutrition.waterText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,15 +21,16 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * Logs a food from a Nutrition widget quick-add button without opening the app: one portion,
- * today, synced to Health Connect like any other entry. A toast confirms it; mistakes are
- * removed from the Nutrition tab.
+ * Logs a food (or a glass of water) from a Nutrition widget quick-add button without opening the
+ * app: one portion, today, synced to Health Connect like any other entry. A toast confirms it;
+ * mistakes are removed from the Nutrition tab.
  */
 class NutritionWidgetReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != ACTION_LOG_FOOD) return
         val app = context.applicationContext as? HangryApplication ?: return
+        if (intent.action == ACTION_LOG_WATER) return logWater(app, intent)
+        if (intent.action != ACTION_LOG_FOOD) return
         val pending = goAsync()
         scope.launch {
             val message = try {
@@ -63,7 +67,30 @@ class NutritionWidgetReceiver : BroadcastReceiver() {
         }
     }
 
+    /** A glass of water for today, from the widget. Copied to Health Connect only if already allowed. */
+    private fun logWater(app: HangryApplication, intent: Intent) {
+        val ml = intent.getIntExtra(EXTRA_WATER_ML, WaterIntake.GLASS_ML).coerceIn(1, WaterIntake.MAX_SINGLE_ML)
+        val pending = goAsync()
+        scope.launch {
+            val message = try {
+                app.container.waterLogRepository.log(LocalDate.now(ZoneId.systemDefault()), ml)
+                app.getString(R.string.nutrition_water_widget_logged, app.resources.waterText(WaterFormat.amount(ml)))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                app.getString(R.string.dashboard_widget_nutrition_log_failed)
+            }
+            try {
+                withContext(Dispatchers.Main) { Toast.makeText(app, message, Toast.LENGTH_SHORT).show() }
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
     companion object {
+        const val ACTION_LOG_WATER = "com.kevan.hangry.widget.LOG_WATER"
+        private const val EXTRA_WATER_ML = "water_ml"
         const val ACTION_LOG_FOOD = "com.kevan.hangry.widget.LOG_FOOD"
         private const val EXTRA_SAVED_ID = "saved_meal_id"
         private const val EXTRA_COMMON_NAME = "common_food_name"
@@ -72,6 +99,9 @@ class NutritionWidgetReceiver : BroadcastReceiver() {
 
         fun logSavedIntent(context: Context, savedMealId: Long): Intent =
             Intent(context, NutritionWidgetReceiver::class.java).setAction(ACTION_LOG_FOOD).putExtra(EXTRA_SAVED_ID, savedMealId)
+
+        fun logWaterIntent(context: Context, ml: Int): Intent =
+            Intent(context, NutritionWidgetReceiver::class.java).setAction(ACTION_LOG_WATER).putExtra(EXTRA_WATER_ML, ml)
 
         fun logCommonIntent(context: Context, commonFoodName: String): Intent =
             Intent(context, NutritionWidgetReceiver::class.java).setAction(ACTION_LOG_FOOD).putExtra(EXTRA_COMMON_NAME, commonFoodName)

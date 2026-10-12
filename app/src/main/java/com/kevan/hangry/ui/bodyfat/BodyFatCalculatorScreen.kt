@@ -36,6 +36,11 @@ import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.PoseGuide
 import com.kevan.hangry.ui.components.UndoDeleteEffect
+import com.kevan.hangry.ui.components.LengthInputField
+import com.kevan.hangry.ui.components.WeightInputField
+import com.kevan.hangry.ui.components.rememberBodyUnitFormatter
+import com.kevan.hangry.domain.model.LengthUnit
+import com.kevan.hangry.domain.model.WeightUnit
 import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -53,6 +58,7 @@ fun BodyFatCalculatorScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val units = rememberBodyUnitFormatter()
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -138,29 +144,48 @@ fun BodyFatCalculatorScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Height, Weight, Age
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = uiState.heightCm,
-                        onValueChange = viewModel::onHeightChanged,
-                        label = { Text(stringResource(R.string.body_bodyfat_height_cm)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
+                // Height, Weight, Age - in the units chosen in Settings. Feet + inches or
+                // stones + pounds take two boxes each, so weight gets its own row then.
+                val heightField = @Composable { fieldModifier: Modifier ->
+                    LengthInputField(
+                        cmText = uiState.heightCm,
+                        onCmTextChange = viewModel::onHeightChanged,
+                        label = stringResource(R.string.body_measure_height),
+                        height = true,
+                        modifier = fieldModifier
                     )
-                    OutlinedTextField(
-                        value = uiState.weightKg,
-                        onValueChange = viewModel::onWeightChanged,
-                        label = { Text(stringResource(R.string.body_bodyfat_weight_kg)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
+                }
+                val weightField = @Composable { fieldModifier: Modifier ->
+                    WeightInputField(
+                        kgText = uiState.weightKg,
+                        onKgTextChange = viewModel::onWeightChanged,
+                        label = stringResource(R.string.body_measure_weight),
+                        modifier = fieldModifier
                     )
+                }
+                val ageField = @Composable { fieldModifier: Modifier ->
                     OutlinedTextField(
                         value = uiState.age,
                         onValueChange = viewModel::onAgeChanged,
                         label = { Text(stringResource(R.string.body_bodyfat_age)) },
+                        singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(0.8f)
+                        modifier = fieldModifier
                     )
+                }
+                if (units.lengthUnit == LengthUnit.CM && units.weightUnit != WeightUnit.ST_LB) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        heightField(Modifier.weight(1f))
+                        weightField(Modifier.weight(1f))
+                        ageField(Modifier.weight(0.8f))
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        heightField(Modifier.weight(2f))
+                        ageField(Modifier.weight(1f))
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    weightField(Modifier.fillMaxWidth())
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -181,35 +206,31 @@ fun BodyFatCalculatorScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = uiState.neckCm,
-                        onValueChange = viewModel::onNeckChanged,
-                        label = { Text(stringResource(R.string.body_bodyfat_neck_cm)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = uiState.neckCm,
+                        onCmTextChange = viewModel::onNeckChanged,
+                        label = stringResource(R.string.body_measure_neck),
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
-                        value = uiState.chestCm,
-                        onValueChange = viewModel::onChestChanged,
-                        label = { Text(stringResource(R.string.body_bodyfat_chest_cm)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = uiState.chestCm,
+                        onCmTextChange = viewModel::onChestChanged,
+                        label = stringResource(R.string.body_measure_chest),
                         modifier = Modifier.weight(1f)
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = uiState.waistCm,
-                        onValueChange = viewModel::onWaistChanged,
-                        label = { Text(stringResource(R.string.body_bodyfat_waist_cm)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = uiState.waistCm,
+                        onCmTextChange = viewModel::onWaistChanged,
+                        label = stringResource(R.string.body_measure_waist),
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
-                        value = uiState.hipCm,
-                        onValueChange = viewModel::onHipChanged,
-                        label = { Text(stringResource(R.string.body_bodyfat_hips_cm)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = uiState.hipCm,
+                        onCmTextChange = viewModel::onHipChanged,
+                        label = stringResource(R.string.body_measure_hips),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -505,7 +526,7 @@ fun BodyFatCalculatorScreen(
                         Column {
                             Text(text = stringResource(R.string.body_bodyfat_lean_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                             Text(
-                                text = stringResource(R.string.body_bodyfat_kg_value, leanKg.toString()),
+                                text = units.weight(leanKg),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = tokens.scoreColors.primed
@@ -514,7 +535,7 @@ fun BodyFatCalculatorScreen(
                         Column(horizontalAlignment = Alignment.End) {
                             Text(text = stringResource(R.string.body_bodyfat_fat_mass), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                             Text(
-                                text = stringResource(R.string.body_bodyfat_kg_value, fatKg.toString()),
+                                text = units.weight(fatKg),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = tokens.textPrimary
@@ -568,9 +589,9 @@ fun BodyFatCalculatorScreen(
                                         )
                                     }
                                     val dateStr = scan.date.format(SCAN_DATE)
-                                    val weightStr = scan.weightKg?.let { stringResource(R.string.body_bodyfat_scan_weight, it.toString()) }
-                                    val lbmStr = scan.leanMassKg?.let { stringResource(R.string.body_bodyfat_scan_lbm, it.toString()) }
-                                    val fatStr = scan.fatMassKg?.let { stringResource(R.string.body_bodyfat_scan_fat, it.toString()) }
+                                    val weightStr = scan.weightKg?.let(units::weight)
+                                    val lbmStr = scan.leanMassKg?.let { stringResource(R.string.body_bodyfat_scan_lbm, units.weight(it)) }
+                                    val fatStr = scan.fatMassKg?.let { stringResource(R.string.body_bodyfat_scan_fat, units.weight(it)) }
                                     val metricsStr = listOfNotNull(weightStr, lbmStr, fatStr).joinToString(" • ")
                                     Text(
                                         text = "$dateStr • $metricsStr",

@@ -12,6 +12,15 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.kevan.hangry.HangryApplication
+import com.kevan.hangry.domain.calculation.WaterIntake
+import com.kevan.hangry.ui.nutrition.WaterFormat
+import com.kevan.hangry.ui.nutrition.waterText
+import kotlinx.coroutines.flow.flowOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,9 +58,18 @@ fun DayDetailSheet(
     foodLogs: List<FoodLogEntity> = emptyList(),
     onDismiss: () -> Unit,
     onNavigateToDashboard: (LocalDate) -> Unit,
-    onNavigateToNutrition: ((LocalDate) -> Unit)? = null
+    onNavigateToNutrition: ((LocalDate) -> Unit)? = null,
+    /** Water logged in Hangry that day; null reads it from the local water log. */
+    loggedWaterMl: Int? = null
 ) {
     val tokens = LocalHangryTokens.current
+    val appContext = LocalContext.current.applicationContext
+    val observedWaterMl by remember(date, loggedWaterMl) {
+        if (loggedWaterMl != null) flowOf(loggedWaterMl)
+        else (appContext as? HangryApplication)?.container?.waterLogRepository?.observeLoggedMl(date) ?: flowOf(0)
+    }.collectAsState(initial = loggedWaterMl ?: 0)
+    // Other apps' drinks (from Health Connect) plus what was logged here.
+    val waterMl = WaterIntake.totalMl(summary?.hydrationLiters, observedWaterMl).takeIf { it > 0 }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -296,7 +314,7 @@ fun DayDetailSheet(
                         summary?.bloodPressureSystolic != null ||
                         summary?.respiratoryRate != null ||
                         summary?.skinTempDeltaCelsius != null ||
-                        summary?.hydrationLiters != null ||
+                        waterMl != null ||
                         summary?.bodyFatPercentage != null
 
                     if (hasExtraVitals) {
@@ -335,20 +353,20 @@ fun DayDetailSheet(
                             }
                         }
 
-                        if (summary?.hydrationLiters != null || summary?.bodyFatPercentage != null) {
+                        if (waterMl != null || summary?.bodyFatPercentage != null) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                if (summary.hydrationLiters != null) {
+                                if (waterMl != null) {
                                     VitalColumn(
                                         label = stringResource(R.string.metrics_components_hydration_intake),
-                                        value = stringResource(R.string.metrics_components_liters_value, summary.hydrationLiters),
+                                        value = waterText(WaterFormat.amount(waterMl)),
                                         color = tokens.chartColors.sleep
                                     )
                                 }
-                                if (summary.bodyFatPercentage != null) {
+                                if (summary?.bodyFatPercentage != null) {
                                     VitalColumn(
                                         label = stringResource(R.string.metrics_components_body_fat),
                                         value = stringResource(R.string.metrics_components_percent_decimal_value, summary.bodyFatPercentage),

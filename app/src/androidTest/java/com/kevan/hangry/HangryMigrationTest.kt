@@ -36,7 +36,7 @@ class HangryMigrationTest {
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
             MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
             MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33
+            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34
         )
     }
 
@@ -104,6 +104,20 @@ class HangryMigrationTest {
         }
     }
 
+    @Test
+    fun migrate33To34_addsWaterLog_keepsFoodLog() {
+        helper.createDatabase(DB, 33).apply {
+            insertFood()
+            close()
+        }
+        helper.runMigrationsAndValidate(DB, 34, true, HangryDatabase.MIGRATION_33_34).use { db ->
+            assertEquals(1, db.count("food_log"))
+            assertEquals(0, db.count("water_log"))
+            db.execSQL("INSERT INTO water_log (date, timestamp, volumeMl, healthConnectSynced) VALUES (19000, 0, 250, 0)")
+            assertEquals(1, db.count("water_log WHERE date = 19000"))
+        }
+    }
+
     /** The full chain from the oldest exported schema opens with Room and keeps the user's data. */
     @Test
     fun migrate28ToLatest_opensWithRoom() {
@@ -116,7 +130,7 @@ class HangryMigrationTest {
             .build()
         try {
             val sqlite = db.openHelper.writableDatabase
-            assertEquals(33, sqlite.version)
+            assertEquals(34, sqlite.version)
             assertEquals(1, sqlite.count("food_log"))
         } finally {
             db.close()

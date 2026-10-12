@@ -2,6 +2,10 @@ package com.kevan.hangry.ui.settings
 
 import com.kevan.hangry.data.prefs.UnitPrefs
 import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.Straighten
+import com.kevan.hangry.domain.model.LengthUnit
+import com.kevan.hangry.domain.model.WeightUnit
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -87,16 +91,46 @@ internal fun RemindersSection() {
     }
 }
 
-/** Display units - temperatures only for now (weights and heights are asked for where entered). */
+/** Display units. Values are stored in kg, cm and °C; these only change how they're shown and typed. */
 @Composable
 internal fun UnitsSection() {
     val context = LocalContext.current
     var fahrenheit by remember { mutableStateOf(UnitPrefs.fahrenheit(context)) }
+    val weightUnit = UnitPrefs.weightUnit(context)
+    val lengthUnit = UnitPrefs.lengthUnit(context)
+    val weightLabels = mapOf(
+        WeightUnit.KG to stringResource(R.string.settings_unit_kg),
+        WeightUnit.LB to stringResource(R.string.settings_unit_lb),
+        WeightUnit.ST_LB to stringResource(R.string.settings_unit_st_lb)
+    )
+    val lengthLabels = mapOf(
+        LengthUnit.CM to stringResource(R.string.settings_unit_cm),
+        LengthUnit.IN to stringResource(R.string.settings_unit_in)
+    )
     SettingsCollapsibleSection(
         title = stringResource(R.string.settings_units_title),
-        summary = if (fahrenheit) stringResource(R.string.settings_units_fahrenheit) else stringResource(R.string.settings_units_celsius),
-        icon = Icons.Default.Thermostat
+        summary = stringResource(
+            R.string.settings_units_summary,
+            weightLabels.getValue(weightUnit),
+            lengthLabels.getValue(lengthUnit),
+            stringResource(if (fahrenheit) R.string.settings_unit_fahrenheit else R.string.settings_unit_celsius)
+        ),
+        icon = Icons.Default.Straighten
     ) {
+        UnitChoiceRow(
+            icon = Icons.Default.MonitorWeight,
+            title = stringResource(R.string.settings_units_weight_title),
+            options = weightLabels,
+            selected = weightUnit,
+            onSelect = { UnitPrefs.setWeightUnit(context, it) }
+        )
+        UnitChoiceRow(
+            icon = Icons.Default.Straighten,
+            title = stringResource(R.string.settings_units_length_title),
+            options = lengthLabels,
+            selected = lengthUnit,
+            onSelect = { UnitPrefs.setLengthUnit(context, it) }
+        )
         ReminderSwitch(
             icon = Icons.Default.Thermostat,
             title = stringResource(R.string.settings_units_temp_title),
@@ -107,6 +141,21 @@ internal fun UnitsSection() {
                 UnitPrefs.setFahrenheit(context, it)
             }
         )
+    }
+}
+
+@Composable
+private fun <T> UnitChoiceRow(icon: ImageVector, title: String, options: Map<T, String>, selected: T, onSelect: (T) -> Unit) {
+    val tokens = LocalHangryTokens.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+        Text(title, style = MaterialTheme.typography.bodyLarge, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            options.forEach { (unit, label) ->
+                FilterChip(selected = unit == selected, onClick = { onSelect(unit) }, label = { Text(label) })
+            }
+        }
     }
 }
 

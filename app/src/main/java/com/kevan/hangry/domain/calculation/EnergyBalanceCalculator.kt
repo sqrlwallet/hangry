@@ -170,11 +170,10 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
             .groupBy { it.date }
             .mapValues { (_, entries) -> entries.sumOf { it.calories }.toDouble() }
             .filterValues { it >= formulaMaintenance * MIN_LOGGED_FRACTION }
-        val weightByDay = weights
-            .map { it.timestamp.atZone(zone).toLocalDate() to it.weightKg }
+        // Same daily averaging and slope as the Trends weight card (see [WeightTrend]).
+        val weightByDay = WeightTrend.dailyWeights(weights, zone)
             .filter { (day, _) -> day in start..end }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, kg) -> kg.average() }
+            .toMap()
         val span = weightByDay.keys.let { days -> if (days.isEmpty()) 0L else java.time.temporal.ChronoUnit.DAYS.between(days.min(), days.max()) }
 
         val missing = buildList {
@@ -183,7 +182,7 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         }
         if (missing.isNotEmpty()) return null to missing.joinToString(" and ")
 
-        val slopePerDay = slope(weightByDay.map { (day, kg) -> java.time.temporal.ChronoUnit.DAYS.between(start, day).toDouble() to kg })
+        val slopePerDay = WeightTrend.slopePerDay(weightByDay.toList(), start, end) ?: 0.0
         val avgIntake = intakeByDay.values.average()
         val learnt = avgIntake - slopePerDay * HangryCalorieCalculator.KCAL_PER_KG
         // Far from the formula usually means meals going unlogged or a scale glitch, not a
@@ -202,15 +201,6 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
             maintenanceKcal = learnt,
             weight = weight
         ) to null
-    }
-
-    /** Least-squares slope of y over x. */
-    private fun slope(points: List<Pair<Double, Double>>): Double {
-        val meanX = points.sumOf { it.first } / points.size
-        val meanY = points.sumOf { it.second } / points.size
-        val num = points.sumOf { (x, y) -> (x - meanX) * (y - meanY) }
-        val den = points.sumOf { (x, _) -> (x - meanX) * (x - meanX) }
-        return if (den == 0.0) 0.0 else num / den
     }
 
     companion object {

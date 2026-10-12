@@ -3,6 +3,7 @@ package com.kevan.hangry.ui.nutrition
 import android.net.Uri
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.MealPlanEntity
+import com.kevan.hangry.data.local.entity.WaterLogEntity
 import com.kevan.hangry.domain.model.NutritionReview
 import com.kevan.hangry.domain.model.NutritionTip
 import com.kevan.hangry.domain.model.NutritionWeekSummary
@@ -30,7 +31,13 @@ data class NutritionUiState(
     /** A just-logged meal that may contain one of the user's allergies. */
     val allergenAlert: AllergenAlert? = null,
     /** Set while the weekly review sheet is open. */
-    val weeklyReview: WeeklyReviewState? = null
+    val weeklyReview: WeeklyReviewState? = null,
+    /** The selected day's water against its target; null until loaded. */
+    val water: WaterProgress? = null,
+    /** Just logged - drives an "Added 250 ml" snackbar with Undo, then clears. */
+    val lastWaterEntry: WaterLogEntity? = null,
+    /** Health Connect permissions to ask for right now (first water logged without write access). */
+    val waterPermissionRequest: Set<String> = emptySet()
 ) {
     val isViewingToday: Boolean get() = selectedDate == LocalDate.now()
 }

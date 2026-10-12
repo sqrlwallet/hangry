@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 
 data class BodyMetricsUiState(
@@ -22,7 +24,11 @@ data class BodyMetricsUiState(
     val availableCount get() = allMetrics.count { it.isAvailable }
 }
 
-class BodyMetricsViewModel(repository: BodyMetricsRepository) : ViewModel() {
+class BodyMetricsViewModel(private val repository: BodyMetricsRepository) : ViewModel() {
+
+    fun logWeight(kg: Double, takenAt: Instant) {
+        viewModelScope.launch { repository.logWeight(kg, takenAt) }
+    }
 
     val uiState: StateFlow<BodyMetricsUiState> = repository.observe()
         .map { snapshot ->

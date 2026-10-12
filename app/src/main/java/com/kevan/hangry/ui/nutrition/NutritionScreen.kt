@@ -55,6 +55,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.annotation.StringRes
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.health.connect.client.PermissionController
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.time.Instant
 import java.time.ZoneId
@@ -210,6 +212,31 @@ fun NutritionScreen(
         }
     }
 
+    // Water: "Added 250 ml of water" with Undo. Asking for Health Connect write access (first
+    // time only) happens alongside; the drink is already saved locally whatever the answer.
+    val waterPermissionLauncher = rememberLauncherForActivityResult(
+        contract = PermissionController.createRequestPermissionResultContract()
+    ) { viewModel.onWaterPermissionResult() }
+    LaunchedEffect(uiState.waterPermissionRequest) {
+        val request = uiState.waterPermissionRequest
+        if (request.isEmpty()) return@LaunchedEffect
+        viewModel.consumeWaterPermissionRequest()
+        runCatching { waterPermissionLauncher.launch(request) }
+    }
+    LaunchedEffect(uiState.lastWaterEntry) {
+        val added = uiState.lastWaterEntry ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = context.getString(
+                R.string.nutrition_water_added_snackbar,
+                context.resources.waterText(WaterFormat.amount(added.volumeMl))
+            ),
+            actionLabel = context.getString(R.string.nutrition_undo),
+            duration = SnackbarDuration.Short
+        )
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoWater(added)
+        viewModel.clearLastWater()
+    }
+
     Scaffold(
         snackbarHost = {
             SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) { data ->
@@ -290,7 +317,9 @@ fun NutritionScreen(
                     fatG = totalFat,
                     fatGoalG = fatGoal,
                     fiberG = totalFiber,
-                    fiberGoalG = NutritionTargets.fiberG(calorieTarget)
+                    fiberGoalG = NutritionTargets.fiberG(calorieTarget),
+                    water = uiState.water,
+                    onAddWater = viewModel::logWater
                 )
             }
 

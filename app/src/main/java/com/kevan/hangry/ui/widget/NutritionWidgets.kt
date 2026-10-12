@@ -15,6 +15,9 @@ import com.kevan.hangry.MainActivity
 import com.kevan.hangry.R
 import com.kevan.hangry.di.AppContainer
 import com.kevan.hangry.domain.calculation.NutritionTargets
+import com.kevan.hangry.domain.calculation.WaterIntake
+import com.kevan.hangry.ui.nutrition.WaterFormat
+import com.kevan.hangry.ui.nutrition.waterText
 import com.kevan.hangry.domain.model.CommonFoods
 import com.kevan.hangry.ui.navigation.Screen
 import kotlinx.coroutines.flow.first
@@ -32,6 +35,7 @@ internal object NutritionWidgets {
     private const val RC_NUTRITION_CAMERA = 303
     /** Quick-add buttons use RC_QUICK_ADD + slot, so each keeps its own extras. */
     private const val RC_QUICK_ADD = 310
+    private const val RC_WATER = 320
 
     private const val COLOR_TRACK = 0xFF2F2C33.toInt()
     private const val COLOR_CALORIES = 0xFFFF7E1D.toInt()
@@ -62,6 +66,7 @@ internal object NutritionWidgets {
         val goals = NutritionTargets.macros(target)
         val saved = container.mealPlanRepository.getAll().first()
         val savedKeys = saved.map { it.nameKey }.toSet()
+        val waterLabel = context.getString(R.string.nutrition_water_widget_add, context.resources.waterText(WaterFormat.amount(WaterIntake.GLASS_ML)))
         // Most recent saved meals first; basics fill the rest until there are enough saved.
         val slots = saved.take(QUICK_ADD_SLOTS.size).map {
             NutritionWidgetText.quickAddLabel(it.name, it.calories, hide) to NutritionWidgetReceiver.logSavedIntent(context, it.id)
@@ -86,6 +91,13 @@ internal object NutritionWidgets {
                     )
                 }
             }
+            // One tap logs a glass of water for today.
+            views.setTextViewText(R.id.btn_nutrition_water, waterLabel)
+            views.setContentDescription(R.id.btn_nutrition_water, context.getString(R.string.nutrition_water_add))
+            views.setOnClickPendingIntent(
+                R.id.btn_nutrition_water,
+                PendingIntent.getBroadcast(context, RC_WATER, NutritionWidgetReceiver.logWaterIntent(context, WaterIntake.GLASS_ML), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            )
             views.setOnClickPendingIntent(R.id.widget_nutrition_root, open(context, Screen.Nutrition.route, RC_NUTRITION))
             views.setOnClickPendingIntent(R.id.btn_nutrition_camera, quickLogMeal(context))
             manager.updateAppWidget(id, views)

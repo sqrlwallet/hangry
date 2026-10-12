@@ -86,6 +86,7 @@ fun DashboardScreen(
     onNavigateToFasting: () -> Unit = {},
     autoOpenQuickLog: Boolean = false,
     onAutoOpenQuickLogHandled: () -> Unit = {},
+    onLogWeight: ((kg: Double, takenAt: java.time.Instant) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -354,7 +355,9 @@ fun DashboardScreen(
                         val scan = uiState.latestBodyFatScan
                         BodyFatCompositionWidget(
                             scan = scan,
-                            onClick = onNavigateToBodyMetrics
+                            onClick = onNavigateToBodyMetrics,
+                            lastWeightKg = uiState.latestWeightKg,
+                            onLogWeight = onLogWeight
                         )
                     }
 
@@ -561,9 +564,23 @@ private fun CalorieComponentLabel(label: String, value: Double?, labelColor: and
 @Composable
 private fun BodyFatCompositionWidget(
     scan: com.kevan.hangry.data.local.entity.BodyFatScanEntity?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    lastWeightKg: Double?,
+    onLogWeight: ((Double, java.time.Instant) -> Unit)?
 ) {
     val tokens = LocalHangryTokens.current
+    val units = rememberBodyUnitFormatter()
+    var loggingWeight by remember { mutableStateOf(false) }
+    if (loggingWeight && onLogWeight != null) {
+        LogWeightSheet(
+            lastWeightKg = lastWeightKg,
+            onDismiss = { loggingWeight = false },
+            onSave = { kg, at ->
+                onLogWeight(kg, at)
+                loggingWeight = false
+            }
+        )
+    }
     HangryCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -588,6 +605,17 @@ private fun BodyFatCompositionWidget(
             scan?.category?.let {
                 Text(it, style = MaterialTheme.typography.labelMedium, color = tokens.scoreColors.primed, maxLines = 1)
             }
+            if (onLogWeight != null) {
+                TextButton(
+                    onClick = { loggingWeight = true },
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(stringResource(R.string.body_log_weight_action), style = MaterialTheme.typography.labelMedium)
+                }
+            }
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = tokens.textMuted)
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
@@ -600,13 +628,13 @@ private fun BodyFatCompositionWidget(
                     modifier = Modifier.weight(1f)
                 )
                 BodyStat(
-                    value = scan.leanMassKg?.let { stringResource(R.string.dashboard_kg_value, String.format(Locale.US, "%.1f", it)) } ?: "—",
+                    value = scan.leanMassKg?.let(units::weight) ?: "—",
                     label = stringResource(R.string.dashboard_lean_mass),
                     color = tokens.textPrimary,
                     modifier = Modifier.weight(1f)
                 )
                 BodyStat(
-                    value = scan.fatMassKg?.let { stringResource(R.string.dashboard_kg_value, String.format(Locale.US, "%.1f", it)) } ?: "—",
+                    value = scan.fatMassKg?.let(units::weight) ?: "—",
                     label = stringResource(R.string.dashboard_fat_mass),
                     color = tokens.textPrimary,
                     modifier = Modifier.weight(1f)

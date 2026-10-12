@@ -69,7 +69,7 @@ import com.kevan.hangry.ui.trends.TrendsScreen
 import com.kevan.hangry.ui.widget.HomeScreenWidgetsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
+import com.kevan.hangry.data.prefs.UnitPrefs
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.ui.onboarding.AboutYouScreen
@@ -148,8 +148,10 @@ fun HangryNavGraph(
     // (the only entry point into this flow, whether fresh install or a Reset Application
     // re-entry), false for good the moment onboarding actually completes.
     var onboardingInProgress by remember { mutableStateOf(false) }
-    // cm/kg or ft/lb, chosen on "About you" and carried to the extras step.
-    var onboardingImperial by rememberSaveable { mutableStateOf(false) }
+    // cm/kg or ft/lb, chosen on "About you" and carried to the extras step - and saved as the
+    // app's units (Settings → Units), so weights and heights read the same way everywhere after.
+    val unitsContext = LocalContext.current
+    var onboardingImperial by rememberSaveable { mutableStateOf(UnitPrefs.isImperial(unitsContext)) }
 
     val dashboardViewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.provideFactory(
@@ -284,7 +286,10 @@ fun HangryNavGraph(
                     profile = profile,
                     initialWeightKg = latestWeight ?: profile?.currentWeightKg,
                     imperial = onboardingImperial,
-                    onImperialChange = { onboardingImperial = it },
+                    onImperialChange = {
+                        onboardingImperial = it
+                        UnitPrefs.setImperial(unitsContext, it)
+                    },
                     onNavigateBack = { navController.popBackStack() },
                     onContinue = { basics ->
                         coroutineScope.launch {
@@ -302,16 +307,7 @@ fun HangryNavGraph(
                             // A weigh-in today, so calorie targets and the weight trend have a
                             // starting point before anything syncs.
                             if (latestWeight == null || kotlin.math.abs(latestWeight - basics.weightKg) >= 0.05) {
-                                appContainer.database.weightDao().insertOrIgnore(
-                                    listOf(
-                                        WeightMeasurementEntity(
-                                            recordFingerprint = "manual_entry_${Instant.now().toEpochMilli()}",
-                                            timestamp = Instant.now(),
-                                            weightKg = basics.weightKg,
-                                            sourcePackageName = "com.kevan.hangry.manual"
-                                        )
-                                    )
-                                )
+                                appContainer.bodyMetricsRepository.logWeight(basics.weightKg)
                             }
                             navController.navigate(Screen.ProfileExtras.route)
                         }
@@ -495,7 +491,8 @@ fun HangryNavGraph(
                     }
                 },
                 autoOpenQuickLog = quickLogTrigger,
-                onAutoOpenQuickLogHandled = onQuickLogTriggerHandled
+                onAutoOpenQuickLogHandled = onQuickLogTriggerHandled,
+                onLogWeight = { kg, at -> coroutineScope.launch { appContainer.bodyMetricsRepository.logWeight(kg, at) } }
             )
         }
 
@@ -558,7 +555,8 @@ fun HangryNavGraph(
                 },
                 onNavigateToBodyFatCalculator = {
                     navController.navigate(Screen.BodyFatCalculator.route)
-                }
+                },
+                onLogWeight = { kg, at -> coroutineScope.launch { appContainer.bodyMetricsRepository.logWeight(kg, at) } }
             )
         }
 
@@ -581,6 +579,7 @@ fun HangryNavGraph(
                 backupManager = appContainer.backupManager,
                 localStorageManager = appContainer.localStorageManager,
                 userProfileRepository = appContainer.userProfileRepository,
+                bodyMetricsRepository = appContainer.bodyMetricsRepository,
                 weightDao = appContainer.database.weightDao(),
                 heightDao = appContainer.database.heightDao(),
                 calorieCalculator = appContainer.calorieCalculator,

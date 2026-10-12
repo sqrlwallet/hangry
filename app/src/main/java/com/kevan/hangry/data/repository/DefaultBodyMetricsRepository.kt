@@ -22,6 +22,7 @@ import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -81,6 +82,25 @@ class DefaultBodyMetricsRepository(
             foodLogs = foodLogDao.getBetweenList(w.adaptiveStart, w.end),
             weights = weightDao.getAllWeights().first()
         )
+    }
+
+    override suspend fun logWeight(kg: Double, takenAt: Instant) {
+        val newest = weightDao.getLatestWeightSync()?.timestamp?.let { !takenAt.isBefore(it) } ?: true
+        weightDao.insertOrIgnore(
+            listOf(
+                WeightMeasurementEntity(
+                    recordFingerprint = "manual_entry_${Instant.now().toEpochMilli()}",
+                    timestamp = takenAt,
+                    weightKg = kg,
+                    sourcePackageName = MANUAL_SOURCE
+                )
+            )
+        )
+        if (newest) {
+            userProfileRepository.getProfileSync()?.let { profile ->
+                userProfileRepository.saveProfile(profile.copy(currentWeightKg = kg, updatedAt = Instant.now()))
+            }
+        }
     }
 
     private data class Measurements(
@@ -146,6 +166,8 @@ class DefaultBodyMetricsRepository(
     }
 
     companion object {
+        const val MANUAL_SOURCE = "com.kevan.hangry.manual"
+
         fun scanMethodLabel(method: String): String = when (method) {
             "AI_MULTIMODAL" -> "AI photo"
             "BIOMETRIC_HISTORY" -> "health-history"

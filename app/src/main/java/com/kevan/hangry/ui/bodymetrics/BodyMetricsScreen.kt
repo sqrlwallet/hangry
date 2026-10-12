@@ -45,6 +45,9 @@ import com.kevan.hangry.ui.components.MetricInfoBlock
 import com.kevan.hangry.ui.components.MetricRangeBar
 import com.kevan.hangry.ui.components.MetricStatusChip
 import com.kevan.hangry.ui.components.metricToneColor
+import com.kevan.hangry.ui.components.LogWeightSheet
+import com.kevan.hangry.ui.components.rememberBodyUnitFormatter
+import com.kevan.hangry.domain.model.BodyUnits
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.format.DateTimeFormatter
@@ -75,8 +78,16 @@ fun BodyMetricsScreen(
     onUpdateMeasurements: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val rawState by viewModel.uiState.collectAsState()
+    val units = rememberBodyUnitFormatter()
+    // kg and cm metrics shown in the units chosen in Settings.
+    val uiState = remember(rawState, units) {
+        rawState.copy(groups = rawState.groups.map { group ->
+            group.copy(metrics = group.metrics.map { BodyUnits.convertMetric(it, units.weightUnit, units.lengthUnit) })
+        })
+    }
     var selected by remember { mutableStateOf<BodyMetric?>(null) }
+    var loggingWeight by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -110,11 +121,24 @@ fun BodyMetricsScreen(
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = HangryTokens.Spacing.l),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
-            item(key = "summary") { SummaryCard(uiState, onUpdateMeasurements, onSelect = { selected = it }) }
+            item(key = "summary") {
+                SummaryCard(uiState, onUpdateMeasurements, onLogWeight = { loggingWeight = true }, onSelect = { selected = it })
+            }
             items(uiState.groups, key = { it.id }) { group ->
                 GroupCard(group, onSelect = { selected = it })
             }
         }
+    }
+
+    if (loggingWeight) {
+        LogWeightSheet(
+            lastWeightKg = rawState.input.weightKg,
+            onDismiss = { loggingWeight = false },
+            onSave = { kg, at ->
+                viewModel.logWeight(kg, at)
+                loggingWeight = false
+            }
+        )
     }
 
     selected?.let { metric ->
@@ -128,13 +152,14 @@ fun BodyMetricsScreen(
 /** Calculated count, the inputs everything is based on, anything worth a look, and the edit button. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> Unit, onSelect: (BodyMetric) -> Unit) {
+private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> Unit, onLogWeight: () -> Unit, onSelect: (BodyMetric) -> Unit) {
     val tokens = LocalHangryTokens.current
+    val units = rememberBodyUnitFormatter()
     val input = state.input
     // Waist and neck are left out: they already appear as their own rows under Shape.
     val chips = buildList {
-        input.heightCm?.let { add(stringResource(R.string.body_metrics_chip_height, fmt(it, 0))) }
-        input.weightKg?.let { add(stringResource(R.string.body_metrics_chip_weight, fmt(it, 1))) }
+        input.heightCm?.let { add(stringResource(R.string.body_metrics_chip_height, units.height(it))) }
+        input.weightKg?.let { add(stringResource(R.string.body_metrics_chip_weight, units.weight(it))) }
         input.age?.let { add(stringResource(R.string.body_metrics_chip_age, it.toString())) }
         input.bodyFatPercent?.let { bf ->
             val date = state.bodyFatScanDate?.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
@@ -143,8 +168,8 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
                 else stringResource(R.string.body_metrics_chip_body_fat, fmt(bf, 1))
             )
         }
-        input.hipCm?.let { add(stringResource(R.string.body_metrics_chip_hips, fmt(it, 1))) }
-        input.chestCm?.let { add(stringResource(R.string.body_metrics_chip_chest, fmt(it, 1))) }
+        input.hipCm?.let { add(stringResource(R.string.body_metrics_chip_hips, units.length(it))) }
+        input.chestCm?.let { add(stringResource(R.string.body_metrics_chip_chest, units.length(it))) }
     }
     val attention = state.allMetrics.filter { it.isAvailable && (it.tone == MetricTone.CAUTION || it.tone == MetricTone.RISK) }
     HangryCard(modifier = Modifier.fillMaxWidth()) {
@@ -213,10 +238,17 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
             }
         }
         Spacer(Modifier.height(HangryTokens.Spacing.s))
-        FilledTonalButton(onClick = onUpdateMeasurements, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Straighten, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.body_metrics_update_measurements))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = onLogWeight, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 12.dp)) {
+                Icon(Icons.Default.MonitorWeight, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.body_log_weight_action), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            FilledTonalButton(onClick = onUpdateMeasurements, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 12.dp)) {
+                Icon(Icons.Default.Straighten, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.body_metrics_measurements_short), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }

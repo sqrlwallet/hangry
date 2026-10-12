@@ -36,7 +36,6 @@ import com.kevan.hangry.data.ai.OpenRouterClient
 import com.kevan.hangry.data.local.dao.HeightDao
 import com.kevan.hangry.data.local.dao.WeightDao
 import com.kevan.hangry.data.local.entity.UserProfileEntity
-import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.model.AgeMath
@@ -46,6 +45,10 @@ import com.kevan.hangry.domain.repository.LocalStorageManager
 import com.kevan.hangry.domain.repository.StorageBreakdown
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.UserProfileRepository
+import com.kevan.hangry.domain.repository.BodyMetricsRepository
+import com.kevan.hangry.ui.components.LengthInputField
+import com.kevan.hangry.ui.components.WeightInputField
+import com.kevan.hangry.ui.components.rememberBodyUnitFormatter
 import com.kevan.hangry.ui.bodyage.BirthdayPickerDialog
 import com.kevan.hangry.ui.components.DiscardChangesDialog
 import com.kevan.hangry.ui.components.HangryCard
@@ -67,6 +70,7 @@ fun SettingsScreen(
     backupManager: com.kevan.hangry.data.backup.HangryBackupManager,
     localStorageManager: LocalStorageManager,
     userProfileRepository: UserProfileRepository,
+    bodyMetricsRepository: BodyMetricsRepository,
     weightDao: WeightDao,
     heightDao: HeightDao,
     calorieCalculator: CalorieCalculator,
@@ -175,11 +179,12 @@ fun SettingsScreen(
             // Goals live here; the full body readout is on the Body Metrics screen.
             HangryCard {
                 val currentProfile = profile
+                val units = rememberBodyUnitFormatter()
                 val hasBodyMetrics = currentProfile?.age != null && effectiveHeightCm != null && currentProfile.biologicalSex != null
                 if (currentProfile?.weightGoalKg != null && currentProfile.goalTargetDate != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = stringResource(R.string.settings_weight_goal), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                        Text(text = stringResource(R.string.settings_weight_goal_by, currentProfile.weightGoalKg.toString(), currentProfile.goalTargetDate.toString()), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                        Text(text = stringResource(R.string.settings_weight_goal_by, units.weight(currentProfile.weightGoalKg), currentProfile.goalTargetDate.toString()), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                     }
                 } else if (!hasBodyMetrics) {
                     Text(
@@ -513,15 +518,7 @@ fun SettingsScreen(
                     val scoringInputsChanged = updated.maxHeartRate != profile?.maxHeartRate ||
                         updated.sleepGoalMinutes != profile?.sleepGoalMinutes || updated.age != profile?.age
                     userProfileRepository.saveProfile(updated)
-                    if (newWeight != null && newWeight > 0.0) {
-                        val record = WeightMeasurementEntity(
-                            recordFingerprint = "manual_entry_${Instant.now().toEpochMilli()}",
-                            timestamp = Instant.now(),
-                            weightKg = newWeight,
-                            sourcePackageName = "com.kevan.hangry.manual"
-                        )
-                        weightDao.insertOrIgnore(listOf(record))
-                    }
+                    if (newWeight != null && newWeight > 0.0) bodyMetricsRepository.logWeight(newWeight)
                     showEditGoalsDialog = false
                     snackbarHostState.showSnackbar(context.getString(R.string.settings_goals_saved))
                     // Strain zones and sleep need depend on these - rescore history with them.
@@ -651,30 +648,28 @@ private fun EditGoalsDialog(
                     }
                 }
 
-                OutlinedTextField(
-                    value = heightInput,
-                    onValueChange = { heightInput = it.filter { c -> c.isDigit() } },
-                    label = { Text(stringResource(R.string.settings_height_cm_label)) },
-                    supportingText = { Text(stringResource(R.string.settings_height_synced_priority)) },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                LengthInputField(
+                    cmText = heightInput,
+                    onCmTextChange = { heightInput = it },
+                    label = stringResource(R.string.body_measure_height),
+                    height = true,
+                    supportingText = stringResource(R.string.settings_height_synced_priority),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 HorizontalDivider(color = tokens.cardBorder)
 
-                OutlinedTextField(
-                    value = currentWeightInput,
-                    onValueChange = { currentWeightInput = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text(stringResource(R.string.settings_current_weight_kg_label)) },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                WeightInputField(
+                    kgText = currentWeightInput,
+                    onKgTextChange = { currentWeightInput = it },
+                    label = stringResource(R.string.settings_current_weight),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = weightGoalInput,
-                    onValueChange = { weightGoalInput = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text(stringResource(R.string.settings_weight_goal_kg_label)) },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                WeightInputField(
+                    kgText = weightGoalInput,
+                    onKgTextChange = { weightGoalInput = it },
+                    label = stringResource(R.string.settings_weight_goal),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -726,35 +721,31 @@ private fun EditGoalsDialog(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = neckInput,
-                        onValueChange = { neckInput = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text(stringResource(R.string.settings_neck_cm_label)) },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = neckInput,
+                        onCmTextChange = { neckInput = it },
+                        label = stringResource(R.string.body_measure_neck),
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
-                        value = chestInput,
-                        onValueChange = { chestInput = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text(stringResource(R.string.settings_chest_cm_label)) },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = chestInput,
+                        onCmTextChange = { chestInput = it },
+                        label = stringResource(R.string.body_measure_chest),
                         modifier = Modifier.weight(1f)
                     )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = waistInput,
-                        onValueChange = { waistInput = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text(stringResource(R.string.settings_waist_cm_label)) },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = waistInput,
+                        onCmTextChange = { waistInput = it },
+                        label = stringResource(R.string.body_measure_waist),
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
-                        value = hipInput,
-                        onValueChange = { hipInput = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text(stringResource(R.string.settings_hips_cm_label)) },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    LengthInputField(
+                        cmText = hipInput,
+                        onCmTextChange = { hipInput = it },
+                        label = stringResource(R.string.body_measure_hips),
                         modifier = Modifier.weight(1f)
                     )
                 }

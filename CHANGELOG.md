@@ -1,3 +1,38 @@
+## 🚀 What's New in Hangry v1.36.0 — Lab Reports, Water & Your Units
+
+Scan your lab reports, track water, see weight in your own units, and a big round of fixes that keep your data safe.
+
+### 🧪 Health Records
+- **Scan a report**: photograph up to 4 pages and AI reads the results. You review every value before anything is saved; tests Hangry doesn't track are listed too.
+- Tap any reading or period to **edit** it. Deleting now offers **Undo**.
+- Removing an allergy or condition asks first.
+
+### 💧 Water & ⚖️ weight
+- **Water tracking** on the Nutrition card: a glass, a bottle or any amount, against your daily target, saved to Health Connect. A +250 ml button on the Nutrition widget.
+- **Your units**: kg, lb or stones, cm or inches, chosen in onboarding or Settings → Units.
+- **Log weight** in one step from Today, Body Metrics or Trends.
+- Trends shows a **smoothed weight trend** and your weekly rate of change.
+
+### 📱 More room on every tab
+- Nutrition, Workouts and Dash drop their top bars. Nutrition's options sit in the ⋮ next to the date; Dash's history and new chat float in a small pill.
+- **Body Metrics** redesigned: one card per group with aligned values, and missing metrics folded into one line.
+- The **Daily briefing** can be hidden from Customize.
+- Workouts has its own date bar.
+
+### 🛡️ Safer data
+- A Health Connect hiccup or a declined permission can no longer wipe or block your synced history.
+- App updates can't silently erase your data, and backups take a consistent, checked snapshot.
+- Undo after deleting food, posture scans, body fat scans and lab readings, and after an AI meal log.
+- Forms keep what you typed when the screen rotates, and ask before discarding.
+
+### 🛠️ Fixes
+- The AI estimate in the manual meal sheet now checks your allergies.
+- Saving goals no longer logs your old weight as a new weigh-in.
+- Body Age uses your newest VO₂ max and body fat.
+- Sleep is counted on the day it ends, so early-evening sleep isn't missed.
+- AI replies with stray text or decimal calories no longer fail.
+- Health Connect's permission prompt now appears after the explanation, not before.
+
 ## 🚀 What's New in Hangry v1.35.0 — Cleaner, More Compact Screens
 
 Every screen shows more of what matters: less repetition, tighter cards and explanations tucked behind ⓘ.

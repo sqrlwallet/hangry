@@ -21,7 +21,12 @@ enum class WidgetType {
     STREAKS,
     BODY_AGE,
     FASTING,
-    CUSTOM_METRIC
+    CUSTOM_METRIC,
+    /** Overnight readings against your usual - the illness early warning, always visible. */
+    BODY_CHECK,
+    OVERNIGHT_VITALS,
+    /** Cycle phase; only drawn for women who log periods. */
+    CYCLE
 }
 
 @Serializable
@@ -151,11 +156,32 @@ data class DashboardWidget(
                 order = 9
             ),
             DashboardWidget(
+                id = "body_check",
+                type = WidgetType.BODY_CHECK,
+                title = "Body Check",
+                isVisible = true,
+                order = 10
+            ),
+            DashboardWidget(
+                id = "overnight_vitals",
+                type = WidgetType.OVERNIGHT_VITALS,
+                title = "Overnight Vitals",
+                isVisible = true,
+                order = 11
+            ),
+            DashboardWidget(
+                id = "cycle",
+                type = WidgetType.CYCLE,
+                title = "Cycle",
+                isVisible = true,
+                order = 12
+            ),
+            DashboardWidget(
                 id = "calorie_burn",
                 type = WidgetType.CALORIE_BURN,
                 title = "Calorie Expenditure Breakdown",
                 isVisible = false, // disabled by default since DailyActivityRings shows active calories, user can enable
-                order = 10
+                order = 13
             )
         )
     }

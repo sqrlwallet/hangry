@@ -20,6 +20,10 @@ data class DashboardUiState(
     val isSyncing: Boolean = false,
     val selectedDate: LocalDate = LocalDate.now(),
     val dailySummary: DailyHealthSummaryEntity? = null,
+    /** Each overnight reading against your usual, for the Body check card. */
+    val bodyCheck: List<com.kevan.hangry.domain.calculation.BodySignals.Comparison> = emptyList(),
+    /** The last month's nightly skin temperature change, for the Cycle card. */
+    val recentSkinTemps: Map<LocalDate, Double> = emptyMap(),
     val recoveryScore: RecoveryScoreEntity? = null,
     /** The day before's final strain; Today leads with it. */
     val previousDayStrain: Double? = null,

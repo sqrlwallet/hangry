@@ -4,10 +4,14 @@ import android.content.Context
 import android.net.Uri
 import com.kevan.hangry.data.coach.CoachActionExecutor
 import com.kevan.hangry.data.local.dao.CoachJournalDao
+import com.kevan.hangry.data.local.dao.CoachConversationDao
 import com.kevan.hangry.data.local.dao.CoachMessageDao
+import com.kevan.hangry.data.local.entity.CoachConversationEntity
+import com.kevan.hangry.data.local.entity.CoachConversationSummary
 import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.CoachMessageEntity
 import com.kevan.hangry.domain.ai.AiCoachService
+import com.kevan.hangry.domain.model.ChatTitle
 import com.kevan.hangry.domain.model.CoachAction
 import com.kevan.hangry.domain.model.CoachActionStatus
 import com.kevan.hangry.domain.model.CoachResponse
@@ -25,6 +29,7 @@ import java.time.LocalDate
 class DefaultCoachRepository(
     private val coachJournalDao: CoachJournalDao,
     private val coachMessageDao: CoachMessageDao,
+    private val coachConversationDao: CoachConversationDao,
     private val aiCoachService: AiCoachService,
     /** Both optional so the repository still works without photo/action support (e.g. tests). */
     private val context: Context? = null,
@@ -34,7 +39,31 @@ class DefaultCoachRepository(
     private val json = Json { ignoreUnknownKeys = true }
     private val actionsSerializer = ListSerializer(CoachAction.serializer())
 
-    override fun getMessages(): Flow<List<CoachMessageEntity>> = coachMessageDao.getAll()
+    override fun getMessages(conversationId: Long): Flow<List<CoachMessageEntity>> = coachMessageDao.observeConversation(conversationId)
+
+    override fun getConversations(): Flow<List<CoachConversationSummary>> = coachConversationDao.observeSummaries()
+
+    override suspend fun mostRecentConversationId(): Long? = coachConversationDao.getMostRecentId()
+
+    override suspend fun startConversation(firstMessage: String): Long =
+        coachConversationDao.insert(CoachConversationEntity(title = ChatTitle.from(firstMessage)))
+
+    override suspend fun renameConversation(id: Long, title: String) {
+        title.trim().take(ChatTitle.MAX_LENGTH).takeIf { it.isNotBlank() }?.let { coachConversationDao.rename(id, it) }
+    }
+
+    override suspend fun deleteConversation(id: Long) {
+        val photos = coachMessageDao.getForConversation(id).flatMap { it.imagePaths?.split(",").orEmpty() }
+        coachMessageDao.deleteConversation(id)
+        coachConversationDao.delete(id)
+        withContext(Dispatchers.IO) { photos.filter { it.isNotBlank() }.forEach { File(it).delete() } }
+    }
+
+    override suspend fun searchConversations(query: String): Set<Long> {
+        val q = query.trim().takeIf { it.isNotEmpty() } ?: return emptySet()
+        // LIKE wildcards in what the user typed are matched literally enough for chat search.
+        return coachMessageDao.searchConversationIds(q).toSet()
+    }
 
     override fun getJournalEntries(): Flow<List<CoachJournalEntity>> = coachJournalDao.getAll()
 
@@ -61,29 +90,42 @@ class DefaultCoachRepository(
 
     override suspend fun clearMessages() {
         coachMessageDao.deleteAll()
+        coachConversationDao.deleteAll()
         context?.let { ctx -> withContext(Dispatchers.IO) { File(ctx.filesDir, IMAGE_DIR).listFiles()?.forEach { it.delete() } } }
     }
 
+    /** Without a chat id: continues the most recent chat, or starts one. */
     override suspend fun askCoach(userMessage: String): Result<CoachResponse> = askCoach(userMessage, emptyList())
 
     override suspend fun askCoach(userMessage: String, imageUris: List<Uri>): Result<CoachResponse> =
-        ask(userMessage, imageUris, onPartialReply = null)
+        ask(currentOrNewConversation(userMessage), userMessage, imageUris, onPartialReply = null)
 
     override suspend fun askCoach(
         userMessage: String,
         imageUris: List<Uri>,
         onPartialReply: (String) -> Unit
-    ): Result<CoachResponse> = ask(userMessage, imageUris, onPartialReply)
+    ): Result<CoachResponse> = ask(currentOrNewConversation(userMessage), userMessage, imageUris, onPartialReply)
 
-    private suspend fun ask(userMessage: String, imageUris: List<Uri>, onPartialReply: ((String) -> Unit)?): Result<CoachResponse> {
+    override suspend fun askCoach(
+        conversationId: Long,
+        userMessage: String,
+        imageUris: List<Uri>,
+        onPartialReply: (String) -> Unit
+    ): Result<CoachResponse> = ask(conversationId, userMessage, imageUris, onPartialReply)
+
+    private suspend fun currentOrNewConversation(firstMessage: String): Long =
+        coachConversationDao.getMostRecentId() ?: startConversation(firstMessage)
+
+    private suspend fun ask(conversationId: Long, userMessage: String, imageUris: List<Uri>, onPartialReply: ((String) -> Unit)?): Result<CoachResponse> {
         val trimmed = userMessage.trim()
         if (trimmed.isBlank() && imageUris.isEmpty()) {
             return Result.failure(IllegalArgumentException("Message cannot be blank"))
         }
         val text = trimmed.ifBlank { "Here's a photo." }
 
-        // 1. Fetch prior conversation history before saving current turn
-        val priorHistory = coachMessageDao.getRecent(10).reversed()
+        // 1. This chat's recent messages, before saving the current turn. Other chats stay out
+        //    of it; what Dash should always remember lives in the journal.
+        val priorHistory = coachMessageDao.getRecent(conversationId, 10).reversed()
 
         // 2. Keep the photos (for the chat bubble) and encode them for the model
         val storedPaths = storeImages(imageUris)
@@ -94,6 +136,7 @@ class DefaultCoachRepository(
         // 3. Save user turn
         val userMessageId = coachMessageDao.insert(
             CoachMessageEntity(
+                conversationId = conversationId,
                 timestamp = Instant.now(),
                 role = "user",
                 content = text,
@@ -108,6 +151,8 @@ class DefaultCoachRepository(
         result.onFailure {
             coachMessageDao.deleteById(userMessageId)
             withContext(Dispatchers.IO) { storedPaths.forEach { path -> File(path).delete() } }
+            // A brand-new chat whose first message failed isn't kept as an empty chat.
+            if (coachMessageDao.countForConversation(conversationId) == 0) coachConversationDao.delete(conversationId)
         }
 
         return result.onSuccess { response ->
@@ -129,6 +174,7 @@ class DefaultCoachRepository(
             // 6. Save assistant turn, with any proposed actions waiting for the user's tap
             coachMessageDao.insert(
                 CoachMessageEntity(
+                    conversationId = conversationId,
                     timestamp = Instant.now(),
                     role = "assistant",
                     content = response.reply,
@@ -137,6 +183,7 @@ class DefaultCoachRepository(
                         ?.let { json.encodeToString(actionsSerializer, it) }
                 )
             )
+            coachConversationDao.touch(conversationId, Instant.now())
         }
     }
 

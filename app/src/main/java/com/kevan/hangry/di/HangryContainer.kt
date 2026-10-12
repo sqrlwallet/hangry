@@ -327,6 +327,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         DefaultCoachRepository(
             coachJournalDao = database.coachJournalDao(),
             coachMessageDao = database.coachMessageDao(),
+            coachConversationDao = database.coachConversationDao(),
             aiCoachService = aiCoachService,
             context = context,
             actionExecutor = CoachActionExecutor(

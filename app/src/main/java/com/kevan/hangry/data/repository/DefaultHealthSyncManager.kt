@@ -577,19 +577,9 @@ class DefaultHealthSyncManager(
         } catch (_: Exception) {
             emptyMap()
         }
-        // Raw readings, from the evening before the range, so each is placed in its night's sleep.
-        val readingsStart = effectiveStart.minusDays(1).atStartOfDay(zone).toInstant()
-        val readingsEnd = end.plusDays(1).atStartOfDay(zone).toInstant()
-        val spo2Readings = try {
-            dataSource.fetchOxygenSaturationReadings(readingsStart, readingsEnd)
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val respReadings = try {
-            dataSource.fetchRespiratoryRateReadings(readingsStart, readingsEnd)
-        } catch (_: Exception) {
-            emptyList()
-        }
+        // Raw readings, each placed in its night's sleep - read a month at a time.
+        val spo2Readings = ReadingsByMonth(zone, dataSource::fetchOxygenSaturationReadings)
+        val respReadings = ReadingsByMonth(zone, dataSource::fetchRespiratoryRateReadings)
         val skinTempMap = try {
             dataSource.fetchSkinTemperatureDeltas(effectiveStart, end)
         } catch (_: Exception) {
@@ -681,9 +671,9 @@ class DefaultHealthSyncManager(
                 ?: currentExistingSummary?.vo2Max
                 ?: prevDaySummary?.vo2Max
 
-            val effectiveSpo2 = NightlyVitals.overnightAverage(spo2Readings, primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
+            val effectiveSpo2 = NightlyVitals.overnightAverage(spo2Readings.around(date), primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
                 ?: currentExistingSummary?.spo2Percentage
-            val effectiveRespRate = NightlyVitals.overnightAverage(respReadings, primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
+            val effectiveRespRate = NightlyVitals.overnightAverage(respReadings.around(date), primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
                 ?: currentExistingSummary?.respiratoryRate
             val effectiveSkinTemp = skinTempMap[date] ?: currentExistingSummary?.skinTempDeltaCelsius
             val bpReading = bpMap[date]

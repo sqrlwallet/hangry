@@ -106,7 +106,7 @@ fun VitalsCard(
                     val skinTemp = summary?.skinTempDeltaCelsius
                     VitalItem(
                         label = stringResource(R.string.metrics_components_skin_temp),
-                        value = skinTemp?.let { stringResource(R.string.metrics_components_skin_temp_value, it) } ?: "—",
+                        value = skinTemp?.let { skinTempText(it) } ?: "—",
                         subtitle = when {
                             skinTemp == null -> stringResource(R.string.metrics_components_no_data_yet)
                             skinTemp >= SKIN_TEMP_NOTABLE -> stringResource(R.string.metrics_components_skin_temp_warm)

@@ -273,6 +273,7 @@ fun SettingsScreen(
             // Everything below is tucked into collapsed sections so the screen stays short.
             BackgroundSection()
             RemindersSection()
+            UnitsSection()
 
             SettingsCollapsibleSection(
                 title = stringResource(R.string.settings_sync_section_title),

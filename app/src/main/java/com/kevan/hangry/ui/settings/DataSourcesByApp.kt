@@ -95,7 +95,11 @@ private fun DataSourceInfo.DataType.label(): Int = when (this) {
     DataSourceInfo.DataType.NUTRITION -> R.string.settings_data_type_nutrition
 }
 
-/** Well-known health apps by package; others by their installed label, else the package name. */
+/**
+ * Friendlier names for apps whose label isn't what people call them (the Fitbit app is now
+ * Google Health); any other app shows its installed label - visible through the manifest's
+ * Health Connect <queries> - else its package name.
+ */
 private val KNOWN_APPS = mapOf(
     "com.fitbit.FitbitMobile" to "Fitbit / Google Health",
     "com.google.android.apps.fitness" to "Google Fit",

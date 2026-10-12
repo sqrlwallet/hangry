@@ -59,5 +59,6 @@ data class DailyHealthSummaryEntity(
  * 3: overnight RHR and HRV, personal strain zones (sleep excluded), sleep need from the goal
  *    and a week of debt, time asleep instead of time in bed.
  * 4: SpO2 and breathing rate from the night's sleep, sleeping heart rate, skin temperature.
+ * 5: overnight readings from one app per night; body signals judged against personal spread.
  */
-const val SUMMARY_CALCULATION_VERSION = 4
+const val SUMMARY_CALCULATION_VERSION = 5

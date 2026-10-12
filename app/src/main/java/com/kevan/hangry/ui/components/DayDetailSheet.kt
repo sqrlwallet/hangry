@@ -329,7 +329,7 @@ fun DayDetailSheet(
                             if (summary?.skinTempDeltaCelsius != null) {
                                 VitalColumn(
                                     label = stringResource(R.string.metrics_components_skin_temp),
-                                    value = stringResource(R.string.metrics_components_skin_temp_value, summary.skinTempDeltaCelsius),
+                                    value = skinTempText(summary.skinTempDeltaCelsius),
                                     color = tokens.textSecondary
                                 )
                             }

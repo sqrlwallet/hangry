@@ -269,7 +269,7 @@ After an update that changes these rules, all imported history is re-read once, 
 ## 12. Overnight vitals, body signals and cycle phase
 
 ### 12.1 Overnight vitals
-SpO2 and breathing rate are the average of readings taken during the night's main sleep (±30 minutes); without sleep or readings during it, the average of the day's readings. Sleeping heart rate is the average of heart-rate samples during the main sleep (10+ samples). Skin temperature: §2.2.
+SpO2 and breathing rate are the average of readings taken during the night's main sleep (±30 minutes); without sleep or readings during it, the average of the day's readings. When two apps recorded that night, only the one with the most readings counts (devices measure differently). Readings are read from Health Connect a month at a time. Sleeping heart rate is the average of heart-rate samples during the main sleep (10+ samples). Skin temperature: §2.2.
 
 ### 12.2 Body signals (illness early warning)
 Each night is compared with your own previous 30 days (each reading needs 5+ days of history):
@@ -281,8 +281,8 @@ Each night is compared with your own previous 30 days (each reading needs 5+ day
 | Breathing rate | 1+ breath/min above the average |
 | Skin temperature | 0.5 °C+ above the average (0.8 °C in the luteal phase) |
 
-Two or more at once is flagged (`BodySignals`): a card on Today, a line at the top of the morning brief and a note to Dash. One on its own is common and isn't shown. Stored per day in `daily_health_summaries.bodySignals`.
+Each threshold is the larger of the minimum above and $1.5\sigma$ of your own last 30 days (HRV on the log scale), so someone whose readings swing a lot needs a bigger move. Two or more at once is flagged (`BodySignals`): a card on Today, a line at the top of the morning brief and a note to Dash. One on its own is common and isn't shown. Stored per day in `daily_health_summaries.bodySignals`.
 
 ### 12.3 Cycle phase (women tracking periods)
-Phase comes from the last period start and the average cycle length (default 28): menstrual while the period lasts; fertile window from day $(L - 14) - 5$ to $(L - 14) + 1$; follicular before it; luteal after. Skin temperature confirms ovulation with the "three over six" rule: from cycle day 8, the first three nights that are all warmer than each of the previous six, by 0.2 °C+ on average, start the luteal phase. Once temperature is tracked in a cycle, the calendar alone never declares the luteal phase - a late ovulation stays follicular until the rise shows. Used to allow for the post-ovulation warmth in §2.2 and §12.2, and shown on Health Records → Cycle. Never a contraception or fertility tool.
+Phase comes from the last period start and the average cycle length $L$ (default 28): menstrual while the period lasts; fertile window from day $(L - P) - 5$ to $(L - P) + 1$; follicular before it; luteal after. $P$ is your luteal length - 14 days until it's learned: for each finished cycle where temperature showed the shift, the days from ovulation (the night before the first warm night) to the next period, averaged (8-18 days only). Once this cycle's shift is seen, the next period is predicted as ovulation + $P$. Skin temperature confirms ovulation with the "three over six" rule: from cycle day 8, the first three nights that are all warmer than each of the previous six, by 0.2 °C+ on average, start the luteal phase. Once temperature is tracked in a cycle, the calendar alone never declares the luteal phase - a late ovulation stays follicular until the rise shows. Used to allow for the post-ovulation warmth in §2.2 and §12.2, and shown on Health Records → Cycle. Never a contraception or fertility tool.
 

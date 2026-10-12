@@ -41,6 +41,7 @@ import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.skinTempText
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.MetricRangeBar
@@ -495,7 +496,9 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
     var logging by remember { mutableStateOf(false) }
     val stats = HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, LocalDate.now())
     val skinTemps by viewModel.skinTempByDate.collectAsState()
-    val insight = CycleTemperature.insight(stats, skinTemps, LocalDate.now())
+    val insight = CycleTemperature.insight(stats, skinTemps, LocalDate.now(), records.periods.map { it.startDate })
+    // Once temperature confirms ovulation, the next period follows your own luteal length.
+    val nextStart = insight?.predictedNextStart ?: stats.predictedNextStart
 
     HangryCard(modifier = Modifier.fillMaxWidth()) {
         if (stats.lastPeriodStart == null) {
@@ -508,7 +511,7 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
                 CycleStat(if (stats.inPeriodNow) stringResource(R.string.body_records_on_period) else stringResource(R.string.body_records_cycle_day), stats.currentCycleDay?.toString() ?: "—", Modifier.weight(1f))
-                CycleStat(stringResource(R.string.body_records_next_period), stats.predictedNextStart?.format(DATE) ?: stringResource(R.string.body_records_need_two_cycles), Modifier.weight(1f))
+                CycleStat(stringResource(R.string.body_records_next_period), nextStart?.format(DATE) ?: stringResource(R.string.body_records_need_two_cycles), Modifier.weight(1f))
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
@@ -579,13 +582,17 @@ private fun CyclePhase(insight: CycleTemperature.Insight, hasTemperature: Boolea
     )
     val note = when {
         insight.shiftDetectedOn != null && insight.shiftSizeC != null ->
-            stringResource(R.string.body_records_temp_shift, insight.shiftSizeC, insight.shiftDetectedOn.format(DATE))
+            stringResource(R.string.body_records_temp_shift, skinTempText(insight.shiftSizeC), insight.shiftDetectedOn.format(DATE))
         hasTemperature && insight.phase != CycleTemperature.Phase.MENSTRUAL -> stringResource(R.string.body_records_temp_waiting)
         else -> null
     }
     note?.let {
         Spacer(Modifier.height(6.dp))
         Text(it, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+    }
+    insight.personalLutealDays?.let {
+        Spacer(Modifier.height(4.dp))
+        Text(stringResource(R.string.body_records_luteal_learned, it), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
     }
 }
 

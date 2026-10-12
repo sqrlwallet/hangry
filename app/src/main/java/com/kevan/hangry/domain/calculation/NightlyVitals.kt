@@ -61,24 +61,32 @@ object NightlyVitals {
         return valid.minByOrNull { it.timestamp }?.rmssd
     }
 
-    /** A reading from a spot-check or overnight sensor (SpO2, breathing rate). */
-    data class Reading(val time: Instant, val value: Double)
+    /** A reading from a spot-check or overnight sensor (SpO2, breathing rate), and the app that wrote it. */
+    data class Reading(val time: Instant, val value: Double, val source: String = "")
 
     /**
      * Readings taken during the night's sleep (+/- 30 minutes), averaged - SpO2 and breathing
      * rate mean most at rest, and a daytime spot check shouldn't blend into the overnight value.
      * Without sleep, or nothing recorded during it, the average of the day's readings.
+     * Two devices on the same night (a watch and a ring) measure differently, so only one
+     * app's readings are used: the one with the most that night.
      */
     fun overnightAverage(readings: List<Reading>, sleepStart: Instant?, sleepEnd: Instant?, dayStart: Instant, dayEnd: Instant): Double? {
         if (sleepStart != null && sleepEnd != null) {
             val overnight = readings.filter {
                 !it.time.isBefore(sleepStart.minus(Duration.ofMinutes(30))) && !it.time.isAfter(sleepEnd.plus(Duration.ofMinutes(30)))
             }
-            if (overnight.isNotEmpty()) return overnight.map { it.value }.average()
+            if (overnight.isNotEmpty()) return oneSourceAverage(overnight)
         }
         return readings.filter { !it.time.isBefore(dayStart) && it.time.isBefore(dayEnd) }
-            .takeIf { it.isNotEmpty() }?.map { it.value }?.average()
+            .takeIf { it.isNotEmpty() }?.let(::oneSourceAverage)
     }
+
+    private fun oneSourceAverage(readings: List<Reading>): Double =
+        readings.groupBy { it.source }
+            .entries
+            .sortedWith(compareByDescending<Map.Entry<String, List<Reading>>> { it.value.size }.thenBy { it.key })
+            .first().value.map { it.value }.average()
 
     /** Average heart rate while asleep. Null with too few samples to trust. */
     fun averageSleepingBpm(samples: List<HeartRateSampleEntity>, sleepStart: Instant, sleepEnd: Instant): Double? =

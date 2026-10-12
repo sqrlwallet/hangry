@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.dashboard
 
+import com.kevan.hangry.domain.calculation.BodySignals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -281,6 +282,14 @@ class DashboardViewModel(
                         isLoading = false,
                         selectedDate = date,
                         dailySummary = summary,
+                        // Values from the comparison; which ones are "off" from the stored day,
+                        // which allowed for the cycle when it was calculated.
+                        bodyCheck = summary?.let { s ->
+                            val stored = BodySignals.decode(s.bodySignals).map { it.kind }.toSet()
+                            BodySignals.compare(s, recentSummaries).map { it.copy(off = it.kind in stored) }
+                        }.orEmpty(),
+                        recentSkinTemps = (recentSummaries + listOfNotNull(summary))
+                            .mapNotNull { s -> s.skinTempDeltaCelsius?.let { s.date to it } }.toMap(),
                         recoveryScore = score,
                         sleepAnalysis = sleepAnalysis,
                         previousDayStrain = previousDaySummary?.dayStrain,

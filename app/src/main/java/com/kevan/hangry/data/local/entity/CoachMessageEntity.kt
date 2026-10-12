@@ -10,11 +10,13 @@ import java.time.Instant
  */
 @Entity(
     tableName = "coach_messages",
-    indices = [Index(value = ["timestamp"])]
+    indices = [Index(value = ["timestamp"]), Index(value = ["conversationId", "timestamp"])]
 )
 data class CoachMessageEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    /** The chat it belongs to, see CoachConversationEntity. */
+    val conversationId: Long = 0,
     val timestamp: Instant = Instant.now(),
     val role: String, // "user" or "assistant"
     val content: String,

@@ -1,3 +1,37 @@
+## 🚀 What's New in Hangry v1.34.0 — Dash Chats & Body Check
+
+Start fresh conversations with Dash and keep every past one, plus new Today cards for what your wearable sees overnight.
+
+### 💬 Chats with Dash
+- **New chat** any time from Dash's top bar. Each chat keeps its own conversation, while Dash still knows your data and your journal.
+- **Chat history**: reopen past chats, grouped by Today, Yesterday, Previous 7 days and Earlier, with a preview of the last message.
+- **Search** your chats by title or anything said in them, and **rename** or **delete** them. Deleting a chat keeps the memories Dash saved to your journal.
+- Dash reopens your most recent chat. Your existing messages are kept as one chat.
+
+### 🩺 New Today cards
+- **Body check**: last night's resting heart rate, HRV, breathing rate and skin temperature against your usual, every day.
+- **Overnight vitals**: everything your wearable measured while you slept.
+- **Cycle**: phase, cycle day and your next period, for women who log periods.
+
+### 📈 Trends & workouts
+- New Trends for **sleeping heart rate, skin temperature, breathing rate and SpO₂**, and a **Body signals** filter for the nights several readings were off.
+- Routes now show **per-km splits** (fastest highlighted) and an **elevation profile** with total climb.
+
+### 🧠 Smarter readings
+- The illness warning now judges each reading against how much it normally varies for you, so fewer false alarms if your numbers naturally swing.
+- When two devices recorded the same night, SpO₂ and breathing rate come from one of them instead of a mix.
+- Cycle predictions learn your own post-ovulation length from your temperature.
+
+### ⚙️ Settings
+- **Settings → Units**: show temperatures in °F.
+- **Data Sources** shows the real names of every app connected to Health Connect.
+- The Health data row only lists data Hangry actually reads.
+
+### 🛠️ Fixes
+- Recalculating a long history no longer loads every overnight reading into memory at once.
+
+---
+
 ## 🚀 What's New in Hangry v1.33.0 — More From Your Wearable
 
 Hangry now uses everything a Fitbit Air (and other trackers) shares through Health Connect.

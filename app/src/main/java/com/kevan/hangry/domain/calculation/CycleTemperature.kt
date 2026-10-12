@@ -20,12 +20,17 @@ object CycleTemperature {
         /** First warm night of the shift, when temperature confirmed ovulation this cycle. */
         val shiftDetectedOn: LocalDate?,
         /** How much warmer the shift nights ran than the six before, °C. */
-        val shiftSizeC: Double?
+        val shiftSizeC: Double?,
+        /** Next period from the temperature shift and your own luteal length; null unless confirmed. */
+        val predictedNextStart: LocalDate? = null,
+        /** Your luteal length learned from earlier cycles' shifts, when there were any. */
+        val personalLutealDays: Int? = null
     ) {
         val confirmedByTemperature: Boolean get() = shiftDetectedOn != null
     }
 
     private const val DEFAULT_CYCLE_DAYS = 28
+    /** Textbook luteal length, used until your own is known. */
     private const val LUTEAL_DAYS = 14
     /** The classic "three over six" rule: three nights warmer than all of the previous six... */
     private const val LOW_NIGHTS = 6
@@ -39,13 +44,15 @@ object CycleTemperature {
      * Today's phase, or null without a period on record or once the cycle has run so long
      * (over 60 days) that the last logged period clearly isn't the current one.
      */
-    fun insight(stats: CycleStats, skinTempByDate: Map<LocalDate, Double>, today: LocalDate): Insight? {
+    fun insight(stats: CycleStats, skinTempByDate: Map<LocalDate, Double>, today: LocalDate, periodStarts: List<LocalDate> = emptyList()): Insight? {
         val start = stats.lastPeriodStart ?: return null
         val cycleDay = ChronoUnit.DAYS.between(start, today).toInt() + 1
         if (cycleDay !in 1..60) return null
         val shift = findShift(start, today, skinTempByDate)
+        val learned = personalLutealDays(periodStarts, skinTempByDate)
+        val lutealDays = learned ?: LUTEAL_DAYS
         val cycleLength = stats.averageCycleDays?.let { Math.round(it).toInt() } ?: DEFAULT_CYCLE_DAYS
-        val ovulationDay = cycleLength - LUTEAL_DAYS
+        val ovulationDay = cycleLength - lutealDays
         val tempTracked = skinTempByDate.keys.any { !it.isBefore(start) && !it.isAfter(today) }
         val phase = when {
             stats.inPeriodNow -> Phase.MENSTRUAL
@@ -56,7 +63,23 @@ object CycleTemperature {
             tempTracked -> Phase.FOLLICULAR
             else -> Phase.LUTEAL
         }
-        return Insight(phase, cycleDay, shift?.first, shift?.second)
+        // The shift's first warm night is about the day after ovulation.
+        val predicted = shift?.first?.minusDays(1)?.plusDays(lutealDays.toLong())
+        return Insight(phase, cycleDay, shift?.first, shift?.second, predicted, learned)
+    }
+
+    /**
+     * Your own luteal length - ovulation to the next period - averaged over finished cycles
+     * where temperature showed the shift. It varies far less from cycle to cycle than the days
+     * before ovulation, so it predicts the next period well once the shift is seen.
+     * Null without a measured cycle; implausible lengths (outside 8-18 days) are ignored.
+     */
+    fun personalLutealDays(periodStarts: List<LocalDate>, skinTempByDate: Map<LocalDate, Double>): Int? {
+        val lengths = periodStarts.sorted().zipWithNext().mapNotNull { (start, next) ->
+            val shift = findShift(start, next.minusDays(1), skinTempByDate)?.first ?: return@mapNotNull null
+            ChronoUnit.DAYS.between(shift.minusDays(1), next).toInt().takeIf { it in 8..18 }
+        }
+        return lengths.takeIf { it.isNotEmpty() }?.let { Math.round(it.average()).toInt() }
     }
 
     /** True when [date] falls after a confirmed (or, without temperature data, expected) ovulation. */
@@ -69,7 +92,8 @@ object CycleTemperature {
         // Temperature tracked this cycle but no shift yet: not luteal.
         if (skinTempByDate.keys.any { !it.isBefore(start) && !it.isAfter(date) }) return false
         val cycleLength = averageCycleDays?.let { Math.round(it).toInt() } ?: DEFAULT_CYCLE_DAYS
-        return cycleDay > cycleLength - LUTEAL_DAYS + 1
+        val lutealDays = personalLutealDays(periodStarts.filter { !it.isAfter(date) }, skinTempByDate) ?: LUTEAL_DAYS
+        return cycleDay > cycleLength - lutealDays + 1
     }
 
     /** First night of a sustained rise in [cycleStart]..[upTo], with its size. */

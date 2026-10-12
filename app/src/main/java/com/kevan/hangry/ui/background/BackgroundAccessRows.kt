@@ -136,7 +136,11 @@ fun HealthDataAccessRow() {
     val dataSource = remember { RealHealthConnectDataSource(context.applicationContext) }
     var missing by remember { mutableStateOf<Set<String>?>(null) }
     fun refresh() = scope.launch {
-        missing = if (dataSource.isAvailable()) dataSource.permissionsToRequest() - dataSource.grantedPermissions() else null
+        // Only data Hangry reads - history access or writing meals is a choice, not a gap.
+        missing = if (dataSource.isAvailable()) {
+            dataSource.permissionsToRequest().filter { ".READ_" in it && it != RealHealthConnectDataSource.PERMISSION_READ_HEALTH_DATA_HISTORY }.toSet() -
+                dataSource.grantedPermissions()
+        } else null
     }
     val launcher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
         if (granted.isNotEmpty()) {

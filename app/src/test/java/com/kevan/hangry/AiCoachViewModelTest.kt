@@ -37,7 +37,7 @@ class AiCoachViewModelTest {
             Result.success(CoachResponse(reply = "Hello!"))
         }
 
-        override fun getMessages(): Flow<List<CoachMessageEntity>> = messagesFlow.asStateFlow()
+        override fun getMessages(conversationId: Long): Flow<List<CoachMessageEntity>> = messagesFlow.asStateFlow()
         override fun getJournalEntries(): Flow<List<CoachJournalEntity>> = journalFlow.asStateFlow()
 
         override suspend fun deleteJournalEntry(id: Long) {

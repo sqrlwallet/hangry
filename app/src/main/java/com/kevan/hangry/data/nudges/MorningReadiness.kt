@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.kevan.hangry.HangryApplication
 import com.kevan.hangry.R
+import com.kevan.hangry.data.prefs.UnitPrefs
 import com.kevan.hangry.domain.calculation.BodySignals
 import com.kevan.hangry.domain.model.NudgeText
 import com.kevan.hangry.domain.model.RecoveryState
@@ -47,7 +48,8 @@ object MorningReadiness {
             .orEmpty()
             .mapNotNull { it.dayStrain }
         val target = recentStrain.takeIf { it.isNotEmpty() }?.let { container.strainCalculator.recommendStrainTarget(state, it) }
-        val signals = BodySignals.decode(summary.bodySignals).map(BodySignals::describe)
+        val fahrenheit = UnitPrefs.fahrenheit(context)
+        val signals = BodySignals.decode(summary.bodySignals).map { BodySignals.describe(it, fahrenheit) }
         val message = NudgeText.morning(score, state, summary.sleepDurationMinutes, target?.targetLow, target?.targetHigh, signals)
 
         val mood = when (state) {

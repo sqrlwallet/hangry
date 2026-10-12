@@ -38,7 +38,7 @@ class HealthRecordsViewModel(
 ) : ViewModel() {
 
     /** Recent nights' skin temperature change, for spotting the post-ovulation rise. */
-    val skinTempByDate: StateFlow<Map<LocalDate, Double>> = (summaries?.getSummariesBetween(LocalDate.now().minusDays(90), LocalDate.now())
+    val skinTempByDate: StateFlow<Map<LocalDate, Double>> = (summaries?.getSummariesBetween(LocalDate.now().minusDays(365), LocalDate.now())
         ?.map { list -> list.mapNotNull { s -> s.skinTempDeltaCelsius?.let { s.date to it } }.toMap() }
         ?: flowOf(emptyMap()))
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())

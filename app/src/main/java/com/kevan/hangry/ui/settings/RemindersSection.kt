@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.settings
 
+import com.kevan.hangry.data.prefs.UnitPrefs
+import androidx.compose.material.icons.filled.Thermostat
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -82,6 +84,29 @@ internal fun RemindersSection() {
                 TextButton(onClick = { permission.launch(Manifest.permission.POST_NOTIFICATIONS) }) { Text(stringResource(R.string.settings_reminders_allow_notifications)) }
             }
         }
+    }
+}
+
+/** Display units - temperatures only for now (weights and heights are asked for where entered). */
+@Composable
+internal fun UnitsSection() {
+    val context = LocalContext.current
+    var fahrenheit by remember { mutableStateOf(UnitPrefs.fahrenheit(context)) }
+    SettingsCollapsibleSection(
+        title = stringResource(R.string.settings_units_title),
+        summary = if (fahrenheit) stringResource(R.string.settings_units_fahrenheit) else stringResource(R.string.settings_units_celsius),
+        icon = Icons.Default.Thermostat
+    ) {
+        ReminderSwitch(
+            icon = Icons.Default.Thermostat,
+            title = stringResource(R.string.settings_units_temp_title),
+            subtitle = stringResource(R.string.settings_units_temp_subtitle),
+            checked = fahrenheit,
+            onChange = {
+                fahrenheit = it
+                UnitPrefs.setFahrenheit(context, it)
+            }
+        )
     }
 }
 

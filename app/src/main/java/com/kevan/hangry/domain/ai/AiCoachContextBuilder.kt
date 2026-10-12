@@ -201,7 +201,7 @@ class AiCoachContextBuilder(
                     s.vo2Max?.let { "VO2 max %.1f".format(java.util.Locale.US, it) },
                     s.sleepingHeartRate?.let { "sleeping HR %.0f bpm".format(java.util.Locale.US, it) },
                     BodySignals.decode(s.bodySignals).takeIf { it.size >= BodySignals.MIN_SIGNALS }?.let { signals ->
-                        "BODY SIGNALS OFF NORMAL (possible illness/strain): " + signals.joinToString(", ", transform = BodySignals::describe)
+                        "BODY SIGNALS OFF NORMAL (possible illness/strain): " + signals.joinToString(", ") { BodySignals.describe(it) }
                     }
                 ).joinToString("") { " | $it" }
 

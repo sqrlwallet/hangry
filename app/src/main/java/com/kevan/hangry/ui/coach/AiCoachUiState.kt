@@ -1,10 +1,20 @@
 package com.kevan.hangry.ui.coach
 
+import com.kevan.hangry.data.local.entity.CoachConversationSummary
 import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.CoachMessageEntity
 
 data class AiCoachUiState(
+    /** The open chat's messages. */
     val messages: List<CoachMessageEntity> = emptyList(),
+    /** The open chat; null for a new chat that has no messages yet. */
+    val activeConversationId: Long? = null,
+    /** Every chat, most recently used first, for the history sheet. */
+    val conversations: List<CoachConversationSummary> = emptyList(),
+    val showHistory: Boolean = false,
+    val historyQuery: String = "",
+    /** Chats whose messages match [historyQuery]; titles are matched on top of these. */
+    val historyMatches: Set<Long> = emptySet(),
     val journalEntries: List<CoachJournalEntity> = emptyList(),
     val isAiConfigured: Boolean = false,
     val aiFeaturesEnabled: Boolean = false,
@@ -24,4 +34,15 @@ data class AiCoachUiState(
     val openScreen: Pair<String, String?>? = null,
     /** Dash's reply as it streams in; null when nothing is streaming. */
     val streamingReply: String? = null
-)
+) {
+    /** The open chat's title, for the top bar; null for a new chat. */
+    val activeTitle: String? get() = conversations.firstOrNull { it.id == activeConversationId }?.title
+
+    /** Chats the history sheet shows: all, or those whose title or messages match the search. */
+    val visibleConversations: List<CoachConversationSummary>
+        get() {
+            val q = historyQuery.trim()
+            if (q.isEmpty()) return conversations
+            return conversations.filter { it.id in historyMatches || it.title.contains(q, ignoreCase = true) }
+        }
+}

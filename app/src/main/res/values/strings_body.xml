@@ -26,6 +26,11 @@
     <string name="body_trends_filter_primed" formatted="false">Primed (67%+)</string>
     <string name="body_trends_filter_rebuild" formatted="false">Rebuild (&lt;34%)</string>
     <string name="body_trends_filter_has_meals">Has Meals</string>
+    <string name="body_trends_filter_body_signals">Body Signals</string>
+    <string name="body_trends_metric_sleeping_hr">Sleeping HR</string>
+    <string name="body_trends_metric_skin_temp">Skin Temp</string>
+    <string name="body_trends_metric_breathing">Breathing</string>
+    <string name="body_trends_metric_spo2">SpO₂</string>
     <string name="body_trends_duration_hm">%1$dh %2$dm</string>
     <string name="body_trends_minutes_value">%1$dm</string>
     <string name="body_trends_percent_value">%1$d%%</string>
@@ -273,7 +278,8 @@
     <string name="body_records_phase_fertile">Fertile window (est.)</string>
     <string name="body_records_phase_luteal">Luteal</string>
     <string name="body_records_phase_luteal_est">Luteal (est.)</string>
-    <string name="body_records_temp_shift">Skin temperature rose %1$.1f °C from %2$s, which usually means ovulation has happened. Hangry allows for this warmer phase so it isn\'t mistaken for illness.</string>
+    <string name="body_records_temp_shift">Skin temperature rose %1$s from %2$s, which usually means ovulation has happened. Hangry allows for this warmer phase so it isn\'t mistaken for illness.</string>
+    <string name="body_records_luteal_learned">Your post-ovulation phase runs about %1$d days, learned from your temperature.</string>
     <string name="body_records_temp_waiting">No temperature rise yet this cycle. Your wearable\'s skin temperature confirms ovulation a few days after it happens.</string>
     <string name="body_records_days_value">%1$.0f days</string>
     <string name="body_records_log_period">Log a period</string>

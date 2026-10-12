@@ -4,7 +4,7 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-green.svg)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room-2.7.2-orange.svg)](https://developer.android.com/training/data-storage/room)
 [![Health Connect](https://img.shields.io/badge/Health%20Connect-1.1.0-red.svg)](https://developer.android.com/health-and-fitness/guides/health-connect)
-[![Tests](https://img.shields.io/badge/Tests-313%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-331%20Passed-brightgreen.svg)]()
 
 **Hangry** is a local-first, open-source Android wellness and fitness app. It reads your health data through Android Health Connect, stores it on your phone in Room, and turns it into recovery, sleep, strain, nutrition and body-composition insights - plus **Dash**, an AI companion that knows your data and can log things for you.
 
@@ -71,6 +71,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - An AI companion that sees your recovery, sleep, trends, nutrition, body metrics, health records and supplements.
 - **Send photos** (meals, supplement labels, lab reports, monitor screens) and Dash proposes actions - log a meal, save lab readings, add a supplement, update goals, log sleep and more. **Nothing is saved until you tap to confirm.**
 - Replies stream word by word; data-aware suggestion chips; voice input.
+- **Separate chats with history**: start a new chat any time, and reopen, search, rename or delete past ones. Each chat keeps its own context; what Dash should always remember lives in your journal.
 
 ### More
 - **Guided breathing** - box breathing and 6, 5 and 3 breaths-per-minute sessions with audio beeps that keep going with the screen locked, logged to Health Connect.

@@ -10,6 +10,15 @@
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
+        <!-- Apps connected to Health Connect (every one declares these), so Settings > Data
+             Sources can show their names instead of package names. -->
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+            <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+        </intent>
         <!-- Voice input for Ask Dash via the system speech recogniser. -->
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />

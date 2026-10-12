@@ -1,5 +1,8 @@
 package com.kevan.hangry.ui.trends
 
+import com.kevan.hangry.data.prefs.UnitPrefs
+import com.kevan.hangry.domain.calculation.BodySignals
+import com.kevan.hangry.domain.model.TemperatureText
 import com.kevan.hangry.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
@@ -85,6 +88,10 @@ enum class TrendMetricCategory(
     SLEEP(R.string.body_trends_metric_sleep, Icons.Default.Bedtime, "h"),
     HRV(R.string.body_trends_metric_hrv, Icons.Default.Favorite, "ms"),
     RHR(R.string.body_trends_metric_rhr, Icons.Default.HeartBroken, "bpm"),
+    SLEEPING_HR(R.string.body_trends_metric_sleeping_hr, Icons.Default.Bedtime, "bpm"),
+    SKIN_TEMP(R.string.body_trends_metric_skin_temp, Icons.Default.Thermostat, "°C"),
+    BREATHING(R.string.body_trends_metric_breathing, Icons.Default.Air, "/min"),
+    SPO2(R.string.body_trends_metric_spo2, Icons.Default.Bloodtype, "%"),
     STEPS(R.string.body_trends_metric_steps, Icons.AutoMirrored.Filled.DirectionsRun, "steps"),
     ACTIVE_CALORIES(R.string.body_trends_metric_active_burn, Icons.Default.Whatshot, "kcal"),
     NUTRITION_CALORIES(R.string.body_trends_metric_calories_in, Icons.Default.Restaurant, "kcal"),
@@ -96,7 +103,8 @@ private enum class HistoryFilter(@StringRes val labelRes: Int) {
     WORKOUTS(R.string.body_trends_filter_workouts),
     PRIMED(R.string.body_trends_filter_primed),
     REBUILD(R.string.body_trends_filter_rebuild),
-    NUTRITION(R.string.body_trends_filter_has_meals)
+    NUTRITION(R.string.body_trends_filter_has_meals),
+    BODY_SIGNALS(R.string.body_trends_filter_body_signals)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -190,7 +198,8 @@ fun TrendsScreen(
     }
 
     // Generate trend points for currently selected metric
-    val trendPoints = remember(selectedMetric, chronologicalDates, scoreByDate, summaryByDate, foodLogsByDate, weightsByDate) {
+    val fahrenheit = UnitPrefs.fahrenheit(context)
+    val trendPoints = remember(selectedMetric, chronologicalDates, scoreByDate, summaryByDate, foodLogsByDate, weightsByDate, fahrenheit) {
         chronologicalDates.map { date ->
             val value = when (selectedMetric) {
                 TrendMetricCategory.RECOVERY -> scoreByDate[date]?.score?.toDouble()
@@ -198,6 +207,10 @@ fun TrendsScreen(
                 TrendMetricCategory.SLEEP -> summaryByDate[date]?.sleepDurationMinutes?.let { it / 60.0 }
                 TrendMetricCategory.HRV -> summaryByDate[date]?.hrvRmssd
                 TrendMetricCategory.RHR -> summaryByDate[date]?.restingHeartRate
+                TrendMetricCategory.SLEEPING_HR -> summaryByDate[date]?.sleepingHeartRate
+                TrendMetricCategory.SKIN_TEMP -> summaryByDate[date]?.skinTempDeltaCelsius?.let { TemperatureText.deltaValue(it, fahrenheit) }
+                TrendMetricCategory.BREATHING -> summaryByDate[date]?.respiratoryRate
+                TrendMetricCategory.SPO2 -> summaryByDate[date]?.spo2Percentage
                 TrendMetricCategory.STEPS -> summaryByDate[date]?.steps?.toDouble()
                 TrendMetricCategory.ACTIVE_CALORIES -> summaryByDate[date]?.activeCalories
                 TrendMetricCategory.NUTRITION_CALORIES -> foodLogsByDate[date]?.sumOf { it.calories }?.toDouble()
@@ -213,6 +226,10 @@ fun TrendsScreen(
         TrendMetricCategory.SLEEP -> tokens.chartColors.sleep
         TrendMetricCategory.HRV -> tokens.chartColors.hrv
         TrendMetricCategory.RHR -> tokens.chartColors.restingHeartRate
+        TrendMetricCategory.SLEEPING_HR -> tokens.chartColors.restingHeartRate
+        TrendMetricCategory.SKIN_TEMP -> tokens.scoreColors.rebuild
+        TrendMetricCategory.BREATHING -> tokens.chartColors.hrv
+        TrendMetricCategory.SPO2 -> tokens.scoreColors.primed
         TrendMetricCategory.STEPS -> tokens.chartColors.steps
         TrendMetricCategory.ACTIVE_CALORIES -> tokens.chartColors.activeCalories
         TrendMetricCategory.NUTRITION_CALORIES -> tokens.macroColors.calories
@@ -229,6 +246,10 @@ fun TrendsScreen(
             }
             TrendMetricCategory.HRV -> "${v.toInt()}"
             TrendMetricCategory.RHR -> "${v.toInt()}"
+            TrendMetricCategory.SLEEPING_HR -> "${v.toInt()}"
+            TrendMetricCategory.SKIN_TEMP -> String.format(Locale.US, "%+.1f", v)
+            TrendMetricCategory.BREATHING -> String.format(Locale.US, "%.1f", v)
+            TrendMetricCategory.SPO2 -> "${v.toInt()}"
             TrendMetricCategory.STEPS -> String.format(Locale.US, "%,d", v.toLong())
             TrendMetricCategory.ACTIVE_CALORIES -> "${v.toInt()}"
             TrendMetricCategory.NUTRITION_CALORIES -> "${v.toInt()}"
@@ -244,7 +265,7 @@ fun TrendsScreen(
             .sortedDescending()
     }
 
-    val filteredHistoryDates = remember(allHistoryDates, historyFilter, scoreByDate, workoutsByDate, foodLogsByDate) {
+    val filteredHistoryDates = remember(allHistoryDates, historyFilter, scoreByDate, workoutsByDate, foodLogsByDate, summaryByDate) {
         when (historyFilter) {
             HistoryFilter.ALL -> allHistoryDates
             HistoryFilter.WORKOUTS -> allHistoryDates.filter { (workoutsByDate[it]?.size ?: 0) > 0 }
@@ -254,6 +275,10 @@ fun TrendsScreen(
                 sc != null && sc < 34
             }
             HistoryFilter.NUTRITION -> allHistoryDates.filter { (foodLogsByDate[it]?.size ?: 0) > 0 }
+            // Nights where several readings were off your normal together.
+            HistoryFilter.BODY_SIGNALS -> allHistoryDates.filter {
+                BodySignals.decode(summaryByDate[it]?.bodySignals).size >= BodySignals.MIN_SIGNALS
+            }
         }
     }
 
@@ -423,7 +448,7 @@ fun TrendsScreen(
                     HangryInteractiveTrendChart(
                         points = trendPoints,
                         color = metricColor,
-                        unit = selectedMetric.unit,
+                        unit = if (selectedMetric == TrendMetricCategory.SKIN_TEMP && fahrenheit) "°F" else selectedMetric.unit,
                         formatValue = formatMetricValue,
                         onPointClicked = { tappedDate ->
                             inspectingDate = tappedDate

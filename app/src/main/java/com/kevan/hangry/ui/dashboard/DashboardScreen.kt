@@ -285,7 +285,7 @@ fun DashboardScreen(
                         BodySignals.Kind.RESTING_HR -> stringResource(R.string.dashboard_signal_rhr, s.change)
                         BodySignals.Kind.HRV -> stringResource(R.string.dashboard_signal_hrv, s.change)
                         BodySignals.Kind.BREATHING -> stringResource(R.string.dashboard_signal_breathing, s.change)
-                        BodySignals.Kind.SKIN_TEMP -> stringResource(R.string.dashboard_signal_skin_temp, s.change)
+                        BodySignals.Kind.SKIN_TEMP -> stringResource(R.string.dashboard_signal_skin_temp, skinTempText(s.change))
                     }
                 }
                 DashAlertCard(
@@ -366,6 +366,14 @@ fun DashboardScreen(
                             onOpen = onNavigateToSupplements
                         )
                     }
+
+                    WidgetType.BODY_CHECK -> BodyCheckCard(uiState.bodyCheck, onClick = onNavigateToRecoveryDetails)
+
+                    WidgetType.OVERNIGHT_VITALS -> uiState.dailySummary?.let {
+                        com.kevan.hangry.ui.sleep.OvernightVitalsCard(it, onClick = onNavigateToSleep)
+                    }
+
+                    WidgetType.CYCLE -> CycleCard(healthRecords, uiState.recentSkinTemps, onClick = onNavigateToHealthRecords)
 
                     WidgetType.HEALTH_RECORDS -> {
                         HealthRecordsCard(records = healthRecords, onClick = onNavigateToHealthRecords)

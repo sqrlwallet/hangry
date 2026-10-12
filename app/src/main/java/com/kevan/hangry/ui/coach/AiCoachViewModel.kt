@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
 import com.kevan.hangry.domain.model.CoachAction
 import kotlinx.serialization.builtins.ListSerializer
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class AiCoachViewModel(
     private val coachRepository: CoachRepository,
     private val userProfileRepository: UserProfileRepository,
@@ -30,9 +33,51 @@ class AiCoachViewModel(
     val uiState: StateFlow<AiCoachUiState> = _uiState.asStateFlow()
 
     private var observeJob: Job? = null
+    private var searchJob: Job? = null
+
+    /** The open chat; null is a new, empty chat (created when its first message is sent). */
+    private val activeConversation = MutableStateFlow<Long?>(null)
+    private var resumed = false
 
     init {
         refreshState()
+    }
+
+    /** Clears the screen for a new chat. Nothing is saved until the first message. */
+    fun newChat() {
+        activeConversation.value = null
+        _uiState.update { it.copy(showHistory = false, errorMessage = null, streamingReply = null) }
+        refreshSuggestions()
+    }
+
+    fun openConversation(id: Long) {
+        activeConversation.value = id
+        _uiState.update { it.copy(showHistory = false, errorMessage = null) }
+    }
+
+    fun setShowHistory(show: Boolean) {
+        _uiState.update { it.copy(showHistory = show, historyQuery = if (show) it.historyQuery else "", historyMatches = emptySet()) }
+    }
+
+    fun searchHistory(query: String) {
+        _uiState.update { it.copy(historyQuery = query) }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(SEARCH_DEBOUNCE_MS)
+            val matches = runCatching { coachRepository.searchConversations(query) }.getOrDefault(emptySet())
+            _uiState.update { it.copy(historyMatches = matches) }
+        }
+    }
+
+    fun renameConversation(id: Long, title: String) {
+        viewModelScope.launch { coachRepository.renameConversation(id, title) }
+    }
+
+    fun deleteConversation(id: Long) {
+        viewModelScope.launch {
+            coachRepository.deleteConversation(id)
+            if (activeConversation.value == id) newChat()
+        }
     }
 
     fun refreshSuggestions() {
@@ -47,16 +92,28 @@ class AiCoachViewModel(
         refreshSuggestions()
         observeJob?.cancel()
         observeJob = viewModelScope.launch {
+            // Reopen the last chat the first time Dash opens, like a messaging app.
+            if (!resumed) {
+                resumed = true
+                activeConversation.value = runCatching { coachRepository.mostRecentConversationId() }.getOrNull()
+            }
+            val messagesOfActive = activeConversation.flatMapLatest { id ->
+                if (id == null) flowOf(emptyList()) else coachRepository.getMessages(id)
+            }
             combine(
-                coachRepository.getMessages(),
+                messagesOfActive,
+                coachRepository.getConversations(),
+                activeConversation,
                 coachRepository.getJournalEntries(),
                 userProfileRepository.getProfile()
-            ) { messages, journalEntries, profile ->
+            ) { messages, conversations, activeId, journalEntries, profile ->
                 val aiEnabled = profile?.aiFeaturesEnabled ?: false
                 val hasKey = secureKeyStore.getApiKey() != null
                 _uiState.update { current ->
                     current.copy(
                         messages = messages,
+                        activeConversationId = activeId,
+                        conversations = conversations,
                         journalEntries = journalEntries,
                         aiFeaturesEnabled = aiEnabled,
                         hasApiKey = hasKey,
@@ -74,9 +131,14 @@ class AiCoachViewModel(
 
         _uiState.update { it.copy(isLoading = true, errorMessage = null, pendingImages = emptyList()) }
         viewModelScope.launch {
+            var startedHere = false
             val result = try {
-                coachRepository.askCoach(trimmed, images) { partial ->
-                    _uiState.update { it.copy(streamingReply = partial) }
+                // A new chat is created by its first message.
+                val conversationId = activeConversation.value
+                    ?: coachRepository.startConversation(trimmed).also { activeConversation.value = it; startedHere = true }
+                coachRepository.askCoach(conversationId, trimmed, images) { partial ->
+                    // Only shown while that chat is the one open.
+                    if (activeConversation.value == conversationId) _uiState.update { it.copy(streamingReply = partial) }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -91,6 +153,8 @@ class AiCoachViewModel(
                     refreshSuggestions()
                 },
                 onFailure = { e ->
+                    // The repository drops a new chat whose first message failed; back to a blank one.
+                    if (startedHere) activeConversation.value = null
                     val errorMsg = when (e) {
                         is OpenRouterException -> e.message ?: "Couldn't reach Dash. Try again."
                         else -> e.localizedMessage ?: "Something went wrong. Please try again."
@@ -157,9 +221,11 @@ class AiCoachViewModel(
         }
     }
 
-    fun clearChat() {
+    /** Deletes every chat. */
+    fun deleteAllChats() {
         viewModelScope.launch {
             coachRepository.clearMessages()
+            newChat()
         }
     }
 
@@ -173,6 +239,7 @@ class AiCoachViewModel(
 
     companion object {
         const val MAX_IMAGES = 3
+        private const val SEARCH_DEBOUNCE_MS = 250L
 
         private val actionsJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 

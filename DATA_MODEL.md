@@ -189,6 +189,9 @@ Catalog of discovered third-party health app providers submitting data via Healt
 - `totalRecordsProvided`: Int
 - `isEnabled`: Boolean (Default true)
 
+### 2.15 `CoachConversationEntity` / `CoachMessageEntity`
+Dash chats. A conversation (`coach_conversations`) has a `title` (from its first message, renameable), `createdAt` and `updatedAt` (last reply, for ordering). Each message (`coach_messages`) carries its `conversationId`; Dash is sent the last 10 messages of the open chat only. Deleting a chat removes its messages and photos; journal entries Dash saved are kept. Messages from before chats existed were moved into one chat by migration 32 → 33.
+
 ---
 
 ## 3. Database Indexes

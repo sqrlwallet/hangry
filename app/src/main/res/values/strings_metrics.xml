@@ -102,7 +102,6 @@
     <string name="metrics_components_vo2_max">VO₂ Max</string>
     <string name="metrics_components_cardio_fitness">Cardio Fitness</string>
     <string name="metrics_components_skin_temp">Skin Temp</string>
-    <string name="metrics_components_skin_temp_value">%1$+.1f °C</string>
     <string name="metrics_components_skin_temp_usual">Near your baseline</string>
     <string name="metrics_components_skin_temp_warm">Running warm</string>
     <string name="metrics_components_skin_temp_cool">Running cool</string>
@@ -112,6 +111,11 @@
     <string name="metrics_sleep_overnight_vitals">Overnight vitals</string>
     <string name="metrics_training_show_route">Show route</string>
     <string name="metrics_training_hide_route">Hide route</string>
+    <string name="metrics_training_splits">Splits</string>
+    <string name="metrics_training_split_km">Km %1$d</string>
+    <string name="metrics_training_split_partial">Last %1$.2f km</string>
+    <string name="metrics_training_pace_value">%1$d:%2$02d /km</string>
+    <string name="metrics_training_elevation">Climb %1$d m · %2$d–%3$d m altitude</string>
     <string name="metrics_training_no_route">No GPS route was recorded for this workout.</string>
     <string name="metrics_training_route_description">Map outline of this workout\'s route</string>
     <string name="metrics_sleep_avg_sleeping_hr">Avg sleeping HR</string>

@@ -1,13 +1,16 @@
 package com.kevan.hangry.domain.calculation
 
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
+import kotlin.math.exp
 import kotlin.math.ln
+import kotlin.math.sqrt
 
 /**
  * Early-warning check, like Oura's Symptom Radar or WHOOP's health monitor: when several
  * overnight readings move away from your own normal together, the body is often fighting
  * something - a cold, a hangover, overtraining - before you feel it. One reading off on its own
- * is common and means little, so it takes two or more to raise a flag.
+ * is common and means little, so it takes two or more to raise a flag. Each is judged against
+ * your own usual and how much it normally varies (see [SPREAD_MULTIPLIER]).
  */
 object BodySignals {
 
@@ -31,47 +34,69 @@ object BodySignals {
     const val LUTEAL_TEMP_ALLOWANCE_C = 0.3
 
     /**
+     * How unusual a change must be, in your own night-to-night spread (standard deviations). The
+     * fixed minimums above still apply, so a very steady person isn't flagged for tiny moves -
+     * and someone whose readings swing a lot needs a bigger move than the minimum.
+     */
+    const val SPREAD_MULTIPLIER = 1.5
+
+    /**
      * [history] is the days before [today] (any order, up to a month); each reading needs at
      * least 5 days of its own history. [lutealPhase] raises the skin temperature bar.
      */
-    fun evaluate(today: DailyHealthSummaryEntity, history: List<DailyHealthSummaryEntity>, lutealPhase: Boolean = false): Result {
-        val signals = mutableListOf<Signal>()
-        fun usual(pick: (DailyHealthSummaryEntity) -> Double?) =
-            history.mapNotNull(pick).takeIf { it.size >= MIN_HISTORY }?.average()
+    fun evaluate(today: DailyHealthSummaryEntity, history: List<DailyHealthSummaryEntity>, lutealPhase: Boolean = false): Result =
+        Result(compare(today, history, lutealPhase).mapNotNull { c -> c.change?.takeIf { c.off }?.let { Signal(c.kind, it) } })
 
-        today.restingHeartRate?.let { now ->
-            usual { it.restingHeartRate }?.let { base ->
-                if (now - base >= RHR_RISE_BPM) signals += Signal(Kind.RESTING_HR, now - base)
-            }
+    /** One reading tonight against your usual - what the Body check card shows. */
+    data class Comparison(
+        val kind: Kind,
+        val today: Double?,
+        /** Average of the history; null with under 5 days of it. */
+        val usual: Double?,
+        /** Today minus usual (HRV: percent). */
+        val change: Double?,
+        /** Far enough from usual to count as a signal. */
+        val off: Boolean
+    )
+
+    /** Every reading with data today or in the history, compared with your usual. */
+    fun compare(today: DailyHealthSummaryEntity, history: List<DailyHealthSummaryEntity>, lutealPhase: Boolean = false): List<Comparison> {
+        fun check(kind: Kind, now: Double?, past: List<Double>, minimum: Double, transform: (Double) -> Double = { it }): Comparison? {
+            if (now == null && past.isEmpty()) return null
+            val enough = past.size >= MIN_HISTORY
+            val usual = if (enough) past.average() else null
+            val change = if (now != null && usual != null) transform(now) - transform(usual) else null
+            val bar = if (enough) maxOf(minimum, SPREAD_MULTIPLIER * spread(past.map(transform))) else Double.MAX_VALUE
+            return Comparison(kind, now, usual, change, change != null && change >= bar)
         }
-        today.hrvRmssd?.takeIf { it > 0 }?.let { now ->
-            history.mapNotNull { it.hrvRmssd?.takeIf { v -> v > 0 } }.takeIf { it.size >= MIN_HISTORY }?.let { past ->
-                val logBase = past.map { ln(it) }.average()
-                if (ln(now) - logBase <= ln(1 - HRV_DROP_FRACTION)) {
-                    signals += Signal(Kind.HRV, (now / kotlin.math.exp(logBase) - 1) * 100)
-                }
+        val hrvPast = history.mapNotNull { it.hrvRmssd?.takeIf { v -> v > 0 } }
+        val hrv = check(Kind.HRV, today.hrvRmssd?.takeIf { it > 0 }, hrvPast, -ln(1 - HRV_DROP_FRACTION)) { -ln(it) }
+            // On the log scale "change" is the size of the drop; report it as a percent instead.
+            ?.let { c ->
+                val logBase = hrvPast.takeIf { it.size >= MIN_HISTORY }?.map { ln(it) }?.average()
+                val pct = if (c.today != null && logBase != null) (c.today / exp(logBase) - 1) * 100 else null
+                c.copy(usual = logBase?.let { exp(it) }, change = pct)
             }
-        }
-        today.respiratoryRate?.let { now ->
-            usual { it.respiratoryRate }?.let { base ->
-                if (now - base >= BREATHING_RISE) signals += Signal(Kind.BREATHING, now - base)
-            }
-        }
-        today.skinTempDeltaCelsius?.let { now ->
-            usual { it.skinTempDeltaCelsius }?.let { base ->
-                val bar = SKIN_TEMP_RISE_C + if (lutealPhase) LUTEAL_TEMP_ALLOWANCE_C else 0.0
-                if (now - base >= bar) signals += Signal(Kind.SKIN_TEMP, now - base)
-            }
-        }
-        return Result(signals)
+        val tempBar = SKIN_TEMP_RISE_C + if (lutealPhase) LUTEAL_TEMP_ALLOWANCE_C else 0.0
+        return listOfNotNull(
+            check(Kind.RESTING_HR, today.restingHeartRate, history.mapNotNull { it.restingHeartRate }, RHR_RISE_BPM),
+            hrv,
+            check(Kind.BREATHING, today.respiratoryRate, history.mapNotNull { it.respiratoryRate }, BREATHING_RISE),
+            check(Kind.SKIN_TEMP, today.skinTempDeltaCelsius, history.mapNotNull { it.skinTempDeltaCelsius }, tempBar)
+        )
+    }
+
+    private fun spread(values: List<Double>): Double {
+        val mean = values.average()
+        return sqrt(values.sumOf { (it - mean) * (it - mean) } / (values.size - 1).coerceAtLeast(1))
     }
 
     /** Plain-English list for notifications and Dash, e.g. "resting heart rate +4 bpm". */
-    fun describe(signal: Signal): String = when (signal.kind) {
+    fun describe(signal: Signal, fahrenheit: Boolean = false): String = when (signal.kind) {
         Kind.RESTING_HR -> String.format(java.util.Locale.US, "resting heart rate +%.0f bpm", signal.change)
         Kind.HRV -> String.format(java.util.Locale.US, "HRV %.0f%%", signal.change)
         Kind.BREATHING -> String.format(java.util.Locale.US, "breathing rate +%.1f/min", signal.change)
-        Kind.SKIN_TEMP -> String.format(java.util.Locale.US, "skin temperature +%.1f°C", signal.change)
+        Kind.SKIN_TEMP -> "skin temperature " + com.kevan.hangry.domain.model.TemperatureText.delta(signal.change, fahrenheit)
     }
 
     /** Stored form: "SKIN_TEMP:0.70,RESTING_HR:4.00". Null when nothing is off. */

@@ -3,6 +3,7 @@ package com.kevan.hangry.ui.training
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,9 +34,11 @@ import com.kevan.hangry.data.datasource.RoutePoint
 import com.kevan.hangry.data.datasource.RouteResult
 import com.kevan.hangry.data.datasource.toRoutePoints
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
+import com.kevan.hangry.domain.calculation.RouteStats
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
 import kotlin.math.cos
+import kotlin.math.roundToInt
 
 /**
  * "Show route" for distance workouts: reads the GPS route from Health Connect only when asked.
@@ -62,6 +65,8 @@ fun WorkoutRouteSection(workout: ExerciseSessionEntity) {
         val shown = points
         if (shown != null) {
             RouteOutline(shown)
+            ElevationProfile(RouteStats.elevationProfile(shown))
+            RouteSplits(RouteStats.splits(shown))
             TextButton(onClick = { points = null }) { Text(stringResource(R.string.metrics_training_hide_route)) }
         } else if (noRoute) {
             Text(stringResource(R.string.metrics_training_no_route), style = MaterialTheme.typography.bodySmall, color = tokens.textMuted)
@@ -75,6 +80,67 @@ fun WorkoutRouteSection(workout: ExerciseSessionEntity) {
                     }
                 }
             }) { Text(stringResource(R.string.metrics_training_show_route)) }
+        }
+    }
+}
+
+@Composable
+private fun ElevationProfile(profile: List<Pair<Double, Double>>) {
+    if (profile.size < 2) return
+    val tokens = LocalHangryTokens.current
+    val color = tokens.chartColors.trainingLoad
+    val minAlt = profile.minOf { it.second }
+    val maxAlt = profile.maxOf { it.second }
+    Text(
+        stringResource(R.string.metrics_training_elevation, RouteStats.climbMeters(profile).roundToInt(), minAlt.roundToInt(), maxAlt.roundToInt()),
+        style = MaterialTheme.typography.labelSmall,
+        color = tokens.textSecondary
+    )
+    Canvas(modifier = Modifier.fillMaxWidth().height(56.dp).padding(vertical = 4.dp)) {
+        val totalDistance = profile.last().first.takeIf { it > 0 } ?: return@Canvas
+        val range = (maxAlt - minAlt).coerceAtLeast(5.0) // flat routes stay flat, not stretched
+        fun at(p: Pair<Double, Double>) = Offset(
+            (p.first / totalDistance * size.width).toFloat(),
+            (size.height - (p.second - minAlt) / range * size.height).toFloat()
+        )
+        val area = Path().apply {
+            moveTo(0f, size.height)
+            profile.forEach { lineTo(at(it).x, at(it).y) }
+            lineTo(size.width, size.height)
+            close()
+        }
+        drawPath(area, color.copy(alpha = 0.25f))
+        val line = Path().apply {
+            moveTo(at(profile.first()).x, at(profile.first()).y)
+            profile.drop(1).forEach { lineTo(at(it).x, at(it).y) }
+        }
+        drawPath(line, color, style = Stroke(width = 2.dp.toPx()))
+    }
+}
+
+@Composable
+private fun RouteSplits(splits: List<RouteStats.Split>) {
+    if (splits.isEmpty()) return
+    val tokens = LocalHangryTokens.current
+    val fastest = splits.filter { it.meters >= 1000.0 }.minOfOrNull { it.paceSecondsPerKm }
+    Column(modifier = Modifier.padding(top = 4.dp)) {
+        Text(stringResource(R.string.metrics_training_splits), style = MaterialTheme.typography.labelMedium, color = tokens.textPrimary)
+        splits.forEach { split ->
+            val pace = split.paceSecondsPerKm.roundToInt()
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
+                Text(
+                    if (split.meters >= 1000.0) stringResource(R.string.metrics_training_split_km, split.index)
+                    else stringResource(R.string.metrics_training_split_partial, split.meters / 1000.0),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.textSecondary,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    stringResource(R.string.metrics_training_pace_value, pace / 60, pace % 60),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (split.paceSecondsPerKm == fastest) tokens.scoreColors.primed else tokens.textPrimary
+                )
+            }
         }
     }
 }

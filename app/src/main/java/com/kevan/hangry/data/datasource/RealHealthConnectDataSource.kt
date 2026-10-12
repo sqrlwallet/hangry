@@ -586,12 +586,12 @@ class RealHealthConnectDataSource(
 
     override suspend fun fetchOxygenSaturationReadings(start: Instant, end: Instant): List<NightlyVitals.Reading> =
         readAllRecords(OxygenSaturationRecord::class, TimeRangeFilter.between(start, end))
-            .map { NightlyVitals.Reading(it.time, it.percentage.value) }
+            .map { NightlyVitals.Reading(it.time, it.percentage.value, it.metadata.dataOrigin.packageName) }
             .filter { it.value in 70.0..100.0 }
 
     override suspend fun fetchRespiratoryRateReadings(start: Instant, end: Instant): List<NightlyVitals.Reading> = try {
         readAllRecords(RespiratoryRateRecord::class, TimeRangeFilter.between(start, end))
-            .map { NightlyVitals.Reading(it.time, it.rate) }
+            .map { NightlyVitals.Reading(it.time, it.rate, it.metadata.dataOrigin.packageName) }
             .filter { it.value in 4.0..60.0 }
     } catch (e: Exception) {
         Log.w("HangryHealthConnect", "Failed reading respiratory rates: ${e.message}")

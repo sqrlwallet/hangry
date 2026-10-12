@@ -19,10 +19,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddComment
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
@@ -153,7 +156,6 @@ fun AiCoachScreen(
             viewModel.clearActionMessage()
         }
     }
-    var showClearDialog by remember { mutableStateOf(false) }
     var showAddJournalDialog by remember { mutableStateOf(false) }
 
     // Auto-scroll to bottom whenever a new message arrives or loading state changes
@@ -184,11 +186,21 @@ fun AiCoachScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         DashAvatar(size = 32.dp)
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(MASCOT_NAME, style = MaterialTheme.typography.titleLarge)
+                        Column {
+                            Text(MASCOT_NAME, style = MaterialTheme.typography.titleLarge)
+                            // Which chat is open; a new chat has no title until its first message.
+                            uiState.activeTitle?.let {
+                                Text(it, style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
                     }
                 },
                 // A tab, so no back arrow.
                 actions = {
+                    // Past chats
+                    IconButton(onClick = { viewModel.setShowHistory(true) }) {
+                        Icon(Icons.Default.History, contentDescription = stringResource(R.string.coach_chat_history), tint = tokens.textPrimary)
+                    }
                     // Journal & Memories button
                     BadgedBox(
                         badge = {
@@ -211,13 +223,13 @@ fun AiCoachScreen(
                         }
                     }
 
-                    // Clear chat
-                    if (uiState.messages.isNotEmpty()) {
-                        IconButton(onClick = { showClearDialog = true }) {
+                    // New chat (deleting one lives in the history sheet)
+                    if (uiState.messages.isNotEmpty() || uiState.activeConversationId != null) {
+                        IconButton(onClick = { viewModel.newChat() }, enabled = !uiState.isLoading) {
                             Icon(
-                                imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = stringResource(R.string.coach_clear_chat),
-                                tint = tokens.textSecondary
+                                imageVector = Icons.Default.AddComment,
+                                contentDescription = stringResource(R.string.coach_new_chat),
+                                tint = tokens.textPrimary
                             )
                         }
                     }
@@ -499,6 +511,26 @@ fun AiCoachScreen(
     }
 }
 
+    if (uiState.showHistory) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.setShowHistory(false) },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            ChatHistorySheet(
+                conversations = uiState.visibleConversations,
+                activeId = uiState.activeConversationId,
+                query = uiState.historyQuery,
+                hasAnyChats = uiState.conversations.isNotEmpty(),
+                onQueryChange = viewModel::searchHistory,
+                onOpen = viewModel::openConversation,
+                onNewChat = viewModel::newChat,
+                onRename = viewModel::renameConversation,
+                onDelete = viewModel::deleteConversation,
+                onDeleteAll = viewModel::deleteAllChats
+            )
+        }
+    }
+
     // Journal & Memories Bottom Sheet
     if (uiState.showJournalSheet) {
         ModalBottomSheet(
@@ -521,30 +553,6 @@ fun AiCoachScreen(
             onConfirm = { category, summary, content ->
                 viewModel.addManualJournalEntry(category, summary, content)
                 showAddJournalDialog = false
-            }
-        )
-    }
-
-    // Clear Chat Confirmation Dialog
-    if (showClearDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearDialog = false },
-            title = { Text(stringResource(R.string.coach_clear_history_title)) },
-            text = { Text(stringResource(R.string.coach_clear_history_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.clearChat()
-                        showClearDialog = false
-                    }
-                ) {
-                    Text(stringResource(R.string.coach_clear), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
             }
         )
     }

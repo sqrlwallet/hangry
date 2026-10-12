@@ -257,6 +257,11 @@
     <string name="settings_bg_allowed">Allowed</string>
     <string name="settings_bg_allow">Allow</string>
     <string name="settings_health_data_title">Health data</string>
+    <string name="settings_units_title">Units</string>
+    <string name="settings_units_celsius">Temperature in °C</string>
+    <string name="settings_units_fahrenheit">Temperature in °F</string>
+    <string name="settings_units_temp_title">Show temperature in °F</string>
+    <string name="settings_units_temp_subtitle">Skin temperature changes in Fahrenheit instead of Celsius.</string>
     <string name="settings_data_by_app_title">Where your data comes from</string>
     <string name="settings_data_by_app_info">The apps that wrote each kind of data to Health Connect in the last 30 days, and when they last did.</string>
     <string name="settings_data_sources_loading">Checking Health Connect…</string>

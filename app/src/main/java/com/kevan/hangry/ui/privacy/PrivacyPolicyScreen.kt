@@ -38,6 +38,7 @@ fun PrivacyPolicyScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.settings_privacy_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -58,7 +59,7 @@ fun PrivacyPolicyScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             // Header summary banner
             LocalFirstBanner()

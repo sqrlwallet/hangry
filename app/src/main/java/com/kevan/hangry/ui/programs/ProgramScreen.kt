@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -78,11 +79,24 @@ fun ProgramScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(s?.program?.title ?: stringResource(R.string.coach_programs_program)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.coach_back)) }
                 },
-                actions = { s?.let { HangryInfoIconButton(title = stringResource(R.string.coach_programs_about, it.program.title), sections = infoFor(it)) } },
+                actions = {
+                    s?.let {
+                        HangryInfoIconButton(title = stringResource(R.string.coach_programs_about, it.program.title), sections = infoFor(it))
+                        // Level and on/off settings live in the overflow once the program is running.
+                        if (it.enabled) {
+                            ProgramSettingsMenu(
+                                it,
+                                onSetLevel = { level -> viewModel.setLevel(it.program.id, level) },
+                                onTurnOff = { viewModel.setEnabled(it.program.id, false) }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
@@ -93,9 +107,8 @@ fun ProgramScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s)
-                .padding(bottom = HangryTokens.Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             s ?: return@Column
             val id = s.program.id
@@ -111,8 +124,6 @@ fun ProgramScreen(
                 )
                 if (s.sessions.isNotEmpty()) HistoryCard(s, onDelete = viewModel::deleteSession)
                 LevelsOverview(s)
-                SettingsCard(s, onSetLevel = { viewModel.setLevel(id, it) }, onTurnOff = { viewModel.setEnabled(id, false) })
-                Text(s.program.safety, style = MaterialTheme.typography.labelSmall, color = LocalHangryTokens.current.textMuted)
             }
         }
     }
@@ -124,7 +135,7 @@ private fun IntroCard(s: ProgramSnapshot, onStart: () -> Unit) {
     val p = s.program
     var understood by remember { mutableStateOf(false) }
     HangryCard(modifier = Modifier.fillMaxWidth()) {
-        DashExpression(mood = programMood(p.id), size = 110.dp, contentDescription = null)
+        DashExpression(mood = programMood(p.id), size = 64.dp, contentDescription = null)
         Spacer(Modifier.height(8.dp))
         Text(p.tagline, style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
         Text(p.intro, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
@@ -160,9 +171,6 @@ private fun IntroCard(s: ProgramSnapshot, onStart: () -> Unit) {
         }
         Button(onClick = onStart, enabled = understood, modifier = Modifier.fillMaxWidth().height(48.dp)) {
             Text(stringResource(R.string.coach_programs_start_level_1))
-        }
-        p.credit?.let {
-            Text(it, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted, modifier = Modifier.padding(top = 6.dp))
         }
         Text(
             stringResource(R.string.coach_programs_off_until_start),
@@ -273,7 +281,7 @@ private fun SessionCard(
     val kind = s.program.kind
     var asking by remember { mutableStateOf(false) }
     val exercises = s.currentLevel.exercises
-    HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.coach_programs_todays_session), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
             Text(stringResource(R.string.coach_fraction, checked.size, exercises.size), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
@@ -351,7 +359,7 @@ private fun ExerciseRow(exercise: ProgramExercise, done: Boolean, onToggle: () -
 @Composable
 private fun HistoryCard(s: ProgramSnapshot, onDelete: (Long) -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.coach_recent_sessions), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
         s.sessions.take(10).forEach { session: ProgramSession ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -379,7 +387,7 @@ private fun HistoryCard(s: ProgramSnapshot, onDelete: (Long) -> Unit) {
 private fun LevelsOverview(s: ProgramSnapshot) {
     val tokens = LocalHangryTokens.current
     var open by remember { mutableStateOf(false) }
-    HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { open = !open }) {
             Text(stringResource(R.string.coach_programs_the_path), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
             Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = if (open) stringResource(R.string.coach_programs_hide_exercises) else stringResource(R.string.coach_programs_show_exercises), tint = tokens.textMuted)
@@ -393,7 +401,13 @@ private fun LevelsOverview(s: ProgramSnapshot) {
                     modifier = Modifier.width(24.dp)
                 )
                 Column {
-                    Text(if (level.number == s.level) stringResource(R.string.coach_programs_youre_here, level.title) else level.title, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
+                    // The current level is detailed in the card above; here it's just marked in accent.
+                    Text(
+                        level.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (level.number == s.level) FontWeight.SemiBold else null,
+                        color = if (level.number == s.level) tokens.brandAccent else tokens.textPrimary
+                    )
                     if (open) Text(level.exercises.joinToString(" · ") { it.name }, style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
                 }
             }
@@ -401,16 +415,26 @@ private fun LevelsOverview(s: ProgramSnapshot) {
     }
 }
 
+/** Top-bar overflow: change level or turn the program off, each behind its own dialog. */
 @Composable
-private fun SettingsCard(s: ProgramSnapshot, onSetLevel: (Int) -> Unit, onTurnOff: () -> Unit) {
+private fun ProgramSettingsMenu(s: ProgramSnapshot, onSetLevel: (Int) -> Unit, onTurnOff: () -> Unit) {
     val tokens = LocalHangryTokens.current
+    var menuOpen by remember { mutableStateOf(false) }
     var pickLevel by remember { mutableStateOf(false) }
     var confirmOff by remember { mutableStateOf(false) }
-    HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
-        TextButton(onClick = { pickLevel = true }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.coach_programs_change_level)) }
-        HorizontalDivider(color = tokens.cardBorder)
-        TextButton(onClick = { confirmOff = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.coach_programs_turn_off_program), color = MaterialTheme.colorScheme.error)
+    Box {
+        IconButton(onClick = { menuOpen = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.coach_programs_more_options))
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.coach_programs_change_level)) },
+                onClick = { menuOpen = false; pickLevel = true }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.coach_programs_turn_off_program), color = MaterialTheme.colorScheme.error) },
+                onClick = { menuOpen = false; confirmOff = true }
+            )
         }
     }
     if (pickLevel) {

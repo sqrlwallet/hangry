@@ -79,7 +79,7 @@ class DashboardWidgetSerializationTest {
             w.copy(order = existingSavedList.size + idx)
         }
 
-        assertTrue(merged.any { it.id == "heart_metrics" })
+        assertTrue(merged.any { it.id == "vitals_card" })
         assertTrue(merged.any { it.id == "stress_monitor" })
         assertTrue(merged.any { it.id == "custom_steps_1" })
         assertEquals(0, merged.first { it.id == "recovery_hero" }.order)

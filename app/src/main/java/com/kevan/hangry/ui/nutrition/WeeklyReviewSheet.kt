@@ -62,7 +62,7 @@ fun WeeklyReviewSheet(
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = HangryTokens.Spacing.xl)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -136,7 +136,8 @@ fun WeeklyReviewSheet(
                         }
                     }
 
-                    FiberGuideSection()
+                    // Dash's own fiber plan replaces the generic guide when there is one.
+                    if (state.aiReview?.fiberPlan.isNullOrBlank()) FiberGuideSection()
                 }
             }
         }

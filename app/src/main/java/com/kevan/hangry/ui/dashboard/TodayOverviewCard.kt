@@ -66,7 +66,7 @@ fun TodayOverviewCard(
     HangryCard(
         modifier = modifier.fillMaxWidth(),
         cornerRadius = HangryTokens.CornerRadii.large,
-        contentPadding = HangryTokens.Spacing.l
+        contentPadding = HangryTokens.Spacing.m
     ) {
         // Recovery, sleep and strain
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -79,8 +79,8 @@ fun TodayOverviewCard(
                 HangryRingGauge(
                     progress = if (isPending) 0f else (score ?: 0) / 100f,
                     color = scoreColor,
-                    modifier = Modifier.size(108.dp),
-                    strokeWidth = 10.dp
+                    modifier = Modifier.size(96.dp),
+                    strokeWidth = 9.dp
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
@@ -158,21 +158,20 @@ fun TodayOverviewCard(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = HangryTokens.Spacing.m), color = tokens.cardBorder)
+        HorizontalDivider(modifier = Modifier.padding(top = HangryTokens.Spacing.s + 4.dp, bottom = 4.dp), color = tokens.cardBorder)
 
         // Activity
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.dashboard_activity),
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textPrimary,
+                style = MaterialTheme.typography.labelMedium,
+                color = tokens.textMuted,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = { showGoalDialog = true }, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.dashboard_edit_activity_goals), tint = tokens.textMuted, modifier = Modifier.size(16.dp))
             }
         }
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             ActivityMini(
                 label = stringResource(R.string.dashboard_active_kcal),
@@ -233,23 +232,25 @@ private fun ActivityMini(label: String, value: Int, goal: Int, color: Color, mod
     val tokens = LocalHangryTokens.current
     val progress = (value.toFloat() / goal.coerceAtLeast(1)).coerceIn(0f, 1f)
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        HangryRingGauge(progress = progress, color = color, modifier = Modifier.size(56.dp), strokeWidth = 6.dp) {
+        HangryRingGauge(progress = progress, color = color, modifier = Modifier.size(44.dp), strokeWidth = 5.dp) {
             Text(
                 text = "${(progress * 100).roundToInt()}%",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = color
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = String.format(Locale.US, "%,d", value),
             style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
             color = tokens.textPrimary
         )
         Text(
             text = stringResource(R.string.dashboard_activity_label_goal, label, String.format(Locale.US, "%,d", goal)),
             style = MaterialTheme.typography.labelSmall,
-            color = tokens.textMuted
+            color = tokens.textMuted,
+            maxLines = 1
         )
     }
 }
@@ -279,25 +280,23 @@ fun DailyBriefingCard(uiState: DashboardUiState, modifier: Modifier = Modifier) 
     val positive = scoreEntity?.positiveContributors?.split("|")?.filter { it.isNotBlank() }.orEmpty()
     val negative = scoreEntity?.negativeContributors?.split("|")?.filter { it.isNotBlank() }.orEmpty()
     val drivers = if (isPending) emptyList() else positive.map { true to it } + negative.map { false to it }
-    val target = uiState.strainRecommendation
-
     HangryCard(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.Top) {
             DashExpression(
                 mood = if (isPending) DashMood.SLEEPY else state.dashMood(),
-                size = 64.dp,
+                size = 44.dp,
                 contentDescription = null
             )
-            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.s + 4.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.dashboard_daily_briefing), style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
                 Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(advice, style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(advice, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
             }
         }
         if (drivers.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+            Spacer(modifier = Modifier.height(6.dp))
             val shown = drivers.take(MAX_BRIEFING_DRIVERS)
             shown.forEach { (good, text) ->
                 Text(
@@ -310,15 +309,6 @@ fun DailyBriefingCard(uiState: DashboardUiState, modifier: Modifier = Modifier) 
             if (hidden > 0) {
                 Text(if (hidden > 1) stringResource(R.string.dashboard_briefing_more_factors, hidden) else stringResource(R.string.dashboard_briefing_more_factor, hidden), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
             }
-        }
-        if (!isPending && target != null) {
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-            Text(
-                text = stringResource(R.string.dashboard_briefing_strain_target, String.format(Locale.US, "%.1f", target.targetLow), String.format(Locale.US, "%.1f", target.targetHigh)),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = tokens.chartColors.trainingLoad
-            )
         }
     }
 }

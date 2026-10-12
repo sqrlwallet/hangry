@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.domain.model.BodyMetric
+import com.kevan.hangry.domain.model.BodyMetricGroup
 import com.kevan.hangry.domain.model.MetricBand
 import com.kevan.hangry.domain.model.MetricTone
 import com.kevan.hangry.ui.coach.DashSpinner
@@ -44,8 +45,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 
+/** The top-bar dialog: general notes plus what each metric group covers. */
 @Composable
-private fun bodyMetricsInfo(): List<HangryInfoSection> = listOf(
+private fun bodyMetricsInfo(groups: List<BodyMetricGroup>): List<HangryInfoSection> = listOf(
     HangryInfoSection(
         stringResource(R.string.body_metrics_info_source_title),
         stringResource(R.string.body_metrics_info_source_body)
@@ -58,7 +60,7 @@ private fun bodyMetricsInfo(): List<HangryInfoSection> = listOf(
         stringResource(R.string.body_metrics_info_not_diagnosis_title),
         stringResource(R.string.body_metrics_info_not_diagnosis_body)
     )
-)
+) + groups.map { HangryInfoSection(it.title, it.description) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +76,7 @@ fun BodyMetricsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.body_metrics_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -81,7 +84,7 @@ fun BodyMetricsScreen(
                     }
                 },
                 actions = {
-                    HangryInfoIconButton(title = stringResource(R.string.body_metrics_about), sections = bodyMetricsInfo())
+                    HangryInfoIconButton(title = stringResource(R.string.body_metrics_about), sections = bodyMetricsInfo(uiState.groups))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -111,10 +114,13 @@ fun BodyMetricsScreen(
 
             uiState.groups.forEach { group ->
                 item(key = "header_${group.id}") {
-                    Column(modifier = Modifier.padding(top = HangryTokens.Spacing.m, bottom = 2.dp)) {
-                        Text(group.title, style = MaterialTheme.typography.titleMedium, color = LocalHangryTokens.current.textPrimary)
-                        Text(group.description, style = MaterialTheme.typography.bodySmall, color = LocalHangryTokens.current.textSecondary)
-                    }
+                    Text(
+                        group.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = LocalHangryTokens.current.textPrimary,
+                        modifier = Modifier.padding(top = HangryTokens.Spacing.s, bottom = 2.dp)
+                    )
                 }
                 items(group.metrics, key = { it.id }) { metric ->
                     MetricCard(metric = metric, onClick = { selected = metric })
@@ -189,7 +195,7 @@ private fun SummaryCard(state: BodyMetricsUiState, onUpdateMeasurements: () -> U
 @Composable
 private fun AttentionCard(metrics: List<BodyMetric>, onSelect: (BodyMetric) -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.body_metrics_worth_a_look), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
         Spacer(Modifier.height(6.dp))
         metrics.forEach { metric ->
@@ -216,8 +222,7 @@ private fun MetricCard(metric: BodyMetric, onClick: () -> Unit) {
     HangryCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        contentPadding = 14.dp
+            .clickable(onClick = onClick)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
@@ -280,7 +285,7 @@ private fun MetricInfoSheet(metric: BodyMetric, onDismiss: () -> Unit, onUpdateM
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = HangryTokens.Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             Column {
                 Text(metric.name, style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)

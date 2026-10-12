@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -85,6 +86,7 @@ fun SupplementsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.nutrition_supplements_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nutrition_cd_back)) }
@@ -112,7 +114,7 @@ fun SupplementsScreen(
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s)
                 // Room so the floating add button never covers the last card.
                 .padding(bottom = 72.dp),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             if (snapshot.supplements.isEmpty()) {
                 EmptyState(
@@ -131,7 +133,6 @@ fun SupplementsScreen(
                     )
                 }
                 TextButton(onClick = viewModel::startManual) { Text(stringResource(R.string.nutrition_supplements_add_without_photo)) }
-                Spacer(Modifier.height(72.dp)) // clear the FAB
             }
         }
     }
@@ -155,9 +156,11 @@ fun SupplementsScreen(
 private fun EmptyState(onSnap: () -> Unit, onGallery: () -> Unit, onManual: () -> Unit) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = Modifier.fillMaxWidth()) {
-        DashExpression(mood = DashMood.SUPPLEMENTS, size = 96.dp, contentDescription = null)
-        Spacer(Modifier.height(8.dp))
-        Text(stringResource(R.string.nutrition_supplements_empty_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            DashExpression(mood = DashMood.SUPPLEMENTS, size = 56.dp, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.nutrition_supplements_empty_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
+        }
         Text(
             stringResource(R.string.nutrition_supplements_empty_body),
             style = MaterialTheme.typography.bodySmall,
@@ -183,21 +186,19 @@ internal fun TodayChecklist(
     maxRows: Int = Int.MAX_VALUE
 ) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth()) {
+        val allTaken = snapshot.todayDoses.isNotEmpty() && snapshot.takenToday == snapshot.todayDoses.size
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.nutrition_supplements_today), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+            if (allTaken) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = tokens.scoreColors.primed, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+            }
             Text(
                 if (snapshot.todayDoses.isEmpty()) stringResource(R.string.nutrition_supplements_no_doses) else stringResource(R.string.nutrition_supplements_taken_of, snapshot.takenToday, snapshot.todayDoses.size),
                 style = MaterialTheme.typography.labelMedium,
-                color = if (snapshot.todayDoses.isNotEmpty() && snapshot.takenToday == snapshot.todayDoses.size) tokens.scoreColors.primed else tokens.textSecondary
+                color = if (allTaken) tokens.scoreColors.primed else tokens.textSecondary
             )
-        }
-        if (snapshot.todayDoses.isNotEmpty() && snapshot.takenToday == snapshot.todayDoses.size) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
-                DashExpression(mood = DashMood.HAPPY, size = 52.dp, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.nutrition_supplements_all_taken_today), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
-            }
         }
         snapshot.todayDoses.take(maxRows).forEach { dose ->
             Row(
@@ -228,7 +229,7 @@ internal fun TodayChecklist(
 @Composable
 private fun SupplementCard(supplement: Supplement, adherence: Pair<Int, Int>?, onClick: () -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             supplement.photoPath?.let { path ->
                 AsyncImage(

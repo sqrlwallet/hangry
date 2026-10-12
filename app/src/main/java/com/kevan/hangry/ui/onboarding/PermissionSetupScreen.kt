@@ -118,6 +118,7 @@ fun PermissionSetupScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
+                    expandedHeight = 56.dp,
                     title = { Text(stringResource(R.string.settings_onboarding_connect_title), color = androidx.compose.ui.graphics.Color.White) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = androidx.compose.ui.graphics.Color.Transparent
@@ -167,7 +168,7 @@ fun PermissionSetupScreen(
                     .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 OnboardingStepIndicator(currentStep = OnboardingSteps.CONNECT, totalSteps = OnboardingSteps.TOTAL)
 
@@ -197,7 +198,7 @@ fun PermissionSetupScreen(
             )
 
             HangryCard {
-                Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
+                Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)) {
                     OnboardingFeatureRow(
                         icon = Icons.Default.Bedtime,
                         tint = tokens.chartColors.sleep,

@@ -16,7 +16,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -285,6 +286,7 @@ fun TrendsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.body_trends_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -318,7 +320,7 @@ fun TrendsScreen(
                 top = HangryTokens.Spacing.s,
                 bottom = 32.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             ),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             // 1. Timeframe Segmented Switcher
             item {
@@ -503,37 +505,36 @@ fun TrendsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.MonitorWeight,
                                 contentDescription = null,
                                 tint = tokens.chartColors.sleep,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = stringResource(R.string.body_trends_weight_title),
                                 style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
                                 color = tokens.textPrimary
                             )
                         }
 
-                        if (latestWeight != null) {
-                            Surface(
-                                color = tokens.cardBorder,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.body_trends_health_connect_badge),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = tokens.textSecondary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
+                        TextButton(
+                            onClick = onNavigateToBodyFatCalculator,
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.AccessibilityNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.body_trends_body_fat_calculator_short))
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
                     val weightKg = latestWeight?.weightKg
                     if (weightKg != null) {
@@ -546,7 +547,7 @@ fun TrendsScreen(
                             Column {
                                 Text(
                                     text = stringResource(R.string.body_trends_kg_value, weightKg),
-                                    style = MaterialTheme.typography.displayMedium,
+                                    style = MaterialTheme.typography.headlineSmall,
                                     color = tokens.textPrimary
                                 )
                                 Text(
@@ -698,16 +699,6 @@ fun TrendsScreen(
                                 color = tokens.textMuted
                             )
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    FilledTonalButton(
-                        onClick = onNavigateToBodyFatCalculator,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(imageVector = Icons.Default.AccessibilityNew, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.body_trends_body_fat_calculator_button))
                     }
                 }
             }
@@ -887,31 +878,6 @@ fun TrendsScreen(
                             body = stringResource(R.string.body_trends_history_tip)
                         )
                     }
-
-                    Surface(
-                        onClick = { showJumpDatePicker = true },
-                        shape = RoundedCornerShape(10.dp),
-                        color = tokens.cardBorder.copy(alpha = 0.6f),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.body_trends_pick_date),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = tokens.textPrimary
-                            )
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -965,127 +931,45 @@ fun TrendsScreen(
                     }
                 }
             } else {
-                items(filteredHistoryDates, key = { it }) { dateItem ->
-                    val matchingScore = scoreByDate[dateItem]
-                    val matchingSummary = summaryByDate[dateItem]
-                    val matchingWorkouts = workoutsByDate[dateItem] ?: emptyList()
-                    val matchingFood = foodLogsByDate[dateItem] ?: emptyList()
-
-                    val trainingLoad = matchingSummary?.dailyTrainingLoad ?: 0.0
-                    val scoreVal = matchingScore?.score
-                    val scoreColor = when {
-                        scoreVal == null -> tokens.textMuted
-                        scoreVal >= 67 -> tokens.scoreColors.primed
-                        scoreVal >= 34 -> tokens.scoreColors.balanced
-                        else -> tokens.scoreColors.rebuild
-                    }
-
-                    HangryCard(
-                        modifier = Modifier.clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            inspectingDate = dateItem
-                        }
+                // One grouped card: each day is a lazy two-line row, with the card's corners
+                // on the first and last rows so long ranges stay lazy.
+                itemsIndexed(filteredHistoryDates, key = { _, date -> date }) { index, dateItem ->
+                    val isFirst = index == 0
+                    val isLast = index == filteredHistoryDates.lastIndex
+                    val corner = HangryTokens.CornerRadii.medium
+                    Surface(
+                        color = tokens.cardBackground,
+                        shape = RoundedCornerShape(
+                            topStart = if (isFirst) corner else 0.dp,
+                            topEnd = if (isFirst) corner else 0.dp,
+                            bottomStart = if (isLast) corner else 0.dp,
+                            bottomEnd = if (isLast) corner else 0.dp
+                        ),
+                        // Pull each row up over the list's item gap so the rows read as one card.
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .layout { measurable, constraints ->
+                                val gap = if (isFirst) 0 else HangryTokens.Spacing.section.roundToPx()
+                                val placeable = measurable.measure(constraints)
+                                layout(placeable.width, (placeable.height - gap).coerceAtLeast(0)) {
+                                    placeable.place(0, -gap)
+                                }
+                            }
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = dateItem.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = tokens.textPrimary
-                                    )
-                                    if (dateItem == today) {
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                            shape = RoundedCornerShape(6.dp)
-                                        ) {
-                                            Text(
-                                                text = stringResource(R.string.body_trends_today_badge),
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
+                        Column {
+                            if (!isFirst) HorizontalDivider(color = tokens.cardBorder, modifier = Modifier.padding(horizontal = HangryTokens.Spacing.card))
+                            HistoryDayRow(
+                                date = dateItem,
+                                isToday = dateItem == today,
+                                score = scoreByDate[dateItem],
+                                summary = summaryByDate[dateItem],
+                                workoutCount = workoutsByDate[dateItem]?.size ?: 0,
+                                caloriesIn = foodLogsByDate[dateItem]?.takeIf { it.isNotEmpty() }?.sumOf { it.calories },
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    inspectingDate = dateItem
                                 }
-
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = if (scoreVal != null) stringResource(R.string.body_trends_history_recovery, scoreVal, matchingScore.state) else stringResource(R.string.body_trends_history_baseline_calibrating),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = scoreColor
-                                )
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (matchingSummary?.sleepDurationMinutes != null) {
-                                        val h = matchingSummary.sleepDurationMinutes / 60
-                                        val m = matchingSummary.sleepDurationMinutes % 60
-                                        Text(
-                                            text = stringResource(R.string.body_trends_history_sleep, h, m),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = tokens.chartColors.sleep
-                                        )
-                                    }
-                                    if (matchingWorkouts.isNotEmpty()) {
-                                        Text(
-                                            text = if (matchingWorkouts.size > 1) stringResource(R.string.body_trends_history_workouts, matchingWorkouts.size) else stringResource(R.string.body_trends_history_workout_one, matchingWorkouts.size),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = tokens.chartColors.trainingLoad
-                                        )
-                                    }
-                                    if (matchingFood.isNotEmpty()) {
-                                        val cals = matchingFood.sumOf { it.calories }
-                                        Text(
-                                            text = stringResource(R.string.body_trends_history_kcal_in, cals),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = stringResource(R.string.body_trends_history_strain, trainingLoad),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = tokens.chartColors.trainingLoad
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = stringResource(R.string.body_trends_history_steps, matchingSummary?.steps ?: 0L),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = tokens.textMuted
-                                    )
-                                    if (matchingSummary?.restingHeartRate != null) {
-                                        Text(
-                                            text = stringResource(R.string.body_trends_history_rhr, matchingSummary.restingHeartRate.toInt()),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = tokens.chartColors.restingHeartRate
-                                        )
-                                    }
-                                }
-
-                                Icon(
-                                    imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = stringResource(R.string.body_trends_inspect),
-                                    tint = tokens.textMuted,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            )
                         }
                     }
                 }
@@ -1224,4 +1108,99 @@ private fun HighlightPill(
             )
         }
     }
+}
+
+/**
+ * One day in the history card, two lines: date and recovery, then the day's numbers
+ * (sleep, strain, steps, RHR, workouts, food). Tapping opens the day's details.
+ */
+@Composable
+private fun HistoryDayRow(
+    date: LocalDate,
+    isToday: Boolean,
+    score: RecoveryScoreEntity?,
+    summary: DailyHealthSummaryEntity?,
+    workoutCount: Int,
+    caloriesIn: Int?,
+    onClick: () -> Unit
+) {
+    val tokens = LocalHangryTokens.current
+    val scoreVal = score?.score
+    val scoreColor = when {
+        scoreVal == null -> tokens.textMuted
+        scoreVal >= 67 -> tokens.scoreColors.primed
+        scoreVal >= 34 -> tokens.scoreColors.balanced
+        else -> tokens.scoreColors.rebuild
+    }
+    val stateLabel = score?.state?.replace('_', ' ')?.lowercase()?.replaceFirstChar { it.titlecase() }.orEmpty()
+    val details = buildList {
+        summary?.sleepDurationMinutes?.let { add(stringResource(R.string.body_trends_history_sleep, it / 60, it % 60)) }
+        add(stringResource(R.string.body_trends_history_strain, summary?.dailyTrainingLoad ?: 0.0))
+        add(stringResource(R.string.body_trends_history_steps, compactCount(summary?.steps ?: 0L)))
+        summary?.restingHeartRate?.let { add(stringResource(R.string.body_trends_history_rhr, it.toInt())) }
+        if (workoutCount > 0) {
+            add(
+                if (workoutCount > 1) stringResource(R.string.body_trends_history_workouts, workoutCount)
+                else stringResource(R.string.body_trends_history_workout_one, workoutCount)
+            )
+        }
+        caloriesIn?.let { add(stringResource(R.string.body_trends_history_kcal_in, it)) }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = HangryTokens.Spacing.card, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = date.format(DateTimeFormatter.ofPattern("EEE d")),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tokens.textPrimary
+                )
+                Text(
+                    text = " · " + if (scoreVal != null) stringResource(R.string.body_trends_history_recovery, scoreVal, stateLabel)
+                    else stringResource(R.string.body_trends_history_baseline_calibrating),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = scoreColor
+                )
+                if (isToday) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.body_trends_today_badge),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+            Text(
+                text = details.joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.textSecondary
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = stringResource(R.string.body_trends_inspect),
+            tint = tokens.textMuted,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+/** Step counts in a short form: 940, 9.1k, 12k. */
+private fun compactCount(value: Long): String = when {
+    value < 1_000 -> value.toString()
+    value < 10_000 -> String.format(Locale.US, "%.1fk", value / 1000.0)
+    else -> "${value / 1000}k"
 }

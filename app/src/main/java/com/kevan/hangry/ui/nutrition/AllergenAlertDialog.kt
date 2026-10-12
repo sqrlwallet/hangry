@@ -21,7 +21,7 @@ import com.kevan.hangry.ui.coach.DashMood
 fun AllergenAlertDialog(alert: AllergenAlert, onDismiss: () -> Unit, onEdit: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { DashExpression(mood = DashMood.CONCERNED, size = 96.dp, contentDescription = null, interactive = false) },
+        icon = { DashExpression(mood = DashMood.CONCERNED, size = 48.dp, contentDescription = null, interactive = false) },
         title = { Text(stringResource(R.string.nutrition_allergen_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -258,8 +258,8 @@ fun DashboardScreen(
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(top = HangryTokens.Spacing.s)
                 // Room for the Log Meal button and the floating tab bar below the last card.
-                .padding(bottom = dockInset + 72.dp),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                .padding(bottom = dockInset + 56.dp),
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             // Date Navigator Bar: navigate between days, inspect past data, or pick a date
             DateNavigatorBar(
@@ -339,17 +339,15 @@ fun DashboardScreen(
 
 
 
-                    WidgetType.HEART_METRICS -> {
-                        HeartMetricsRow(
-                            uiState = uiState,
-                            onNavigateToHeartMetrics = onNavigateToHeartMetrics
-                        )
-                    }
+                    // Heart rate, HRV, body check and overnight readings, all in one card.
+                    WidgetType.VITALS_CARD -> VitalsCard(
+                        summary = uiState.dailySummary,
+                        comparisons = uiState.bodyCheck,
+                        onClick = onNavigateToHeartMetrics
+                    )
 
-                    WidgetType.VITALS_CARD -> {
-                        VitalsCard(summary = uiState.dailySummary)
-                    }
-
+                    // Folded into the Vitals card.
+                    WidgetType.HEART_METRICS, WidgetType.BODY_CHECK, WidgetType.OVERNIGHT_VITALS -> Unit
 
                     WidgetType.BODY_FAT_COMPOSITION -> {
                         val scan = uiState.latestBodyFatScan
@@ -365,12 +363,6 @@ fun DashboardScreen(
                             onToggle = onToggleSupplementDose,
                             onOpen = onNavigateToSupplements
                         )
-                    }
-
-                    WidgetType.BODY_CHECK -> BodyCheckCard(uiState.bodyCheck, onClick = onNavigateToRecoveryDetails)
-
-                    WidgetType.OVERNIGHT_VITALS -> uiState.dailySummary?.let {
-                        com.kevan.hangry.ui.sleep.OvernightVitalsCard(it, onClick = onNavigateToSleep)
                     }
 
                     WidgetType.CYCLE -> CycleCard(healthRecords, uiState.recentSkinTemps, onClick = onNavigateToHealthRecords)
@@ -481,70 +473,6 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun HeartMetricsRow(
-    uiState: DashboardUiState,
-    onNavigateToHeartMetrics: () -> Unit
-) {
-    val tokens = LocalHangryTokens.current
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToHeartMetrics() },
-            contentPadding = 12.dp
-        ) {
-            Text(
-                text = stringResource(R.string.resting_hr_label),
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-            val rhr = uiState.dailySummary?.restingHeartRate
-            val rhrText = if (rhr != null) stringResource(R.string.dashboard_bpm_value, rhr.toInt()) else "—"
-            Text(
-                text = rhrText,
-                style = MaterialTheme.typography.headlineMedium,
-                color = tokens.chartColors.restingHeartRate
-            )
-            if (rhr == null) {
-                Text(stringResource(R.string.dashboard_no_reading_yet), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-            }
-        }
-
-        HangryCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigateToHeartMetrics() },
-            contentPadding = 12.dp
-        ) {
-            Text(
-                text = stringResource(R.string.hrv_rmssd_label),
-                style = MaterialTheme.typography.titleSmall,
-                color = tokens.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.xs))
-            val hrv = uiState.dailySummary?.hrvRmssd
-            val hrvText = if (hrv != null) stringResource(R.string.dashboard_ms_value, hrv.toInt()) else "—"
-            Text(
-                text = hrvText,
-                style = MaterialTheme.typography.headlineMedium,
-                color = tokens.chartColors.hrv
-            )
-            if (hrv == null) {
-                Text(stringResource(R.string.dashboard_hrv_not_reported), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-            }
-        }
-    }
-}
-
-@Composable
 private fun CalorieBurnCard(
     uiState: DashboardUiState,
     onNavigateToSettings: () -> Unit
@@ -638,87 +566,51 @@ private fun BodyFatCompositionWidget(
     HangryCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(onClickLabel = stringResource(R.string.dashboard_all_body_metrics)) { onClick() },
+        contentPadding = HangryTokens.Spacing.s + 4.dp
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.FitnessCenter,
-                    contentDescription = null,
-                    tint = tokens.scoreColors.primed,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.dashboard_body_composition),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = tokens.textPrimary
-                )
-            }
-            Text(
-                text = stringResource(R.string.dashboard_all_body_metrics),
-                style = MaterialTheme.typography.labelSmall,
-                color = tokens.textMuted
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.FitnessCenter,
+                contentDescription = null,
+                tint = tokens.scoreColors.primed,
+                modifier = Modifier.size(18.dp)
             )
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.xs))
+            Text(
+                text = stringResource(R.string.dashboard_body_composition),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = tokens.textPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            scan?.category?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium, color = tokens.scoreColors.primed, maxLines = 1)
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = tokens.textMuted)
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
         if (scan != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column {
-                    Text(
-                        text = String.format(java.util.Locale.US, "%.1f%%", scan.bodyFatPercentage),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = tokens.scoreColors.primed
-                    )
-                    Text(
-                        text = stringResource(R.string.dashboard_body_fat),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tokens.textMuted
-                    )
-                }
-                if (scan.leanMassKg != null) {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.dashboard_kg_value, String.format(java.util.Locale.US, "%.1f", scan.leanMassKg)),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = tokens.textPrimary
-                        )
-                        Text(
-                            text = stringResource(R.string.dashboard_lean_mass),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.textMuted
-                        )
-                    }
-                }
-                if (scan.fatMassKg != null) {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.dashboard_kg_value, String.format(java.util.Locale.US, "%.1f", scan.fatMassKg)),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = tokens.textSecondary
-                        )
-                        Text(
-                            text = stringResource(R.string.dashboard_fat_mass),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.textMuted
-                        )
-                    }
-                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)) {
+                BodyStat(
+                    value = String.format(Locale.US, "%.1f%%", scan.bodyFatPercentage),
+                    label = stringResource(R.string.dashboard_body_fat),
+                    color = tokens.scoreColors.primed,
+                    modifier = Modifier.weight(1f)
+                )
+                BodyStat(
+                    value = scan.leanMassKg?.let { stringResource(R.string.dashboard_kg_value, String.format(Locale.US, "%.1f", it)) } ?: "—",
+                    label = stringResource(R.string.dashboard_lean_mass),
+                    color = tokens.textPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                BodyStat(
+                    value = scan.fatMassKg?.let { stringResource(R.string.dashboard_kg_value, String.format(Locale.US, "%.1f", it)) } ?: "—",
+                    label = stringResource(R.string.dashboard_fat_mass),
+                    color = tokens.textPrimary,
+                    modifier = Modifier.weight(1f)
+                )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = scan.category ?: stringResource(R.string.dashboard_body_fat_first_assessment),
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
-            )
         } else {
             Text(
                 text = stringResource(R.string.dashboard_no_scan_yet),
@@ -726,5 +618,13 @@ private fun BodyFatCompositionWidget(
                 color = tokens.textSecondary
             )
         }
+    }
+}
+
+@Composable
+private fun BodyStat(value: String, label: String, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = LocalHangryTokens.current.textMuted, maxLines = 1)
     }
 }

@@ -50,12 +50,13 @@ fun BreathingExercisesCard(
                     imageVector = Icons.Default.Air,
                     contentDescription = null,
                     tint = accent,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(HangryTokens.Spacing.xs))
                 Text(
                     text = stringResource(R.string.coach_breathing_exercises),
                     style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = tokens.textPrimary
                 )
             }
@@ -118,7 +119,7 @@ fun BreathingExercisesCard(
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(

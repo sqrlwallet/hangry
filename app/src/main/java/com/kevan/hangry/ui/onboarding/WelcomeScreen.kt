@@ -77,7 +77,7 @@ fun WelcomeScreen(
             // Brand Header & Hero Core
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 // Vitality Core with ambient glowing radial halo
                 Box(

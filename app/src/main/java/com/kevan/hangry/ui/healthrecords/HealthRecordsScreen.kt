@@ -14,7 +14,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,7 +22,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,6 +42,7 @@ import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.skinTempText
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.MetricRangeBar
 import com.kevan.hangry.ui.components.MetricStatusChip
 import com.kevan.hangry.ui.theme.HangryTokens
@@ -140,6 +139,7 @@ fun HealthRecordsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.body_records_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back)) }
@@ -177,11 +177,10 @@ fun HealthRecordsScreen(
                     .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.m)
                     // Room so the floating add button never covers the last card.
                     .padding(bottom = 72.dp),
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 when (tabs[selectedTab]) {
                     "Markers" -> {
-                        DisclaimerCard()
                         HealthConnectCard(
                             state = import,
                             onConnect = { permissionLauncher.launch(import.permissionsToRequest) },
@@ -190,10 +189,13 @@ fun HealthRecordsScreen(
                         records.visibleMarkers.forEach { type ->
                             MarkerCard(records = records, type = type, onClick = { detailFor = type })
                         }
-                        Spacer(Modifier.height(72.dp)) // clear the FAB
+                        Text(
+                            stringResource(R.string.body_records_disclaimer),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = LocalHangryTokens.current.textMuted
+                        )
                     }
                     "Profile" -> {
-                        DisclaimerCard()
                         ProfileTab(records = records, viewModel = viewModel)
                     }
                     "Cycle" -> CycleTab(records = records, viewModel = viewModel)
@@ -251,25 +253,10 @@ fun HealthRecordsScreen(
 }
 
 @Composable
-private fun DisclaimerCard() {
-    val tokens = LocalHangryTokens.current
-    Surface(color = tokens.brandAccentContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Default.Lock, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(18.dp))
-            Text(
-                stringResource(R.string.body_records_disclaimer),
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textPrimary
-            )
-        }
-    }
-}
-
-@Composable
 private fun HealthConnectCard(state: HealthConnectImportState, onConnect: () -> Unit, onImport: () -> Unit) {
     val tokens = LocalHangryTokens.current
     if (!state.available) return
-    HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Favorite, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(12.dp))
@@ -302,7 +289,7 @@ private fun MarkerCard(records: HealthRecordsSnapshot, type: MarkerType, onClick
     val latest = records.latest(type)
     val metric = HealthMarkerCalculator.describe(type, latest, records.sex)
     val goal = records.goal(type)
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), contentPadding = 14.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(type.label, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
@@ -382,42 +369,40 @@ private fun ProfileTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsV
     val tokens = LocalHangryTokens.current
     var adding by remember { mutableStateOf<HealthProfileKind?>(null) }
 
-    ProfileSection(
-        title = stringResource(R.string.body_records_allergies),
-        hint = stringResource(R.string.body_records_allergies_hint),
-        items = records.allergies,
-        onAdd = { adding = HealthProfileKind.ALLERGY },
-        onDelete = viewModel::deleteProfileItem
-    )
-    ProfileSection(
-        title = stringResource(R.string.body_records_conditions),
-        hint = stringResource(R.string.body_records_conditions_hint),
-        items = records.conditions,
-        onAdd = { adding = HealthProfileKind.CONDITION },
-        onDelete = viewModel::deleteProfileItem
-    )
-
-    if (records.showsFemaleHealth) {
-        var pickingDueDate by remember { mutableStateOf(false) }
-        HangryCard(modifier = Modifier.fillMaxWidth()) {
+    var pickingDueDate by remember { mutableStateOf(false) }
+    HangryCard(modifier = Modifier.fillMaxWidth()) {
+        ProfileSection(
+            title = stringResource(R.string.body_records_allergies),
+            hint = stringResource(R.string.body_records_allergies_hint),
+            items = records.allergies,
+            onAdd = { adding = HealthProfileKind.ALLERGY },
+            onDelete = viewModel::deleteProfileItem
+        )
+        HorizontalDivider(Modifier.padding(vertical = 4.dp), color = tokens.cardBorder.copy(alpha = 0.5f))
+        ProfileSection(
+            title = stringResource(R.string.body_records_conditions),
+            hint = stringResource(R.string.body_records_conditions_hint),
+            items = records.conditions,
+            onAdd = { adding = HealthProfileKind.CONDITION },
+            onDelete = viewModel::deleteProfileItem
+        )
+        if (records.showsFemaleHealth) {
+            HorizontalDivider(Modifier.padding(vertical = 4.dp), color = tokens.cardBorder.copy(alpha = 0.5f))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.body_records_pregnant), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                    Text(
-                        stringResource(R.string.body_records_pregnant_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
-                    )
-                }
+                Text(stringResource(R.string.body_records_pregnant), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                HangryInfoTip(title = stringResource(R.string.body_records_pregnant), body = stringResource(R.string.body_records_pregnant_hint))
+                Spacer(Modifier.weight(1f))
                 Switch(checked = records.isPregnant, onCheckedChange = { viewModel.setPregnancy(it, records.pregnancyDueDate) })
             }
             if (records.isPregnant) {
-                Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { pickingDueDate = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(records.pregnancyDueDate?.let { stringResource(R.string.body_records_due_date, it.format(DATE)) } ?: stringResource(R.string.body_records_add_due_date))
                 }
             }
         }
+    }
+
+    if (records.showsFemaleHealth) {
         if (pickingDueDate) {
             HangryDatePickerDialog(
                 initial = records.pregnancyDueDate ?: LocalDate.now().plusMonths(6),
@@ -459,18 +444,16 @@ private fun ProfileSection(
     onDelete: (Long) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth()) {
+    Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                Text(hint, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
-            }
+            Text(title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+            HangryInfoTip(title = title, body = hint)
+            Spacer(Modifier.weight(1f))
             TextButton(onClick = onAdd) { Text(stringResource(R.string.body_records_add)) }
         }
         if (items.isEmpty()) {
-            Text(stringResource(R.string.body_records_none_added), style = MaterialTheme.typography.bodySmall, color = tokens.textMuted, modifier = Modifier.padding(top = 4.dp))
+            Text(stringResource(R.string.body_records_none_added), style = MaterialTheme.typography.bodySmall, color = tokens.textMuted)
         } else {
-            Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items.forEach { item ->
                     val removeLabel = stringResource(R.string.body_records_remove_item, item.name)
@@ -505,8 +488,7 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
             DashEmptyState(
                 scene = DashEmptyScene.RECORDS,
                 title = stringResource(R.string.body_records_no_periods_title),
-                body = stringResource(R.string.body_records_no_periods_body),
-                imageSize = 130.dp
+                body = stringResource(R.string.body_records_no_periods_body) 
             )
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
@@ -534,7 +516,7 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
     )
 
     if (records.periods.isNotEmpty()) {
-        HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+        HangryCard(modifier = Modifier.fillMaxWidth()) {
             records.periods.take(12).forEachIndexed { index, period ->
                 if (index > 0) HorizontalDivider(color = tokens.cardBorder.copy(alpha = 0.5f))
                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {

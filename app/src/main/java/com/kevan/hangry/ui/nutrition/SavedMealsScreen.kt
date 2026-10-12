@@ -46,7 +46,6 @@ fun SavedMealsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -89,16 +88,8 @@ fun SavedMealsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text(stringResource(R.string.title_meal_plan))
-                        Text(
-                            text = stringResource(R.string.nutrition_saved_tap_to_log, dayLabel(uiState.selectedDate)),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.textMuted
-                        )
-                    }
-                },
+                expandedHeight = 56.dp,
+                title = { Text(stringResource(R.string.title_meal_plan)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nutrition_cd_back))
@@ -126,7 +117,7 @@ fun SavedMealsScreen(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text(stringResource(R.string.nutrition_saved_search)) },
+                    placeholder = { Text(stringResource(R.string.nutrition_saved_search_tap_to_log, dayLabel(uiState.selectedDate))) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (query.isNotEmpty()) {
@@ -144,12 +135,6 @@ fun SavedMealsScreen(
                 PortionPicker(portion = portion, onPortionChange = { portion = it })
             }
 
-            item {
-                SectionHeader(
-                    title = stringResource(R.string.nutrition_saved_your_meals),
-                    trailing = if (uiState.mealPlans.isNotEmpty()) stringResource(R.string.nutrition_saved_count, uiState.mealPlans.size) else null
-                )
-            }
             if (uiState.mealPlans.isEmpty()) {
                 item {
                     HangryCard {
@@ -198,19 +183,6 @@ fun SavedMealsScreen(
                 editing = null
             }
         )
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, trailing: String?, modifier: Modifier = Modifier) {
-    val tokens = LocalHangryTokens.current
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom
-    ) {
-        Text(text = title, style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-        trailing?.let { Text(text = it, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted) }
     }
 }
 
@@ -341,15 +313,8 @@ private fun SavedMealDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.nutrition_field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(
-                    value = calories,
-                    onValueChange = { if (it.all(Char::isDigit)) calories = it },
-                    label = { Text(stringResource(R.string.nutrition_field_calories)) },
-                    keyboardOptions = number,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = calories, onValueChange = { if (it.all(Char::isDigit)) calories = it }, label = { Text(stringResource(R.string.nutrition_field_kcal)) }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(value = protein, onValueChange = { if (it.all(Char::isDigit)) protein = it }, label = { Text(stringResource(R.string.nutrition_field_protein_g)) }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(value = carbs, onValueChange = { if (it.all(Char::isDigit)) carbs = it }, label = { Text(stringResource(R.string.nutrition_field_carbs_g)) }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(value = fat, onValueChange = { if (it.all(Char::isDigit)) fat = it }, label = { Text(stringResource(R.string.nutrition_field_fat_g)) }, keyboardOptions = number, singleLine = true, modifier = Modifier.weight(1f))

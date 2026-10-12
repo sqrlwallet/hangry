@@ -147,6 +147,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -168,84 +169,23 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
-            // Goals & Body Metrics Section
-            Text(text = stringResource(R.string.settings_goals_body_metrics), style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+            // Goals live here; the full body readout is on the Body Metrics screen.
             HangryCard {
                 val currentProfile = profile
-                val effectiveWeightKg = latestWeight?.weightKg ?: currentProfile?.currentWeightKg
                 val hasBodyMetrics = currentProfile?.age != null && effectiveHeightCm != null && currentProfile.biologicalSex != null
-                val bmrPreview = if (hasBodyMetrics && effectiveWeightKg != null) {
-                    val sex = runCatching { BiologicalSex.valueOf(currentProfile!!.biologicalSex!!) }.getOrNull()
-                    sex?.let { calorieCalculator.calculateBmr(effectiveWeightKg, effectiveHeightCm!!, currentProfile!!.age!!, it) }
-                } else {
-                    null
-                }
-
-                if (hasBodyMetrics) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = stringResource(R.string.settings_age), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                        Text(text = "${currentProfile?.age}", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(
-                            text = if (latestHeight != null) stringResource(R.string.settings_height_synced) else stringResource(R.string.settings_height),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary
-                        )
-                        Text(text = stringResource(R.string.settings_value_cm, "${effectiveHeightCm?.toInt()}"), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
-                    }
-                    if (effectiveWeightKg != null) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(
-                                text = if (latestWeight != null) stringResource(R.string.settings_current_weight_synced) else stringResource(R.string.settings_current_weight),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = tokens.textSecondary
-                            )
-                            Text(text = stringResource(R.string.settings_value_kg, "%.1f".format(java.util.Locale.US, effectiveWeightKg)), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
-                        }
-                    }
-                    if (bmrPreview != null) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = stringResource(R.string.settings_estimated_bmr), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                            Text(text = stringResource(R.string.settings_value_kcal, bmrPreview.toInt()), style = MaterialTheme.typography.bodyMedium, color = tokens.chartColors.trainingLoad)
-                        }
-                    }
-                    val circumferencesList = listOfNotNull(
-                        currentProfile?.neckCircumferenceCm?.let { stringResource(R.string.settings_circumference_neck, it.toInt()) },
-                        currentProfile?.chestCircumferenceCm?.let { stringResource(R.string.settings_circumference_chest, it.toInt()) },
-                        currentProfile?.waistCircumferenceCm?.let { stringResource(R.string.settings_circumference_waist, it.toInt()) },
-                        currentProfile?.hipCircumferenceCm?.let { stringResource(R.string.settings_circumference_hips, it.toInt()) }
-                    )
-                    if (circumferencesList.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = stringResource(R.string.settings_circumferences), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                            Text(text = circumferencesList.joinToString(" • "), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider(color = tokens.cardBorder)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
                 if (currentProfile?.weightGoalKg != null && currentProfile.goalTargetDate != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = stringResource(R.string.settings_weight_goal), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                         Text(text = stringResource(R.string.settings_weight_goal_by, currentProfile.weightGoalKg.toString(), currentProfile.goalTargetDate.toString()), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 } else if (!hasBodyMetrics) {
                     Text(
                         text = stringResource(R.string.settings_add_body_metrics_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 SettingsActionRow(
@@ -254,19 +194,6 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_edit_goals_subtitle),
                     info = stringResource(R.string.settings_edit_goals_info),
                     onClick = { showEditGoalsDialog = true }
-                )
-            }
-
-            // Body fat, health records and widgets live in the More tab; only privacy stays here.
-            HangryCard {
-                // Privacy & Legal - kept to a single link rather than duplicating the wellness/
-                // non-medical notice here too; that disclosure already lives on the same screen.
-                SettingsActionRow(
-                    icon = Icons.Default.Lock,
-                    title = stringResource(R.string.settings_privacy_legal_title),
-                    subtitle = stringResource(R.string.settings_privacy_legal_subtitle),
-                    info = stringResource(R.string.settings_privacy_legal_info),
-                    onClick = onNavigateToPrivacyPolicy
                 )
             }
 
@@ -294,7 +221,7 @@ fun SettingsScreen(
                         }
                     }
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.History,
                     title = stringResource(R.string.settings_historical_sync_title),
@@ -302,7 +229,7 @@ fun SettingsScreen(
                     info = stringResource(R.string.settings_historical_sync_info),
                     onClick = onNavigateToHistoricalSync
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.Calculate,
                     title = stringResource(R.string.settings_recalculate_title),
@@ -318,7 +245,7 @@ fun SettingsScreen(
                         }
                     }
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.Sensors,
                     title = stringResource(R.string.settings_data_sources_row_title),
@@ -362,7 +289,7 @@ fun SettingsScreen(
                         jsonExportLauncher.launch("hangry_export_${LocalDate.now()}.json")
                     }
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.TableChart,
                     title = stringResource(R.string.settings_export_csv_title),
@@ -445,7 +372,7 @@ fun SettingsScreen(
                         }
                     }
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.CleaningServices,
                     title = if (isCleaningOrphans) stringResource(R.string.settings_cleaning_orphans) else stringResource(R.string.settings_clean_orphans_title),
@@ -485,7 +412,7 @@ fun SettingsScreen(
                     titleColor = tokens.scoreColors.rebuild,
                     onClick = { showDeleteHealthDialog = true }
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
                 SettingsActionRow(
                     icon = Icons.Default.RestartAlt,
                     title = stringResource(R.string.settings_reset_title),
@@ -495,7 +422,12 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
+            // Privacy & Legal - a quiet footer link rather than a card of its own.
+            TextButton(onClick = onNavigateToPrivacyPolicy, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(stringResource(R.string.settings_privacy_legal_title))
+            }
         }
     }
 
@@ -903,9 +835,9 @@ internal fun SettingsActionRow(
             imageVector = icon,
             contentDescription = null,
             tint = titleColor ?: tokens.textSecondary,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -958,9 +890,9 @@ internal fun SettingsCollapsibleSection(
                 imageVector = icon,
                 contentDescription = null,
                 tint = titleColor ?: tokens.textSecondary,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.titleMedium, color = titleColor ?: tokens.textPrimary)
                 Text(text = summary, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
@@ -974,7 +906,7 @@ internal fun SettingsCollapsibleSection(
         }
         AnimatedVisibility(visible = expanded) {
             Column {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = tokens.cardBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
                 content()
             }
         }

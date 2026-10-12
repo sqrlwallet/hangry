@@ -165,7 +165,7 @@ class WearableFollowUpsTest {
     @Test
     fun `new dashboard cards are in the defaults`() {
         val types = DashboardWidget.createDefaultWidgets().map { it.type }
-        assertTrue(types.containsAll(listOf(WidgetType.BODY_CHECK, WidgetType.OVERNIGHT_VITALS, WidgetType.CYCLE)))
+        assertTrue(types.containsAll(listOf(WidgetType.VITALS_CARD, WidgetType.CYCLE)))
         assertEquals(types.size, DashboardWidget.createDefaultWidgets().map { it.id }.toSet().size)
     }
 }

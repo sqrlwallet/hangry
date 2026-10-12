@@ -5,7 +5,7 @@
     <string name="nutrition_got_it">Got it</string>
     <string name="nutrition_percent">%1$d%%</string>
     <string name="nutrition_grams">%1$dg</string>
-    <string name="nutrition_grams_of_goal">" / %1$dg"</string>
+    <string name="nutrition_grams_of_goal_short">/%1$d</string>
 
     <!-- Allergen alert -->
     <string name="nutrition_allergen_title">Possible allergen</string>
@@ -14,13 +14,13 @@
     <string name="nutrition_allergen_edit_entry">Edit entry</string>
 
     <!-- Macro progress -->
-    <string name="nutrition_daily_target_title">Daily Nutrition Target</string>
-    <string name="nutrition_kcal_of_target">%1$d of %2$d kcal</string>
+    <string name="nutrition_kcal_of_target_short">/ %1$d kcal</string>
     <string name="nutrition_kcal_eaten_no_target">%1$d kcal eaten · add your details in Settings for a target</string>
     <string name="nutrition_macro_protein">Protein</string>
     <string name="nutrition_macro_carbs">Carbs</string>
     <string name="nutrition_macro_fat">Fat</string>
     <string name="nutrition_macro_fiber">Fiber</string>
+    <string name="nutrition_fiber_info_today">Today</string>
     <string name="nutrition_fiber_info_why">Why fiber</string>
     <string name="nutrition_fiber_info_how">How to get more</string>
     <string name="nutrition_fiber_hit">Fiber target hit - nice. Keep up the water too.</string>
@@ -35,7 +35,7 @@
     <string name="nutrition_info_how_title">How it works</string>
     <string name="nutrition_info_how_body">Take or choose a food photo, or describe a meal in text - the AI estimates calories, macros and fiber and logs it immediately. Got it wrong? Tap the entry to fix it.</string>
     <string name="nutrition_info_weekly_title">Weekly review</string>
-    <string name="nutrition_info_weekly_body">Looks back at your last 7 days of logged meals: daily averages against your targets, what to add and how to fit it in. With AI on, Dash reviews the actual meals you ate.</string>
+    <string name="nutrition_info_weekly_body">The chart icon at the top looks back at your last 7 days of logged meals: daily averages against your targets, what to add and how to fit it in. With AI on, Dash reviews the actual meals you ate.</string>
     <string name="nutrition_info_saved_title">Saved Meals</string>
     <string name="nutrition_info_saved_body">Every food you log is saved automatically. Log it again in one tap from Quick add or Saved Meals - no retyping, no AI call.</string>
     <string name="nutrition_info_hc_title">Health Connect</string>
@@ -50,10 +50,9 @@
     <string name="nutrition_ai_tip_title">AI Auto-Estimation</string>
     <string name="nutrition_ai_tip_body">You can log meals quickly below. Tap here to configure AI in Settings for auto-detection from photos.</string>
     <string name="nutrition_ai_off_subtitle">Tap to set up in Settings</string>
-    <string name="nutrition_action_take_photo">Take Photo</string>
+    <string name="nutrition_action_photo">Photo</string>
     <string name="nutrition_action_gallery">Gallery</string>
     <string name="nutrition_action_describe">Describe</string>
-    <string name="nutrition_action_saved">Saved</string>
     <string name="nutrition_analyzing">Analyzing and logging…</string>
     <string name="nutrition_log_heading">Log</string>
     <string name="nutrition_empty_title">Nothing logged yet</string>
@@ -63,10 +62,9 @@
     <string name="nutrition_n_items">%1$d items</string>
     <string name="nutrition_great_fueling">Great fueling! %1$d kcal tracked across %2$s. Keep up the mindful nourishment.</string>
     <string name="nutrition_weekly_open_label">Open weekly review</string>
-    <string name="nutrition_weekly_entry_subtitle">Your last 7 days of eating, and what to add next</string>
+    <string name="nutrition_see_all">See all</string>
     <string name="nutrition_quick_add">Quick add</string>
     <string name="nutrition_quick_add_hint">Hold for ½× or 2×</string>
-    <string name="nutrition_all_saved_meals">All saved meals</string>
     <string name="nutrition_log_item_label">Log %1$s</string>
     <string name="nutrition_choose_portion">Choose portion</string>
     <string name="nutrition_name_dot_value">%1$s · %2$d</string>
@@ -81,6 +79,7 @@
     <string name="nutrition_edit_hc_notice">Logged by another app. Changes here stay in Hangry. To change Health Connect, edit the meal in that app.</string>
     <string name="nutrition_field_food">Food</string>
     <string name="nutrition_field_calories">Calories</string>
+    <string name="nutrition_field_kcal">kcal</string>
     <string name="nutrition_field_protein_g">Protein g</string>
     <string name="nutrition_field_carbs_g">Carbs g</string>
     <string name="nutrition_field_fat_g">Fat g</string>
@@ -106,24 +105,17 @@
     <string name="nutrition_auto_estimate_ai">Auto-Estimate with AI</string>
     <string name="nutrition_hide_macros">Hide optional macros</string>
     <string name="nutrition_add_macros">Add macros (optional)</string>
-    <string name="nutrition_field_protein_paren_g">Protein (g)</string>
-    <string name="nutrition_field_carbs_paren_g">Carbs (g)</string>
-    <string name="nutrition_field_fat_paren_g">Fat (g)</string>
-    <string name="nutrition_field_fiber_paren_g">Fiber (g)</string>
     <string name="nutrition_log_meal">Log Meal</string>
 
     <!-- Saved meals -->
     <string name="nutrition_saved_logged_snackbar">Logged %1$s · %2$d kcal</string>
     <string name="nutrition_undo">Undo</string>
     <string name="nutrition_saved_removed_snackbar">Removed %1$s</string>
-    <string name="nutrition_saved_tap_to_log">Tap to log to %1$s</string>
     <string name="nutrition_cd_back">Back</string>
     <string name="nutrition_saved_add_meal">Add a meal</string>
     <string name="nutrition_saved_edit_meal">Edit meal</string>
-    <string name="nutrition_saved_search">Search foods</string>
+    <string name="nutrition_saved_search_tap_to_log">Search · tap to log to %1$s</string>
     <string name="nutrition_saved_clear_search">Clear search</string>
-    <string name="nutrition_saved_your_meals">Your meals</string>
-    <string name="nutrition_saved_count">%1$d saved</string>
     <string name="nutrition_saved_empty_title">Nothing saved yet</string>
     <string name="nutrition_saved_empty_body">Every food you log is saved here automatically, ready to log again in one tap.</string>
     <string name="nutrition_saved_no_match">None of your meals match \"%1$s\".</string>
@@ -146,7 +138,6 @@
     <string name="nutrition_weekly_ai_loading">Dash is reviewing your meals…</string>
     <string name="nutrition_try_again">Try again</string>
     <string name="nutrition_weekly_ai_off">Turn on AI Features for a personal review of what you ate, with foods to add and how.</string>
-    <string name="nutrition_weekly_by_numbers">By the numbers</string>
     <string name="nutrition_weekly_recommendations">Recommendations</string>
     <string name="nutrition_weekly_daily_average">Daily average</string>
     <string name="nutrition_weekly_sodium">Sodium</string>
@@ -184,7 +175,6 @@
     <string name="nutrition_fasting_goal_reached_lower">goal reached ✓</string>
     <string name="nutrition_fasting_to_go">%1$s to go</string>
     <string name="nutrition_fasting_end_fast">End fast</string>
-    <string name="nutrition_fasting_open">Open</string>
     <string name="nutrition_fasting_eating_window_last">Eating window · last fast %1$s</string>
     <string name="nutrition_fasting_start_prompt">Start a %1$dh fast when you finish eating</string>
     <string name="nutrition_fasting_start_fast">Start fast</string>
@@ -200,9 +190,9 @@
     <string name="nutrition_fasting_about">About Fasting</string>
     <string name="nutrition_fasting_disclaimer">For your own tracking - not medical advice.</string>
     <string name="nutrition_fasting_intro_title">Intermittent fasting</string>
-    <string name="nutrition_fasting_intro_body">An optional timer for eating windows like 16:8. Start a fast when you finish eating, get a nudge when you hit your goal, and build a streak. Turn it off any time.</string>
+    <string name="nutrition_fasting_intro_body">An optional timer for eating windows like 16:8, with goal nudges and streaks.</string>
     <string name="nutrition_fasting_choose_plan">Choose a plan</string>
-    <string name="nutrition_fasting_intro_caution">Skip fasting if you\'re pregnant or breastfeeding, under 18, have had an eating disorder, or take diabetes or blood pressure medication - ask your doctor first.</string>
+    <string name="nutrition_fasting_intro_caution">Not for pregnancy, under-18s, past eating disorders, or diabetes/blood pressure meds - ask your doctor.</string>
     <string name="nutrition_fasting_turn_on">Turn on fasting</string>
     <string name="nutrition_fasting_pregnancy_warning">Your Health Records say you\'re pregnant. Fasting isn\'t recommended during pregnancy - please talk to your midwife or doctor first.</string>
     <string name="nutrition_fasting_custom_hours_fast">%1$dh fast</string>
@@ -229,13 +219,11 @@
     <string name="nutrition_fasting_streak">Streak</string>
     <string name="nutrition_fasting_one_day">1 day</string>
     <string name="nutrition_fasting_n_days">%1$d days</string>
-    <string name="nutrition_fasting_best">best %1$d</string>
     <string name="nutrition_fasting_this_week">This week</string>
-    <string name="nutrition_fasting_ratio">%1$d/%2$d</string>
-    <string name="nutrition_fasting_fasts_hit_goal">fasts hit goal</string>
-    <string name="nutrition_fasting_average">Average</string>
+    <string name="nutrition_fasting_best">best %1$d</string>
     <string name="nutrition_fasting_longest">longest %1$s</string>
-    <string name="nutrition_fasting_last_7_days">last 7 days</string>
+    <string name="nutrition_fasting_ratio">%1$d/%2$d</string>
+    <string name="nutrition_fasting_average">Average</string>
     <string name="nutrition_fasting_recent">Recent fasts</string>
     <string name="nutrition_fasting_history_day">%1$s · %2$s</string>
     <string name="nutrition_fasting_history_range">%1$s – %2$s · goal %3$dh</string>
@@ -280,14 +268,13 @@
     <string name="nutrition_supplements_yours">Your supplements</string>
     <string name="nutrition_supplements_add_without_photo">Add without a photo</string>
     <string name="nutrition_supplements_empty_title">Add your daily supplements</string>
-    <string name="nutrition_supplements_empty_body">Snap the bottle and its label - AI reads the dose and ingredients so Dash knows what you take. Want reminders too? Just turn on tracking.</string>
+    <string name="nutrition_supplements_empty_body">Snap the bottle and Dash learns what you take.</string>
     <string name="nutrition_supplements_snap">Snap a supplement</string>
     <string name="nutrition_supplements_choose_photos">Choose photos</string>
     <string name="nutrition_supplements_enter_manually">Enter manually</string>
     <string name="nutrition_supplements_today">Today</string>
     <string name="nutrition_supplements_no_doses">No doses scheduled</string>
     <string name="nutrition_supplements_taken_of">%1$d of %2$d taken</string>
-    <string name="nutrition_supplements_all_taken_today">All taken today. Nice work!</string>
     <string name="nutrition_supplements_dose">%1$s %2$s</string>
     <string name="nutrition_supplements_paused_name">%1$s (paused)</string>
     <string name="nutrition_supplements_taken_as_usual">Taken as usual</string>

@@ -83,9 +83,14 @@ fun QuickMealLogSheet(
         showMacros = true
     }
 
-    // Foods the user has saved matching what's being typed - picking one
-    // fills in its numbers instead of retyping them.
-    val suggestions = remember(foodName, mealPlans) { foodSuggestions(foodName, mealPlans) }
+    // Saved meals in one chip row. Untouched, a chip logs the meal in one tap; once a name is
+    // typed the row narrows to matches and a chip fills the form instead of retyping numbers.
+    val typedQuery = remember(foodName) { savedMealQuery(foodName, quickMealTypes) }
+    val savedChips = remember(typedQuery, mealPlans) {
+        if (typedQuery.length < 2) mealPlans.take(12) else mealPlans.filter { it.nameKey.contains(typedQuery) }.take(12)
+    }
+    // With a photo attached, a chip fills the form so the photo is kept with the entry.
+    val chipsFill = photoUri != null || typedQuery.length >= 2 || onLogMealPlan == null
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -99,7 +104,7 @@ fun QuickMealLogSheet(
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = HangryTokens.Spacing.xl)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             // Header
             Row(
@@ -139,7 +144,7 @@ fun QuickMealLogSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(120.dp)
                         .clip(RoundedCornerShape(HangryTokens.CornerRadii.medium))
                         .background(tokens.cardBackground)
                 ) {
@@ -163,42 +168,6 @@ fun QuickMealLogSheet(
                             tint = tokens.textPrimary,
                             modifier = Modifier.size(18.dp)
                         )
-                    }
-                }
-            }
-
-            // Saved meals: one tap logs it, or - with a photo attached - fills the form so the
-            // photo is kept with the entry.
-            if (mealPlans.isNotEmpty() && onLogMealPlan != null) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = if (photoUri != null) stringResource(R.string.nutrition_fill_from_saved) else stringResource(R.string.nutrition_log_saved_meal),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = tokens.textMuted
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        mealPlans.take(12).forEach { plan ->
-                            SuggestionChip(
-                                onClick = {
-                                    if (photoUri != null) {
-                                        applyPick(FoodPick(plan.name, plan.calories, plan.proteinG, plan.carbsG, plan.fatG, plan.fiberG))
-                                    } else {
-                                        onLogMealPlan(plan)
-                                        onDismiss()
-                                    }
-                                },
-                                label = { Text(stringResource(R.string.nutrition_saved_meal_chip, plan.name, plan.calories)) },
-                                colors = SuggestionChipDefaults.suggestionChipColors(
-                                    containerColor = tokens.cardBackground,
-                                    labelColor = tokens.textPrimary
-                                )
-                            )
-                        }
                     }
                 }
             }
@@ -235,35 +204,35 @@ fun QuickMealLogSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            if (suggestions.isNotEmpty()) {
+            if (savedChips.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    suggestions.forEach { pick ->
-                        Surface(
-                            onClick = { applyPick(pick) },
-                            color = tokens.cardBackground,
-                            shape = RoundedCornerShape(HangryTokens.CornerRadii.small),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.History,
-                                    contentDescription = null,
-                                    tint = tokens.textMuted,
-                                    modifier = Modifier.size(18.dp)
+                    Text(
+                        text = if (chipsFill) stringResource(R.string.nutrition_fill_from_saved) else stringResource(R.string.nutrition_log_saved_meal),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.textMuted
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        savedChips.forEach { plan ->
+                            SuggestionChip(
+                                onClick = {
+                                    if (chipsFill || onLogMealPlan == null) {
+                                        applyPick(FoodPick(plan.name, plan.calories, plan.proteinG, plan.carbsG, plan.fatG, plan.fiberG))
+                                    } else {
+                                        onLogMealPlan(plan)
+                                        onDismiss()
+                                    }
+                                },
+                                label = { Text(stringResource(R.string.nutrition_saved_meal_chip, plan.name, plan.calories)) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = tokens.cardBackground,
+                                    labelColor = tokens.textPrimary
                                 )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(pick.name, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
-                                    Text(
-                                        text = stringResource(R.string.nutrition_kcal, pick.calories),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = tokens.textMuted
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
                 }
@@ -377,7 +346,6 @@ fun QuickMealLogSheet(
             }
 
             AnimatedVisibility(visible = showMacros) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -385,7 +353,7 @@ fun QuickMealLogSheet(
                     OutlinedTextField(
                         value = proteinText,
                         onValueChange = { if (it.all { c -> c.isDigit() }) proteinText = it },
-                        label = { Text(stringResource(R.string.nutrition_field_protein_paren_g)) },
+                        label = { Text(stringResource(R.string.nutrition_field_protein_g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -393,7 +361,7 @@ fun QuickMealLogSheet(
                     OutlinedTextField(
                         value = carbsText,
                         onValueChange = { if (it.all { c -> c.isDigit() }) carbsText = it },
-                        label = { Text(stringResource(R.string.nutrition_field_carbs_paren_g)) },
+                        label = { Text(stringResource(R.string.nutrition_field_carbs_g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -401,24 +369,21 @@ fun QuickMealLogSheet(
                     OutlinedTextField(
                         value = fatText,
                         onValueChange = { if (it.all { c -> c.isDigit() }) fatText = it },
-                        label = { Text(stringResource(R.string.nutrition_field_fat_paren_g)) },
+                        label = { Text(stringResource(R.string.nutrition_field_fat_g)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = fiberText,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) fiberText = it },
+                        label = { Text(stringResource(R.string.nutrition_field_fiber_g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
                 }
-                OutlinedTextField(
-                    value = fiberText,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) fiberText = it },
-                    label = { Text(stringResource(R.string.nutrition_field_fiber_paren_g)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                }
             }
-
-            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
             // Primary Log Button
             Button(
@@ -460,10 +425,10 @@ private data class FoodPick(
     val fiberG: Double
 )
 
-private fun foodSuggestions(typed: String, saved: List<MealPlanEntity>): List<FoodPick> {
-    val q = savedMealKey(typed)
-    if (q.length < 2) return emptyList()
-    return saved.filter { it.nameKey.contains(q) && it.nameKey != q }
-        .take(4)
-        .map { FoodPick(it.name, it.calories, it.proteinG, it.carbsG, it.fatG, it.fiberG) }
+/** The typed name as a saved-meal search key, ignoring a bare or prefixed meal type like "Lunch: ". */
+private fun savedMealQuery(typed: String, mealTypes: List<String>): String {
+    val name = mealTypes.fold(typed.trim()) { acc, type ->
+        if (acc == type) "" else acc.removePrefix("$type:").trim()
+    }
+    return savedMealKey(name)
 }

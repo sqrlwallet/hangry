@@ -54,6 +54,7 @@ fun HomeScreenWidgetsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = {
                     Text(
                         text = stringResource(R.string.dashboard_widget_screen_title),
@@ -85,7 +86,7 @@ fun HomeScreenWidgetsScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = HangryTokens.Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             // Header Intro
             HangryCard {

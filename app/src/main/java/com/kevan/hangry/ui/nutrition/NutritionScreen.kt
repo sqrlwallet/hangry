@@ -156,20 +156,30 @@ fun NutritionScreen(
         snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) },
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 // A tab, so no back arrow.
                 title = { Text(stringResource(R.string.title_nutrition)) },
                 actions = {
                     HangryInfoIconButton(title = stringResource(R.string.nutrition_about_title), sections = nutritionInfoSections())
-                    IconButton(onClick = onNavigateToMealPlan) {
-                        Icon(imageVector = Icons.Default.RestaurantMenu, contentDescription = stringResource(R.string.nutrition_cd_saved_meals))
+                    IconButton(onClick = { viewModel.openWeeklyReview(calorieTarget) }) {
+                        Icon(imageVector = Icons.Default.Insights, contentDescription = stringResource(R.string.nutrition_weekly_open_label))
                     }
                     // Typing a meal in by hand is deliberately tucked away here: the photo is the
-                    // default path everywhere, and AI fills in the details.
+                    // default path everywhere, and AI fills in the details. Saved meals live here too,
+                    // with Quick add on screen as the everyday way in.
                     Box {
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(imageVector = Icons.Default.MoreVert, contentDescription = stringResource(R.string.nutrition_cd_more_options))
                         }
                         DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.nutrition_cd_saved_meals)) },
+                                leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onNavigateToMealPlan()
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.nutrition_enter_manually)) },
                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
@@ -193,7 +203,7 @@ fun NutritionScreen(
                 .padding(horizontal = HangryTokens.Spacing.m),
             // Clear of the floating tab bar, which the list scrolls behind.
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 16.dp + LocalDockInset.current),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             item {
                 DateNavigatorBar(
@@ -260,8 +270,9 @@ fun NutritionScreen(
                 ) {
                     LogActionButton(
                         icon = Icons.Default.CameraAlt,
-                        label = stringResource(R.string.nutrition_action_take_photo),
+                        label = stringResource(R.string.nutrition_action_photo),
                         enabled = !uiState.isAnalyzing,
+                        primary = true,
                         onClick = { photoLauncher.takePhoto() },
                         modifier = Modifier.weight(1f)
                     )
@@ -281,18 +292,7 @@ fun NutritionScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    LogActionButton(
-                        icon = Icons.Default.Bookmarks,
-                        label = stringResource(R.string.nutrition_action_saved),
-                        enabled = true,
-                        onClick = onNavigateToMealPlan,
-                        modifier = Modifier.weight(1f)
-                    )
                 }
-            }
-
-            item {
-                WeeklyReviewEntryCard(onClick = { viewModel.openWeeklyReview(calorieTarget) })
             }
 
             if (uiState.isAnalyzing) {
@@ -468,35 +468,6 @@ fun NutritionScreen(
     }
 }
 
-/** Opens the look back over the last 7 days of eating. */
-@Composable
-private fun WeeklyReviewEntryCard(onClick: () -> Unit) {
-    val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.nutrition_weekly_open_label), onClick = onClick)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(tokens.brandAccentContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Insights, contentDescription = null, tint = tokens.brandAccent)
-            }
-            Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.nutrition_info_weekly_title), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                Text(
-                    stringResource(R.string.nutrition_weekly_entry_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textMuted
-                )
-            }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = tokens.textMuted)
-        }
-    }
-}
-
 /** One-tap logging for what the user eats most: their most recent saved meals. */
 @Composable
 private fun QuickAddRow(
@@ -506,17 +477,19 @@ private fun QuickAddRow(
 ) {
     val tokens = LocalHangryTokens.current
     val recent = savedMeals.take(QUICK_ADD_COUNT)
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = stringResource(R.string.nutrition_quick_add), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                Text(text = stringResource(R.string.nutrition_quick_add_hint), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-            }
-            TextButton(onClick = onSeeAll) { Text(stringResource(R.string.nutrition_all_saved_meals)) }
+            Text(text = stringResource(R.string.nutrition_quick_add), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Text(
+                text = stringResource(R.string.nutrition_quick_add_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.textMuted,
+                modifier = Modifier.padding(start = HangryTokens.Spacing.s).weight(1f)
+            )
+            TextButton(onClick = onSeeAll, contentPadding = PaddingValues(horizontal = 8.dp)) { Text(stringResource(R.string.nutrition_see_all)) }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(recent, key = { "saved_${it.id}" }) { meal ->
@@ -589,17 +562,19 @@ private fun LogActionButton(
     label: String,
     enabled: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    primary: Boolean = false
 ) {
-    val tokens = LocalHangryTokens.current
-    HangryCard(
-        modifier = modifier.clickable(enabled = enabled, onClick = onClick)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Icon(imageVector = icon, contentDescription = null, tint = if (enabled) tokens.chartColors.activeCalories else tokens.textMuted)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = label, style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
-        }
+    val padding = PaddingValues(horizontal = 8.dp)
+    val content: @Composable RowScope.() -> Unit = {
+        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+    }
+    if (primary) {
+        Button(onClick = onClick, enabled = enabled, contentPadding = padding, modifier = modifier, content = content)
+    } else {
+        FilledTonalButton(onClick = onClick, enabled = enabled, contentPadding = padding, modifier = modifier, content = content)
     }
 }
 

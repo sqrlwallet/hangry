@@ -169,7 +169,7 @@ internal fun MarkerDetailSheet(
         Column(
             modifier = Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m).padding(bottom = HangryTokens.Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             Column {
                 Text(type.label, style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)

@@ -26,6 +26,10 @@ object HangryTokens {
         val xs: Dp = 4.dp
         val s: Dp = 8.dp
         val m: Dp = 16.dp
+        /** Inside a card: the default [com.kevan.hangry.ui.components.HangryCard] padding. */
+        val card: Dp = 12.dp
+        /** Between cards and sections on a scrolling screen. */
+        val section: Dp = 12.dp
         val l: Dp = 24.dp
         val xl: Dp = 32.dp
         val xxl: Dp = 48.dp

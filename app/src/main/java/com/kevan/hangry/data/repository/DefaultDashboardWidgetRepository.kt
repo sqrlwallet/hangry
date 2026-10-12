@@ -118,6 +118,7 @@ class DefaultDashboardWidgetRepository(
         }
         return mergedList
             .filterNot { it.id == "training_load" || it.type in DashboardWidget.RETIRED_TYPES }
+            .map { if (it.type == WidgetType.VITALS_CARD) it.copy(title = DashboardWidget.VITALS_TITLE) else it }
             // The overview card is the top of Today, always shown first.
             .sortedWith(compareBy({ it.type != WidgetType.RECOVERY_HERO }, { it.order }))
     }

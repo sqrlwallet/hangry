@@ -65,7 +65,8 @@ data class DashboardWidget(
     companion object {
         /**
          * Cards no longer shown on Today: recovery, sleep, strain and activity now share the
-         * overview card, and Ask Dash, Nutrition and Log Meal live in the tab bar and button.
+         * overview card, Ask Dash, Nutrition and Log Meal live in the tab bar and button, and
+         * heart rate, body check and overnight vitals are folded into the one Vitals card.
          * Kept in [WidgetType] so layouts saved by older versions still load.
          */
         val RETIRED_TYPES = setOf(
@@ -73,8 +74,14 @@ data class DashboardWidget(
             WidgetType.LOG_MEAL,
             WidgetType.SLEEP_STRAIN_RINGS,
             WidgetType.SLEEP_SUMMARY,
-            WidgetType.AI_SHORTCUTS
+            WidgetType.AI_SHORTCUTS,
+            WidgetType.HEART_METRICS,
+            WidgetType.BODY_CHECK,
+            WidgetType.OVERNIGHT_VITALS
         )
+
+        /** The Vitals card's name - older layouts saved it as "Key Vitals". */
+        const val VITALS_TITLE = "Vitals"
 
         fun createDefaultWidgets(): List<DashboardWidget> = listOf(
             DashboardWidget(
@@ -114,16 +121,9 @@ data class DashboardWidget(
                 order = 3
             ),
             DashboardWidget(
-                id = "heart_metrics",
-                type = WidgetType.HEART_METRICS,
-                title = "Heart Rate & HRV",
-                isVisible = true,
-                order = 4
-            ),
-            DashboardWidget(
                 id = "vitals_card",
                 type = WidgetType.VITALS_CARD,
-                title = "Key Vitals",
+                title = VITALS_TITLE,
                 isVisible = true,
                 order = 5
             ),
@@ -154,20 +154,6 @@ data class DashboardWidget(
                 title = "Breathing Exercises",
                 isVisible = true,
                 order = 9
-            ),
-            DashboardWidget(
-                id = "body_check",
-                type = WidgetType.BODY_CHECK,
-                title = "Body Check",
-                isVisible = true,
-                order = 10
-            ),
-            DashboardWidget(
-                id = "overnight_vitals",
-                type = WidgetType.OVERNIGHT_VITALS,
-                title = "Overnight Vitals",
-                isVisible = true,
-                order = 11
             ),
             DashboardWidget(
                 id = "cycle",

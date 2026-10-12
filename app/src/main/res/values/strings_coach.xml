@@ -68,11 +68,9 @@
     <string name="coach_setup_message_not_configured">%1$s isn\'t configured yet.</string>
     <string name="coach_open_ai_settings">Open AI Settings</string>
     <string name="coach_greeting">Hi, I\'m %1$s!</string>
-    <string name="coach_biometrics_active">⚡ 7-Day Biometrics &amp; Memories Active</string>
     <string name="coach_ask_me_anything">Ask me anything about your health.</string>
     <string name="coach_about_dash">About %1$s</string>
     <string name="coach_about_dash_body">I continuously synthesize your sleep, recovery, workouts, nutrition, posture, and personal health journal. Ask me anything or share a new ache, goal, or problem.</string>
-    <string name="coach_quick_starters_label">Quick Starters:</string>
     <string name="coach_copy_text">Copy text</string>
     <string name="coach_added_to_journal">Added to journal: %1$s</string>
     <string name="coach_action_add">Add</string>
@@ -123,8 +121,7 @@
     <string name="coach_breathing_info_comfort_body">Breathe through your nose if you can and never strain. If you feel light-headed, stop and breathe normally.</string>
     <string name="coach_breathing_title">Breathing</string>
     <string name="coach_breathing_about">About Breathing Exercises</string>
-    <string name="coach_breathing_min_today">min today</string>
-    <string name="coach_breathing_min_last_7_days">min last 7 days</string>
+    <string name="coach_breathing_minutes_summary">%1$d min today · %2$d min last 7 days</string>
     <string name="coach_breathing_pattern">Pattern</string>
     <string name="coach_breathing_duration">Duration</string>
     <string name="coach_breathing_minutes_breaths">minutes · %1$d breaths</string>
@@ -223,7 +220,7 @@
     <string name="coach_programs_the_path">The path</string>
     <string name="coach_programs_hide_exercises">Hide exercises</string>
     <string name="coach_programs_show_exercises">Show exercises</string>
-    <string name="coach_programs_youre_here">%1$s · you\'re here</string>
+    <string name="coach_programs_more_options">More options</string>
     <string name="coach_programs_change_level">Change level</string>
     <string name="coach_programs_turn_off_program">Turn off program</string>
     <string name="coach_programs_choose_level">Choose a level</string>

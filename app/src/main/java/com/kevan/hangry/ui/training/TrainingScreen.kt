@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
@@ -35,6 +36,7 @@ import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.WorkoutFormat
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.dayHeading
 import com.kevan.hangry.ui.dashboard.DashPullIndicator
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
@@ -58,6 +60,18 @@ private fun trainingInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
         stringResource(R.string.metrics_training_info_zones_title),
         stringResource(R.string.metrics_training_info_zones_body)
+    ),
+    HangryInfoSection(
+        stringResource(R.string.metrics_training_info_zone_purposes_title),
+        listOf(
+            R.string.metrics_training_zone1_name to R.string.metrics_training_zone1_purpose,
+            R.string.metrics_training_zone2_name to R.string.metrics_training_zone2_purpose,
+            R.string.metrics_training_zone3_name to R.string.metrics_training_zone3_purpose,
+            R.string.metrics_training_zone4_name to R.string.metrics_training_zone4_purpose,
+            R.string.metrics_training_zone5_name to R.string.metrics_training_zone5_purpose
+        ).map { (name, purpose) ->
+            stringResource(R.string.metrics_training_zone_range_purpose, stringResource(name), stringResource(purpose))
+        }.joinToString("\n")
     )
 )
 
@@ -101,6 +115,7 @@ fun TrainingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 // A tab now, so no back arrow.
                 title = { Text(stringResource(R.string.title_training)) },
                 actions = {
@@ -128,29 +143,24 @@ fun TrainingScreen(
                 .padding(horizontal = HangryTokens.Spacing.m),
             // Clear of the floating tab bar, which the list scrolls behind.
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = HangryTokens.Spacing.m + LocalDockInset.current),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             item {
-                // Today's Training Summary Grid
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-                ) {
-                    HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = if (isToday) stringResource(R.string.metrics_training_workouts_today) else stringResource(R.string.metrics_training_workouts), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
-                        Spacer(modifier = Modifier.height(8.dp))
+                // Active burn in one slim row; the workout count is in Dash's note below.
+                HangryCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "${workouts.size}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = tokens.textPrimary
+                            text = if (isToday) stringResource(R.string.metrics_training_active_burn_today) else stringResource(R.string.metrics_training_active_burn),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = tokens.textSecondary
                         )
-                    }
-                    HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = if (isToday) stringResource(R.string.metrics_training_active_burn_today) else stringResource(R.string.metrics_training_active_burn), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.metrics_components_kcal_value, uiState.todayActiveCalories.toInt()),
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             color = tokens.chartColors.trainingLoad
                         )
                     }
@@ -172,8 +182,7 @@ fun TrainingScreen(
                         DashEmptyState(
                             scene = DashEmptyScene.WORKOUTS,
                             title = if (isToday) stringResource(R.string.metrics_training_no_workouts_today) else stringResource(R.string.metrics_training_no_workouts_day),
-                            body = if (isToday) stringResource(R.string.metrics_training_no_workouts_body) else null,
-                            imageSize = 120.dp
+                            body = if (isToday) stringResource(R.string.metrics_training_no_workouts_body) else null 
                         )
                     }
                 }
@@ -206,8 +215,7 @@ fun TrainingScreen(
                         DashEmptyState(
                             scene = DashEmptyScene.HRV,
                             title = stringResource(R.string.metrics_training_no_hr_title),
-                            body = stringResource(R.string.metrics_training_no_hr_body),
-                            imageSize = 120.dp,
+                            body = stringResource(R.string.metrics_training_no_hr_body) ,
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
                     }
@@ -222,12 +230,13 @@ fun TrainingScreen(
                                 imageVector = Icons.Default.Speed,
                                 contentDescription = null,
                                 tint = tokens.chartColors.trainingLoad,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = stringResource(R.string.metrics_training_info_zones_title),
                                 style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
                                 color = tokens.textPrimary
                             )
                         }
@@ -253,11 +262,17 @@ fun TrainingScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = stringResource(R.string.metrics_training_cardio_focus),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = stringResource(R.string.metrics_training_cardio_focus),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = tokens.textSecondary
+                            )
+                            HangryInfoTip(
+                                title = stringResource(R.string.metrics_training_cardio_focus),
+                                body = effectiveDistribution.physiologicalInsight
+                            )
+                        }
                         Text(
                             text = effectiveDistribution.primaryFocus,
                             style = MaterialTheme.typography.labelLarge,
@@ -334,50 +349,33 @@ fun TrainingScreen(
                         color = Zone1Color,
                         name = stringResource(R.string.metrics_training_zone1_name),
                         range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[0]),
-                        percentage = (effectiveDistribution.zone1Pct * 100).toInt(),
-                        purpose = stringResource(R.string.metrics_training_zone1_purpose)
+                        percentage = (effectiveDistribution.zone1Pct * 100).toInt()
                     )
                     ZoneDetailRow(
                         color = Zone2Color,
                         name = stringResource(R.string.metrics_training_zone2_name),
                         range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[1]),
-                        percentage = (effectiveDistribution.zone2Pct * 100).toInt(),
-                        purpose = stringResource(R.string.metrics_training_zone2_purpose)
+                        percentage = (effectiveDistribution.zone2Pct * 100).toInt()
                     )
                     ZoneDetailRow(
                         color = Zone3Color,
                         name = stringResource(R.string.metrics_training_zone3_name),
                         range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[2]),
-                        percentage = (effectiveDistribution.zone3Pct * 100).toInt(),
-                        purpose = stringResource(R.string.metrics_training_zone3_purpose)
+                        percentage = (effectiveDistribution.zone3Pct * 100).toInt()
                     )
                     ZoneDetailRow(
                         color = Zone4Color,
                         name = stringResource(R.string.metrics_training_zone4_name),
                         range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[3]),
-                        percentage = (effectiveDistribution.zone4Pct * 100).toInt(),
-                        purpose = stringResource(R.string.metrics_training_zone4_purpose)
+                        percentage = (effectiveDistribution.zone4Pct * 100).toInt()
                     )
                     ZoneDetailRow(
                         color = Zone5Color,
                         name = stringResource(R.string.metrics_training_zone5_name),
                         range = stringResource(R.string.metrics_training_bpm_range, zoneLabels[4]),
-                        percentage = (effectiveDistribution.zone5Pct * 100).toInt(),
-                        purpose = stringResource(R.string.metrics_training_zone5_purpose)
-                    )
-
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-
-                    Text(
-                        text = effectiveDistribution.physiologicalInsight,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
+                        percentage = (effectiveDistribution.zone5Pct * 100).toInt()
                     )
                 }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
             }
         }
         }
@@ -389,8 +387,7 @@ private fun ZoneDetailRow(
     color: Color,
     name: String,
     range: String,
-    percentage: Int,
-    purpose: String
+    percentage: Int
 ) {
     val tokens = LocalHangryTokens.current
     Row(
@@ -408,18 +405,20 @@ private fun ZoneDetailRow(
                     .background(color)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textPrimary
-                )
-                Text(
-                    text = stringResource(R.string.metrics_training_zone_range_purpose, range, purpose),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
-            }
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = range,
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.textMuted
+            )
         }
 
         Text(

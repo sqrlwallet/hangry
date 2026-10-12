@@ -93,21 +93,11 @@
     <string name="metrics_components_local_first_subtitle">Your data never leaves this device.</string>
     <string name="metrics_components_about_title">About %1$s</string>
     <string name="metrics_components_got_it">Got it</string>
-    <string name="metrics_components_key_vitals_cardio">Key Vitals &amp; Cardio</string>
-    <string name="metrics_components_blood_oxygen">Blood Oxygen</string>
-    <string name="metrics_components_no_data_yet">No data yet</string>
-    <string name="metrics_components_spo2_normal" formatted="false">Normal (95–100%)</string>
     <string name="metrics_components_spo2_little_low">A little low</string>
     <string name="metrics_components_spo2_low">Low - worth checking</string>
-    <string name="metrics_components_vo2_max">VO₂ Max</string>
-    <string name="metrics_components_cardio_fitness">Cardio Fitness</string>
     <string name="metrics_components_skin_temp">Skin Temp</string>
-    <string name="metrics_components_skin_temp_usual">Near your baseline</string>
-    <string name="metrics_components_skin_temp_warm">Running warm</string>
-    <string name="metrics_components_skin_temp_cool">Running cool</string>
     <string name="metrics_components_breathing_rate">Breathing Rate</string>
     <string name="metrics_components_breathing_rate_value">%1$.1f /min</string>
-    <string name="metrics_components_overnight">Overnight</string>
     <string name="metrics_sleep_overnight_vitals">Overnight vitals</string>
     <string name="metrics_training_show_route">Show route</string>
     <string name="metrics_training_hide_route">Hide route</string>
@@ -172,8 +162,6 @@
     <string name="metrics_sleep_light_body">Baseline physiological maintenance &amp; body recovery.</string>
     <string name="metrics_sleep_awake_title">Awake / Restless</string>
     <string name="metrics_sleep_awake_body">Micro-arousals and wake episodes.</string>
-    <string name="metrics_sleep_score_blend_body">Blends sleep efficiency, restorative (deep + REM) sleep, and night-to-night consistency - not just how long you slept.</string>
-    <string name="metrics_sleep_tonights_need_info_body">Your sleep goal, plus part of any sleep you\'ve been short over the last week (last night counts most), plus up to an hour after a harder-than-usual day.</string>
     <string name="metrics_components_back">Back</string>
     <string name="metrics_sleep_about_sleep">About Sleep</string>
     <string name="metrics_sleep_log_manually">Log Sleep Manually</string>
@@ -183,8 +171,8 @@
     <string name="metrics_sleep_none_recorded_body">Nothing was recorded for this day. Tap + to log it.</string>
     <string name="metrics_sleep_dash_default">Here\'s how last night went.</string>
     <string name="metrics_sleep_dash_great">You got all the sleep you needed. Well rested!</string>
-    <string name="metrics_sleep_dash_ok">You got %1$d%% of the sleep you needed. Not bad!</string>
-    <string name="metrics_sleep_dash_short">Only %1$d%% of the sleep you needed. An early night would help.</string>
+    <string name="metrics_sleep_dash_ok">A little short of the sleep you needed. Not bad!</string>
+    <string name="metrics_sleep_dash_short">Well short of the sleep you needed. An early night would help.</string>
     <string name="metrics_sleep_of_100">of 100</string>
     <string name="metrics_sleep_score_label">Sleep score</string>
     <string name="metrics_sleep_asleep_duration">%1$dh %2$dm asleep</string>
@@ -193,14 +181,13 @@
     <string name="metrics_sleep_part_time_asleep_in_bed">Time asleep in bed</string>
     <string name="metrics_sleep_part_deep_rem">Deep &amp; REM sleep</string>
     <string name="metrics_sleep_part_regular_times">Regular bed &amp; wake times</string>
-    <string name="metrics_sleep_time_in_bed">Time in Bed</string>
-    <string name="metrics_sleep_pct_asleep">%1$d%% asleep</string>
-    <string name="metrics_sleep_debt">Sleep Debt</string>
+    <string name="metrics_sleep_in_bed_value">%1$s in bed</string>
+    <string name="metrics_sleep_in_bed_pct_value">%1$s in bed (%2$d%% asleep)</string>
     <string name="metrics_sleep_minutes_short">%1$dm</string>
+    <string name="metrics_sleep_debt_value">%1$dm sleep debt</string>
     <string name="metrics_sleep_guidance">Sleep Guidance</string>
     <string name="metrics_sleep_quality_value">Quality %1$d/100</string>
     <string name="metrics_sleep_tonights_need_value">Tonight\'s need: %1$dh %2$dm</string>
-    <string name="metrics_sleep_need_met_suffix">" · %1$d%% met last night"</string>
     <string name="metrics_sleep_suggested_bedtime_value">Suggested bedtime: %1$s</string>
     <string name="metrics_sleep_stages_lower">Sleep stages</string>
     <string name="metrics_sleep_no_stages_body">Your device didn\'t record sleep stages for this night. A watch or ring that tracks sleep adds deep, REM and light sleep here.</string>
@@ -208,11 +195,6 @@
     <string name="metrics_sleep_stages_title">Sleep Stages</string>
     <string name="metrics_sleep_restorative_pct">%1$d%% Restorative</string>
     <string name="metrics_sleep_last_7_nights">Sleep over the last 7 nights</string>
-    <string name="metrics_sleep_baseline_trends">Baseline Trends</string>
-    <string name="metrics_sleep_7_day_avg">7-Day Average</string>
-    <string name="metrics_sleep_30_day_avg">30-Day Average</string>
-    <string name="metrics_sleep_consistency_index">Consistency Index</string>
-    <string name="metrics_sleep_needs_3_nights">Needs 3 nights</string>
     <string name="metrics_sleep_manual_title">Manual sleep</string>
     <string name="metrics_sleep_manual_body">Manually entered sleep is clearly marked as manual data and factored into daily summaries.</string>
     <string name="metrics_sleep_hours">Hours</string>
@@ -227,6 +209,7 @@
     <string name="metrics_sleep_hypnogram_description">Sleep stages through the night</string>
     <string name="metrics_sleep_typical_range">Typical range</string>
     <string name="metrics_sleep_average_value">Average: %1$s</string>
+    <string name="metrics_sleep_30_day_avg_suffix">" · 30-day: %1$s"</string>
     <string name="metrics_sleep_weekly_chart_description">Sleep stages over the last 7 nights</string>
     <string name="metrics_heart_info_hrv_title">Heart Rate Variability (RMSSD)</string>
     <string name="metrics_heart_info_hrv_body">Reflects the millisecond variance between consecutive heartbeats - how smoothly your nervous system shifts between sympathetic activation (performance) and parasympathetic restoration (recovery).</string>
@@ -239,7 +222,7 @@
     <string name="metrics_heart_info_rhr_title">Resting Heart Rate deviations</string>
     <string name="metrics_heart_rhr_dynamics_body">A lower resting pulse indicates strong cardiovascular restoration. Mild elevations often reflect training fatigue, dehydration, or late meals.</string>
     <string name="metrics_heart_about">About Heart &amp; HRV</string>
-    <string name="metrics_heart_dash_hrv_good">Your HRV of %1$d ms is at or above your normal of %2$d ms. Your body is well recovered.</string>
+    <string name="metrics_heart_dash_hrv_good">Your HRV is at or above your normal. Your body is well recovered.</string>
     <string name="metrics_heart_28_day_avg_bpm">28-day avg: %1$d bpm</string>
     <string name="metrics_heart_resting_baseline">Resting Baseline</string>
     <string name="metrics_heart_28_day_avg_ms">28-day avg: %1$d ms</string>
@@ -256,23 +239,19 @@
     <string name="metrics_heart_badge_elevated">ELEVATED</string>
     <string name="metrics_heart_badge_optimal">OPTIMAL RANGE</string>
     <string name="metrics_heart_lower_band">Lower Band</string>
-    <string name="metrics_heart_personal_mean">Personal Mean</string>
     <string name="metrics_heart_upper_band">Upper Band</string>
     <string name="metrics_heart_note_no_hrv">Wear your device during sleep to capture HRV.</string>
     <string name="metrics_heart_note_below">Below your typical baseline.</string>
     <string name="metrics_heart_note_elevated">Elevated above your baseline.</string>
     <string name="metrics_heart_note_normal">Within your normal range - ready for training.</string>
-    <string name="metrics_heart_cardio_recovery">Cardiovascular Recovery</string>
-    <string name="metrics_heart_cardio_recovery_info_title">Cardiovascular Recovery Dynamics</string>
-    <string name="metrics_heart_rhr_below_avg">%1$.1f bpm below your 28-day average (%2$d bpm).</string>
-    <string name="metrics_heart_rhr_above_avg">%1$.1f bpm above your 28-day average (%2$d bpm).</string>
-    <string name="metrics_heart_rhr_within_avg">Within 1 bpm of your 28-day average (%1$d bpm).</string>
+    <string name="metrics_heart_rhr_below_avg">%1$.1f below 28-day avg (%2$d bpm)</string>
+    <string name="metrics_heart_rhr_above_avg">%1$.1f above 28-day avg (%2$d bpm)</string>
+    <string name="metrics_heart_rhr_within_avg">In line with 28-day avg (%1$d bpm)</string>
     <string name="metrics_heart_recent_readings">Recent Daily Readings</string>
     <string name="metrics_heart_no_rhr_title">No resting heart rate yet</string>
     <string name="metrics_heart_no_rhr_body">A watch or ring that reports resting heart rate to Health Connect fills this in.</string>
     <string name="metrics_heart_rhr_short">RHR</string>
     <string name="metrics_heart_hrv_short">HRV</string>
-    <string name="metrics_heart_not_available">Not available</string>
     <string name="metrics_recovery_info_hrv_title" formatted="false">Heart Rate Variability — 35% weight</string>
     <string name="metrics_recovery_info_hrv_body">Reflects parasympathetic autonomic tone, from readings taken while you slept. Scored by how far last night is from your own 30-day normal, allowing for how much your HRV usually varies. If your device doesn\'t report HRV, we count it as excellent - and you can change that to how you actually feel.</string>
     <string name="metrics_recovery_info_rhr_title" formatted="false">Resting Heart Rate — 25% weight</string>
@@ -300,8 +279,8 @@
     <string name="metrics_recovery_dash_baseline">Still learning your baseline. Keep syncing and I\'ll sharpen up.</string>
     <string name="metrics_training_info_zones_title">Heart Rate Zones</string>
     <string name="metrics_training_info_zones_body" formatted="false">5 zones from active recovery to peak effort, set from your own heart-rate reserve: max heart rate (from Settings, or estimated as 208 - 0.7 x age) minus your usual resting heart rate. Zone 1 starts at 50%. Readings below that - sitting, sleeping - aren\'t counted. Today\'s zone mix is shown when available, falling back to a 7-day window otherwise.</string>
+    <string name="metrics_training_info_zone_purposes_title">What each zone trains</string>
     <string name="metrics_training_about">About Training &amp; Zones</string>
-    <string name="metrics_training_workouts_today">Workouts Today</string>
     <string name="metrics_training_workouts">Workouts</string>
     <string name="metrics_training_active_burn_today">Active Burn Today</string>
     <string name="metrics_training_active_burn">Active Burn</string>
@@ -350,7 +329,8 @@
     <string name="metrics_bodyage_make_exact_body">You entered your age as a whole number. Add your birthday so Body Age uses your exact age and keeps up as birthdays pass.</string>
     <string name="metrics_bodyage_whats_shaping">What\'s shaping it</string>
     <string name="metrics_bodyage_not_counted">Not counted yet</string>
-    <string name="metrics_bodyage_not_counted_body">%1$s. These count once there\'s data - VO₂ max needs a watch that estimates it, body composition needs a weight or a body-fat scan.</string>
+    <string name="metrics_bodyage_not_counted_line">Not counted yet: %1$s</string>
+    <string name="metrics_bodyage_not_counted_body">These count once there\'s data - VO₂ max needs a watch that estimates it, body composition needs a weight or a body-fat scan.</string>
     <string name="metrics_bodyage_disclaimer">Body Age compares your last 30 days - sleep, activity, fitness, heart and body composition - with typical values for your age and sex. It\'s an estimate to motivate healthy habits, not a medical measurement.</string>
     <string name="metrics_bodyage_factor_younger">−%1$s yrs</string>
     <string name="metrics_bodyage_factor_older">+%1$s yrs</string>

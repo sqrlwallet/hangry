@@ -130,7 +130,7 @@ fun AboutYouScreen(
         subheading = stringResource(R.string.settings_onboarding_about_you_subheading)
     ) {
         HangryCard {
-            Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
+            Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)) {
                 FieldLabel(stringResource(R.string.settings_onboarding_date_of_birth))
                 OutlinedButton(onClick = { pickingBirthday = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Cake, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -391,6 +391,7 @@ internal fun OnboardingProfileScaffold(
             modifier = Modifier.imePadding(),
             topBar = {
                 TopAppBar(
+                    expandedHeight = 56.dp,
                     title = { Text(title, color = Color.White) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
@@ -433,7 +434,7 @@ internal fun OnboardingProfileScaffold(
                     .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 OnboardingStepIndicator(currentStep = step, totalSteps = OnboardingSteps.TOTAL)
                 Row(verticalAlignment = Alignment.CenterVertically) {

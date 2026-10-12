@@ -65,7 +65,7 @@ fun DayDetailSheet(
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(bottom = 32.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             // Header: Date & Primary CTA
             Row(

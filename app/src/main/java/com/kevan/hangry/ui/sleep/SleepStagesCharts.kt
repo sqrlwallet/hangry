@@ -268,9 +268,17 @@ internal fun weekOfNights(endDate: LocalDate, sessions: List<SleepSessionEntity>
         )
     }
 
-/** Seven nights as stacked stage columns (deep at the bottom, awake on top) with the average. */
+/**
+ * Seven nights as stacked stage columns (deep at the bottom, awake on top) with the average,
+ * plus the 30-day average alongside it when known.
+ */
 @Composable
-fun WeeklySleepStagesChart(nights: List<NightStages>, selectedDate: LocalDate, modifier: Modifier = Modifier) {
+fun WeeklySleepStagesChart(
+    nights: List<NightStages>,
+    selectedDate: LocalDate,
+    modifier: Modifier = Modifier,
+    thirtyDayAverageMinutes: Int? = null
+) {
     val tokens = LocalHangryTokens.current
     val c = tokens.chartColors
     val recorded = nights.filter { it.asleepMinutes > 0 }
@@ -286,7 +294,8 @@ fun WeeklySleepStagesChart(nights: List<NightStages>, selectedDate: LocalDate, m
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            stringResource(R.string.metrics_sleep_average_value, average?.let { formatMinutes(it) } ?: "—"),
+            stringResource(R.string.metrics_sleep_average_value, average?.let { formatMinutes(it) } ?: "—") +
+                (thirtyDayAverageMinutes?.let { stringResource(R.string.metrics_sleep_30_day_avg_suffix, formatMinutes(it)) } ?: ""),
             style = MaterialTheme.typography.bodyMedium,
             color = tokens.textSecondary
         )

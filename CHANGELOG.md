@@ -1,3 +1,29 @@
+## 🚀 What's New in Hangry v1.35.0 — Cleaner, More Compact Screens
+
+Every screen shows more of what matters: less repetition, tighter cards and explanations tucked behind ⓘ.
+
+### 🏠 Today
+- One **Vitals** card replaces Heart Rate & HRV, Key Vitals, Body check and Overnight vitals: every reading against your usual, with a dot that turns red when it's off.
+- **Streaks** fit in one row, filled in once each habit is done today.
+- Smaller Today overview, Daily briefing, Body Age and Body composition cards. The strain target shows once.
+
+### 🍽️ Nutrition
+- The daily target card is half the height: calories up top, protein, carbs, fat and fiber side by side. Fiber tips open from the fiber column.
+- Saved meals and Weekly review each have one way in instead of three.
+- Slim Photo / Gallery / Describe buttons, and the manual log sheet shows saved meals once.
+
+### 💬 Dash
+- Slimmer top bar, compact suggestions, cleaner bubbles and a single message pill. You can type while Dash replies.
+- Long-press any message to copy it.
+
+### 📱 Everywhere
+- Tighter cards, spacing, top bars and tab bar across the app.
+- Sleep, Heart, Trends and Recovery stop repeating the same numbers; daily readings and history are compact rows.
+- Body fat results are one Estimates card; Body Age, Posture, Fasting, Programs, Health records and Settings are shorter, with long text behind ⓘ.
+
+### 🛠️ Fixes
+- The HRV band and your reading on the Heart screen now line up on every screen size.
+
 ## 🚀 What's New in Hangry v1.34.0 — Dash Chats & Body Check
 
 Start fresh conversations with Dash and keep every past one, plus new Today cards for what your wearable sees overnight.

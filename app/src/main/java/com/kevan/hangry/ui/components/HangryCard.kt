@@ -20,7 +20,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 fun HangryCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = HangryTokens.CornerRadii.medium,
-    contentPadding: Dp = HangryTokens.Spacing.m,
+    contentPadding: Dp = HangryTokens.Spacing.card,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = LocalHangryTokens.current

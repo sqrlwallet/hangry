@@ -7,18 +7,20 @@ import com.kevan.hangry.ui.components.DashEmptyScene
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.repository.HeartRateRepository
@@ -32,6 +34,7 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -101,6 +104,7 @@ fun HeartMetricsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.title_heart_metrics)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -123,7 +127,7 @@ fun HeartMetricsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             item { PastDayNote(date = uiState.selectedDate) }
 
@@ -132,7 +136,7 @@ fun HeartMetricsScreen(
                 item {
                     DashNote(
                         mood = DashMood.HEART,
-                        text = stringResource(R.string.metrics_heart_dash_hrv_good, currentHrv.toInt(), hrvMean.toInt())
+                        text = stringResource(R.string.metrics_heart_dash_hrv_good)
                     )
                 }
             }
@@ -165,8 +169,16 @@ fun HeartMetricsScreen(
                             color = tokens.chartColors.restingHeartRate
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                        // Today against the 28-day average, or just the average without a reading.
+                        val rhrDelta = currentRhr?.let { it - rhrMean }
                         Text(
-                            text = if (hasRhrBaseline) stringResource(R.string.metrics_heart_28_day_avg_bpm, rhrMean.toInt()) else stringResource(R.string.metrics_heart_resting_baseline),
+                            text = when {
+                                !hasRhrBaseline -> stringResource(R.string.metrics_heart_resting_baseline)
+                                rhrDelta == null -> stringResource(R.string.metrics_heart_28_day_avg_bpm, rhrMean.toInt())
+                                rhrDelta < -2.0 -> stringResource(R.string.metrics_heart_rhr_below_avg, kotlin.math.abs(rhrDelta), rhrMean.toInt())
+                                rhrDelta > 2.0 -> stringResource(R.string.metrics_heart_rhr_above_avg, rhrDelta, rhrMean.toInt())
+                                else -> stringResource(R.string.metrics_heart_rhr_within_avg, rhrMean.toInt())
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = tokens.textMuted
                         )
@@ -282,10 +294,6 @@ fun HeartMetricsScreen(
                             Text(text = stringResource(R.string.metrics_heart_lower_band), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                             Text(text = stringResource(R.string.metrics_components_ms_value, hrvLowerBand.toInt()), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = stringResource(R.string.metrics_heart_personal_mean), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                            Text(text = stringResource(R.string.metrics_components_ms_value, hrvMean.toInt()), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                        }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(text = stringResource(R.string.metrics_heart_upper_band), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                             Text(text = stringResource(R.string.metrics_components_ms_value, hrvUpperBand.toInt()), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
@@ -303,30 +311,30 @@ fun HeartMetricsScreen(
                     val bandEndFraction = ((hrvUpperBand - displayMin) / totalSpan).toFloat().coerceIn(0f, 1f)
                     val currentFraction = currentHrv?.let { ((it - displayMin) / totalSpan).toFloat().coerceIn(0f, 1f) }
 
-                    Box(
+                    BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(24.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(tokens.cardBorder)
                     ) {
-                        // Optimal Band Highlight
+                        // Optimal Band Highlight, placed against the bar's measured width
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .fillMaxWidth(bandEndFraction - bandStartFraction)
-                                .offset(x = (bandStartFraction * 320).dp) // Approximate visual offset
+                                .offset(x = maxWidth * bandStartFraction)
+                                .width(maxWidth * (bandEndFraction - bandStartFraction))
                                 .background(tokens.scoreColors.primed.copy(alpha = 0.35f))
                         )
 
-                        // Current reading indicator needle
+                        // Current reading indicator needle, centred on the reading
                         if (currentFraction != null) {
+                            val needleWidth = 4.dp
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .width(4.dp)
-                                    .align(Alignment.CenterStart)
-                                    .offset(x = (currentFraction * 300).dp)
+                                    .width(needleWidth)
+                                    .offset(x = (maxWidth * currentFraction - needleWidth / 2).coerceIn(0.dp, maxWidth - needleWidth))
                                     .background(tokens.chartColors.hrv)
                             )
                         }
@@ -349,106 +357,78 @@ fun HeartMetricsScreen(
                 }
             }
 
-            // Resting Heart Rate Recovery Dynamics Card
-            if (currentRhr != null && hasRhrBaseline) {
-                item {
-                    HangryCard {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = stringResource(R.string.metrics_heart_cardio_recovery),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = tokens.textPrimary
-                            )
-                            HangryInfoTip(
-                                title = stringResource(R.string.metrics_heart_cardio_recovery_info_title),
-                                body = stringResource(R.string.metrics_heart_rhr_dynamics_body)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-
-                        val rhrDelta = currentRhr - rhrMean
-                        val rhrExplanation = when {
-                            rhrDelta < -2.0 -> stringResource(R.string.metrics_heart_rhr_below_avg, kotlin.math.abs(rhrDelta), rhrMean.toInt())
-                            rhrDelta > 2.0 -> stringResource(R.string.metrics_heart_rhr_above_avg, rhrDelta, rhrMean.toInt())
-                            else -> stringResource(R.string.metrics_heart_rhr_within_avg, rhrMean.toInt())
-                        }
-
+            // Recent daily readings: one compact row per day in a single card.
+            item {
+                HangryCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = tokens.textSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = rhrExplanation,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary
+                            text = stringResource(R.string.metrics_heart_recent_readings),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = tokens.textPrimary
                         )
                     }
-                }
-            }
-
-            // Recent Observations List
-            item {
-                Text(
-                    text = stringResource(R.string.metrics_heart_recent_readings),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = tokens.textPrimary,
-                    modifier = Modifier.padding(top = HangryTokens.Spacing.s)
-                )
-            }
-
-            if (rhrList.isEmpty()) {
-                item {
-                    HangryCard {
+                    if (rhrList.isEmpty()) {
                         DashEmptyState(
                             scene = DashEmptyScene.HRV,
                             title = stringResource(R.string.metrics_heart_no_rhr_title),
                             body = stringResource(R.string.metrics_heart_no_rhr_body),
-                            imageSize = 120.dp,
                             modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                         )
-                    }
-                }
-            }
-
-            items(rhrList, key = { it.id }) { item ->
-                val matchingHrv = hrvByDate[item.recordDate]
-                HangryCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = item.recordDate.toString(),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = tokens.textPrimary
+                    } else {
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                        ReadingRow(
+                            date = "",
+                            rhr = stringResource(R.string.metrics_heart_rhr_short),
+                            hrv = stringResource(R.string.metrics_heart_hrv_short),
+                            isHeader = true
+                        )
+                        val dateFormat = remember { DateTimeFormatter.ofPattern("EEE d MMM") }
+                        rhrList.forEach { reading ->
+                            HorizontalDivider(color = tokens.cardBorder)
+                            ReadingRow(
+                                date = reading.recordDate.format(dateFormat),
+                                rhr = stringResource(R.string.metrics_components_bpm_value, reading.restingBpm.toInt()),
+                                hrv = hrvByDate[reading.recordDate]?.let { stringResource(R.string.metrics_components_ms_value, it.rmssd.toInt()) } ?: "—"
                             )
-                            Text(
-                                text = stringResource(R.string.data_source_label, item.sourcePackageName?.substringAfterLast('.') ?: "Health Connect"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = tokens.textMuted
-                            )
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = stringResource(R.string.metrics_components_bpm_value, item.restingBpm.toInt()),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = tokens.chartColors.restingHeartRate
-                                )
-                                Text(text = stringResource(R.string.metrics_heart_rhr_short), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                val hrvText = if (matchingHrv != null) stringResource(R.string.metrics_components_ms_value, matchingHrv.rmssd.toInt()) else stringResource(R.string.metrics_heart_not_available)
-                                Text(
-                                    text = hrvText,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = tokens.chartColors.hrv
-                                )
-                                Text(text = stringResource(R.string.metrics_heart_hrv_short), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+/** One day in the recent readings card: date, resting HR and HRV in fixed columns. */
+@Composable
+private fun ReadingRow(date: String, rhr: String, hrv: String, isHeader: Boolean = false) {
+    val tokens = LocalHangryTokens.current
+    val valueStyle = if (isHeader) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = if (isHeader) 2.dp else 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(date, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+        Text(
+            rhr,
+            style = valueStyle,
+            color = if (isHeader) tokens.textMuted else tokens.chartColors.restingHeartRate,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(72.dp)
+        )
+        Text(
+            hrv,
+            style = valueStyle,
+            color = if (isHeader) tokens.textMuted else tokens.chartColors.hrv,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(72.dp)
+        )
     }
 }

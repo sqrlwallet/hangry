@@ -16,6 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
@@ -43,10 +46,6 @@ private fun sleepCoachSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
         stringResource(R.string.metrics_sleep_tonights_need),
         stringResource(R.string.metrics_sleep_tonights_need_coach_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_score_title),
-        stringResource(R.string.metrics_sleep_score_parts_body)
     ),
     HangryInfoSection(
         stringResource(R.string.metrics_sleep_quality_title),
@@ -78,43 +77,12 @@ private fun sleepStageSections(): List<HangryInfoSection> = listOf(
     )
 )
 
+/** Top-bar dialog: just the score - the coach and stage cards have their own (i). */
 @Composable
 private fun sleepInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
         stringResource(R.string.metrics_sleep_score_title),
-        stringResource(R.string.metrics_sleep_score_blend_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_tonights_need),
-        stringResource(R.string.metrics_sleep_tonights_need_info_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_score_title),
         stringResource(R.string.metrics_sleep_score_parts_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_quality_title),
-        stringResource(R.string.metrics_sleep_quality_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_suggested_bedtime_title),
-        stringResource(R.string.metrics_sleep_suggested_bedtime_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_deep_title),
-        stringResource(R.string.metrics_sleep_deep_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_rem_title),
-        stringResource(R.string.metrics_sleep_rem_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_light_title),
-        stringResource(R.string.metrics_sleep_light_body)
-    ),
-    HangryInfoSection(
-        stringResource(R.string.metrics_sleep_awake_title),
-        stringResource(R.string.metrics_sleep_awake_body)
     )
 )
 
@@ -148,6 +116,7 @@ fun SleepScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.title_sleep)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -177,7 +146,7 @@ fun SleepScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             PastDayNote(date = uiState.selectedDate)
             if (uiState.isPendingSleepData) {
@@ -192,8 +161,7 @@ fun SleepScreen(
                     com.kevan.hangry.ui.components.DashEmptyState(
                         scene = com.kevan.hangry.ui.components.DashEmptyScene.SLEEP,
                         title = stringResource(R.string.metrics_sleep_none_recorded_title),
-                        body = stringResource(R.string.metrics_sleep_none_recorded_body),
-                        imageSize = 120.dp
+                        body = stringResource(R.string.metrics_sleep_none_recorded_body) 
                     )
                 }
             } else {
@@ -208,8 +176,8 @@ fun SleepScreen(
                     text = when {
                         performance == null -> stringResource(R.string.metrics_sleep_dash_default)
                         performance >= 95 -> stringResource(R.string.metrics_sleep_dash_great)
-                        performance >= 75 -> stringResource(R.string.metrics_sleep_dash_ok, performance)
-                        else -> stringResource(R.string.metrics_sleep_dash_short, performance)
+                        performance >= 75 -> stringResource(R.string.metrics_sleep_dash_ok)
+                        else -> stringResource(R.string.metrics_sleep_dash_short)
                     }
                 )
                 // Sleep Score hero: the night out of 100, with the time and how it was scored.
@@ -225,11 +193,11 @@ fun SleepScreen(
                         HangryRingGauge(
                             progress = (score ?: 0) / 100f,
                             color = scoreColor,
-                            modifier = Modifier.size(116.dp),
-                            strokeWidth = 10.dp
+                            modifier = Modifier.size(88.dp),
+                            strokeWidth = 8.dp
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(score?.toString() ?: "—", style = MaterialTheme.typography.headlineLarge, color = scoreColor)
+                                Text(score?.toString() ?: "—", style = MaterialTheme.typography.headlineMedium, color = scoreColor)
                                 Text(stringResource(R.string.metrics_sleep_of_100), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                             }
                         }
@@ -249,6 +217,11 @@ fun SleepScreen(
                                     color = tokens.textSecondary
                                 )
                             }
+                            SleepInBedDebtLine(
+                                inBedMinutes = analysis?.timeInBedMinutes,
+                                asleepPct = analysis?.efficiencyPercentage?.takeIf { (analysis.timeInBedMinutes ?: 0) > sleepMin },
+                                debtMinutes = analysis?.sleepDebtMinutes ?: 0
+                            )
                         }
                     }
 
@@ -258,43 +231,6 @@ fun SleepScreen(
                     SleepScorePart(stringResource(R.string.metrics_sleep_part_time_asleep_in_bed), analysis?.efficiencyScore, "15%")
                     SleepScorePart(stringResource(R.string.metrics_sleep_part_deep_rem), analysis?.restorativeScore, "20%")
                     SleepScorePart(stringResource(R.string.metrics_sleep_part_regular_times), analysis?.consistencyPercentage, "15%")
-
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                    Text(
-                        text = analysis?.supportiveNote ?: stringResource(R.string.sleep_aligned_with_pattern),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textPrimary
-                    )
-                }
-
-                // Metrics Grid
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-                ) {
-                    HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(R.string.metrics_sleep_time_in_bed), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        val inBed = analysis?.timeInBedMinutes
-                        Text(
-                            text = inBed?.let { stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60) } ?: "—",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = tokens.textPrimary
-                        )
-                        analysis?.efficiencyPercentage?.takeIf { inBed != null && inBed > sleepMin }?.let {
-                            Text(stringResource(R.string.metrics_sleep_pct_asleep, it), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
-                        }
-                    }
-                    HangryCard(modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(R.string.metrics_sleep_debt), style = MaterialTheme.typography.titleSmall, color = tokens.textSecondary)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        val debt = analysis?.sleepDebtMinutes ?: 0
-                        Text(
-                            text = stringResource(R.string.metrics_sleep_minutes_short, if (debt > 0) debt else 0),
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = if (debt > 45) tokens.scoreColors.rebuild else tokens.scoreColors.primed
-                        )
-                    }
                 }
 
                 // Sleep Coach: tonight's need, how last night measured up, and a bedtime suggestion
@@ -335,9 +271,8 @@ fun SleepScreen(
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
                     val need = analysis?.tonightsNeedMinutes ?: uiState.sleepGoalMinutes
-                    val performance = analysis?.sleepPerformancePercentage
                     Text(
-                        text = stringResource(R.string.metrics_sleep_tonights_need_value, need / 60, need % 60) + (performance?.let { stringResource(R.string.metrics_sleep_need_met_suffix, it) } ?: ""),
+                        text = stringResource(R.string.metrics_sleep_tonights_need_value, need / 60, need % 60),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textPrimary
                     )
@@ -424,50 +359,14 @@ fun SleepScreen(
                 HangryCard {
                     Text(stringResource(R.string.metrics_sleep_last_7_nights), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
                     Spacer(modifier = Modifier.height(4.dp))
-                    WeeklySleepStagesChart(weekNights, uiState.selectedDate)
-                }
-            }
-
-            // Averages and Consistency Card
-            HangryCard {
-                Text(text = stringResource(R.string.metrics_sleep_baseline_trends), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = stringResource(R.string.metrics_sleep_7_day_avg), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    val avg7 = analysis?.sevenDayAverageMinutes
-                    Text(text = avg7?.let { stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60) } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = stringResource(R.string.metrics_sleep_30_day_avg), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    val avg30 = analysis?.thirtyDayAverageMinutes
-                    Text(text = avg30?.let { stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60) } ?: "—", style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = stringResource(R.string.metrics_sleep_consistency_index), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                    val consistency = analysis?.consistencyPercentage
-                    Text(
-                        text = consistency?.let { stringResource(R.string.metrics_components_percent_value, it) } ?: stringResource(R.string.metrics_sleep_needs_3_nights),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (consistency != null) tokens.scoreColors.primed else tokens.textMuted
+                    WeeklySleepStagesChart(
+                        nights = weekNights,
+                        selectedDate = uiState.selectedDate,
+                        thirtyDayAverageMinutes = analysis?.thirtyDayAverageMinutes
                     )
                 }
             }
+
         }
     }
 
@@ -548,6 +447,30 @@ fun SleepScreen(
 
 @Composable
 private fun formatGoal(minutes: Int): String = if (minutes % 60 == 0) stringResource(R.string.metrics_sleep_hours_short, minutes / 60) else stringResource(R.string.metrics_components_duration_h_m, minutes / 60, minutes % 60)
+
+/** Time in bed and sleep debt on one line under the hero numbers. */
+@Composable
+private fun SleepInBedDebtLine(inBedMinutes: Int?, asleepPct: Int?, debtMinutes: Int) {
+    val tokens = LocalHangryTokens.current
+    val inBed = inBedMinutes?.let {
+        val duration = stringResource(R.string.metrics_components_duration_h_m, it / 60, it % 60)
+        if (asleepPct != null) stringResource(R.string.metrics_sleep_in_bed_pct_value, duration, asleepPct)
+        else stringResource(R.string.metrics_sleep_in_bed_value, duration)
+    }
+    val debt = stringResource(R.string.metrics_sleep_debt_value, debtMinutes.coerceAtLeast(0))
+    val debtColor = if (debtMinutes > 45) tokens.scoreColors.rebuild else tokens.textMuted
+    Text(
+        text = buildAnnotatedString {
+            if (inBed != null) {
+                append(inBed)
+                append(" · ")
+            }
+            withStyle(SpanStyle(color = debtColor)) { append(debt) }
+        },
+        style = MaterialTheme.typography.labelSmall,
+        color = tokens.textMuted
+    )
+}
 
 /** One part of the Sleep Score as a labelled bar; skipped when it wasn't measured. */
 @Composable

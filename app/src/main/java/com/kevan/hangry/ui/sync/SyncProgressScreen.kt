@@ -83,7 +83,7 @@ fun SyncProgressScreen(
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 when (progress.status) {
                     SyncStatus.IN_PROGRESS -> {

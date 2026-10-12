@@ -58,40 +58,47 @@ fun HangryInfoIconButton(
     }
 
     if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(title) },
-            text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    sections.forEach { section ->
-                        Column {
-                            if (section.heading.isNotBlank()) {
-                                Text(
-                                    text = section.heading,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = tokens.textPrimary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                            }
+        HangryInfoDialog(title = title, sections = sections, onDismiss = { showDialog = false })
+    }
+}
+
+/** The dialog behind [HangryInfoIconButton], for callers that open it from their own trigger. */
+@Composable
+fun HangryInfoDialog(title: String, sections: List<HangryInfoSection>, onDismiss: () -> Unit) {
+    val tokens = LocalHangryTokens.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                sections.forEach { section ->
+                    Column {
+                        if (section.heading.isNotBlank()) {
                             Text(
-                                text = section.body,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = tokens.textSecondary
+                                text = section.heading,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = tokens.textPrimary
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                         }
+                        Text(
+                            text = section.body,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tokens.textSecondary
+                        )
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.metrics_components_got_it))
-                }
             }
-        )
-    }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.metrics_components_got_it))
+            }
+        }
+    )
 }
 
 /**

@@ -126,6 +126,7 @@ fun BreathingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.coach_breathing_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -149,7 +150,7 @@ fun BreathingScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             when (sessionKind) {
                 SessionKind.ACTIVE -> ActiveSessionHost(
@@ -201,10 +202,11 @@ private fun SessionSetup(
 ) {
     val tokens = LocalHangryTokens.current
 
-    Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
-        StatTile(value = "$minutesToday", label = stringResource(R.string.coach_breathing_min_today), modifier = Modifier.weight(1f))
-        StatTile(value = "$minutesThisWeek", label = stringResource(R.string.coach_breathing_min_last_7_days), modifier = Modifier.weight(1f))
-    }
+    Text(
+        stringResource(R.string.coach_breathing_minutes_summary, minutesToday, minutesThisWeek),
+        style = MaterialTheme.typography.labelLarge,
+        color = tokens.textSecondary
+    )
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(R.string.coach_breathing_pattern), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
@@ -278,7 +280,7 @@ private fun SessionSetup(
 
     if (recent.isNotEmpty()) {
         Text(stringResource(R.string.coach_recent_sessions), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-        HangryCard(modifier = Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+        HangryCard(modifier = Modifier.fillMaxWidth()) {
             recent.forEachIndexed { index, session ->
                 RecentSessionRow(session)
                 if (index != recent.lastIndex) {
@@ -295,7 +297,7 @@ private fun SessionSetup(
 @Composable
 private fun StatTile(value: String, label: String, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = modifier, contentPadding = 12.dp) {
+    HangryCard(modifier = modifier) {
         Text(value, style = MaterialTheme.typography.headlineSmall, color = tokens.textPrimary)
         Text(label, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
     }
@@ -602,24 +604,22 @@ private fun SessionSummary(
     val accent = tokens.chartColors.sleep
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = HangryTokens.Spacing.l),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(132.dp)
+                .size(80.dp)
                 .background(accent.copy(alpha = 0.15f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             DashExpression(
                 mood = if (state.completed) DashMood.CELEBRATE else DashMood.CHEER,
-                size = 116.dp,
+                size = 72.dp,
                 contentDescription = null
             )
         }
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
         Text(
             text = if (state.completed) stringResource(R.string.coach_breathing_session_complete) else stringResource(R.string.coach_breathing_session_ended),
             style = MaterialTheme.typography.headlineSmall,

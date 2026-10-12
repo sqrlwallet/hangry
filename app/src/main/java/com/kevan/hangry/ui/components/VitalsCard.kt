@@ -1,6 +1,9 @@
 package com.kevan.hangry.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material3.Icon
@@ -9,188 +12,176 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
+import com.kevan.hangry.domain.calculation.BodySignals
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
-import androidx.compose.ui.res.stringResource
-import com.kevan.hangry.R
 
+/** How a reading sits against your usual - drives the dot beside its label. */
+private enum class VitalStatus { NORMAL, WATCH, OFF, UNKNOWN }
+
+private data class Vital(val label: String, val value: String, val note: String?, val status: VitalStatus)
+
+/**
+ * Every overnight and heart reading in one card: resting heart rate, HRV, breathing, skin
+ * temperature, blood oxygen, sleeping heart rate and VO2 max. Readings with a usual (from the
+ * body check) show it underneath, with a dot that turns red when it's off. Only readings the
+ * wearable reports are shown, so trackers without a sensor don't get blank tiles.
+ */
 @Composable
 fun VitalsCard(
     summary: DailyHealthSummaryEntity?,
+    comparisons: List<BodySignals.Comparison>,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val byKind = comparisons.associateBy { it.kind }
+
+    fun format(kind: BodySignals.Kind, v: Double): String = when (kind) {
+        BodySignals.Kind.RESTING_HR -> String.format(Locale.US, "%.0f", v)
+        BodySignals.Kind.HRV -> String.format(Locale.US, "%.0f", v)
+        BodySignals.Kind.BREATHING -> String.format(Locale.US, "%.1f", v)
+        BodySignals.Kind.SKIN_TEMP -> ""
+    }
+
+    @Composable
+    fun compared(kind: BodySignals.Kind, label: String, unit: String, fallback: Double?): Vital? {
+        val c = byKind[kind]
+        val today = c?.today ?: fallback ?: return null
+        val isTemp = kind == BodySignals.Kind.SKIN_TEMP
+        val value = if (isTemp) skinTempText(today) else format(kind, today) + unit
+        val note = when {
+            c?.usual != null -> stringResource(R.string.dashboard_body_check_usual, if (isTemp) skinTempText(c.usual) else format(kind, c.usual))
+            c != null -> stringResource(R.string.dashboard_vitals_learning)
+            else -> null
+        }
+        val status = when {
+            c?.usual == null -> VitalStatus.UNKNOWN
+            c.off -> VitalStatus.OFF
+            else -> VitalStatus.NORMAL
+        }
+        return Vital(label, value, note, status)
+    }
+
+    val vitals = listOfNotNull(
+        compared(BodySignals.Kind.RESTING_HR, stringResource(R.string.dashboard_vitals_rhr), stringResource(R.string.dashboard_vitals_bpm_suffix), summary?.restingHeartRate),
+        compared(BodySignals.Kind.HRV, stringResource(R.string.dashboard_vitals_hrv), stringResource(R.string.dashboard_vitals_ms_suffix), summary?.hrvRmssd?.takeIf { it > 0 }),
+        summary?.spo2Percentage?.let { spo2 ->
+            Vital(
+                label = stringResource(R.string.dashboard_vitals_spo2),
+                value = String.format(Locale.US, "%.0f%%", spo2),
+                note = stringResource(
+                    when {
+                        spo2 >= 95.0 -> R.string.dashboard_vitals_spo2_normal
+                        spo2 >= 90.0 -> R.string.metrics_components_spo2_little_low
+                        else -> R.string.metrics_components_spo2_low
+                    }
+                ),
+                status = when {
+                    spo2 >= 95.0 -> VitalStatus.NORMAL
+                    spo2 >= 90.0 -> VitalStatus.WATCH
+                    else -> VitalStatus.OFF
+                }
+            )
+        },
+        compared(BodySignals.Kind.BREATHING, stringResource(R.string.dashboard_vitals_breathing), "", summary?.respiratoryRate),
+        compared(BodySignals.Kind.SKIN_TEMP, stringResource(R.string.dashboard_vitals_skin_temp), "", summary?.skinTempDeltaCelsius),
+        summary?.sleepingHeartRate?.let {
+            Vital(stringResource(R.string.dashboard_vitals_sleeping_hr), String.format(Locale.US, "%.0f", it) + stringResource(R.string.dashboard_vitals_bpm_suffix), stringResource(R.string.dashboard_vitals_overnight_avg), VitalStatus.UNKNOWN)
+        },
+        summary?.vo2Max?.let {
+            Vital(stringResource(R.string.dashboard_vitals_vo2), String.format(Locale.US, "%.1f", it), stringResource(R.string.dashboard_vitals_vo2_unit), VitalStatus.UNKNOWN)
+        }
+    )
+
+    val offCount = comparisons.count { it.off }
+    val title = stringResource(R.string.dashboard_vitals_title)
 
     HangryCard(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = stringResource(R.string.dashboard_vitals_open), onClick = onClick)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.xs)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MonitorHeart,
-                        contentDescription = null,
-                        tint = tokens.scoreColors.primed,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.metrics_components_key_vitals_cardio),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = tokens.textPrimary
-                    )
-                }
-
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.MonitorHeart, contentDescription = null, tint = tokens.chartColors.restingHeartRate, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(HangryTokens.Spacing.xs))
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
+            HangryInfoTip(title = title, body = stringResource(R.string.dashboard_body_check_footnote))
+            Spacer(Modifier.weight(1f))
+            if (comparisons.any { it.usual != null && it.today != null }) {
                 Text(
-                    text = "Health Connect",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
+                    when {
+                        offCount >= BodySignals.MIN_SIGNALS -> stringResource(R.string.dashboard_body_check_several_off, offCount)
+                        offCount == 1 -> stringResource(R.string.dashboard_body_check_one_off)
+                        else -> stringResource(R.string.dashboard_body_check_normal)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = when {
+                        offCount >= BodySignals.MIN_SIGNALS -> tokens.scoreColors.rebuild
+                        offCount == 1 -> tokens.scoreColors.balanced
+                        else -> tokens.scoreColors.primed
+                    }
                 )
             }
+        }
 
-            // SpO2 & VO2 Max
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-            ) {
-                VitalItem(
-                    label = stringResource(R.string.metrics_components_blood_oxygen),
-                    value = summary?.spo2Percentage?.let { String.format(Locale.US, "%.0f%%", it) } ?: "—",
-                    subtitle = when (val spo2 = summary?.spo2Percentage) {
-                        null -> stringResource(R.string.metrics_components_no_data_yet)
-                        in 95.0..100.0 -> stringResource(R.string.metrics_components_spo2_normal)
-                        in 90.0..95.0 -> stringResource(R.string.metrics_components_spo2_little_low)
-                        else -> stringResource(R.string.metrics_components_spo2_low)
-                    },
-                    valueColor = when (val spo2 = summary?.spo2Percentage) {
-                        null -> tokens.textMuted
-                        in 95.0..100.0 -> tokens.scoreColors.primed
-                        else -> tokens.scoreColors.rebuild
-                    },
-                    modifier = Modifier.weight(1f)
-                )
+        if (vitals.isEmpty()) {
+            Text(
+                stringResource(R.string.dashboard_vitals_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textSecondary,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            return@HangryCard
+        }
 
-                VitalItem(
-                    label = stringResource(R.string.metrics_components_vo2_max),
-                    value = summary?.vo2Max?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                    unit = if (summary?.vo2Max != null) "mL/kg/min" else null,
-                    subtitle = if (summary?.vo2Max != null) stringResource(R.string.metrics_components_cardio_fitness) else stringResource(R.string.metrics_components_no_data_yet),
-                    valueColor = if (summary?.vo2Max != null) tokens.scoreColors.primed else tokens.textMuted,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Overnight skin temperature & breathing rate - early signs of illness. Only shown
-            // when the wearable records them, so trackers without the sensors don't get blank tiles.
-            if (summary?.skinTempDeltaCelsius != null || summary?.respiratoryRate != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
-                ) {
-                    val skinTemp = summary?.skinTempDeltaCelsius
-                    VitalItem(
-                        label = stringResource(R.string.metrics_components_skin_temp),
-                        value = skinTemp?.let { skinTempText(it) } ?: "—",
-                        subtitle = when {
-                            skinTemp == null -> stringResource(R.string.metrics_components_no_data_yet)
-                            skinTemp >= SKIN_TEMP_NOTABLE -> stringResource(R.string.metrics_components_skin_temp_warm)
-                            skinTemp <= -SKIN_TEMP_NOTABLE -> stringResource(R.string.metrics_components_skin_temp_cool)
-                            else -> stringResource(R.string.metrics_components_skin_temp_usual)
-                        },
-                        valueColor = when {
-                            skinTemp == null -> tokens.textMuted
-                            skinTemp >= SKIN_TEMP_NOTABLE -> tokens.scoreColors.rebuild
-                            else -> tokens.scoreColors.primed
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    val breathing = summary?.respiratoryRate
-                    VitalItem(
-                        label = stringResource(R.string.metrics_components_breathing_rate),
-                        value = breathing?.let { stringResource(R.string.metrics_components_breathing_rate_value, it) } ?: "—",
-                        subtitle = if (breathing != null) stringResource(R.string.metrics_components_overnight) else stringResource(R.string.metrics_components_no_data_yet),
-                        valueColor = if (breathing != null) tokens.scoreColors.primed else tokens.textMuted,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+        Spacer(Modifier.height(HangryTokens.Spacing.s))
+        vitals.chunked(3).forEachIndexed { i, row ->
+            if (i > 0) Spacer(Modifier.height(HangryTokens.Spacing.s + 2.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)) {
+                row.forEach { VitalTile(it, Modifier.weight(1f)) }
+                // Keep columns aligned on a short last row.
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
 }
 
-/** °C from baseline worth calling out - wearables treat about half a degree as notable. */
-private const val SKIN_TEMP_NOTABLE = 0.5
-
 @Composable
-private fun VitalItem(
-    label: String,
-    value: String,
-    subtitle: String,
-    valueColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier,
-    unit: String? = null
-) {
+private fun VitalTile(vital: Vital, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = tokens.textSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = valueColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (unit != null) {
-                Text(
-                    text = unit,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted,
-                    modifier = Modifier.padding(bottom = 2.dp),
-                    maxLines = 1
-                )
+    val dot: Color? = when (vital.status) {
+        VitalStatus.NORMAL -> tokens.scoreColors.primed
+        VitalStatus.WATCH -> tokens.scoreColors.balanced
+        VitalStatus.OFF -> tokens.scoreColors.rebuild
+        VitalStatus.UNKNOWN -> null
+    }
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (dot != null) {
+                Spacer(Modifier.size(6.dp).background(dot, CircleShape))
+                Spacer(Modifier.width(4.dp))
             }
+            Text(vital.label, style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-
         Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = tokens.textMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            vital.value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (vital.status == VitalStatus.OFF) tokens.scoreColors.rebuild else tokens.textPrimary,
+            maxLines = 1
         )
+        vital.note?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }

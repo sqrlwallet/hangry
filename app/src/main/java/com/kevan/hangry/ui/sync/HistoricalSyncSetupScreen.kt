@@ -94,6 +94,7 @@ fun HistoricalSyncSetupScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
+                    expandedHeight = 56.dp,
                     title = { Text(stringResource(R.string.settings_sync_historical_import), color = androidx.compose.ui.graphics.Color.White) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
@@ -146,7 +147,7 @@ fun HistoricalSyncSetupScreen(
                     .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 if (showStepIndicator) {
                     OnboardingStepIndicator(currentStep = OnboardingSteps.HISTORY, totalSteps = OnboardingSteps.TOTAL)

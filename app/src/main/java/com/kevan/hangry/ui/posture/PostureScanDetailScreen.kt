@@ -48,6 +48,7 @@ fun PostureScanDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(scan?.date?.toString() ?: stringResource(R.string.body_posture_scan)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -71,12 +72,9 @@ fun PostureScanDetailScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
-            HangryCard {
-                Text(text = stringResource(R.string.body_posture_score), style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary)
-                Text(text = "${current.score}", style = MaterialTheme.typography.displayMedium, color = tokens.chartColors.hrv)
-            }
+            PostureScoreRow(score = current.score)
 
             val photos = current.photoPaths()
             if (photos.isNotEmpty()) {
@@ -110,20 +108,7 @@ fun PostureScanDetailScreen(
 
             val exercises = current.exercises()
             if (exercises.isNotEmpty()) {
-                Text(text = stringResource(R.string.body_posture_recommended_exercises), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                exercises.forEach { ex ->
-                    HangryCard {
-                        Text(ex.name, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(ex.description, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            stringResource(R.string.body_posture_exercise_detail, ex.sets.toString(), ex.reps.toString(), ex.targetArea),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.textMuted
-                        )
-                    }
-                }
+                PostureExercisesCard(exercises)
             }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))

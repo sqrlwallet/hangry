@@ -3,8 +3,9 @@ package com.kevan.hangry.ui.dashboard
 import com.kevan.hangry.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Bedtime
@@ -21,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.domain.calculation.Streak
@@ -29,15 +32,24 @@ import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
-/** Consecutive days of the habits the user has data for, two per row. */
+/** Consecutive days of the habits the user has data for, side by side in one row. */
 @Composable
 fun StreaksCard(streaks: List<Streak>, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = tokens.chartColors.trainingLoad, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(stringResource(R.string.dashboard_streaks_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = tokens.chartColors.trainingLoad, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.xs))
+            Text(stringResource(R.string.dashboard_streaks_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
+            Spacer(modifier = Modifier.weight(1f))
+            if (streaks.isNotEmpty()) {
+                val done = streaks.count { it.doneToday }
+                Text(
+                    stringResource(R.string.dashboard_streaks_done_count, done, streaks.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (done == streaks.size) tokens.scoreColors.primed else tokens.textMuted
+                )
+            }
         }
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
         if (streaks.isEmpty()) {
@@ -48,17 +60,15 @@ fun StreaksCard(streaks: List<Streak>, modifier: Modifier = Modifier) {
             )
             return@HangryCard
         }
-        streaks.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s), modifier = Modifier.padding(bottom = HangryTokens.Spacing.s)) {
-                row.forEach { StreakTile(it, Modifier.weight(1f)) }
-                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
-            }
+        Row(modifier = Modifier.fillMaxWidth()) {
+            streaks.forEach { StreakItem(it, Modifier.weight(1f)) }
         }
     }
 }
 
+/** A habit's icon (filled in once today is done), its run in days, and its name. */
 @Composable
-private fun StreakTile(streak: Streak, modifier: Modifier = Modifier) {
+private fun StreakItem(streak: Streak, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     val (icon, color) = streak.type.look()
     val status = when {
@@ -66,33 +76,54 @@ private fun StreakTile(streak: Streak, modifier: Modifier = Modifier) {
         streak.current > 0 -> stringResource(R.string.dashboard_streak_keep_going)
         else -> stringResource(R.string.dashboard_streak_start_today)
     }
+    val description = stringResource(R.string.dashboard_streak_description, streak.type.label, streak.current, status, streak.best)
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(HangryTokens.CornerRadii.medium))
-            .background(color.copy(alpha = 0.10f))
-            .padding(10.dp)
+        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(streak.type.label, style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(if (streak.doneToday) color else color.copy(alpha = 0.12f))
+                .then(if (streak.doneToday) Modifier else Modifier.border(1.5.dp, color.copy(alpha = 0.45f), CircleShape)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = if (streak.doneToday) Color.White else color, modifier = Modifier.size(18.dp))
         }
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("${streak.current}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = tokens.textPrimary)
+            Text("${streak.current}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = tokens.textPrimary)
             Text(
-                if (streak.current == 1) stringResource(R.string.dashboard_streak_day_suffix) else stringResource(R.string.dashboard_streak_days_suffix),
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary,
-                modifier = Modifier.padding(bottom = 3.dp)
+                stringResource(R.string.dashboard_streak_days_short),
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.textMuted,
+                modifier = Modifier.padding(start = 1.dp, bottom = 3.dp)
             )
         }
         Text(
-            if (streak.best > streak.current) stringResource(R.string.dashboard_streak_status_with_best, status, streak.best) else status,
+            stringResource(streak.type.shortLabel()),
             style = MaterialTheme.typography.labelSmall,
-            color = if (streak.doneToday) tokens.scoreColors.primed else tokens.textMuted
+            color = tokens.textSecondary,
+            maxLines = 1
         )
+        if (streak.best > streak.current) {
+            Text(
+                stringResource(R.string.dashboard_streak_best, streak.best),
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.textMuted,
+                maxLines = 1
+            )
+        }
     }
+}
+
+private fun StreakType.shortLabel(): Int = when (this) {
+    StreakType.STEPS -> R.string.dashboard_streak_short_steps
+    StreakType.MEALS -> R.string.dashboard_streak_short_meals
+    StreakType.SLEEP -> R.string.dashboard_streak_short_sleep
+    StreakType.SUPPLEMENTS -> R.string.dashboard_streak_short_supplements
+    StreakType.FASTING -> R.string.dashboard_streak_short_fasting
 }
 
 @Composable

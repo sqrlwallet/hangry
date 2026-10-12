@@ -19,7 +19,6 @@
 
     <!-- Data sources -->
     <string name="settings_data_sources_title">Data Sources &amp; Sync Status</string>
-    <string name="settings_data_sources_connected_providers">Connected Providers</string>
     <string name="settings_data_sources_connected_providers_info">Google Health Connect aggregates readings from your active wearables and fitness tracking applications.</string>
     <string name="settings_data_sources_checkpoints_title">Sync Checkpoints by Data Type</string>
     <string name="settings_data_sources_empty">No sync records yet. Pull down on Today to sync.</string>
@@ -68,18 +67,7 @@
     <string name="settings_goals_body_metrics">Goals &amp; Body Metrics</string>
     <string name="settings_age">Age</string>
     <string name="settings_height">Height</string>
-    <string name="settings_height_synced">Height (synced)</string>
-    <string name="settings_value_cm">%1$s cm</string>
     <string name="settings_current_weight">Current weight</string>
-    <string name="settings_current_weight_synced">Current weight (synced)</string>
-    <string name="settings_value_kg">%1$s kg</string>
-    <string name="settings_estimated_bmr">Estimated resting burn (BMR)</string>
-    <string name="settings_value_kcal">%1$d kcal</string>
-    <string name="settings_circumference_neck">Neck: %1$dcm</string>
-    <string name="settings_circumference_chest">Chest: %1$dcm</string>
-    <string name="settings_circumference_waist">Waist: %1$dcm</string>
-    <string name="settings_circumference_hips">Hips: %1$dcm</string>
-    <string name="settings_circumferences">Circumferences</string>
     <string name="settings_weight_goal">Weight goal</string>
     <string name="settings_weight_goal_by">%1$s kg by %2$s</string>
     <string name="settings_add_body_metrics_hint">Add body metrics to estimate burn</string>
@@ -87,8 +75,6 @@
     <string name="settings_edit_goals_subtitle">Age, height, weight &amp; goals</string>
     <string name="settings_edit_goals_info">Age, sex, height, current &amp; goal weight, circumferences</string>
     <string name="settings_privacy_legal_title">Privacy &amp; Legal</string>
-    <string name="settings_privacy_legal_subtitle">Privacy policy &amp; wellness notice</string>
-    <string name="settings_privacy_legal_info">Zero-cloud architecture, Health Connect audit &amp; wellness notice</string>
     <string name="settings_sync_section_title">Synchronization</string>
     <string name="settings_sync_section_summary">Sync now, history, sources &amp; baselines</string>
     <string name="settings_sync_now_title">Sync Now</string>
@@ -223,7 +209,6 @@
     <string name="settings_more_trends">Trends</string>
     <string name="settings_more_trends_subtitle">Recovery, sleep, weight and more over time</string>
     <string name="settings_more_posture">Posture</string>
-    <string name="settings_more_posture_subtitle">Posture checks and your timeline</string>
     <string name="settings_more_body_fat">Body Fat &amp; Composition</string>
     <string name="settings_more_body_fat_subtitle">From photos or tape measurements</string>
     <string name="settings_more_body_metrics">Body Metrics</string>
@@ -233,15 +218,12 @@
     <string name="settings_more_supplements">Supplements</string>
     <string name="settings_more_supplements_subtitle">What you take, with optional reminders</string>
     <string name="settings_more_fasting">Fasting</string>
-    <string name="settings_more_fasting_subtitle">Optional intermittent fasting timer and streak</string>
     <string name="settings_more_programs">Programs</string>
     <string name="settings_more_programs_subtitle">Step-by-step plans: stress, focus, back, knees, first pull-up…</string>
     <string name="settings_more_breathing">Breathing</string>
-    <string name="settings_more_breathing_subtitle">Guided breathing with Dash</string>
     <string name="settings_more_customize_today">Customize Today</string>
     <string name="settings_more_customize_today_subtitle">Choose and reorder the cards on Today</string>
     <string name="settings_more_widgets">Home Screen Widgets</string>
-    <string name="settings_more_widgets_subtitle">Pin widgets to your home screen</string>
     <string name="settings_more_settings_subtitle">Goals, sync, AI and your data</string>
     <!-- Background access -->
     <string name="settings_done">Done</string>

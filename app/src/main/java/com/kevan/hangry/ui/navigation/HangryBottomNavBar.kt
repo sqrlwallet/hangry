@@ -109,8 +109,8 @@ sealed class BottomNavDestination(
 }
 
 /** Height of the floating dock itself, plus its top and bottom margins. */
-private val DOCK_HEIGHT = 68.dp
-private val DOCK_MARGINS = 12.dp
+private val DOCK_HEIGHT = 60.dp
+private val DOCK_MARGINS = 10.dp
 
 /**
  * How much room the floating dock covers at the bottom of the screen right now: the dock plus
@@ -162,7 +162,7 @@ fun HangryBottomNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 18.dp, end = 18.dp, bottom = 10.dp, top = 2.dp),
+                .padding(start = 18.dp, end = 18.dp, bottom = 8.dp, top = 2.dp),
             contentAlignment = Alignment.Center
         ) {
             Surface(

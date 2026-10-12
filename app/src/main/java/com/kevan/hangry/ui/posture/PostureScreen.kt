@@ -26,8 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -41,16 +39,8 @@ import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.components.HangryRingGauge
-import com.kevan.hangry.ui.theme.CtaGradient
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-
-@Composable
-private fun alignmentZoneSections(): List<HangryInfoSection> = listOf(
-    HangryInfoSection(stringResource(R.string.body_posture_zone_cervical), stringResource(R.string.body_posture_zone_cervical_info)),
-    HangryInfoSection(stringResource(R.string.body_posture_zone_thoracic), stringResource(R.string.body_posture_zone_thoracic_info)),
-    HangryInfoSection(stringResource(R.string.body_posture_zone_lumbopelvic), stringResource(R.string.body_posture_zone_lumbopelvic_info))
-)
 
 @Composable
 private fun postureInfoSections(): List<HangryInfoSection> = listOf(
@@ -61,7 +51,11 @@ private fun postureInfoSections(): List<HangryInfoSection> = listOf(
     HangryInfoSection(
         stringResource(R.string.body_posture_info_photos_title),
         stringResource(R.string.body_posture_info_photos_body)
-    )
+    ),
+    // What the check looks at (formerly a static "Alignment focus" card on the page).
+    HangryInfoSection(stringResource(R.string.body_posture_zone_cervical), stringResource(R.string.body_posture_zone_cervical_info)),
+    HangryInfoSection(stringResource(R.string.body_posture_zone_thoracic), stringResource(R.string.body_posture_zone_thoracic_info)),
+    HangryInfoSection(stringResource(R.string.body_posture_zone_lumbopelvic), stringResource(R.string.body_posture_zone_lumbopelvic_info))
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,6 +76,7 @@ fun PostureScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.title_posture)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -102,7 +97,7 @@ fun PostureScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
                     .padding(HangryTokens.Spacing.m),
-                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 HangryPendingNotice(message = stringResource(R.string.body_posture_enable_ai))
                 HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {
@@ -118,7 +113,7 @@ fun PostureScreen(
                 .padding(top = innerPadding.calculateTopPadding())
                 .padding(horizontal = HangryTokens.Spacing.m),
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             // Latest Posture Score Hero
             item {
@@ -130,23 +125,21 @@ fun PostureScreen(
                     score >= 60 -> tokens.scoreColors.balanced
                     else -> tokens.scoreColors.rebuild
                 }
-                val statusText = when {
-                    score == null -> stringResource(R.string.body_posture_status_pending)
-                    score >= 80 -> stringResource(R.string.body_posture_status_optimal)
-                    score >= 60 -> stringResource(R.string.body_posture_status_mild)
-                    else -> stringResource(R.string.body_posture_status_correction)
-                }
 
-                HangryCard(
-                    cornerRadius = HangryTokens.CornerRadii.large,
-                    contentPadding = HangryTokens.Spacing.l
-                ) {
+                HangryCard {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.AccessibilityNew,
+                                contentDescription = null,
+                                tint = tokens.textSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = stringResource(R.string.body_posture_score_title),
                                 style = MaterialTheme.typography.titleMedium,
@@ -158,38 +151,58 @@ fun PostureScreen(
                                 body = stringResource(R.string.body_posture_score_tip)
                             )
                         }
-                        Surface(
-                            color = scoreColor.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = statusText,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = scoreColor,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
+                        if (score != null) {
+                            Surface(
+                                color = scoreColor.copy(alpha = 0.14f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = when {
+                                        score >= 80 -> stringResource(R.string.body_posture_status_optimal)
+                                        score >= 60 -> stringResource(R.string.body_posture_status_mild)
+                                        else -> stringResource(R.string.body_posture_status_correction)
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scoreColor,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HangryRingGauge(
-                            progress = ((score ?: 0) / 100f).coerceIn(0f, 1f),
-                            color = scoreColor,
-                            modifier = Modifier.size(100.dp),
-                            strokeWidth = 9.dp
+                    if (latest != null && score != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            HangryRingGauge(
+                                progress = (score / 100f).coerceIn(0f, 1f),
+                                color = scoreColor,
+                                modifier = Modifier.size(72.dp),
+                                strokeWidth = 7.dp
+                            ) {
                                 Text(
-                                    text = score?.toString() ?: "--",
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    text = score.toString(),
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = scoreColor
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.body_posture_latest_assessment),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = tokens.textMuted
+                                )
+                                Text(
+                                    text = latest.date.toString(),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = tokens.textPrimary
                                 )
                                 Text(
                                     text = stringResource(R.string.body_posture_out_of_100),
@@ -198,188 +211,53 @@ fun PostureScreen(
                                 )
                             }
                         }
-
-                        Spacer(modifier = Modifier.width(HangryTokens.Spacing.l))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            if (latest != null) {
-                                Text(
-                                    text = stringResource(R.string.body_posture_latest_assessment),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = tokens.textMuted
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = latest.date.toString(),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = tokens.textPrimary
-                                )
-                            } else {
-                                Text(
-                                    text = stringResource(R.string.body_posture_no_scans_logged),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = tokens.textPrimary
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = stringResource(R.string.body_posture_take_photos_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.textSecondary
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
-
-                    // Luxury Action Capsule
-                    Surface(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onStartNewScan()
-                        },
-                        shape = RoundedCornerShape(26.dp),
-                        color = Color.Transparent,
-                        border = BorderStroke(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
-                            )
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    CtaGradient
-                                ),
-                                shape = RoundedCornerShape(26.dp)
-                            )
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (latest != null) stringResource(R.string.body_posture_new_check) else stringResource(R.string.body_posture_start_first),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Biomechanical Alignment Zones Card
-            item {
-                HangryCard(
-                    cornerRadius = HangryTokens.CornerRadii.large,
-                    contentPadding = HangryTokens.Spacing.m
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = stringResource(R.string.body_posture_alignment_focus),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = tokens.textPrimary
-                            )
-                            HangryInfoIconButton(
-                                title = stringResource(R.string.body_posture_alignment_zones),
-                                sections = alignmentZoneSections(),
-                                compact = true
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.AccessibilityNew,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                    } else {
+                        // The page's single empty state: shown here rather than again under history.
+                        DashEmptyState(
+                            scene = DashEmptyScene.POSTURE,
+                            title = stringResource(R.string.body_posture_no_scans_title),
+                            body = stringResource(R.string.body_posture_no_scans_body)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
-                    AlignmentZoneRow(
-                        title = stringResource(R.string.body_posture_zone_cervical),
-                        status = stringResource(R.string.body_posture_zone_cervical_status),
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AlignmentZoneRow(
-                        title = stringResource(R.string.body_posture_zone_thoracic),
-                        status = stringResource(R.string.body_posture_zone_thoracic_status),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AlignmentZoneRow(
-                        title = stringResource(R.string.body_posture_zone_lumbopelvic),
-                        status = stringResource(R.string.body_posture_zone_lumbopelvic_status),
-                        color = tokens.chartColors.sleep
-                    )
+                    Button(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onStartNewScan()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (latest != null) stringResource(R.string.body_posture_new_check) else stringResource(R.string.body_posture_start_first))
+                    }
                 }
             }
 
             // Daily 3-Minute Reset Protocol
             item {
-                HangryCard(
-                    cornerRadius = HangryTokens.CornerRadii.large,
-                    contentPadding = HangryTokens.Spacing.m
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Spa,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.body_posture_reset_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = tokens.textPrimary
-                            )
-                            HangryInfoTip(
-                                title = stringResource(R.string.body_posture_reset_tip_title),
-                                body = stringResource(R.string.body_posture_reset_tip_body)
-                            )
-                        }
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(100.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.body_posture_daily_habit),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
+                HangryCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Spa,
+                            contentDescription = null,
+                            tint = tokens.textSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.body_posture_reset_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = tokens.textPrimary
+                        )
+                        HangryInfoTip(
+                            title = stringResource(R.string.body_posture_reset_tip_title),
+                            body = stringResource(R.string.body_posture_reset_tip_body)
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
 
                     PostureDrillItem(
                         step = "1",
@@ -387,14 +265,12 @@ fun PostureScreen(
                         reps = stringResource(R.string.body_posture_sets_reps, 3, 10),
                         benefit = stringResource(R.string.body_posture_drill_chin_tucks_benefit)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                     PostureDrillItem(
                         step = "2",
                         name = stringResource(R.string.body_posture_drill_wall_slides),
                         reps = stringResource(R.string.body_posture_sets_reps, 2, 12),
                         benefit = stringResource(R.string.body_posture_drill_wall_slides_benefit)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                     PostureDrillItem(
                         step = "3",
                         name = stringResource(R.string.body_posture_drill_glute_bridge),
@@ -403,7 +279,7 @@ fun PostureScreen(
                     )
 
                     if (onNavigateToAiCoach != null) {
-                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Surface(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -448,29 +324,16 @@ fun PostureScreen(
                 }
             }
 
-            // History Section Header
-            item {
-                Text(
-                    text = stringResource(R.string.body_posture_scan_history),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = tokens.textPrimary,
-                    modifier = Modifier.padding(top = HangryTokens.Spacing.xs)
-                )
-            }
-
-            if (uiState.scans.isEmpty()) {
+            if (uiState.scans.isNotEmpty()) {
                 item {
-                    HangryCard {
-                        DashEmptyState(
-                            scene = DashEmptyScene.POSTURE,
-                            title = stringResource(R.string.body_posture_no_scans_title),
-                            body = stringResource(R.string.body_posture_no_scans_body),
-                            modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
-                        )
-                    }
+                    Text(
+                        text = stringResource(R.string.body_posture_scan_history),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = tokens.textPrimary,
+                        modifier = Modifier.padding(top = HangryTokens.Spacing.xs)
+                    )
                 }
-            } else {
                 items(uiState.scans, key = { it.id }) { scan ->
                     PostureScanRow(
                         scan = scan,
@@ -483,48 +346,7 @@ fun PostureScreen(
     }
 }
 
-@Composable
-private fun AlignmentZoneRow(
-    title: String,
-    status: String,
-    color: Color
-) {
-    val tokens = LocalHangryTokens.current
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = tokens.textPrimary,
-                modifier = Modifier.weight(1f)
-            )
-            Surface(
-                color = color.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = status,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = color,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-        }
-    }
-}
-
+/** One-line drill row: step · name · sets×reps, with the benefit behind an (i). */
 @Composable
 private fun PostureDrillItem(
     step: String,
@@ -539,44 +361,35 @@ private fun PostureDrillItem(
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(24.dp)
                 .clip(CircleShape)
                 .background(tokens.cardBorder.copy(alpha = 0.5f)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = step,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = tokens.textPrimary
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = tokens.textPrimary
-                )
-                Text(
-                    text = reps,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-            Text(
-                text = benefit,
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
-            )
-        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = tokens.textPrimary,
+            maxLines = 1,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        HangryInfoTip(title = name, body = benefit)
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = reps,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 

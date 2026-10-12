@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -27,6 +29,9 @@ import com.kevan.hangry.domain.model.AgeMath
 import com.kevan.hangry.ui.coach.DashExpression
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoIconButton
+import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -74,29 +79,43 @@ internal fun BodyAgeSnapshot.trend(): String? {
 fun BodyAgeCard(snapshot: BodyAgeSnapshot?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     val result = snapshot?.current
-    HangryCard(modifier = modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.metrics_bodyage_open)) { onClick() }) {
+    HangryCard(
+        modifier = modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.metrics_bodyage_open)) { onClick() },
+        contentPadding = HangryTokens.Spacing.s + 4.dp
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 64.dp, contentDescription = null, interactive = false)
-            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+            DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 48.dp, contentDescription = null, interactive = false)
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.s + 4.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.metrics_bodyage_title), style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
                 if (snapshot?.needsBirthday == true) {
-                    Text(stringResource(R.string.metrics_bodyage_add_birthday), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                    Text(stringResource(R.string.metrics_bodyage_tap_see_how_old), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                    Text(stringResource(R.string.metrics_bodyage_add_birthday), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(stringResource(R.string.metrics_bodyage_tap_see_how_old), style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
                 } else if (result == null) {
-                    Text(stringResource(R.string.metrics_bodyage_needs_more_data), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                    Text(stringResource(R.string.metrics_bodyage_tap_see_missing), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                    Text(stringResource(R.string.metrics_bodyage_needs_more_data), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(stringResource(R.string.metrics_bodyage_tap_see_missing), style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)
                 } else {
-                    Text(
-                        String.format(Locale.US, "%.1f", result.bodyAge),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = tokens.textPrimary
-                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            String.format(Locale.US, "%.1f", result.bodyAge),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = tokens.textPrimary
+                        )
+                        snapshot.trend()?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = tokens.textMuted,
+                                maxLines = 1,
+                                modifier = Modifier.padding(start = HangryTokens.Spacing.s, bottom = 4.dp)
+                            )
+                        }
+                    }
                     Text(result.comparison(), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
-                    snapshot.trend()?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted) }
                 }
             }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = tokens.textMuted)
         }
     }
 }
@@ -121,9 +140,16 @@ fun BodyAgeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.metrics_bodyage_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.metrics_components_back)) }
+                },
+                actions = {
+                    HangryInfoIconButton(
+                        title = stringResource(R.string.metrics_bodyage_title),
+                        sections = listOf(HangryInfoSection(heading = "", body = stringResource(R.string.metrics_bodyage_disclaimer)))
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -136,80 +162,103 @@ fun BodyAgeScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             HangryCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 140.dp)
-                    if (snapshot?.needsBirthday == true) {
-                        Text(stringResource(R.string.metrics_bodyage_when_birthday), style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            stringResource(R.string.metrics_bodyage_birthday_explainer),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textSecondary
-                        )
-                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-                        Button(onClick = { pickingBirthday = true }) { Text(stringResource(R.string.metrics_bodyage_add_my_birthday)) }
-                    } else if (result == null) {
-                        Text(stringResource(R.string.metrics_bodyage_not_enough_data), style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        snapshot?.needs.orEmpty().forEach {
-                            Text(stringResource(R.string.metrics_components_bullet_item, it), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                        }
-                    } else {
-                        Text(
-                            String.format(Locale.US, "%.1f", result.bodyAge),
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = tokens.textPrimary
-                        )
-                        Text(result.comparison(), style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-                        snapshot.trend()?.let {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(it, style = MaterialTheme.typography.labelLarge, color = tokens.textMuted)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 60.dp)
+                    Spacer(modifier = Modifier.width(HangryTokens.Spacing.s + 4.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (snapshot?.needsBirthday == true) {
+                            Text(stringResource(R.string.metrics_bodyage_when_birthday), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                            Text(
+                                stringResource(R.string.metrics_bodyage_birthday_explainer),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = tokens.textSecondary
+                            )
+                        } else if (result == null) {
+                            Text(stringResource(R.string.metrics_bodyage_not_enough_data), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                            snapshot?.needs.orEmpty().forEach {
+                                Text(stringResource(R.string.metrics_components_bullet_item, it), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    String.format(Locale.US, "%.1f", result.bodyAge),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = tokens.textPrimary
+                                )
+                                snapshot.trend()?.let {
+                                    Text(
+                                        it,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = tokens.textMuted,
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(start = HangryTokens.Spacing.s, bottom = 6.dp)
+                                    )
+                                }
+                            }
+                            Text(result.comparison(), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
                         }
                     }
                 }
-            }
-
-            if (result != null && snapshot.exactAge == false) {
-                HangryCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.metrics_bodyage_make_exact), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                    Text(
-                        stringResource(R.string.metrics_bodyage_make_exact_body),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
-                    )
-                    TextButton(onClick = { pickingBirthday = true }) { Text(stringResource(R.string.metrics_bodyage_add_my_birthday)) }
+                if (snapshot?.needsBirthday == true) {
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                    Button(onClick = { pickingBirthday = true }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.metrics_bodyage_add_my_birthday)) }
+                } else if (result != null && snapshot.exactAge == false) {
+                    // Whole-number age: one-line nudge to add the exact birthday.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.metrics_bodyage_make_exact), style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                        HangryInfoTip(
+                            title = stringResource(R.string.metrics_bodyage_make_exact),
+                            body = stringResource(R.string.metrics_bodyage_make_exact_body)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        TextButton(onClick = { pickingBirthday = true }) { Text(stringResource(R.string.metrics_bodyage_add_my_birthday)) }
+                    }
                 }
             }
 
             if (result != null) {
-                Text(stringResource(R.string.metrics_bodyage_whats_shaping), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
-                result.factors.forEach { FactorRow(it) }
-                if (result.missing.isNotEmpty()) {
-                    HangryCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.metrics_bodyage_not_counted), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                HangryCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Tune, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            stringResource(R.string.metrics_bodyage_not_counted_body, result.missing.joinToString(", ")),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textSecondary
+                            stringResource(R.string.metrics_bodyage_whats_shaping),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = tokens.textPrimary
                         )
+                    }
+                    result.factors.forEachIndexed { index, factor ->
+                        if (index > 0) HorizontalDivider(color = tokens.cardBorder)
+                        FactorRow(factor)
+                    }
+                    if (result.missing.isNotEmpty()) {
+                        HorizontalDivider(color = tokens.cardBorder)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                            Text(
+                                stringResource(R.string.metrics_bodyage_not_counted_line, result.missing.joinToString(", ")),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = tokens.textMuted,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            HangryInfoTip(
+                                title = stringResource(R.string.metrics_bodyage_not_counted),
+                                body = stringResource(R.string.metrics_bodyage_not_counted_body)
+                            )
+                        }
                     }
                 }
             }
-
-            Text(
-                stringResource(R.string.metrics_bodyage_disclaimer),
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textMuted
-            )
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.l))
         }
     }
 }
 
+/** One divider-separated row in the factors card; the tip only shows when the factor adds years. */
 @Composable
 private fun FactorRow(factor: BodyAgeFactor) {
     val tokens = LocalHangryTokens.current
@@ -220,7 +269,7 @@ private fun FactorRow(factor: BodyAgeFactor) {
         older -> tokens.scoreColors.rebuild
         else -> tokens.textMuted
     }
-    HangryCard(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(factor.name, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
@@ -239,7 +288,7 @@ private fun FactorRow(factor: BodyAgeFactor) {
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
-        if (older || !younger) {
+        if (!younger) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(factor.tip, style = MaterialTheme.typography.bodySmall, color = tokens.textMuted)
         }

@@ -40,7 +40,7 @@ fun DashEmptyState(
     body: String? = null,
     infoTitle: String? = null,
     infoBody: String? = null,
-    imageSize: Dp = 150.dp
+    imageSize: Dp = 96.dp
 ) {
     val tokens = LocalHangryTokens.current
     val bob = rememberIdleBob(durationMillis = 2400)

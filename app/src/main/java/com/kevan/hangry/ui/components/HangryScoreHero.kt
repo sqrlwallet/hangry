@@ -46,8 +46,6 @@ fun HangryScoreHero(
     }
 
     val scoreDisplay = scoreEntity?.score?.toString() ?: "—"
-    val adviceText = scoreEntity?.supportiveAdvice
-        ?: stringResource(R.string.recovery_advice_building_baseline)
 
     val positiveDrivers = scoreEntity?.positiveContributors?.split("|")?.filter { it.isNotBlank() } ?: emptyList()
     val negativeDrivers = scoreEntity?.negativeContributors?.split("|")?.filter { it.isNotBlank() } ?: emptyList()
@@ -61,35 +59,20 @@ fun HangryScoreHero(
 
     HangryCard(
         modifier = modifier.fillMaxWidth(),
-        cornerRadius = HangryTokens.CornerRadii.large,
-        contentPadding = HangryTokens.Spacing.l
+        cornerRadius = HangryTokens.CornerRadii.large
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.recovery_score_label),
-                style = MaterialTheme.typography.titleLarge,
-                color = tokens.textPrimary
-            )
-            HangryStatusBadge(state = state)
-        }
-
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-
+        // The screen title already says "Recovery", so the hero leads with the ring.
         Row(verticalAlignment = Alignment.CenterVertically) {
             HangryRingGauge(
                 progress = (scoreEntity?.score ?: 0) / 100f,
                 color = scoreColor,
-                modifier = Modifier.size(104.dp),
-                strokeWidth = 10.dp
+                modifier = Modifier.size(88.dp),
+                strokeWidth = 8.dp
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = scoreDisplay,
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineMedium,
                         color = scoreColor
                     )
                     if (scoreEntity?.score != null) {
@@ -102,16 +85,11 @@ fun HangryScoreHero(
                 }
             }
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
-            HangryConfidenceBadge(confidence = confidence)
+            Column(verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)) {
+                HangryStatusBadge(state = state)
+                HangryConfidenceBadge(confidence = confidence)
+            }
         }
-
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
-
-        Text(
-            text = adviceText,
-            style = MaterialTheme.typography.bodyMedium,
-            color = tokens.textPrimary
-        )
 
         val allDrivers = positiveDrivers.map { true to it } + negativeDrivers.map { false to it }
         if (allDrivers.isNotEmpty()) {
@@ -145,19 +123,22 @@ private fun PendingRecoveryHero(modifier: Modifier = Modifier) {
 
     HangryCard(
         modifier = modifier.fillMaxWidth(),
-        cornerRadius = HangryTokens.CornerRadii.large,
-        contentPadding = HangryTokens.Spacing.l
+        cornerRadius = HangryTokens.CornerRadii.large
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.recovery_score_label),
-                style = MaterialTheme.typography.titleLarge,
-                color = tokens.textPrimary
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            HangryRingGauge(
+                progress = 0f,
+                color = tokens.scoreColors.buildingBaseline,
+                modifier = Modifier.size(88.dp),
+                strokeWidth = 8.dp
+            ) {
+                Text(
+                    text = "--",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = tokens.scoreColors.buildingBaseline
+                )
+            }
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
             Surface(
                 color = tokens.scoreColors.buildingBaselineContainer,
                 shape = RoundedCornerShape(HangryTokens.CornerRadii.pill)
@@ -169,21 +150,6 @@ private fun PendingRecoveryHero(modifier: Modifier = Modifier) {
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
-
-        HangryRingGauge(
-            progress = 0f,
-            color = tokens.scoreColors.buildingBaseline,
-            modifier = Modifier.size(104.dp),
-            strokeWidth = 10.dp
-        ) {
-            Text(
-                text = "--",
-                style = MaterialTheme.typography.headlineLarge,
-                color = tokens.scoreColors.buildingBaseline
-            )
         }
 
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))

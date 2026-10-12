@@ -39,80 +39,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Body check: last night's resting heart rate, HRV, breathing rate and skin temperature, each
- * against your usual. The early-warning card at the top of Today only appears when two or more
- * are off; this shows the state every day. Hidden until the wearable reports any of them.
- */
-@Composable
-fun BodyCheckCard(comparisons: List<BodySignals.Comparison>, onClick: () -> Unit) {
-    if (comparisons.none { it.today != null }) return
-    val tokens = LocalHangryTokens.current
-    val offCount = comparisons.count { it.off }
-    HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.HealthAndSafety, contentDescription = null, tint = tokens.scoreColors.primed, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(HangryTokens.Spacing.xs))
-            Text(stringResource(R.string.dashboard_body_check_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary, modifier = Modifier.weight(1f))
-            Text(
-                when {
-                    offCount >= BodySignals.MIN_SIGNALS -> stringResource(R.string.dashboard_body_check_several_off, offCount)
-                    offCount == 1 -> stringResource(R.string.dashboard_body_check_one_off)
-                    else -> stringResource(R.string.dashboard_body_check_normal)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = when {
-                    offCount >= BodySignals.MIN_SIGNALS -> tokens.scoreColors.rebuild
-                    offCount == 1 -> tokens.scoreColors.balanced
-                    else -> tokens.scoreColors.primed
-                }
-            )
-        }
-        Spacer(Modifier.height(HangryTokens.Spacing.s))
-        comparisons.forEach { c -> BodyCheckRow(c) }
-        Text(stringResource(R.string.dashboard_body_check_footnote), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted, modifier = Modifier.padding(top = 4.dp))
-    }
-}
-
-@Composable
-private fun BodyCheckRow(c: BodySignals.Comparison) {
-    val tokens = LocalHangryTokens.current
-    val label = stringResource(
-        when (c.kind) {
-            BodySignals.Kind.RESTING_HR -> R.string.dashboard_body_check_rhr
-            BodySignals.Kind.HRV -> R.string.dashboard_body_check_hrv
-            BodySignals.Kind.BREATHING -> R.string.dashboard_body_check_breathing
-            BodySignals.Kind.SKIN_TEMP -> R.string.dashboard_body_check_skin_temp
-        }
-    )
-    fun value(v: Double): String = when (c.kind) {
-        BodySignals.Kind.RESTING_HR -> String.format(Locale.US, "%.0f bpm", v)
-        BodySignals.Kind.HRV -> String.format(Locale.US, "%.0f ms", v)
-        BodySignals.Kind.BREATHING -> String.format(Locale.US, "%.1f /min", v)
-        BodySignals.Kind.SKIN_TEMP -> ""
-    }
-    val today = c.today?.let { if (c.kind == BodySignals.Kind.SKIN_TEMP) skinTempText(it) else value(it) } ?: "—"
-    val usual = c.usual?.let { if (c.kind == BodySignals.Kind.SKIN_TEMP) skinTempText(it) else value(it) }
-    val dotColor = when {
-        c.today == null || c.usual == null -> tokens.textMuted
-        c.off -> tokens.scoreColors.rebuild
-        else -> tokens.scoreColors.primed
-    }
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-        Spacer(Modifier.size(8.dp).background(dotColor, CircleShape))
-        Spacer(Modifier.width(HangryTokens.Spacing.s))
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
-        Column(horizontalAlignment = Alignment.End) {
-            Text(today, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
-            Text(
-                usual?.let { stringResource(R.string.dashboard_body_check_usual, it) } ?: stringResource(R.string.dashboard_body_check_learning),
-                style = MaterialTheme.typography.labelSmall,
-                color = tokens.textMuted
-            )
-        }
-    }
-}
-
-/**
  * Cycle phase and day, with the temperature-confirmed ovulation when the wearable shows it.
  * Only for women who log periods (or import them from Health Connect).
  */
@@ -142,7 +68,7 @@ fun CycleCard(records: HealthRecordsSnapshot, skinTemps: Map<LocalDate, Double>,
                     CycleTemperature.Phase.LUTEAL -> if (insight.confirmedByTemperature) R.string.body_records_phase_luteal else R.string.body_records_phase_luteal_est
                 }
             ),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = tokens.textPrimary
         )

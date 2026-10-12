@@ -5,7 +5,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,9 +30,9 @@ fun HealthRecordsCard(records: HealthRecordsSnapshot, onClick: () -> Unit, modif
     HangryCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.MonitorHeart, contentDescription = null, tint = tokens.chartColors.restingHeartRate, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.body_records_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+                Icon(Icons.Default.Science, contentDescription = null, tint = tokens.chartColors.restingHeartRate, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(HangryTokens.Spacing.xs))
+                Text(stringResource(R.string.body_records_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
             }
             Text(
                 if (records.goals.isNotEmpty()) {

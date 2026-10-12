@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.domain.model.ProgramKind
 import com.kevan.hangry.domain.model.ProgramSnapshot
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.components.HangryInfoIconButton
+import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
@@ -68,14 +70,24 @@ fun ProgramsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val tokens = LocalHangryTokens.current
     val programs by viewModel.programs.collectAsState()
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.coach_programs_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.coach_back)) }
+                },
+                actions = {
+                    // How programs work and the medical disclaimer, on demand.
+                    HangryInfoIconButton(
+                        title = stringResource(R.string.coach_programs_about, stringResource(R.string.coach_programs_title)),
+                        sections = listOf(
+                            HangryInfoSection("", stringResource(R.string.coach_programs_intro)),
+                            HangryInfoSection(stringResource(R.string.coach_programs_info_safety), stringResource(R.string.coach_programs_disclaimer))
+                        )
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -87,23 +99,16 @@ fun ProgramsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s)
-                .padding(bottom = HangryTokens.Spacing.xl),
+                .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
         ) {
-            Text(
-                stringResource(R.string.coach_programs_intro),
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
-            )
             val all = programs ?: return@Column
             val active = all.filter { it.enabled }
             if (active.isEmpty()) {
                 DashEmptyState(
                     scene = DashEmptyScene.PROGRAMS,
                     title = stringResource(R.string.coach_programs_empty_title),
-                    body = stringResource(R.string.coach_programs_empty_body),
-                    imageSize = 130.dp
+                    body = stringResource(R.string.coach_programs_empty_body) 
                 )
             }
             if (active.isNotEmpty()) {
@@ -120,12 +125,6 @@ fun ProgramsScreen(
                 SectionTitle(stringResource(R.string.coach_programs_body))
                 body.forEach { ProgramRow(it, onOpenProgram) }
             }
-            Text(
-                stringResource(R.string.coach_programs_disclaimer),
-                style = MaterialTheme.typography.labelSmall,
-                color = tokens.textMuted,
-                modifier = Modifier.padding(top = 8.dp)
-            )
         }
     }
 }
@@ -138,7 +137,7 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun ProgramRow(s: ProgramSnapshot, onOpen: (String) -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable { onOpen(s.program.id) }, contentPadding = 12.dp) {
+    HangryCard(modifier = Modifier.fillMaxWidth().clickable { onOpen(s.program.id) }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DashExpression(mood = programMood(s.program.id), size = 52.dp, contentDescription = null, interactive = false)
             Spacer(Modifier.width(12.dp))

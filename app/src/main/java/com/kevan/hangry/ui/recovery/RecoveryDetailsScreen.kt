@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,12 +17,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
+import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.components.HangryScoreHero
 import com.kevan.hangry.ui.components.PastDayNote
@@ -68,6 +71,7 @@ fun RecoveryDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 56.dp,
                 title = { Text(stringResource(R.string.title_recovery_details)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -91,7 +95,7 @@ fun RecoveryDetailsScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             PastDayNote(date = uiState.selectedDate)
             // Hero Score
@@ -106,82 +110,101 @@ fun RecoveryDetailsScreen(
                 return@Column
             }
 
-            scoreEntity?.state?.let { RecoveryState.valueOf(it) }?.let { state ->
-                val breathingUp = scoreEntity.negativeContributors.contains("Breathing rate")
-                DashNote(
-                    mood = if (breathingUp) DashMood.UNWELL else state.dashMood(),
-                    text = if (breathingUp) stringResource(R.string.metrics_recovery_breathing_up) else state.dashLine()
-                )
-            }
-
-            Text(
-                text = stringResource(R.string.metrics_recovery_component_contributions),
-                style = MaterialTheme.typography.titleLarge,
-                color = tokens.textPrimary
+            // The one coaching line: Dash, with the calculator's own note while the baseline builds.
+            val state = scoreEntity?.state?.let { runCatching { RecoveryState.valueOf(it) }.getOrNull() }
+                ?: RecoveryState.BUILDING_BASELINE
+            val breathingUp = scoreEntity?.negativeContributors?.contains("Breathing rate") == true
+            DashNote(
+                mood = if (breathingUp) DashMood.UNWELL else state.dashMood(),
+                text = when {
+                    breathingUp -> stringResource(R.string.metrics_recovery_breathing_up)
+                    state == RecoveryState.BUILDING_BASELINE -> scoreEntity?.supportiveAdvice ?: state.dashLine()
+                    else -> state.dashLine()
+                }
             )
 
-            // No HRV from the device: the score assumes an excellent day unless the user says
-            // otherwise. With a real reading there's nothing to pick - it's calculated.
-            if (scoreEntity?.score != null && scoreEntity.hrvComponentScore == null) {
-                HrvFeelingCard(selected = uiState.hrvFeeling, onSelect = viewModel::setHrvFeeling)
-            } else {
+            HangryCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Insights,
+                        contentDescription = null,
+                        tint = tokens.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.metrics_recovery_component_contributions),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = tokens.textPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+
+                // No HRV from the device: the score assumes an excellent day unless the user says
+                // otherwise. With a real reading there's nothing to pick - it's calculated.
+                if (scoreEntity?.score != null && scoreEntity.hrvComponentScore == null) {
+                    HrvFeelingRow(selected = uiState.hrvFeeling, onSelect = viewModel::setHrvFeeling)
+                } else {
+                    RecoveryComponentRow(
+                        label = stringResource(R.string.metrics_recovery_hrv),
+                        valueColor = tokens.chartColors.hrv,
+                        score = scoreEntity?.hrvComponentScore
+                    )
+                }
+                HorizontalDivider(color = tokens.cardBorder)
                 RecoveryComponentRow(
-                    label = stringResource(R.string.metrics_recovery_hrv),
-                    valueColor = tokens.chartColors.hrv,
-                    score = scoreEntity?.hrvComponentScore
+                    label = stringResource(R.string.metrics_recovery_rhr),
+                    valueColor = tokens.chartColors.restingHeartRate,
+                    score = scoreEntity?.rhrComponentScore
+                )
+                HorizontalDivider(color = tokens.cardBorder)
+                RecoveryComponentRow(
+                    label = stringResource(R.string.metrics_recovery_sleep),
+                    valueColor = tokens.chartColors.sleep,
+                    score = scoreEntity?.sleepComponentScore
+                )
+                HorizontalDivider(color = tokens.cardBorder)
+                RecoveryComponentRow(
+                    label = stringResource(R.string.metrics_recovery_strain_balance),
+                    valueColor = tokens.chartColors.trainingLoad,
+                    score = scoreEntity?.trainingLoadComponentScore
                 )
             }
-            RecoveryComponentRow(
-                label = stringResource(R.string.metrics_recovery_rhr),
-                valueColor = tokens.chartColors.restingHeartRate,
-                score = scoreEntity?.rhrComponentScore
-            )
-            RecoveryComponentRow(
-                label = stringResource(R.string.metrics_recovery_sleep),
-                valueColor = tokens.chartColors.sleep,
-                score = scoreEntity?.sleepComponentScore
-            )
-            RecoveryComponentRow(
-                label = stringResource(R.string.metrics_recovery_strain_balance),
-                valueColor = tokens.chartColors.trainingLoad,
-                score = scoreEntity?.trainingLoadComponentScore
-            )
         }
     }
 }
 
+/** HRV row when the device sent none: the feeling in use, why (behind an (i)) and the picker. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HrvFeelingCard(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit) {
+private fun HrvFeelingRow(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard {
+    Column(modifier = Modifier.padding(vertical = 6.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = stringResource(R.string.metrics_recovery_hrv),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = tokens.chartColors.hrv
             )
+            HangryInfoTip(
+                title = stringResource(R.string.metrics_recovery_hrv),
+                body = if (selected == HrvFeeling.DEFAULT) {
+                    stringResource(R.string.metrics_recovery_hrv_missing_default)
+                } else {
+                    stringResource(R.string.metrics_recovery_hrv_missing_feeling, selected.description.lowercase())
+                }
+            )
+            Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = selected.label,
                 style = MaterialTheme.typography.titleMedium,
                 color = tokens.textPrimary
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = if (selected == HrvFeeling.DEFAULT) {
-                stringResource(R.string.metrics_recovery_hrv_missing_default)
-            } else {
-                stringResource(R.string.metrics_recovery_hrv_missing_feeling, selected.description.lowercase())
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = tokens.textSecondary
-        )
-        Spacer(modifier = Modifier.height(10.dp))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -205,23 +228,21 @@ private fun RecoveryComponentRow(
     missingLabel: String = stringResource(R.string.metrics_components_calibrating)
 ) {
     val tokens = LocalHangryTokens.current
-    HangryCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                color = valueColor
-            )
-            Text(
-                text = score?.let { stringResource(R.string.metrics_components_percent_value, it.toInt()) } ?: missingLabel,
-                style = if (score != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium,
-                color = if (score != null) tokens.textPrimary else tokens.textSecondary
-            )
-        }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = valueColor
+        )
+        Text(
+            text = score?.let { stringResource(R.string.metrics_components_percent_value, it.toInt()) } ?: missingLabel,
+            style = if (score != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium,
+            color = if (score != null) tokens.textPrimary else tokens.textSecondary
+        )
     }
 }
 

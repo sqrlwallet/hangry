@@ -783,14 +783,15 @@ fun DashAlertCard(
     message: String,
     modifier: Modifier = Modifier,
     mood: DashMood = DashMood.CONCERNED,
+    mascotSize: Dp = 64.dp,
     onDismiss: (() -> Unit)? = null,
     action: (@Composable () -> Unit)? = null
 ) {
     val tokens = LocalHangryTokens.current
     HangryCard(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.Top) {
-            DashExpression(mood = mood, size = 64.dp, contentDescription = null)
-            Spacer(modifier = Modifier.width(HangryTokens.Spacing.m))
+            DashExpression(mood = mood, size = mascotSize, contentDescription = null)
+            Spacer(modifier = Modifier.width(if (mascotSize < 64.dp) HangryTokens.Spacing.s else HangryTokens.Spacing.m))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 Text(text = message, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)

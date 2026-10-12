@@ -8,7 +8,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,6 +21,7 @@ import com.kevan.hangry.domain.model.FastingMath
 import com.kevan.hangry.domain.model.FastingSnapshot
 import com.kevan.hangry.domain.model.FastingStage
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.Duration
 
@@ -39,9 +40,9 @@ fun FastingDashboardCard(
     val active = snapshot.active
     HangryCard(modifier = modifier.fillMaxWidth().clickable(onClick = onOpen)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Timer, contentDescription = null, tint = FastingColor, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.nutrition_fasting_title), style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+            Icon(Icons.Default.Timer, contentDescription = null, tint = FastingColor, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(HangryTokens.Spacing.xs))
+            Text(stringResource(R.string.nutrition_fasting_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary, modifier = Modifier.weight(1f))
             Text(
                 if (snapshot.streak > 0) fastingStreakText(snapshot.streak) else snapshot.plan.label,
                 style = MaterialTheme.typography.labelSmall,
@@ -70,8 +71,8 @@ fun FastingDashboardCard(
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(FastingStage.at(active.elapsed(now)).title, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary, modifier = Modifier.weight(1f))
-                // Ending early is confirmed on the Fasting screen.
-                if (reached) Button(onClick = onEnd) { Text(stringResource(R.string.nutrition_fasting_end_fast)) } else OutlinedButton(onClick = onOpen) { Text(stringResource(R.string.nutrition_fasting_open)) }
+                // Ending early is confirmed on the Fasting screen, which the whole card opens.
+                if (reached) Button(onClick = onEnd) { Text(stringResource(R.string.nutrition_fasting_end_fast)) }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {

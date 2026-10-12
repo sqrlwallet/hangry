@@ -99,13 +99,16 @@
     <string name="body_bodyfat_tape_circumferences">Tape Circumferences</string>
     <string name="body_bodyfat_how_to_measure_title">How to measure</string>
     <string name="body_bodyfat_how_to_measure_body">Measure at narrowest point for waist and neck; widest point for hips and chest.</string>
+    <string name="body_bodyfat_save_measurements">Save measurements</string>
+    <string name="body_bodyfat_measurements_saved">Measurements saved.</string>
+    <string name="body_bodyfat_save_estimate">Save %1$s estimate</string>
+    <string name="body_bodyfat_tap_to_choose">Tap an estimate to choose which one to save.</string>
     <string name="body_bodyfat_see_all_metrics">See all body metrics</string>
     <string name="body_bodyfat_history_tip_title">Health History Estimate</string>
     <string name="body_bodyfat_history_tip_body">Calculated automatically from your recorded height, weight history, age, and sex using the clinical Deurenberg body composition model. No measuring tape or photos required.</string>
     <string name="body_bodyfat_percent_value">%1$s%%</string>
     <string name="body_bodyfat_lean_mass">Lean Mass</string>
     <string name="body_bodyfat_fat_mass">Fat Mass</string>
-    <string name="body_bodyfat_save_history">Save History Estimate</string>
     <string name="body_bodyfat_field_height">Height</string>
     <string name="body_bodyfat_field_weight">Weight</string>
     <string name="body_bodyfat_field_age">Age</string>
@@ -118,7 +121,6 @@
     <string name="body_bodyfat_waist_must_exceed_neck">Waist must exceed neck to calculate.</string>
     <string name="body_bodyfat_navy_tip_title">U.S. Navy Method</string>
     <string name="body_bodyfat_navy_tip_body">U.S. Navy standard calculation from your tape circumferences (neck, waist, and hips for women) plus height.</string>
-    <string name="body_bodyfat_save_navy">Save Navy Estimate</string>
     <string name="body_bodyfat_section_ai">AI Photo Analysis</string>
     <string name="body_bodyfat_section_estimates">Estimates</string>
     <string name="body_bodyfat_ai_tip_title">AI Photo Analysis</string>
@@ -137,7 +139,6 @@
     <string name="body_bodyfat_visual_observations">Visual Observations</string>
     <string name="body_bodyfat_health_insights">Health Insights</string>
     <string name="body_bodyfat_tape_alignment">Tape Measurement Alignment</string>
-    <string name="body_bodyfat_save_ai">Save AI Scan</string>
     <string name="body_bodyfat_section_history_scans">Scan History</string>
     <string name="body_bodyfat_method_ai">AI Vision</string>
     <string name="body_bodyfat_method_history">Health History</string>

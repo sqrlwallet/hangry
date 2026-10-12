@@ -378,8 +378,6 @@ class BodyFatCalculatorViewModel(
             val parsedChest = state.chestCm.toDoubleOrNull()
             val parsedWaist = state.waistCm.toDoubleOrNull()
             val parsedHip = state.hipCm.toDoubleOrNull()
-            val parsedHeight = state.heightCm.toDoubleOrNull()
-            val parsedAge = state.age.toIntOrNull()
 
             val scanEntity = BodyFatScanEntity(
                 date = today,
@@ -403,31 +401,7 @@ class BodyFatCalculatorViewModel(
 
             bodyFatRepository.saveScan(scanEntity)
 
-            // Update user profile circumferences & current weight
-            val currentProfile = userProfileRepository.getProfileSync()
-            val updatedProfile = (currentProfile ?: com.kevan.hangry.data.local.entity.UserProfileEntity()).copy(
-                currentWeightKg = parsedWeight ?: currentProfile?.currentWeightKg,
-                heightCm = parsedHeight ?: currentProfile?.heightCm,
-                age = parsedAge ?: currentProfile?.age,
-                biologicalSex = state.biologicalSex?.name ?: currentProfile?.biologicalSex,
-                neckCircumferenceCm = parsedNeck ?: currentProfile?.neckCircumferenceCm,
-                chestCircumferenceCm = parsedChest ?: currentProfile?.chestCircumferenceCm,
-                waistCircumferenceCm = parsedWaist ?: currentProfile?.waistCircumferenceCm,
-                hipCircumferenceCm = parsedHip ?: currentProfile?.hipCircumferenceCm,
-                updatedAt = Instant.now()
-            )
-            userProfileRepository.saveProfile(updatedProfile)
-
-            // Record weight measurement into weightDao
-            if (parsedWeight != null && parsedWeight > 0.0) {
-                val weightEntry = WeightMeasurementEntity(
-                    recordFingerprint = "bodyfat_entry_${Instant.now().toEpochMilli()}",
-                    timestamp = Instant.now(),
-                    weightKg = parsedWeight,
-                    sourcePackageName = "com.kevan.hangry.manual"
-                )
-                weightDao.insertOrIgnore(listOf(weightEntry))
-            }
+            saveProfileMeasurements(state, weightFingerprint = "bodyfat_entry_${Instant.now().toEpochMilli()}")
 
             context.clearCapturedImageCache()
 
@@ -437,6 +411,59 @@ class BodyFatCalculatorViewModel(
                     saveSuccessMessage = context.getString(R.string.body_bodyfat_scan_saved)
                 )
             }
+        }
+    }
+
+    /**
+     * Saves the entered measurements on their own - no estimate needed, so a single new waist or
+     * weight can be recorded. A weight is only logged as a new weigh-in when it changed.
+     */
+    fun saveMeasurements() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            saveProfileMeasurements(state, weightFingerprint = "manual_entry_${Instant.now().toEpochMilli()}", onlyChangedWeight = true)
+            _uiState.update {
+                it.copy(isSaving = false, saveSuccessMessage = context.getString(R.string.body_bodyfat_measurements_saved))
+            }
+        }
+    }
+
+    private suspend fun saveProfileMeasurements(state: BodyFatCalculatorUiState, weightFingerprint: String, onlyChangedWeight: Boolean = false) {
+        val parsedWeight = state.weightKg.toDoubleOrNull()
+        val parsedNeck = state.neckCm.toDoubleOrNull()
+        val parsedChest = state.chestCm.toDoubleOrNull()
+        val parsedWaist = state.waistCm.toDoubleOrNull()
+        val parsedHip = state.hipCm.toDoubleOrNull()
+        val parsedHeight = state.heightCm.toDoubleOrNull()
+        val parsedAge = state.age.toIntOrNull()
+        val currentProfile = userProfileRepository.getProfileSync()
+        val updatedProfile = (currentProfile ?: com.kevan.hangry.data.local.entity.UserProfileEntity()).copy(
+            currentWeightKg = parsedWeight ?: currentProfile?.currentWeightKg,
+            heightCm = parsedHeight ?: currentProfile?.heightCm,
+            age = parsedAge ?: currentProfile?.age,
+            biologicalSex = state.biologicalSex?.name ?: currentProfile?.biologicalSex,
+            neckCircumferenceCm = parsedNeck ?: currentProfile?.neckCircumferenceCm,
+            chestCircumferenceCm = parsedChest ?: currentProfile?.chestCircumferenceCm,
+            waistCircumferenceCm = parsedWaist ?: currentProfile?.waistCircumferenceCm,
+            hipCircumferenceCm = parsedHip ?: currentProfile?.hipCircumferenceCm,
+            updatedAt = Instant.now()
+        )
+        userProfileRepository.saveProfile(updatedProfile)
+
+        val previousWeight = currentProfile?.currentWeightKg
+        val weightChanged = previousWeight == null || parsedWeight == null || kotlin.math.abs(parsedWeight - previousWeight) >= 0.05
+        if (parsedWeight != null && parsedWeight > 0.0 && (!onlyChangedWeight || weightChanged)) {
+            weightDao.insertOrIgnore(
+                listOf(
+                    WeightMeasurementEntity(
+                        recordFingerprint = weightFingerprint,
+                        timestamp = Instant.now(),
+                        weightKg = parsedWeight,
+                        sourcePackageName = "com.kevan.hangry.manual"
+                    )
+                )
+            )
         }
     }
 

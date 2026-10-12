@@ -1,3 +1,9 @@
+## 🩹 Hangry v1.36.1 — Save Your Measurements
+
+### 🛠️ Fixes
+- **Save measurements** without an estimate: Body Metrics → Measurements now has its own save button for height, weight, age, neck, chest, waist and hips. A weight is only logged as a new weigh-in when it changed.
+- Saving a body fat estimate is one clear button for the estimate you pick, instead of small icons on each row.
+
 ## 🚀 What's New in Hangry v1.36.0 — Lab Reports, Water & Your Units
 
 Scan your lab reports, track water, see weight in your own units, and a big round of fixes that keep your data safe.

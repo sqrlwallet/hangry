@@ -236,9 +236,21 @@ fun BodyFatCalculatorScreen(
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-                TextButton(onClick = onNavigateToBodyMetrics, modifier = Modifier.align(Alignment.End)) {
-                    Text(stringResource(R.string.body_bodyfat_see_all_metrics))
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                // Measurements save on their own; an estimate is optional.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = viewModel::saveMeasurements,
+                        enabled = !uiState.isSaving && listOf(uiState.heightCm, uiState.weightKg, uiState.age, uiState.neckCm, uiState.chestCm, uiState.waistCm, uiState.hipCm).any { it.isNotBlank() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.body_bodyfat_save_measurements))
+                    }
+                    TextButton(onClick = onNavigateToBodyMetrics) {
+                        Text(stringResource(R.string.body_bodyfat_see_all_metrics))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
 
@@ -455,9 +467,6 @@ fun BodyFatCalculatorScreen(
                     subtitle = if (hist == null) stringResource(R.string.body_bodyfat_enter_to_estimate, histMissing.joinToString(", ")) else null,
                     selected = selectable && activeMethod == EstimateMethod.HISTORY,
                     onSelect = { selectedMethod = EstimateMethod.HISTORY },
-                    saveDescription = stringResource(R.string.body_bodyfat_save_history),
-                    saveEnabled = !uiState.isSaving,
-                    onSave = { viewModel.saveAssessment(useAiResult = false, useHistoryResult = true) }
                 )
                 HorizontalDivider(color = tokens.cardBorder)
 
@@ -486,9 +495,6 @@ fun BodyFatCalculatorScreen(
                     },
                     selected = selectable && activeMethod == EstimateMethod.NAVY,
                     onSelect = { selectedMethod = EstimateMethod.NAVY },
-                    saveDescription = stringResource(R.string.body_bodyfat_save_navy),
-                    saveEnabled = !uiState.isSaving,
-                    onSave = { viewModel.saveAssessment(useAiResult = false) }
                 )
 
                 // AI photo analysis (only once a valid analysis exists)
@@ -506,9 +512,6 @@ fun BodyFatCalculatorScreen(
                         } else null,
                         selected = selectable && activeMethod == EstimateMethod.AI,
                         onSelect = { selectedMethod = EstimateMethod.AI },
-                        saveDescription = stringResource(R.string.body_bodyfat_save_ai),
-                        saveEnabled = !uiState.isSaving,
-                        onSave = { viewModel.saveAssessment(useAiResult = true) }
                     )
                 }
 
@@ -541,6 +544,40 @@ fun BodyFatCalculatorScreen(
                                 color = tokens.textPrimary
                             )
                         }
+                    }
+                }
+                // One clear save for the selected (or best available) estimate.
+                if (activeMethod != null) {
+                    val methodName = stringResource(
+                        when (activeMethod) {
+                            EstimateMethod.AI -> R.string.body_bodyfat_method_ai
+                            EstimateMethod.NAVY -> R.string.body_bodyfat_method_navy
+                            EstimateMethod.HISTORY -> R.string.body_bodyfat_method_history
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            when (activeMethod) {
+                                EstimateMethod.AI -> viewModel.saveAssessment(useAiResult = true)
+                                EstimateMethod.NAVY -> viewModel.saveAssessment(useAiResult = false)
+                                EstimateMethod.HISTORY -> viewModel.saveAssessment(useAiResult = false, useHistoryResult = true)
+                            }
+                        },
+                        enabled = !uiState.isSaving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.body_bodyfat_save_estimate, methodName))
+                    }
+                    if (selectable) {
+                        Text(
+                            stringResource(R.string.body_bodyfat_tap_to_choose),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.textMuted,
+                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp)
+                        )
                     }
                 }
             }
@@ -644,7 +681,7 @@ private fun CardHeader(
     }
 }
 
-/** One method row in the Estimates card: label (+tip), value, category and a save action. */
+/** One method row in the Estimates card: label (+tip), value and category; tap to select it. */
 @Composable
 private fun EstimateRow(
     label: String,
@@ -655,10 +692,7 @@ private fun EstimateRow(
     color: androidx.compose.ui.graphics.Color,
     subtitle: String?,
     selected: Boolean,
-    onSelect: () -> Unit,
-    saveDescription: String,
-    saveEnabled: Boolean,
-    onSave: () -> Unit
+    onSelect: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
     Row(
@@ -668,7 +702,7 @@ private fun EstimateRow(
             .clip(RoundedCornerShape(8.dp))
             .then(if (selected) Modifier.background(tokens.cardBorder.copy(alpha = 0.35f)) else Modifier)
             .then(if (percent != null) Modifier.clickable(onClick = onSelect) else Modifier)
-            .padding(start = 8.dp),
+            .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -691,9 +725,6 @@ private fun EstimateRow(
                 color = color
             )
             category?.let { CategoryChip(category = it) }
-            IconButton(onClick = onSave, enabled = saveEnabled) {
-                Icon(imageVector = Icons.Default.Save, contentDescription = saveDescription, tint = tokens.textSecondary)
-            }
         }
     }
 }

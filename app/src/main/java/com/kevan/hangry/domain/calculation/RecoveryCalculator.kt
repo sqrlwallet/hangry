@@ -27,6 +27,10 @@ data class DayMetrics(
     val sleepQualityScore: Int? = null,
     /** Breaths per minute, usually measured overnight. */
     val respiratoryRate: Double? = null,
+    /** Overnight skin temperature change from the wearable's baseline, °C. */
+    val skinTempDeltaCelsius: Double? = null,
+    /** After ovulation, when skin temperature is expected to run warmer. */
+    val lutealPhase: Boolean = false,
     /** Yesterday's final strain and the target band recommended for it. */
     val previousDayStrain: Double? = null,
     val previousDayStrainTarget: ClosedFloatingPointRange<Double>? = null
@@ -39,7 +43,9 @@ data class RecoveryConfig(
     //    overnight RHR/HRV, sleep against sleep need, breathing-rate warning.
     // 6: RHR -2 points per bpm above the monthly average; yesterday's strain vs its target
     //    replaces sleep consistency; sleep debt repaid over two weeks.
-    val algorithmVersion: Int = 6,
+    // 7: skin temperature well above your usual lowers the score, like breathing rate
+    //    (with allowance for the warmer second half of a menstrual cycle).
+    val algorithmVersion: Int = 7,
     val minDaysForBaseline: Int = 3,
     val optimalBaselineDays: Int = 7,
     /** Days of history the baseline is built from. */

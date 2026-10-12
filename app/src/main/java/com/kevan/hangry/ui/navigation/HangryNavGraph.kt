@@ -810,7 +810,8 @@ fun HangryNavGraph(
             val healthRecordsViewModel: HealthRecordsViewModel = viewModel(
                 factory = HealthRecordsViewModel.provideFactory(
                     repository = appContainer.healthRecordsRepository,
-                    healthConnect = appContainer.healthConnectDataSource
+                    healthConnect = appContainer.healthConnectDataSource,
+                    summaries = appContainer.dailySummaryRepository
                 )
             )
             HealthRecordsScreen(

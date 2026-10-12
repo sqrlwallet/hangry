@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
+import com.kevan.hangry.domain.calculation.CycleTemperature
 import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
 import com.kevan.hangry.domain.model.GoalDirection
 import com.kevan.hangry.domain.model.HealthProfileItem
@@ -493,6 +494,8 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
     val tokens = LocalHangryTokens.current
     var logging by remember { mutableStateOf(false) }
     val stats = HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, LocalDate.now())
+    val skinTemps by viewModel.skinTempByDate.collectAsState()
+    val insight = CycleTemperature.insight(stats, skinTemps, LocalDate.now())
 
     HangryCard(modifier = Modifier.fillMaxWidth()) {
         if (stats.lastPeriodStart == null) {
@@ -512,6 +515,7 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
                 CycleStat(stringResource(R.string.body_records_avg_cycle), stats.averageCycleDays?.let { stringResource(R.string.body_records_days_value, it) } ?: "—", Modifier.weight(1f))
                 CycleStat(stringResource(R.string.body_records_avg_period), stats.averagePeriodDays?.let { stringResource(R.string.body_records_days_value, it) } ?: "—", Modifier.weight(1f))
             }
+            insight?.let { CyclePhase(it, hasTemperature = skinTemps.isNotEmpty()) }
         }
         Spacer(Modifier.height(12.dp))
         Button(onClick = { logging = true }, modifier = Modifier.fillMaxWidth()) {
@@ -555,6 +559,33 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
                 logging = false
             }
         )
+    }
+}
+
+@Composable
+private fun CyclePhase(insight: CycleTemperature.Insight, hasTemperature: Boolean) {
+    val tokens = LocalHangryTokens.current
+    Spacer(Modifier.height(12.dp))
+    CycleStat(
+        stringResource(R.string.body_records_phase),
+        stringResource(
+            when (insight.phase) {
+                CycleTemperature.Phase.MENSTRUAL -> R.string.body_records_phase_menstrual
+                CycleTemperature.Phase.FOLLICULAR -> R.string.body_records_phase_follicular
+                CycleTemperature.Phase.FERTILE_WINDOW -> R.string.body_records_phase_fertile
+                CycleTemperature.Phase.LUTEAL -> if (insight.confirmedByTemperature) R.string.body_records_phase_luteal else R.string.body_records_phase_luteal_est
+            }
+        )
+    )
+    val note = when {
+        insight.shiftDetectedOn != null && insight.shiftSizeC != null ->
+            stringResource(R.string.body_records_temp_shift, insight.shiftSizeC, insight.shiftDetectedOn.format(DATE))
+        hasTemperature && insight.phase != CycleTemperature.Phase.MENSTRUAL -> stringResource(R.string.body_records_temp_waiting)
+        else -> null
+    }
+    note?.let {
+        Spacer(Modifier.height(6.dp))
+        Text(it, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
     }
 }
 

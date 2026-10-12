@@ -95,9 +95,48 @@ fun VitalsCard(
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            // Overnight skin temperature & breathing rate - early signs of illness. Only shown
+            // when the wearable records them, so trackers without the sensors don't get blank tiles.
+            if (summary?.skinTempDeltaCelsius != null || summary?.respiratoryRate != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)
+                ) {
+                    val skinTemp = summary?.skinTempDeltaCelsius
+                    VitalItem(
+                        label = stringResource(R.string.metrics_components_skin_temp),
+                        value = skinTemp?.let { stringResource(R.string.metrics_components_skin_temp_value, it) } ?: "—",
+                        subtitle = when {
+                            skinTemp == null -> stringResource(R.string.metrics_components_no_data_yet)
+                            skinTemp >= SKIN_TEMP_NOTABLE -> stringResource(R.string.metrics_components_skin_temp_warm)
+                            skinTemp <= -SKIN_TEMP_NOTABLE -> stringResource(R.string.metrics_components_skin_temp_cool)
+                            else -> stringResource(R.string.metrics_components_skin_temp_usual)
+                        },
+                        valueColor = when {
+                            skinTemp == null -> tokens.textMuted
+                            skinTemp >= SKIN_TEMP_NOTABLE -> tokens.scoreColors.rebuild
+                            else -> tokens.scoreColors.primed
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    val breathing = summary?.respiratoryRate
+                    VitalItem(
+                        label = stringResource(R.string.metrics_components_breathing_rate),
+                        value = breathing?.let { stringResource(R.string.metrics_components_breathing_rate_value, it) } ?: "—",
+                        subtitle = if (breathing != null) stringResource(R.string.metrics_components_overnight) else stringResource(R.string.metrics_components_no_data_yet),
+                        valueColor = if (breathing != null) tokens.scoreColors.primed else tokens.textMuted,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
     }
 }
+
+/** °C from baseline worth calling out - wearables treat about half a degree as notable. */
+private const val SKIN_TEMP_NOTABLE = 0.5
 
 @Composable
 private fun VitalItem(

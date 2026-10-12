@@ -1,3 +1,37 @@
+## 🚀 What's New in Hangry v1.33.0 — More From Your Wearable
+
+Hangry now uses everything a Fitbit Air (and other trackers) shares through Health Connect.
+
+### 🌡️ Skin temperature
+- **New reading**: your overnight skin temperature change shows on the Vitals card, the day details and the new Overnight vitals card on Sleep.
+- **Recovery**: a night 0.5 °C or more warmer than your usual lowers your score, like a raised breathing rate already does.
+- Settings → Background sync → **Health data** lets you allow any data type Hangry can't read yet, and fills in your whole history once you do.
+
+### 🤒 Early illness warning
+- When two or more overnight readings move off your normal together (resting heart rate, HRV, breathing rate, skin temperature), Today shows a heads-up and your morning brief leads with it.
+- Dash knows too, so it can suggest taking it easy.
+
+### 😴 Better overnight vitals
+- Blood oxygen and breathing rate now come from readings taken while you slept, not the whole day.
+- New **average sleeping heart rate**, shown with lowest HR, HRV, breathing, SpO₂ and skin temperature on Sleep.
+
+### 🌸 Cycle phase
+- Health Records → Cycle shows your current phase. Where your wearable records skin temperature, the rise after ovulation confirms the luteal phase.
+- That warmer phase is allowed for, so it isn't mistaken for illness.
+
+### 🗺️ Workout routes
+- Tap **Show route** on a run, walk or ride to see its GPS outline. It's read only when you ask and never saved.
+
+### 🔌 Data sources
+- Settings → Data Sources now shows which app wrote each kind of data lately, so you can check your wearable is sharing.
+
+### 🛠️ Fixes
+- Workout power and elevation are now actually read (the permission was never asked for).
+- Days where a tracker only records total calories now get active calories too.
+- Hangry no longer asks for body temperature, speed or floors climbed, which it never used.
+
+---
+
 ## 🚀 What's New in Hangry v1.32.0 — Smarter Calorie Targets
 
 Your daily calorie target now learns from what actually happens.

@@ -75,6 +75,24 @@ fun DataSourcesScreen(
             }
 
             item {
+                HangryCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.settings_data_by_app_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tokens.textPrimary
+                        )
+                        HangryInfoTip(
+                            title = stringResource(R.string.settings_data_by_app_title),
+                            body = stringResource(R.string.settings_data_by_app_info)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                    DataSourcesByApp()
+                }
+            }
+
+            item {
                 Text(
                     text = stringResource(R.string.settings_data_sources_checkpoints_title),
                     style = MaterialTheme.typography.titleLarge,

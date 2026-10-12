@@ -267,6 +267,14 @@
     <string name="body_records_need_two_cycles">Need 2 cycles</string>
     <string name="body_records_avg_cycle">Avg cycle</string>
     <string name="body_records_avg_period">Avg period</string>
+    <string name="body_records_phase">Phase</string>
+    <string name="body_records_phase_menstrual">Period</string>
+    <string name="body_records_phase_follicular">Follicular</string>
+    <string name="body_records_phase_fertile">Fertile window (est.)</string>
+    <string name="body_records_phase_luteal">Luteal</string>
+    <string name="body_records_phase_luteal_est">Luteal (est.)</string>
+    <string name="body_records_temp_shift">Skin temperature rose %1$.1f °C from %2$s, which usually means ovulation has happened. Hangry allows for this warmer phase so it isn\'t mistaken for illness.</string>
+    <string name="body_records_temp_waiting">No temperature rise yet this cycle. Your wearable\'s skin temperature confirms ovulation a few days after it happens.</string>
     <string name="body_records_days_value">%1$.0f days</string>
     <string name="body_records_log_period">Log a period</string>
     <string name="body_records_prediction_disclaimer">Predictions are estimates from your own history and aren\'t reliable for contraception or fertility planning.</string>

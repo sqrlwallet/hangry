@@ -8,11 +8,14 @@ import com.kevan.hangry.domain.model.GlucoseContext
 import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
+import com.kevan.hangry.domain.repository.DailySummaryRepository
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -30,8 +33,15 @@ data class HealthConnectImportState(
 
 class HealthRecordsViewModel(
     private val repository: HealthRecordsRepository,
-    private val healthConnect: HealthConnectDataSource
+    private val healthConnect: HealthConnectDataSource,
+    summaries: DailySummaryRepository? = null
 ) : ViewModel() {
+
+    /** Recent nights' skin temperature change, for spotting the post-ovulation rise. */
+    val skinTempByDate: StateFlow<Map<LocalDate, Double>> = (summaries?.getSummariesBetween(LocalDate.now().minusDays(90), LocalDate.now())
+        ?.map { list -> list.mapNotNull { s -> s.skinTempDeltaCelsius?.let { s.date to it } }.toMap() }
+        ?: flowOf(emptyMap()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     val records: StateFlow<HealthRecordsSnapshot> = repository.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HealthRecordsSnapshot())
@@ -114,10 +124,14 @@ class HealthRecordsViewModel(
     }
 
     companion object {
-        fun provideFactory(repository: HealthRecordsRepository, healthConnect: HealthConnectDataSource): ViewModelProvider.Factory =
+        fun provideFactory(
+            repository: HealthRecordsRepository,
+            healthConnect: HealthConnectDataSource,
+            summaries: DailySummaryRepository
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T = HealthRecordsViewModel(repository, healthConnect) as T
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = HealthRecordsViewModel(repository, healthConnect, summaries) as T
             }
     }
 }

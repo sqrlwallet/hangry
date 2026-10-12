@@ -13,10 +13,12 @@ import androidx.health.connect.client.records.*
 import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.records.ExerciseRouteResult
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.kevan.hangry.data.healthrecords.FhirHealthRecordParser
 import com.kevan.hangry.data.local.entity.*
 import com.kevan.hangry.domain.calculation.HealthDedup
+import com.kevan.hangry.domain.calculation.NightlyVitals
 import com.kevan.hangry.domain.model.SleepStage
 import com.kevan.hangry.domain.model.SleepStageCodec
 import com.kevan.hangry.domain.model.SleepStageSegment
@@ -76,13 +78,11 @@ class RealHealthConnectDataSource(
             HealthPermission.getReadPermission(HeightRecord::class),
             HealthPermission.getReadPermission(OxygenSaturationRecord::class),
             HealthPermission.getReadPermission(Vo2MaxRecord::class),
-            HealthPermission.getReadPermission(SpeedRecord::class),
             HealthPermission.getReadPermission(ElevationGainedRecord::class),
-            HealthPermission.getReadPermission(FloorsClimbedRecord::class),
+            HealthPermission.getReadPermission(PowerRecord::class),
             HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
             HealthPermission.getReadPermission(HydrationRecord::class),
             HealthPermission.getReadPermission(NutritionRecord::class),
-            HealthPermission.getReadPermission(BodyTemperatureRecord::class),
             HealthPermission.getReadPermission(BodyFatRecord::class),
             HealthPermission.getReadPermission(RespiratoryRateRecord::class),
             HealthPermission.getReadPermission(BloodPressureRecord::class),
@@ -90,6 +90,12 @@ class RealHealthConnectDataSource(
             // the user explicitly saved.
             HealthPermission.getWritePermission(NutritionRecord::class)
         )
+
+        /**
+         * Nightly skin temperature change (Fitbit, Pixel Watch, Oura...). Only requested where
+         * Health Connect supports it - see [permissionsToRequest].
+         */
+        val PERMISSION_READ_SKIN_TEMPERATURE = HealthPermission.getReadPermission(SkinTemperatureRecord::class)
 
         val CORE_PERMISSIONS = setOf(
             HealthPermission.getReadPermission(SleepSessionRecord::class),
@@ -100,6 +106,7 @@ class RealHealthConnectDataSource(
 
         // Per-category permission groups so the UI can show which specific categories are
         // granted vs pending, rather than one aggregate boolean (see HEALTH_CONNECT.md §4.3).
+        private const val VITALS_CATEGORY = "Vitals & Cardio Fitness"
         val PERMISSION_CATEGORIES: Map<String, Set<String>> = linkedMapOf(
             "Sleep Sessions" to setOf(HealthPermission.getReadPermission(SleepSessionRecord::class)),
             "Resting Heart Rate" to setOf(HealthPermission.getReadPermission(RestingHeartRateRecord::class)),
@@ -109,7 +116,7 @@ class RealHealthConnectDataSource(
                 HealthPermission.getReadPermission(StepsRecord::class),
                 HealthPermission.getReadPermission(DistanceRecord::class)
             ),
-            "Vitals & Cardio Fitness" to setOf(
+            VITALS_CATEGORY to setOf(
                 HealthPermission.getReadPermission(OxygenSaturationRecord::class),
                 HealthPermission.getReadPermission(Vo2MaxRecord::class),
                 HealthPermission.getReadPermission(RespiratoryRateRecord::class),
@@ -149,7 +156,22 @@ class RealHealthConnectDataSource(
      */
     suspend fun getPermissionCategoryStatus(): Map<String, Boolean> {
         val granted = getGrantedPermissions()
-        return PERMISSION_CATEGORIES.mapValues { (_, required) -> granted.containsAll(required) }
+        val skinTemp = supportsSkinTemperature()
+        return PERMISSION_CATEGORIES.mapValues { (name, required) ->
+            val all = if (skinTemp && name == VITALS_CATEGORY) required + PERMISSION_READ_SKIN_TEMPERATURE else required
+            granted.containsAll(all)
+        }
+    }
+
+    /** [PERMISSIONS] plus the ones only some Health Connect versions support. */
+    fun permissionsToRequest(): Set<String> =
+        if (supportsSkinTemperature()) PERMISSIONS + PERMISSION_READ_SKIN_TEMPERATURE else PERMISSIONS
+
+    private fun supportsSkinTemperature(): Boolean = try {
+        client?.features?.getFeatureStatus(HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE) ==
+            HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+    } catch (_: Exception) {
+        false
     }
 
     /**
@@ -426,7 +448,8 @@ class RealHealthConnectDataSource(
         // watch both walking the same steps twice.
         val steps = dailyTotals(start, end, StepsRecord.COUNT_TOTAL, required = true).mapValues { it.value.first.toDouble() to it.value.second }
         val distance = dailyTotals(start, end, DistanceRecord.DISTANCE_TOTAL).mapValues { it.value.first.inMeters to it.value.second }
-        val activeCal = dailyTotals(start, end, ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL).mapValues { it.value.first.inKilocalories to it.value.second }
+        val recordedActive = dailyTotals(start, end, ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL).mapValues { it.value.first.inKilocalories to it.value.second }
+        val activeCal = recordedActive + activeFromTotalCalories(start, end).filterKeys { it !in recordedActive }
 
         return (steps.keys + distance.keys + activeCal.keys).distinct().sorted().map { date ->
             val totalSteps = steps[date]?.first?.toLong() ?: 0L
@@ -445,6 +468,25 @@ class RealHealthConnectDataSource(
                 dataQualityState = "VALID"
             )
         }
+    }
+
+    /**
+     * Some trackers (Fitbit among them) write only total calories burned. For finished days
+     * without active calories, active = total minus the basal calories Health Connect counts
+     * for that day. Today is left out: its total is still growing while its basal is whole-day.
+     */
+    private suspend fun activeFromTotalCalories(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Set<String>>> {
+        val lastFullDay = minOf(end, LocalDate.now().minusDays(1))
+        if (lastFullDay.isBefore(start)) return emptyMap()
+        val totals = dailyTotals(start, lastFullDay, TotalCaloriesBurnedRecord.ENERGY_TOTAL)
+            .filterValues { it.second.isNotEmpty() } // only days a device actually recorded
+        if (totals.isEmpty()) return emptyMap()
+        val basal = dailyTotals(start, lastFullDay, BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL)
+        return totals.mapNotNull { (date, total) ->
+            val basalKcal = basal[date]?.first?.inKilocalories ?: return@mapNotNull null
+            val active = total.first.inKilocalories - basalKcal
+            if (active > 0) date to (active to total.second) else null
+        }.toMap()
     }
 
     /**
@@ -542,29 +584,18 @@ class RealHealthConnectDataSource(
             }
     }
 
-    override suspend fun fetchOxygenSaturation(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
-        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val records = readAllRecords(OxygenSaturationRecord::class, TimeRangeFilter.between(startInstant, endInstant))
-        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
-            .mapValues { (_, dayRecords) ->
-                dayRecords.map { it.percentage.value }.average()
-            }
-    }
+    override suspend fun fetchOxygenSaturationReadings(start: Instant, end: Instant): List<NightlyVitals.Reading> =
+        readAllRecords(OxygenSaturationRecord::class, TimeRangeFilter.between(start, end))
+            .map { NightlyVitals.Reading(it.time, it.percentage.value) }
+            .filter { it.value in 70.0..100.0 }
 
-    override suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
-        val startInstant = start.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val records = try {
-            readAllRecords(RespiratoryRateRecord::class, TimeRangeFilter.between(startInstant, endInstant))
-        } catch (e: Exception) {
-            Log.w("HangryHealthConnect", "Failed reading respiratory rates: ${e.message}")
-            emptyList<RespiratoryRateRecord>()
-        }
-        return records.groupBy { it.time.atZone(ZoneId.systemDefault()).toLocalDate() }
-            .mapValues { (_, dayRecords) ->
-                dayRecords.map { it.rate }.average()
-            }
+    override suspend fun fetchRespiratoryRateReadings(start: Instant, end: Instant): List<NightlyVitals.Reading> = try {
+        readAllRecords(RespiratoryRateRecord::class, TimeRangeFilter.between(start, end))
+            .map { NightlyVitals.Reading(it.time, it.rate) }
+            .filter { it.value in 4.0..60.0 }
+    } catch (e: Exception) {
+        Log.w("HangryHealthConnect", "Failed reading respiratory rates: ${e.message}")
+        emptyList()
     }
 
     override suspend fun fetchBloodPressure(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Double>> {
@@ -597,6 +628,27 @@ class RealHealthConnectDataSource(
             .mapValues { (_, dayRecords) ->
                 dayRecords.map { it.basalMetabolicRate.inKilocaloriesPerDay }.average()
             }
+    }
+
+    override suspend fun fetchSkinTemperatureDeltas(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        val zone = ZoneId.systemDefault()
+        // A night's record belongs to the morning it ends on, like sleep - so read from the evening before.
+        val startInstant = start.minusDays(1).atStartOfDay(zone).toInstant()
+        val endInstant = end.plusDays(1).atStartOfDay(zone).toInstant()
+        val records = try {
+            readAllRecords(SkinTemperatureRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading skin temperature: ${e.message}")
+            emptyList<SkinTemperatureRecord>()
+        }
+        // Two apps can store the same night; keep the copy with the most readings.
+        val oneCopyPerNight = HealthDedup.keepOnePerEvent(records.map {
+            HealthDedup.Span(it, it.startTime, it.endTime, it.metadata.dataOrigin.packageName, it.deltas.size.toDouble())
+        })
+        return oneCopyPerNight.filter { it.deltas.isNotEmpty() }
+            .groupBy { it.endTime.atZone(zone).toLocalDate() }
+            .filterKeys { !it.isBefore(start) && !it.isAfter(end) }
+            .mapValues { (_, nights) -> nights.flatMap { it.deltas }.map { it.delta.inCelsius }.average() }
     }
 
     override suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double> =
@@ -1030,8 +1082,60 @@ class RealHealthConnectDataSource(
         }
     }
 
+    override suspend fun fetchDataSources(since: Instant): List<DataSourceInfo> {
+        val activeClient = client ?: return emptyList()
+        val granted = runCatching { getGrantedPermissions() }.getOrDefault(emptySet())
+        val types: List<Pair<DataSourceInfo.DataType, KClass<out Record>>> = listOf(
+            DataSourceInfo.DataType.SLEEP to SleepSessionRecord::class,
+            DataSourceInfo.DataType.STEPS to StepsRecord::class,
+            DataSourceInfo.DataType.HEART_RATE to HeartRateRecord::class,
+            DataSourceInfo.DataType.RESTING_HEART_RATE to RestingHeartRateRecord::class,
+            DataSourceInfo.DataType.HRV to HeartRateVariabilityRmssdRecord::class,
+            DataSourceInfo.DataType.SPO2 to OxygenSaturationRecord::class,
+            DataSourceInfo.DataType.BREATHING to RespiratoryRateRecord::class,
+            DataSourceInfo.DataType.SKIN_TEMP to SkinTemperatureRecord::class,
+            DataSourceInfo.DataType.VO2_MAX to Vo2MaxRecord::class,
+            DataSourceInfo.DataType.WORKOUTS to ExerciseSessionRecord::class,
+            DataSourceInfo.DataType.CALORIES to TotalCaloriesBurnedRecord::class,
+            DataSourceInfo.DataType.WEIGHT to WeightRecord::class,
+            DataSourceInfo.DataType.NUTRITION to NutritionRecord::class
+        )
+        return types.mapNotNull { (type, recordClass) ->
+            if (HealthPermission.getReadPermission(recordClass) !in granted) return@mapNotNull null
+            runCatching {
+                // Newest page only - enough to name the apps without reading a month of heart rate.
+                val records = activeClient.readRecords(
+                    ReadRecordsRequest(recordClass, TimeRangeFilter.after(since), ascendingOrder = false, pageSize = 500)
+                ).records
+                val byApp = records.groupBy { it.metadata.dataOrigin.packageName }
+                    .mapValues { (_, list) -> list.maxOf { it.metadata.lastModifiedTime } } // when the app last wrote
+                    .filterKeys { it != context.packageName }
+                DataSourceInfo(type, byApp.entries.sortedByDescending { it.value }.map { it.key }, byApp.values.maxOrNull())
+            }.getOrNull()
+        }
+    }
+
+    override suspend fun readExerciseRoute(recordId: String): RouteResult {
+        val activeClient = client ?: return RouteResult.None
+        return try {
+            when (val result = activeClient.readRecord(ExerciseSessionRecord::class, recordId).record.exerciseRouteResult) {
+                is ExerciseRouteResult.Data -> RouteResult.Points(result.exerciseRoute.toRoutePoints())
+                is ExerciseRouteResult.ConsentRequired -> RouteResult.ConsentRequired
+                else -> RouteResult.None
+            }
+        } catch (e: Exception) {
+            Log.w("HangryHealthConnect", "Failed reading exercise route: ${e.message}")
+            RouteResult.None
+        }
+    }
+
     private fun sha256(input: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
     }
+}
+
+/** Health Connect's route as plain points - also used for routes the user just consented to share. */
+fun ExerciseRoute.toRoutePoints(): List<RoutePoint> = route.map {
+    RoutePoint(it.time, it.latitude, it.longitude, it.altitude?.inMeters)
 }

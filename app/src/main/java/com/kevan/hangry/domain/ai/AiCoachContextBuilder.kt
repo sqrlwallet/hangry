@@ -8,6 +8,7 @@ import com.kevan.hangry.data.local.dao.PostureScanDao
 import com.kevan.hangry.data.local.dao.RecoveryScoreDao
 import com.kevan.hangry.data.local.dao.SleepSessionDao
 import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.calculation.BodySignals
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
 import com.kevan.hangry.domain.model.BodyMetricsSnapshot
@@ -192,8 +193,19 @@ class AiCoachContextBuilder(
                 val actMin = s.activeMinutes?.let { " | Active: $it min" } ?: ""
                 val rhr = s.restingHeartRate?.let { "overnight RHR %.0f bpm".format(java.util.Locale.US, it) } ?: "RHR N/A"
                 val hrv = s.hrvRmssd?.let { "HRV %.1f ms".format(java.util.Locale.US, it) } ?: "HRV N/A"
+                // Only what the wearable recorded, so trackers without these sensors don't add noise.
+                val vitals = listOfNotNull(
+                    s.respiratoryRate?.let { "breathing %.1f/min".format(java.util.Locale.US, it) },
+                    s.spo2Percentage?.let { "SpO2 %.0f%%".format(java.util.Locale.US, it) },
+                    s.skinTempDeltaCelsius?.let { "skin temp %+.1f°C vs baseline".format(java.util.Locale.US, it) },
+                    s.vo2Max?.let { "VO2 max %.1f".format(java.util.Locale.US, it) },
+                    s.sleepingHeartRate?.let { "sleeping HR %.0f bpm".format(java.util.Locale.US, it) },
+                    BodySignals.decode(s.bodySignals).takeIf { it.size >= BodySignals.MIN_SIGNALS }?.let { signals ->
+                        "BODY SIGNALS OFF NORMAL (possible illness/strain): " + signals.joinToString(", ", transform = BodySignals::describe)
+                    }
+                ).joinToString("") { " | $it" }
 
-                sb.appendLine("• $dateStr: Recovery: $rec | Sleep: $sleepDur | Strain: $strain | Steps: $steps | Burn: $actCal$actMin | $rhr | $hrv")
+                sb.appendLine("• $dateStr: Recovery: $rec | Sleep: $sleepDur | Strain: $strain | Steps: $steps | Burn: $actCal$actMin | $rhr | $hrv$vitals")
             }
         }
         sb.appendLine()

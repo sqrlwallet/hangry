@@ -75,6 +75,12 @@
     <string name="dashboard_reading_your_meal">Reading your meal…</string>
     <string name="dashboard_sync_failed_title">Sync didn\'t finish</string>
     <string name="dashboard_sync_failed_message">%1$s\nPull down to try again.</string>
+    <string name="dashboard_body_signals_title">Your body may be fighting something</string>
+    <string name="dashboard_body_signals_message">Last night, compared with your normal: %1$s. Several readings moving together often comes before a cold, or follows a hard night out or heavy training. Take it easy, drink plenty and get to bed early. If you feel unwell, check in with a doctor.</string>
+    <string name="dashboard_signal_rhr">resting heart rate +%1$.0f bpm</string>
+    <string name="dashboard_signal_hrv">HRV %1$.0f%%</string>
+    <string name="dashboard_signal_breathing">breathing rate +%1$.1f/min</string>
+    <string name="dashboard_signal_skin_temp">skin temperature +%1$.1f °C</string>
     <string name="dashboard_syncing">Syncing…</string>
     <string name="dashboard_not_synced_yet">Not synced yet</string>
     <string name="dashboard_bpm_value">%1$d bpm</string>

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.kevan.hangry.HangryApplication
 import com.kevan.hangry.R
+import com.kevan.hangry.domain.calculation.BodySignals
 import com.kevan.hangry.domain.model.NudgeText
 import com.kevan.hangry.domain.model.RecoveryState
 import com.kevan.hangry.ui.coach.DashMood
@@ -46,7 +47,8 @@ object MorningReadiness {
             .orEmpty()
             .mapNotNull { it.dayStrain }
         val target = recentStrain.takeIf { it.isNotEmpty() }?.let { container.strainCalculator.recommendStrainTarget(state, it) }
-        val message = NudgeText.morning(score, state, summary.sleepDurationMinutes, target?.targetLow, target?.targetHigh)
+        val signals = BodySignals.decode(summary.bodySignals).map(BodySignals::describe)
+        val message = NudgeText.morning(score, state, summary.sleepDurationMinutes, target?.targetLow, target?.targetHigh, signals)
 
         val mood = when (state) {
             RecoveryState.PRIMED -> DashMood.PUSH

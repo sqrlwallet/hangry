@@ -4,7 +4,7 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-green.svg)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room-2.7.2-orange.svg)](https://developer.android.com/training/data-storage/room)
 [![Health Connect](https://img.shields.io/badge/Health%20Connect-1.1.0-red.svg)](https://developer.android.com/health-and-fitness/guides/health-connect)
-[![Tests](https://img.shields.io/badge/Tests-296%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-313%20Passed-brightgreen.svg)]()
 
 **Hangry** is a local-first, open-source Android wellness and fitness app. It reads your health data through Android Health Connect, stores it on your phone in Room, and turns it into recovery, sleep, strain, nutrition and body-composition insights - plus **Dash**, an AI companion that knows your data and can log things for you.
 

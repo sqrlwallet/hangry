@@ -295,6 +295,7 @@ fun DayDetailSheet(
                     val hasExtraVitals = summary?.spo2Percentage != null ||
                         summary?.bloodPressureSystolic != null ||
                         summary?.respiratoryRate != null ||
+                        summary?.skinTempDeltaCelsius != null ||
                         summary?.hydrationLiters != null ||
                         summary?.bodyFatPercentage != null
 
@@ -322,6 +323,13 @@ fun DayDetailSheet(
                                 VitalColumn(
                                     label = stringResource(R.string.metrics_components_respiratory_rate),
                                     value = stringResource(R.string.metrics_components_rpm_value, summary.respiratoryRate.toInt()),
+                                    color = tokens.textSecondary
+                                )
+                            }
+                            if (summary?.skinTempDeltaCelsius != null) {
+                                VitalColumn(
+                                    label = stringResource(R.string.metrics_components_skin_temp),
+                                    value = stringResource(R.string.metrics_components_skin_temp_value, summary.skinTempDeltaCelsius),
                                     color = tokens.textSecondary
                                 )
                             }

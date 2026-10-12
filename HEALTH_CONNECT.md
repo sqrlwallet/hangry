@@ -20,7 +20,7 @@ Hangry requests read-only permissions for the following Health Connect records:
 | `SleepSessionRecord` | Start/end times, durations, optional stages | `SleepSessionEntity` | Show "No sleep recorded" |
 | `StepsRecord` | Daily and interval step counts | `StepsSummaryEntity` | Show "No steps recorded" |
 | `DistanceRecord` | Walking/running distance | `StepsSummaryEntity` | Omit or mark unavailable |
-| `TotalCaloriesBurnedRecord` | Total metabolic + active calories | `DailyHealthSummaryEntity` | Show "Not available" |
+| `TotalCaloriesBurnedRecord` | Total metabolic + active calories. For finished days with no active calories (Fitbit writes only totals), active = total − Health Connect's basal calories | `StepsSummaryEntity` | Show "Not available" |
 | `ActiveCaloriesBurnedRecord` | Calories from activity/exercise | `DailyHealthSummaryEntity` | Show "Not available" |
 | `ExerciseSessionRecord` | Logged workouts (running, gym, etc.) | `ExerciseSessionEntity` | Show "No workouts today" |
 | `HeartRateRecord` | Continuous pulse rate samples | `HeartRateSampleEntity` | Omit from chart |
@@ -28,6 +28,15 @@ Hangry requests read-only permissions for the following Health Connect records:
 | `HeartRateVariabilityRmssdRecord` | RMSSD HRV values | `HrvMeasurementEntity` | Never convert to 0; lower confidence |
 | `WeightRecord` | Body weight measurements | `WeightMeasurementEntity` | Optional, omit if absent |
 | `HeightRecord` | Height measurement | `UserProfileEntity` | Optional, omit if absent |
+| `OxygenSaturationRecord` | SpO2, usually overnight | `DailyHealthSummaryEntity.spo2Percentage` (average during the night's sleep, else the day) | Omit if absent |
+| `RespiratoryRateRecord` | Breathing rate, usually overnight | `DailyHealthSummaryEntity.respiratoryRate` (average during the night's sleep, else the day) | Omit if absent |
+| `SkinTemperatureRecord` | Overnight change from the device's baseline. Requested only where Health Connect supports it (`FEATURE_SKIN_TEMPERATURE`) | `DailyHealthSummaryEntity.skinTempDeltaCelsius` (morning the night ends) | Omit if absent |
+| `Vo2MaxRecord` | Cardio fitness | `DailyHealthSummaryEntity.vo2Max` (carried 30 days) | Omit if absent |
+| `ElevationGainedRecord`, `PowerRecord` | Workout detail | `ExerciseSessionEntity` | Omit if absent |
+| Exercise routes (`READ_EXERCISE_ROUTES`) | GPS route of a workout, read only when the user taps "Show route"; another app's route goes through Health Connect's per-workout consent screen | Not stored - drawn in memory | "No GPS route" |
+| `BasalMetabolicRateRecord`, `HydrationRecord`, `BodyFatRecord`, `BloodPressureRecord`, `NutritionRecord` | Body, intake and vitals | `DailyHealthSummaryEntity` / `FoodLogEntity` | Omit if absent |
+
+Readiness, sleep score, Cardio Load and stress from Fitbit / Google Health are not Health Connect types, so no app can read them; Hangry calculates its own.
 
 > [!WARNING]
 > **Zero Replacement Rule**: Missing health data must **never** be replaced with zero (e.g., zero steps, zero HRV, or zero resting heart rate). Missing records are tracked as `null` or `DataQualityState.UNAVAILABLE` to protect baseline calculations from severe distortions.

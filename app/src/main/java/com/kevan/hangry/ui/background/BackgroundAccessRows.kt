@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
@@ -28,8 +29,13 @@ import com.kevan.hangry.data.background.BackgroundReadStatus
 import com.kevan.hangry.data.worker.HealthSyncWorker
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.HangryApplication
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
 import com.kevan.hangry.R
 
 /**
@@ -117,6 +123,43 @@ fun BackgroundAccessRows(state: BackgroundAccessState?, actions: BackgroundAcces
             onAllow = actions.askNotifications
         )
     }
+}
+
+/**
+ * Health Connect data types Hangry reads but hasn't been given - new ones added in an update
+ * (skin temperature, workout power...) are only asked for during onboarding otherwise.
+ */
+@Composable
+fun HealthDataAccessRow() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val dataSource = remember { RealHealthConnectDataSource(context.applicationContext) }
+    var missing by remember { mutableStateOf<Set<String>?>(null) }
+    fun refresh() = scope.launch {
+        missing = if (dataSource.isAvailable()) dataSource.permissionsToRequest() - dataSource.grantedPermissions() else null
+    }
+    val launcher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
+        if (granted.isNotEmpty()) {
+            // Newly shared data (say skin temperature) should fill in for all of history, not
+            // just the next sync's few days - recovery needs a few weeks of it as a baseline.
+            val container = (context.applicationContext as? HangryApplication)?.container
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching { container?.healthSyncManager?.recalculateAllBaselines()?.collect { } }
+            }
+        }
+        refresh()
+    }
+    LaunchedEffect(Unit) { refresh() }
+    val toAsk = missing ?: return
+    AccessRow(
+        icon = Icons.Default.MonitorHeart,
+        title = stringResource(R.string.settings_health_data_title),
+        subtitle = if (toAsk.isEmpty()) stringResource(R.string.settings_health_data_all)
+        else pluralStringResource(R.plurals.settings_health_data_missing, toAsk.size, toAsk.size),
+        granted = toAsk.isEmpty(),
+        available = true,
+        onAllow = { launcher.launch(toAsk) }
+    )
 }
 
 @Composable

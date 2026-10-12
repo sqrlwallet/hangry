@@ -24,6 +24,7 @@ Hangry is designed on the principle that your body's physiological metrics belon
 - **Zero Remote Cloud Servers**: Hangry operates no servers, databases, or API proxies.
 - **No User Accounts**: No email, username, or login required.
 - **No Analytics / Advertising SDKs**: No Google Analytics, Firebase, Facebook SDK, or ad tracking frameworks are bundled in the binary.
+- **Workout routes stay unsaved**: a workout's GPS route is read from Health Connect only when the user taps "Show route", drawn as an outline with no map service, and never stored or sent anywhere.
 - **App-Private Storage**: All health data resides in the app's protected internal SQLite sandbox (`/data/user/0/com.kevan.hangry/databases/hangry.db`), guarded by Android Linux filesystem permissions and SELinux policies.
 - **No Google Cloud Backup**: Android Auto Backup is switched off for everything Hangry stores (`data_extraction_rules.xml`, `backup_rules.xml`), so the database, photos and settings are never uploaded to the user's Google Drive backup. A direct phone-to-phone transfer (cable or local Wi-Fi during new-phone setup) can still carry the data across, since it never touches the cloud; the encrypted OpenRouter key is excluded from that too.
 

@@ -19,7 +19,7 @@ class DefaultLocalExportManager(
         sb.append("  \"exportTimestamp\": \"${System.currentTimeMillis()}\",\n")
         sb.append("  \"dailySummaries\": [\n")
         summaries.forEachIndexed { index, s ->
-            sb.append("    {\"date\": \"${s.date}\", \"sleepMinutes\": ${s.sleepDurationMinutes}, \"steps\": ${s.steps}, \"activeCalories\": ${s.activeCalories}, \"totalCalories\": ${s.totalCalories}, \"restingHeartRate\": ${s.restingHeartRate}, \"hrvRmssd\": ${s.hrvRmssd}, \"vo2Max\": ${s.vo2Max}, \"spo2\": ${s.spo2Percentage}, \"respRate\": ${s.respiratoryRate}, \"bpSystolic\": ${s.bloodPressureSystolic}, \"bpDiastolic\": ${s.bloodPressureDiastolic}, \"hydrationLiters\": ${s.hydrationLiters}, \"bodyFatPercentage\": ${s.bodyFatPercentage}}")
+            sb.append("    {\"date\": \"${s.date}\", \"sleepMinutes\": ${s.sleepDurationMinutes}, \"steps\": ${s.steps}, \"activeCalories\": ${s.activeCalories}, \"totalCalories\": ${s.totalCalories}, \"restingHeartRate\": ${s.restingHeartRate}, \"hrvRmssd\": ${s.hrvRmssd}, \"vo2Max\": ${s.vo2Max}, \"spo2\": ${s.spo2Percentage}, \"respRate\": ${s.respiratoryRate}, \"skinTempDeltaC\": ${s.skinTempDeltaCelsius}, \"bpSystolic\": ${s.bloodPressureSystolic}, \"bpDiastolic\": ${s.bloodPressureDiastolic}, \"hydrationLiters\": ${s.hydrationLiters}, \"bodyFatPercentage\": ${s.bodyFatPercentage}}")
             if (index < summaries.size - 1) sb.append(",")
             sb.append("\n")
         }

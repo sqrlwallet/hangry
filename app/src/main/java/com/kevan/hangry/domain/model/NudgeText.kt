@@ -17,7 +17,7 @@ object NudgeText {
     }
 
     /** "Recovery 74%, primed" / "Slept 7h 20m. Aim for a strain of 12.0–15.0 today." */
-    fun morning(score: Int, state: RecoveryState, sleepMinutes: Int?, strainLow: Double?, strainHigh: Double?): Message {
+    fun morning(score: Int, state: RecoveryState, sleepMinutes: Int?, strainLow: Double?, strainHigh: Double?, bodySignals: List<String> = emptyList()): Message {
         val sleep = sleepMinutes?.takeIf { it > 0 }?.let { "Slept ${it / 60}h ${it % 60}m." }
         val strain = if (strainLow != null && strainHigh != null) {
             String.format(Locale.US, "Aim for a strain of %.1f–%.1f today.", strainLow, strainHigh)
@@ -25,9 +25,11 @@ object NudgeText {
             RecoveryState.REBUILD -> "Go easy and rest up today."
             else -> "Tap to see today's briefing."
         }
+        // Two or more readings off together: lead with it - it matters more than today's strain.
+        val warning = bodySignals.takeIf { it.size >= 2 }?.let { "Your body may be fighting something (${it.joinToString(", ")}) - take it easy." }
         return Message(
             title = "Recovery $score%, ${stateLabel(state)}",
-            body = listOfNotNull(sleep, strain).joinToString(" ")
+            body = listOfNotNull(warning, sleep, strain).joinToString(" ")
         )
     }
 

@@ -494,5 +494,6 @@ private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
                 modifier = Modifier.padding(start = 36.dp, top = 2.dp)
             )
         }
+        WorkoutRouteSection(workout)
     }
 }

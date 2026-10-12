@@ -60,4 +60,28 @@ object NightlyVitals {
         }
         return valid.minByOrNull { it.timestamp }?.rmssd
     }
+
+    /** A reading from a spot-check or overnight sensor (SpO2, breathing rate). */
+    data class Reading(val time: Instant, val value: Double)
+
+    /**
+     * Readings taken during the night's sleep (+/- 30 minutes), averaged - SpO2 and breathing
+     * rate mean most at rest, and a daytime spot check shouldn't blend into the overnight value.
+     * Without sleep, or nothing recorded during it, the average of the day's readings.
+     */
+    fun overnightAverage(readings: List<Reading>, sleepStart: Instant?, sleepEnd: Instant?, dayStart: Instant, dayEnd: Instant): Double? {
+        if (sleepStart != null && sleepEnd != null) {
+            val overnight = readings.filter {
+                !it.time.isBefore(sleepStart.minus(Duration.ofMinutes(30))) && !it.time.isAfter(sleepEnd.plus(Duration.ofMinutes(30)))
+            }
+            if (overnight.isNotEmpty()) return overnight.map { it.value }.average()
+        }
+        return readings.filter { !it.time.isBefore(dayStart) && it.time.isBefore(dayEnd) }
+            .takeIf { it.isNotEmpty() }?.map { it.value }?.average()
+    }
+
+    /** Average heart rate while asleep. Null with too few samples to trust. */
+    fun averageSleepingBpm(samples: List<HeartRateSampleEntity>, sleepStart: Instant, sleepEnd: Instant): Double? =
+        samples.filter { it.bpm >= MIN_BPM && !it.timestamp.isBefore(sleepStart) && it.timestamp.isBefore(sleepEnd) }
+            .takeIf { it.size >= MIN_SLEEP_SAMPLES }?.map { it.bpm }?.average()
 }

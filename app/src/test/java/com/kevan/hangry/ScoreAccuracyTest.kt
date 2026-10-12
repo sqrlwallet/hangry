@@ -269,5 +269,25 @@ class ScoreAccuracyTest {
         assertTrue(b.negativeContributors.any { it.contains("Breathing rate") })
     }
 
+    @Test
+    fun `skin temperature running warm lowers recovery`() {
+        val base = history(14, { 60.0 }).map { it.copy(skinTempDeltaCelsius = 0.1) }
+        val normal = DayMetrics(LocalDate.of(2026, 9, 20), 450, 55.0, 60.0, skinTempDeltaCelsius = 0.2)
+        val warm = normal.copy(skinTempDeltaCelsius = 1.0)
+        val a = recovery.calculateRecovery(normal.date, normal, base, RecoveryConfig())
+        val b = recovery.calculateRecovery(warm.date, warm, base, RecoveryConfig())
+        assertTrue(a.negativeContributors.none { it.contains("Skin temperature") })
+        assertTrue(b.score!! <= a.score!! - 8)
+        assertTrue(b.negativeContributors.any { it.contains("Skin temperature") })
+    }
+
+    @Test
+    fun `skin temperature needs a few nights of history before it counts`() {
+        val base = history(14, { 60.0 }).mapIndexed { i, d -> if (i < 3) d.copy(skinTempDeltaCelsius = 0.0) else d }
+        val warm = DayMetrics(LocalDate.of(2026, 9, 20), 450, 55.0, 60.0, skinTempDeltaCelsius = 1.5)
+        val result = recovery.calculateRecovery(warm.date, warm, base, RecoveryConfig())
+        assertTrue(result.negativeContributors.none { it.contains("Skin temperature") })
+    }
+
     // endregion
 }

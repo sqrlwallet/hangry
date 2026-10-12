@@ -158,7 +158,20 @@ class HangryRecoveryCalculator : RecoveryCalculator {
             } else 0.0
         } ?: 0.0
 
-        val rawFinalScore = (if (totalWeight > 0.0) weightedSum / totalWeight else 50.0) - respPenalty
+        // 6. So does skin temperature running warm - fever, infection, sometimes heavy drinking.
+        //    Compared with your own recent nights, since devices measure against different baselines.
+        val tempHistory = usableHistory.mapNotNull { it.skinTempDeltaCelsius }
+        val tempPenalty = currentDayMetrics.skinTempDeltaCelsius?.takeIf { tempHistory.size >= MIN_TEMP_HISTORY }?.let { today ->
+            val rise = today - tempHistory.average()
+            // After ovulation skin temperature normally runs a few tenths warmer.
+            val allowance = if (currentDayMetrics.lutealPhase) BodySignals.LUTEAL_TEMP_ALLOWANCE_C else 0.0
+            if (rise >= TEMP_RISE_NOTABLE + allowance) {
+                negativeContributors.add("Skin temperature is up ${String.format(java.util.Locale.US, "%.1f", rise)}°C on your usual - sometimes an early sign of illness.")
+                ((rise - allowance - 0.3) * TEMP_PENALTY_PER_DEGREE).coerceIn(0.0, MAX_TEMP_PENALTY)
+            } else 0.0
+        } ?: 0.0
+
+        val rawFinalScore = (if (totalWeight > 0.0) weightedSum / totalWeight else 50.0) - respPenalty - tempPenalty
         val finalScore = clampIntScore(rawFinalScore.roundToInt())
 
         // Confidence determination
@@ -237,5 +250,9 @@ class HangryRecoveryCalculator : RecoveryCalculator {
         const val RESP_RISE_NOTABLE = 1.0
         const val RESP_PENALTY_PER_BREATH = 6.0
         const val MAX_RESP_PENALTY = 12.0
+        const val MIN_TEMP_HISTORY = 5
+        const val TEMP_RISE_NOTABLE = 0.5
+        const val TEMP_PENALTY_PER_DEGREE = 20.0
+        const val MAX_TEMP_PENALTY = 10.0
     }
 }

@@ -33,6 +33,7 @@ Baselines are the user's own **last 30 days** (at least 3 usable days before a s
   Meeting your need scores 85, 110% or more scores 100, 80% scores 55.
 - **Strain balance ($w_{\text{load}} = 0.15$)**: yesterday's final strain against the target band it was given (§6.3, from yesterday's recovery and the week before). In the band, or lighter, scores 100 (lighter means there's room to push today); over it costs 12 points per strain point: $S = \text{clamp}(0, 100, 100 - 12 \times \max(0, \text{strain} - \text{high}))$. Sleep consistency counts in the Sleep Score (§7.1), not here.
 - **Breathing rate**: not weighted, but a rise of 1+ breath/min over the 30-day normal (with 5+ days of history) subtracts $\text{clamp}(0, 12, (\text{rise} - 0.5) \times 6)$ points and is listed as a contributor, since a raised breathing rate is often an early sign of illness.
+- **Skin temperature**: not weighted either. The overnight change from the wearable's baseline (the average of the night's `SkinTemperatureRecord` deltas, dated to the morning it ends on) is compared with your own 30-day average of those changes, since each device uses its own baseline. A rise of 0.5 °C or more (with 5+ nights of history) subtracts $\text{clamp}(0, 10, (\text{rise} - 0.3) \times 20)$ points and is listed as a contributor. In the luteal phase (§12) the bar is 0.3 °C higher and the allowance is taken off the rise first.
 
 ---
 
@@ -262,3 +263,26 @@ Each sync also removes imported records in the synced window that Health Connect
 Heart-rate strain needs no special handling. It adds up the time between consecutive samples, so interleaved samples from two devices don't double the minutes.
 
 After an update that changes these rules, all imported history is re-read once, so earlier days are corrected too (`DEDUP_VERSION`).
+
+---
+
+## 12. Overnight vitals, body signals and cycle phase
+
+### 12.1 Overnight vitals
+SpO2 and breathing rate are the average of readings taken during the night's main sleep (±30 minutes); without sleep or readings during it, the average of the day's readings. Sleeping heart rate is the average of heart-rate samples during the main sleep (10+ samples). Skin temperature: §2.2.
+
+### 12.2 Body signals (illness early warning)
+Each night is compared with your own previous 30 days (each reading needs 5+ days of history):
+
+| Signal | Off normal when |
+|---|---|
+| Resting heart rate | 3+ bpm above the average |
+| HRV | 20%+ below the average on a log scale |
+| Breathing rate | 1+ breath/min above the average |
+| Skin temperature | 0.5 °C+ above the average (0.8 °C in the luteal phase) |
+
+Two or more at once is flagged (`BodySignals`): a card on Today, a line at the top of the morning brief and a note to Dash. One on its own is common and isn't shown. Stored per day in `daily_health_summaries.bodySignals`.
+
+### 12.3 Cycle phase (women tracking periods)
+Phase comes from the last period start and the average cycle length (default 28): menstrual while the period lasts; fertile window from day $(L - 14) - 5$ to $(L - 14) + 1$; follicular before it; luteal after. Skin temperature confirms ovulation with the "three over six" rule: from cycle day 8, the first three nights that are all warmer than each of the previous six, by 0.2 °C+ on average, start the luteal phase. Once temperature is tracked in a cycle, the calendar alone never declares the luteal phase - a late ovulation stays follicular until the rise shows. Used to allow for the post-ovulation warmth in §2.2 and §12.2, and shown on Health Records → Cycle. Never a contraception or fertility tool.
+

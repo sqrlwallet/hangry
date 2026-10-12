@@ -22,6 +22,9 @@ import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.DayMetrics
 import com.kevan.hangry.domain.calculation.HeartRateZones
 import com.kevan.hangry.domain.calculation.NightlyVitals
+import com.kevan.hangry.domain.calculation.BodySignals
+import com.kevan.hangry.domain.calculation.CycleTemperature
+import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
 import com.kevan.hangry.domain.calculation.RecoveryCalculator
 import com.kevan.hangry.domain.calculation.RecoveryConfig
 import com.kevan.hangry.domain.calculation.SleepCalculator
@@ -465,7 +468,8 @@ class DefaultHealthSyncManager(
         sleepConsistencyPercentage = this?.sleepConsistencyScore?.roundToInt(),
         sleepNeedMinutes = this?.sleepNeedMinutes,
         sleepQualityScore = this?.sleepQualityScore,
-        respiratoryRate = this?.respiratoryRate
+        respiratoryRate = this?.respiratoryRate,
+        skinTempDeltaCelsius = this?.skinTempDeltaCelsius
     )
 
     /**
@@ -573,13 +577,21 @@ class DefaultHealthSyncManager(
         } catch (_: Exception) {
             emptyMap()
         }
-        val spo2Map = try {
-            dataSource.fetchOxygenSaturation(effectiveStart, end)
+        // Raw readings, from the evening before the range, so each is placed in its night's sleep.
+        val readingsStart = effectiveStart.minusDays(1).atStartOfDay(zone).toInstant()
+        val readingsEnd = end.plusDays(1).atStartOfDay(zone).toInstant()
+        val spo2Readings = try {
+            dataSource.fetchOxygenSaturationReadings(readingsStart, readingsEnd)
         } catch (_: Exception) {
-            emptyMap()
+            emptyList()
         }
-        val respRateMap = try {
-            dataSource.fetchRespiratoryRate(effectiveStart, end)
+        val respReadings = try {
+            dataSource.fetchRespiratoryRateReadings(readingsStart, readingsEnd)
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val skinTempMap = try {
+            dataSource.fetchSkinTemperatureDeltas(effectiveStart, end)
         } catch (_: Exception) {
             emptyMap()
         }
@@ -606,6 +618,14 @@ class DefaultHealthSyncManager(
             emptyMap()
         }
 
+        // Skin temperature runs warmer after ovulation - known for women tracking their cycle, so
+        // it isn't taken for illness. Periods start dates plus the average cycle length.
+        val cycle = if (profile?.biologicalSex == BiologicalSex.FEMALE.name) {
+            database.healthRecordsDao().getPeriods().takeIf { it.isNotEmpty() }?.let { periods ->
+                periods.map { it.startDate } to HealthMarkerCalculator.cycleStats(periods.map { it.startDate to it.endDate }, end).averageCycleDays
+            }
+        } else null
+
         val summariesToInsert = ArrayList<DailyHealthSummaryEntity>(daysBetween + 1)
         val scoresToInsert = ArrayList<RecoveryScoreEntity>(daysBetween + 1)
         val computedSummariesByDate = HashMap<LocalDate, DailyHealthSummaryEntity>(daysBetween + 1)
@@ -614,6 +634,7 @@ class DefaultHealthSyncManager(
             .getSummariesBetweenList(effectiveStart.minusDays(BASELINE_DAYS + 1L), end)
             .associateBy { it.date }
         fun summaryFor(day: LocalDate) = computedSummariesByDate[day] ?: storedSummariesByDate[day]
+        val skinTempHistory = storedSummariesByDate.mapNotNull { (d, s) -> s.skinTempDeltaCelsius?.let { d to it } }.toMap() + skinTempMap
         // Yesterday's recovery sets the strain target it's judged against today.
         val computedStatesByDate = HashMap<LocalDate, String>(daysBetween + 1)
         val storedStatesByDate = database.recoveryScoreDao()
@@ -660,8 +681,11 @@ class DefaultHealthSyncManager(
                 ?: currentExistingSummary?.vo2Max
                 ?: prevDaySummary?.vo2Max
 
-            val effectiveSpo2 = spo2Map[date] ?: currentExistingSummary?.spo2Percentage
-            val effectiveRespRate = respRateMap[date] ?: currentExistingSummary?.respiratoryRate
+            val effectiveSpo2 = NightlyVitals.overnightAverage(spo2Readings, primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
+                ?: currentExistingSummary?.spo2Percentage
+            val effectiveRespRate = NightlyVitals.overnightAverage(respReadings, primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
+                ?: currentExistingSummary?.respiratoryRate
+            val effectiveSkinTemp = skinTempMap[date] ?: currentExistingSummary?.skinTempDeltaCelsius
             val bpReading = bpMap[date]
             val effectiveBpSystolic = bpReading?.first ?: currentExistingSummary?.bloodPressureSystolic
             val effectiveBpDiastolic = bpReading?.second ?: currentExistingSummary?.bloodPressureDiastolic
@@ -714,6 +738,12 @@ class DefaultHealthSyncManager(
                 ?: database.heartRateDao().getRestingBpmEstimateBetween(dayStart, dayEnd)
 
             val avgHeartRate = database.heartRateDao().getAverageBpmBetween(dayStart, dayEnd)
+            val sleepingHr = primarySleep?.let { night ->
+                NightlyVitals.averageSleepingBpm(
+                    database.heartRateDao().getSamplesBetweenList(night.startTime, night.endTime),
+                    night.startTime, night.endTime
+                )
+            } ?: currentExistingSummary?.sleepingHeartRate
 
             var completeness = 0.0
             if (primarySleep != null) completeness += 0.25
@@ -741,7 +771,7 @@ class DefaultHealthSyncManager(
                 recordedActiveCalories = steps?.activeCalories
             )
 
-            val summary = DailyHealthSummaryEntity(
+            val computedSummary = DailyHealthSummaryEntity(
                 date = date,
                 sleepDurationMinutes = primarySleep?.durationMinutes,
                 sleepStartTime = primarySleep?.startTime,
@@ -762,10 +792,12 @@ class DefaultHealthSyncManager(
                 dayStrain = strainResult.dayStrain.takeIf { strainResult.source != StrainSource.NONE },
                 restingHeartRate = effectiveRhr,
                 averageHeartRate = avgHeartRate,
+                sleepingHeartRate = sleepingHr,
                 hrvRmssd = hrvRmssd,
                 vo2Max = effectiveVo2,
                 spo2Percentage = effectiveSpo2,
                 respiratoryRate = effectiveRespRate,
+                skinTempDeltaCelsius = effectiveSkinTemp,
                 bloodPressureSystolic = effectiveBpSystolic,
                 bloodPressureDiastolic = effectiveBpDiastolic,
                 hydrationLiters = effectiveHydration,
@@ -775,6 +807,9 @@ class DefaultHealthSyncManager(
                 calculationVersion = SUMMARY_CALCULATION_VERSION,
                 lastCalculatedTimestamp = Instant.now()
             )
+            val lutealPhase = cycle?.let { CycleTemperature.isLuteal(it.first, it.second, skinTempHistory, date) } == true
+            val signals = BodySignals.evaluate(computedSummary, (1..BASELINE_DAYS).mapNotNull { summaryFor(date.minusDays(it.toLong())) }, lutealPhase)
+            val summary = computedSummary.copy(bodySignals = BodySignals.encode(signals.signals))
             summariesToInsert.add(summary)
             computedSummariesByDate[date] = summary
 
@@ -785,7 +820,7 @@ class DefaultHealthSyncManager(
             }
             val currentDayMetrics = summary.toDayMetrics(date).withStrainBalance(date, ::summaryFor) { day ->
                 computedStatesByDate[day] ?: storedStatesByDate[day]
-            }
+            }.copy(lutealPhase = lutealPhase)
 
             val recoveryResult = recoveryCalculator.calculateRecovery(
                 date = date,

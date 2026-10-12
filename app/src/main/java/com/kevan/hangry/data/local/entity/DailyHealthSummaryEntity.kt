@@ -33,10 +33,16 @@ data class DailyHealthSummaryEntity(
     /** Overnight resting heart rate when there's sleep heart rate, else a daytime estimate. */
     val restingHeartRate: Double? = null,
     val averageHeartRate: Double? = null,
+    /** Average heart rate across the main sleep. */
+    val sleepingHeartRate: Double? = null,
     val hrvRmssd: Double? = null,
     val vo2Max: Double? = null,
     val spo2Percentage: Double? = null,
     val respiratoryRate: Double? = null,
+    /** Overnight skin temperature change from the wearable's baseline, °C. */
+    val skinTempDeltaCelsius: Double? = null,
+    /** Overnight readings off your normal together, see BodySignals.encode. Null when none are. */
+    val bodySignals: String? = null,
     val bloodPressureSystolic: Double? = null,
     val bloodPressureDiastolic: Double? = null,
     val hydrationLiters: Double? = null,
@@ -52,5 +58,6 @@ data class DailyHealthSummaryEntity(
  * 2: active calories/minutes count whole workouts and every step (ActiveActivityCalculator).
  * 3: overnight RHR and HRV, personal strain zones (sleep excluded), sleep need from the goal
  *    and a week of debt, time asleep instead of time in bed.
+ * 4: SpO2 and breathing rate from the night's sleep, sleeping heart rate, skin temperature.
  */
-const val SUMMARY_CALCULATION_VERSION = 3
+const val SUMMARY_CALCULATION_VERSION = 4

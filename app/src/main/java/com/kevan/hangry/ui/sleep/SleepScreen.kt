@@ -355,6 +355,8 @@ fun SleepScreen(
                     }
                 }
 
+                uiState.dailySummary?.let { OvernightVitalsCard(it) }
+
                 // Sleep Architecture & Stages Breakdown - only when the device recorded stages.
                 val deepRecorded = analysis?.deepSleepMinutes
                 val remRecorded = analysis?.remSleepMinutes

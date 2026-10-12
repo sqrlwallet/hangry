@@ -1,6 +1,7 @@
 package com.kevan.hangry.data.datasource
 
 import com.kevan.hangry.data.local.entity.*
+import com.kevan.hangry.domain.calculation.NightlyVitals
 import java.time.Instant
 import java.time.LocalDate
 
@@ -16,8 +17,12 @@ interface HealthConnectDataSource {
     suspend fun fetchWeightMeasurements(start: Instant, end: Instant): List<WeightMeasurementEntity>
     suspend fun fetchHeightMeasurements(start: Instant, end: Instant): List<HeightMeasurementEntity>
     suspend fun fetchVo2Max(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
-    suspend fun fetchOxygenSaturation(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
-    suspend fun fetchRespiratoryRate(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
+    /** Every SpO2 reading in [start]..[end], percent - placed overnight by the sync. */
+    suspend fun fetchOxygenSaturationReadings(start: Instant, end: Instant): List<NightlyVitals.Reading>
+    /** Every breathing-rate reading in [start]..[end], breaths/min. */
+    suspend fun fetchRespiratoryRateReadings(start: Instant, end: Instant): List<NightlyVitals.Reading>
+    /** Average overnight skin temperature change from the device's own baseline, °C, by the morning it ends on. */
+    suspend fun fetchSkinTemperatureDeltas(start: LocalDate, end: LocalDate): Map<LocalDate, Double> = emptyMap()
     suspend fun fetchBloodPressure(start: LocalDate, end: LocalDate): Map<LocalDate, Pair<Double, Double>>
     suspend fun fetchBasalMetabolicRates(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
     suspend fun fetchHydration(start: LocalDate, end: LocalDate): Map<LocalDate, Double>
@@ -65,7 +70,33 @@ interface HealthConnectDataSource {
 
     /** Reads whatever health-record data is granted. Never throws; missing access just yields less. */
     suspend fun fetchHealthRecords(since: Instant, includeCycle: Boolean): ImportedHealthRecords
+
+    /** Which apps wrote each kind of data since [since], for the Data sources screen. Never throws. */
+    suspend fun fetchDataSources(since: Instant): List<DataSourceInfo> = emptyList()
+
+    /**
+     * A workout's GPS route, read while the user is looking at it. Routes from other apps need
+     * the user's say-so per workout unless they chose "always allow" - see [RouteResult.ConsentRequired].
+     */
+    suspend fun readExerciseRoute(recordId: String): RouteResult = RouteResult.None
 }
+
+/** One kind of Health Connect data and the apps that wrote it, newest first. */
+data class DataSourceInfo(
+    val dataType: DataType,
+    val packages: List<String>,
+    val latest: Instant?
+) {
+    enum class DataType { SLEEP, STEPS, HEART_RATE, RESTING_HEART_RATE, HRV, SPO2, BREATHING, SKIN_TEMP, VO2_MAX, WORKOUTS, CALORIES, WEIGHT, NUTRITION }
+}
+
+sealed interface RouteResult {
+    data class Points(val points: List<RoutePoint>) : RouteResult
+    data object ConsentRequired : RouteResult
+    data object None : RouteResult
+}
+
+data class RoutePoint(val time: Instant, val latitude: Double, val longitude: Double, val altitudeMeters: Double?)
 
 data class ImportedHealthRecords(
     val markers: List<HealthMarkerEntity> = emptyList(),

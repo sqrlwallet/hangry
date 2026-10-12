@@ -88,7 +88,7 @@ fun PermissionSetupScreen(
     LaunchedEffect(isAvailable) {
         if (isAvailable && !hasFullPermissions && !autoRequestTriggered) {
             autoRequestTriggered = true
-            requestPermissionsLauncher.launch(RealHealthConnectDataSource.PERMISSIONS)
+            requestPermissionsLauncher.launch((dataSource as? RealHealthConnectDataSource)?.permissionsToRequest() ?: RealHealthConnectDataSource.PERMISSIONS)
         }
     }
 
@@ -280,7 +280,7 @@ fun PermissionSetupScreen(
             } else {
                 Button(
                     onClick = {
-                        requestPermissionsLauncher.launch(RealHealthConnectDataSource.PERMISSIONS)
+                        requestPermissionsLauncher.launch((dataSource as? RealHealthConnectDataSource)?.permissionsToRequest() ?: RealHealthConnectDataSource.PERMISSIONS)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,

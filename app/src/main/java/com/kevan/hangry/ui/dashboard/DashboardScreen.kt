@@ -1,6 +1,7 @@
 package com.kevan.hangry.ui.dashboard
 
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.kevan.hangry.domain.calculation.BodySignals
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -273,6 +274,24 @@ fun DashboardScreen(
                     title = stringResource(R.string.dashboard_sync_failed_title),
                     message = stringResource(R.string.dashboard_sync_failed_message, error),
                     onDismiss = { viewModel.clearError() }
+                )
+            }
+
+            // Several overnight readings off your normal together - an early sign of illness.
+            val signals = BodySignals.decode(uiState.dailySummary?.bodySignals)
+            if (signals.size >= BodySignals.MIN_SIGNALS) {
+                val described = signals.map { s ->
+                    when (s.kind) {
+                        BodySignals.Kind.RESTING_HR -> stringResource(R.string.dashboard_signal_rhr, s.change)
+                        BodySignals.Kind.HRV -> stringResource(R.string.dashboard_signal_hrv, s.change)
+                        BodySignals.Kind.BREATHING -> stringResource(R.string.dashboard_signal_breathing, s.change)
+                        BodySignals.Kind.SKIN_TEMP -> stringResource(R.string.dashboard_signal_skin_temp, s.change)
+                    }
+                }
+                DashAlertCard(
+                    mood = DashMood.CONCERNED,
+                    title = stringResource(R.string.dashboard_body_signals_title),
+                    message = stringResource(R.string.dashboard_body_signals_message, described.joinToString(", "))
                 )
             }
 

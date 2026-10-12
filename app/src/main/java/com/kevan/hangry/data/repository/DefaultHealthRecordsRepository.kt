@@ -49,7 +49,7 @@ class DefaultHealthRecordsRepository(
 
     override suspend fun addReading(
         type: MarkerType, value: Double, secondaryValue: Double?, measuredAt: Instant,
-        glucoseContext: GlucoseContext?, note: String?
+        glucoseContext: GlucoseContext?, note: String?, source: RecordSource
     ) {
         requireVisible(type)
         val entity = HealthMarkerEntity(
@@ -59,7 +59,7 @@ class DefaultHealthRecordsRepository(
                 measuredAt = measuredAt,
                 date = measuredAt.atZone(zone).toLocalDate(),
                 glucoseContext = glucoseContext?.name.takeIf { type == MarkerType.BLOOD_GLUCOSE },
-                source = RecordSource.MANUAL.name,
+                source = source.name,
                 note = note?.trim()?.takeIf { it.isNotEmpty() }
             )
         val id = dao.insertMarker(entity)

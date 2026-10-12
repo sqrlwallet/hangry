@@ -30,13 +30,31 @@ enum class MarkerType(
     LDL("ldl", "LDL cholesterol", "mg/dL", listOf(MarkerUnit("mg/dL", 1.0), MarkerUnit("mmol/L", 38.67)), 0, GoalDirection.LOWER),
     HDL("hdl", "HDL cholesterol", "mg/dL", listOf(MarkerUnit("mg/dL", 1.0), MarkerUnit("mmol/L", 38.67)), 0, GoalDirection.RAISE),
     TRIGLYCERIDES("triglycerides", "Triglycerides", "mg/dL", listOf(MarkerUnit("mg/dL", 1.0), MarkerUnit("mmol/L", 88.57)), 0, GoalDirection.LOWER),
-    TESTOSTERONE("testosterone", "Testosterone (total)", "ng/dL", listOf(MarkerUnit("ng/dL", 1.0), MarkerUnit("nmol/L", 28.84)), 0, GoalDirection.RAISE);
+    TESTOSTERONE("testosterone", "Testosterone (total)", "ng/dL", listOf(MarkerUnit("ng/dL", 1.0), MarkerUnit("nmol/L", 28.84), MarkerUnit("ng/mL", 100.0)), 0, GoalDirection.RAISE);
 
     /** Testosterone is only tracked for users whose sex is set to male. */
     fun isVisibleFor(sex: BiologicalSex?): Boolean = this != TESTOSTERONE || sex == BiologicalSex.MALE
 
+    /** Converts a value in any unit this marker accepts to [canonicalUnit]; null if the unit isn't one of them. */
+    fun toCanonical(value: Double, unit: String?): Double? {
+        val normalized = unit?.trim()?.lowercase()?.replace(" ", "") ?: return value
+        if (normalized.isEmpty()) return value
+        val alias = when {
+            normalized == "mm[hg]" -> "mmhg"
+            normalized == "mg/100ml" || normalized == "mg%" -> "mg/dl"
+            normalized == "percent" || normalized.startsWith("%") -> "%"
+            else -> normalized
+        }
+        // IFCC HbA1c (mmol/mol, common outside the US) maps to NGSP % by the standard master equation.
+        if (this == HBA1C && alias == "mmol/mol") return IFCC_SLOPE * value + IFCC_INTERCEPT
+        return units.firstOrNull { it.label.lowercase().replace(" ", "") == alias }?.let { value * it.toCanonical }
+    }
+
     companion object {
         fun fromId(id: String): MarkerType? = entries.firstOrNull { it.id == id }
+
+        private const val IFCC_SLOPE = 0.09148
+        private const val IFCC_INTERCEPT = 2.152
     }
 }
 
@@ -55,7 +73,8 @@ enum class GlucoseContext(val label: String) {
 enum class RecordSource(val label: String) {
     MANUAL("Entered by you"),
     HEALTH_CONNECT("Health Connect"),
-    MEDICAL_RECORD("Medical record");
+    MEDICAL_RECORD("Medical record"),
+    AI_SCAN("Scanned report");
 
     companion object {
         fun fromName(name: String?): RecordSource = entries.firstOrNull { it.name == name } ?: MANUAL

@@ -7,6 +7,7 @@ import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.domain.model.HealthRecordsImportResult
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
+import com.kevan.hangry.domain.model.RecordSource
 import com.kevan.hangry.domain.model.SupplementAnalysisResult
 import com.kevan.hangry.domain.model.SupplementsSnapshot
 import com.kevan.hangry.domain.repository.FoodLogRepository
@@ -38,7 +39,7 @@ internal class FakeHealthRecordsRepository : HealthRecordsRepository {
     val readings = mutableListOf<Pair<MarkerType, Double>>()
     override fun observe(): Flow<HealthRecordsSnapshot> = flowOf(HealthRecordsSnapshot())
     override suspend fun current() = HealthRecordsSnapshot()
-    override suspend fun addReading(type: MarkerType, value: Double, secondaryValue: Double?, measuredAt: Instant, glucoseContext: GlucoseContext?, note: String?) {
+    override suspend fun addReading(type: MarkerType, value: Double, secondaryValue: Double?, measuredAt: Instant, glucoseContext: GlucoseContext?, note: String?, source: RecordSource) {
         readings += type to value
     }
     override suspend fun deleteReading(id: Long) {}

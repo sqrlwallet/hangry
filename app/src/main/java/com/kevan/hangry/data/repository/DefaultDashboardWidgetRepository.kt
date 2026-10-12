@@ -108,8 +108,9 @@ class DefaultDashboardWidgetRepository(
         val existingIds = list.map { it.id }.toSet()
         val missingDefaults = defaultWidgets.filterNot { it.id in existingIds }
         val mergedList = if (missingDefaults.isNotEmpty()) {
-            // New cards go to the bottom - except Streaks, Fasting and Body Age, which belong right
-            // under the overview (in that order: missing defaults keep their default order).
+            // New cards go to the bottom - except the Daily briefing, Streaks, Fasting and Body Age,
+            // which belong right under the overview (in that order: missing defaults keep their
+            // default order).
             list + missingDefaults.mapIndexed { idx, w ->
                 w.copy(order = if (w.type in TOP_TYPES) idx - 100 else list.size + idx)
             }
@@ -120,10 +121,10 @@ class DefaultDashboardWidgetRepository(
             .filterNot { it.id == "training_load" || it.type in DashboardWidget.RETIRED_TYPES }
             .map { if (it.type == WidgetType.VITALS_CARD) it.copy(title = DashboardWidget.VITALS_TITLE) else it }
             // The overview card is the top of Today, always shown first.
-            .sortedWith(compareBy({ it.type != WidgetType.RECOVERY_HERO }, { it.order }))
+            .sortedWith(DashboardWidget.DISPLAY_ORDER)
     }
 
     private companion object {
-        val TOP_TYPES = setOf(WidgetType.STREAKS, WidgetType.FASTING, WidgetType.BODY_AGE)
+        val TOP_TYPES = setOf(WidgetType.DAILY_BRIEFING, WidgetType.STREAKS, WidgetType.FASTING, WidgetType.BODY_AGE)
     }
 }

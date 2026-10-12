@@ -69,6 +69,7 @@ interface AppContainer {
     val nutritionReviewer: com.kevan.hangry.domain.ai.NutritionReviewer
     val postureAnalyzer: PostureAnalyzer
     val bodyFatAnalyzer: BodyFatAnalyzer
+    val labReportAnalyzer: com.kevan.hangry.domain.ai.LabReportAnalyzer
     val foodLogRepository: FoodLogRepository
     val mealPlanRepository: MealPlanRepository
     val postureScanRepository: PostureScanRepository
@@ -277,6 +278,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val bodyFatAnalyzer: BodyFatAnalyzer by lazy {
         OpenRouterBodyFatAnalyzer(openRouterClient, secureKeyStore, userProfileRepository)
+    }
+
+    override val labReportAnalyzer: com.kevan.hangry.domain.ai.LabReportAnalyzer by lazy {
+        com.kevan.hangry.data.ai.OpenRouterLabReportAnalyzer(openRouterClient, secureKeyStore, userProfileRepository)
     }
 
     override val foodLogRepository: FoodLogRepository by lazy {

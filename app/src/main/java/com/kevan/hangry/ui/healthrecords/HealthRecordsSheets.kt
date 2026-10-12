@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,12 +42,31 @@ import java.time.ZoneOffset
 import java.util.Locale
 
 @Composable
-internal fun MarkerPickerDialog(markers: List<MarkerType>, onDismiss: () -> Unit, onPick: (MarkerType) -> Unit) {
+internal fun MarkerPickerDialog(markers: List<MarkerType>, onDismiss: () -> Unit, onScan: () -> Unit, onPick: (MarkerType) -> Unit) {
+    val tokens = LocalHangryTokens.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.body_records_add_a_reading_title)) },
         text = {
             Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onScan).padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.DocumentScanner, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(stringResource(R.string.body_records_scan_title), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.body_records_scan_subtitle), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
+                    }
+                }
+                HorizontalDivider(color = tokens.cardBorder.copy(alpha = 0.5f))
+                Text(
+                    stringResource(R.string.body_records_scan_or_manual),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = tokens.textSecondary,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
                 markers.forEach { type ->
                     Text(
                         type.label,
@@ -392,11 +412,11 @@ internal fun HangryDatePickerDialog(initial: LocalDate, allowFuture: Boolean, on
 }
 
 @Composable
-private fun NumberField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier) {
+internal fun NumberField(label: String?, value: String, onChange: (String) -> Unit, modifier: Modifier) {
     OutlinedTextField(
         value = value,
         onValueChange = { input -> onChange(input.filter { it.isDigit() || it == '.' || it == ',' }) },
-        label = { Text(label) },
+        label = label?.let { { Text(it) } },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = modifier

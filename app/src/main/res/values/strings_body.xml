@@ -186,17 +186,19 @@
     <string name="body_metrics_chip_weight">Weight %1$s kg</string>
     <string name="body_metrics_chip_age">Age %1$s</string>
     <string name="body_metrics_chip_body_fat">Body fat %1$s%%</string>
-    <string name="body_metrics_chip_waist">Waist %1$s cm</string>
+    <string name="body_metrics_chip_body_fat_dated">Body fat %1$s%% (%2$s)</string>
     <string name="body_metrics_chip_hips">Hips %1$s cm</string>
     <string name="body_metrics_chip_chest">Chest %1$s cm</string>
-    <string name="body_metrics_chip_neck">Neck %1$s cm</string>
     <string name="body_metrics_of_total_calculated">" of %1$d metrics calculated"</string>
-    <string name="body_metrics_add_to_unlock">Add %1$s to unlock the rest.</string>
     <string name="body_metrics_update_measurements">Update measurements</string>
     <string name="body_metrics_worth_a_look">Worth a look</string>
     <string name="body_metrics_about_metric">About %1$s</string>
     <string name="body_metrics_not_available">Not available</string>
     <string name="body_metrics_add_inputs">Add %1$s</string>
+    <string name="body_metrics_add_to_see_more">Add %1$s to see %2$d more</string>
+    <string name="body_metrics_more_unavailable">%1$d more not available yet</string>
+    <string name="body_metrics_show_unavailable">Show metrics not available yet</string>
+    <string name="body_metrics_hide_unavailable">Hide metrics not available yet</string>
     <string name="body_metrics_add_to_see_yours">Add %1$s to see yours.</string>
     <string name="body_metrics_what_it_is">What it is</string>
     <string name="body_metrics_how_we_calculated_yours">How we calculated yours</string>
@@ -250,6 +252,8 @@
     <string name="body_records_add">Add</string>
     <string name="body_records_none_added">None added</string>
     <string name="body_records_remove_item">Remove %1$s</string>
+    <string name="body_records_remove_item_confirm">Remove %1$s?</string>
+    <string name="body_records_remove">Remove</string>
     <string name="body_records_no_periods_title">No periods logged yet</string>
     <string name="body_records_no_periods_body">Log your periods here, or allow Health Connect on the Markers tab to import them from another app. Predictions start after two periods.</string>
     <string name="body_records_on_period">On period</string>
@@ -324,6 +328,44 @@
     <string name="body_records_card_goals">%1$d goals →</string>
     <string name="body_records_card_open">Open →</string>
     <string name="body_records_card_empty">Track blood pressure, blood sugar, cholesterol and more - and set goals to bring them where you want.</string>
+    <!-- Health Records: scan a report with AI -->
+    <string name="body_records_scan_title">Scan a report</string>
+    <string name="body_records_scan_subtitle">Photo of a lab report - AI reads the values for you to check</string>
+    <string name="body_records_scan_or_manual">Or enter one yourself</string>
+    <string name="body_records_scan_privacy">Photos are sent to your AI provider to read them. Hangry doesn\'t keep the images.</string>
+    <string name="body_records_scan_take_photo">Take photo</string>
+    <string name="body_records_scan_add_page">Add page</string>
+    <string name="body_records_scan_gallery">Gallery</string>
+    <string name="body_records_scan_page_cd">Report page</string>
+    <string name="body_records_scan_reading">Reading your report…</string>
+    <plurals name="body_records_scan_read">
+        <item quantity="one">Read report</item>
+        <item quantity="other">Read %1$d pages</item>
+    </plurals>
+    <string name="body_records_scan_review_hint">Check each value against your report, then add the ones you want.</string>
+    <string name="body_records_scan_date">Date: %1$s</string>
+    <string name="body_records_scan_none_tracked">None of these are markers Hangry tracks yet.</string>
+    <string name="body_records_scan_not_tracked">Read, but not tracked in Hangry</string>
+    <string name="body_records_scan_ref">ref %1$s</string>
+    <string name="body_records_scan_issue_unit">Printed in %1$s - enter it in %2$s</string>
+    <string name="body_records_scan_issue_missing">Value not read - enter it to add</string>
+    <string name="body_records_scan_issue_implausible">Looks unlikely - check this value</string>
+    <plurals name="body_records_scan_add">
+        <item quantity="one">Add %1$d reading</item>
+        <item quantity="other">Add %1$d readings</item>
+    </plurals>
+    <plurals name="body_records_scan_added">
+        <item quantity="one">Added %1$d reading from your report</item>
+        <item quantity="other">Added %1$d readings from your report</item>
+    </plurals>
+    <string name="body_records_scan_again">Scan again</string>
+    <string name="body_records_scan_check_note">AI can misread reports - you\'re adding what you see above.</string>
+    <string name="body_records_scan_ai_off_title">AI features are off</string>
+    <string name="body_records_scan_ai_off_body">Turn on AI in Settings to read reports from a photo. You can still add readings yourself.</string>
+    <string name="body_records_scan_open_ai_settings">Open AI settings</string>
+    <string name="body_records_scan_error_photo">Couldn\'t open that photo. Try another.</string>
+    <string name="body_records_scan_error_empty">Couldn\'t find any test results. Try a clearer, flatter photo of the results page.</string>
+    <string name="body_records_scan_error_generic">Couldn\'t read the report. Try again.</string>
 
     <!-- Posture -->
     <string name="body_posture_about">About Posture</string>

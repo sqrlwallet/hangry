@@ -35,7 +35,7 @@
     <string name="nutrition_info_how_title">How it works</string>
     <string name="nutrition_info_how_body">Take or choose a food photo, or describe a meal in text - the AI estimates calories, macros and fiber and logs it immediately. Got it wrong? Tap the entry to fix it.</string>
     <string name="nutrition_info_weekly_title">Weekly review</string>
-    <string name="nutrition_info_weekly_body">The chart icon at the top looks back at your last 7 days of logged meals: daily averages against your targets, what to add and how to fit it in. With AI on, Dash reviews the actual meals you ate.</string>
+    <string name="nutrition_info_weekly_body">Weekly review, in the ⋮ menu next to the date, looks back at your last 7 days of logged meals: daily averages against your targets, what to add and how to fit it in. With AI on, Dash reviews the actual meals you ate.</string>
     <string name="nutrition_info_saved_title">Saved Meals</string>
     <string name="nutrition_info_saved_body">Every food you log is saved automatically. Log it again in one tap from Quick add or Saved Meals - no retyping, no AI call.</string>
     <string name="nutrition_info_hc_title">Health Connect</string>
@@ -61,7 +61,6 @@
     <string name="nutrition_one_item">1 item</string>
     <string name="nutrition_n_items">%1$d items</string>
     <string name="nutrition_great_fueling">Great fueling! %1$d kcal tracked across %2$s. Keep up the mindful nourishment.</string>
-    <string name="nutrition_weekly_open_label">Open weekly review</string>
     <string name="nutrition_see_all">See all</string>
     <string name="nutrition_quick_add">Quick add</string>
     <string name="nutrition_quick_add_hint">Hold for ½× or 2×</string>

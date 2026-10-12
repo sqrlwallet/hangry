@@ -298,12 +298,12 @@ fun DashboardScreen(
             // Modular Widget Engine: Render active widgets ordered by user preference
             val activeWidgets = (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets())
                 .filter { it.isVisible }
-                .sortedBy { it.order }
+                .sortedWith(DashboardWidget.DISPLAY_ORDER)
 
             activeWidgets.forEach { widget ->
                 when (widget.type) {
                     WidgetType.RECOVERY_HERO -> {
-                        // Recovery, sleep, strain and activity in one card, with today's advice under it.
+                        // Recovery, sleep, strain and activity in one card.
                         TodayOverviewCard(
                             uiState = uiState,
                             onOpenRecovery = onNavigateToRecoveryDetails,
@@ -311,8 +311,9 @@ fun DashboardScreen(
                             onOpenWorkouts = onNavigateToTraining,
                             onSaveActivityGoals = { s, c, m -> viewModel.updateActivityGoals(s, c, m) }
                         )
-                        DailyBriefingCard(uiState = uiState)
                     }
+
+                    WidgetType.DAILY_BRIEFING -> DailyBriefingCard(uiState = uiState)
 
                     WidgetType.STREAKS -> StreaksCard(streaks = uiState.streaks)
 
@@ -461,7 +462,7 @@ fun DashboardScreen(
 
     if (uiState.showCustomizeSheet) {
         CustomizeDashboardSheet(
-            widgets = (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets()).sortedBy { it.order },
+            widgets = (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets()).sortedWith(DashboardWidget.DISPLAY_ORDER),
             onToggleVisibility = { id, vis -> viewModel.toggleWidgetVisibility(id, vis) },
             onReorderWidgets = { ids -> viewModel.reorderWidgets(ids) },
             onAddCustomWidget = { w -> viewModel.addCustomWidget(w) },

@@ -132,4 +132,18 @@ class DashboardWidgetSerializationTest {
         assertEquals(MetricType.SPO2, decoded[1].metricType)
         assertEquals(MetricType.RHR, decoded[2].metricType)
     }
+
+    @Test
+    fun `daily briefing is its own hideable card that sits under the overview`() {
+        val defaults = DashboardWidget.createDefaultWidgets()
+        assertTrue(defaults.any { it.type == WidgetType.DAILY_BRIEFING && it.isVisible })
+
+        // An older layout gains the briefing with a very low order: it must still follow the overview.
+        val upgraded = listOf(
+            DashboardWidget(id = "recovery_hero", type = WidgetType.RECOVERY_HERO, title = "Overview", isVisible = true, order = 0),
+            DashboardWidget(id = "streaks", type = WidgetType.STREAKS, title = "Streaks", isVisible = true, order = 1),
+            DashboardWidget(id = "daily_briefing", type = WidgetType.DAILY_BRIEFING, title = "Daily Briefing", isVisible = true, order = -100)
+        ).sortedWith(DashboardWidget.DISPLAY_ORDER)
+        assertEquals(listOf(WidgetType.RECOVERY_HERO, WidgetType.DAILY_BRIEFING, WidgetType.STREAKS), upgraded.map { it.type })
+    }
 }

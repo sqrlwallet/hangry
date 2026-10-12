@@ -1,15 +1,26 @@
 package com.kevan.hangry.ui.healthrecords
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.kevan.hangry.R
+import com.kevan.hangry.data.ai.OpenRouterException
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
+import com.kevan.hangry.domain.ai.LabReportAnalyzer
+import com.kevan.hangry.domain.ai.ScannedLabValue
 import com.kevan.hangry.domain.model.GlucoseContext
 import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
+import com.kevan.hangry.domain.model.RecordSource
 import com.kevan.hangry.domain.repository.DailySummaryRepository
 import com.kevan.hangry.domain.repository.HealthRecordsRepository
+import com.kevan.hangry.domain.repository.UserProfileRepository
+import com.kevan.hangry.util.clearCapturedImageCache
+import com.kevan.hangry.util.readImageAsBase64Jpeg
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +32,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.util.Locale
 
 data class HealthConnectImportState(
     val available: Boolean = false,
@@ -31,11 +45,61 @@ data class HealthConnectImportState(
     val message: String? = null
 )
 
+/** One scanned value under review; [valueText]/[secondaryText] are in the marker's canonical unit. */
+data class ReportScanRow(
+    val scanned: ScannedLabValue,
+    val checked: Boolean,
+    val valueText: String,
+    val secondaryText: String
+) {
+    val value: Double? get() = valueText.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
+    val secondary: Double? get() = secondaryText.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
+    val isComplete: Boolean
+        get() = scanned.type != null && value != null && (!scanned.type.hasSecondaryValue || secondary != null)
+
+    companion object {
+        fun from(scanned: ScannedLabValue) = ReportScanRow(
+            scanned = scanned,
+            checked = scanned.selectedByDefault,
+            valueText = scanned.value?.let { format(scanned.type, it) }.orEmpty(),
+            secondaryText = scanned.secondaryValue?.let { format(scanned.type, it) }.orEmpty()
+        )
+
+        private fun format(type: MarkerType?, value: Double): String =
+            String.format(Locale.US, "%.${type?.decimals ?: 1}f", value)
+    }
+}
+
+/** Scan-a-report flow: pages to read, then (once read) rows to review. Nothing is saved until [HealthRecordsViewModel.saveScan]. */
+data class ReportScanState(
+    val pages: List<Uri> = emptyList(),
+    val isReading: Boolean = false,
+    val error: String? = null,
+    /** Non-null once the report has been read. */
+    val rows: List<ReportScanRow>? = null,
+    val date: LocalDate = LocalDate.now()
+) {
+    val toAdd: List<ReportScanRow> get() = rows.orEmpty().filter { it.checked && it.isComplete }
+}
+
 class HealthRecordsViewModel(
     private val repository: HealthRecordsRepository,
     private val healthConnect: HealthConnectDataSource,
-    summaries: DailySummaryRepository? = null
+    summaries: DailySummaryRepository? = null,
+    @field:SuppressLint("StaticFieldLeak") private val context: Context? = null,
+    userProfileRepository: UserProfileRepository? = null,
+    private val labReportAnalyzer: LabReportAnalyzer? = null
 ) : ViewModel() {
+
+    val aiEnabled: StateFlow<Boolean> = (userProfileRepository?.getProfile()?.map { it?.aiFeaturesEnabled == true } ?: flowOf(false))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    private val _scan = MutableStateFlow<ReportScanState?>(null)
+    val scan: StateFlow<ReportScanState?> = _scan.asStateFlow()
+
+    /** How many readings the last scan added, for the snackbar. */
+    private val _scanSaved = MutableStateFlow<Int?>(null)
+    val scanSaved: StateFlow<Int?> = _scanSaved.asStateFlow()
 
     /** Recent nights' skin temperature change, for spotting the post-ovulation rise. */
     val skinTempByDate: StateFlow<Map<LocalDate, Double>> = (summaries?.getSummariesBetween(LocalDate.now().minusDays(365), LocalDate.now())
@@ -78,6 +142,86 @@ class HealthRecordsViewModel(
 
     fun setPregnancy(isPregnant: Boolean, dueDate: LocalDate?) =
         viewModelScope.launch { repository.setPregnancy(isPregnant, dueDate) }
+
+    fun openScan() {
+        _scan.value = ReportScanState()
+    }
+
+    fun onScanPages(uris: List<Uri>) = _scan.update { s ->
+        (s ?: ReportScanState()).copy(pages = ((s?.pages ?: emptyList()) + uris).take(MAX_SCAN_PAGES), error = null)
+    }
+
+    fun restartScan() {
+        context?.clearCapturedImageCache()
+        _scan.value = ReportScanState()
+    }
+
+    fun readScan() {
+        val state = _scan.value ?: return
+        val ctx = context ?: return
+        val analyzer = labReportAnalyzer ?: return
+        if (state.pages.isEmpty() || state.isReading) return
+        _scan.update { it?.copy(isReading = true, error = null) }
+        viewModelScope.launch {
+            // Report text is small - a larger long edge than food photos keeps it legible.
+            val images = state.pages.mapNotNull { ctx.readImageAsBase64Jpeg(it, maxDimension = 1600, quality = 85) }
+            if (images.isEmpty()) {
+                _scan.update { it?.copy(isReading = false, error = ctx.getString(R.string.body_records_scan_error_photo)) }
+                return@launch
+            }
+            analyzer.readReport(images, repository.current().visibleMarkers).fold(
+                onSuccess = { report ->
+                    _scan.update {
+                        if (report.values.isEmpty()) it?.copy(isReading = false, error = ctx.getString(R.string.body_records_scan_error_empty))
+                        else it?.copy(
+                            isReading = false,
+                            // Tracked markers first, in the report's order.
+                            rows = (report.tracked + report.untracked).map(ReportScanRow::from),
+                            date = report.reportDate ?: LocalDate.now()
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _scan.update {
+                        it?.copy(isReading = false, error = (err as? OpenRouterException)?.message ?: ctx.getString(R.string.body_records_scan_error_generic))
+                    }
+                }
+            )
+        }
+    }
+
+    fun updateScanRow(index: Int, transform: (ReportScanRow) -> ReportScanRow) = _scan.update { s ->
+        s?.copy(rows = s.rows?.mapIndexed { i, row -> if (i == index) transform(row) else row })
+    }
+
+    fun setScanDate(date: LocalDate) = _scan.update { it?.copy(date = date) }
+
+    fun saveScan() {
+        val state = _scan.value ?: return
+        val rows = state.toAdd
+        if (rows.isEmpty()) return
+        dismissScan()
+        val at = if (state.date == LocalDate.now()) Instant.now()
+        else state.date.atTime(LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant()
+        viewModelScope.launch {
+            val added = rows.count { row ->
+                val type = row.scanned.type ?: return@count false
+                runCatching {
+                    repository.addReading(type, row.value!!, row.secondary, at, row.scanned.glucoseContext, null, RecordSource.AI_SCAN)
+                }.isSuccess
+            }
+            _scanSaved.value = added
+        }
+    }
+
+    fun dismissScan() {
+        _scan.value = null
+        context?.clearCapturedImageCache()
+    }
+
+    fun clearScanSaved() {
+        _scanSaved.value = null
+    }
 
     /** After the Health Connect permission dialog closes, whatever was granted is imported. */
     fun onPermissionResult() = viewModelScope.launch {
@@ -124,14 +268,21 @@ class HealthRecordsViewModel(
     }
 
     companion object {
+        const val MAX_SCAN_PAGES = 4
+
         fun provideFactory(
             repository: HealthRecordsRepository,
             healthConnect: HealthConnectDataSource,
-            summaries: DailySummaryRepository
+            summaries: DailySummaryRepository,
+            context: Context,
+            userProfileRepository: UserProfileRepository,
+            labReportAnalyzer: LabReportAnalyzer
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T = HealthRecordsViewModel(repository, healthConnect, summaries) as T
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = HealthRecordsViewModel(
+                    repository, healthConnect, summaries, context.applicationContext, userProfileRepository, labReportAnalyzer
+                ) as T
             }
     }
 }

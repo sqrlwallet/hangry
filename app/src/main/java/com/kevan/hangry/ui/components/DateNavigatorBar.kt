@@ -44,7 +44,9 @@ import com.kevan.hangry.R
 fun DateNavigatorBar(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Extra buttons at the end of the bar, e.g. a screen's menu on a tab without a top bar. */
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
@@ -179,6 +181,7 @@ fun DateNavigatorBar(
                         modifier = Modifier.size(18.dp)
                     )
                 }
+                actions()
             }
         }
 

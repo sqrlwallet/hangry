@@ -47,6 +47,7 @@ import com.kevan.hangry.ui.components.MetricRangeBar
 import com.kevan.hangry.ui.components.MetricStatusChip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -85,6 +86,7 @@ private fun tabLabel(id: String): String = when (id) {
 fun HealthRecordsScreen(
     viewModel: HealthRecordsViewModel,
     onNavigateBack: () -> Unit,
+    onNavigateToAiSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val records by viewModel.records.collectAsState()
@@ -109,7 +111,11 @@ fun HealthRecordsScreen(
         DashCelebration(title = stringResource(R.string.body_records_goal_reached_title), message = message, onDismiss = { celebration = null })
     }
     val import by viewModel.import.collectAsState()
+    val scan by viewModel.scan.collectAsState()
+    val aiEnabled by viewModel.aiEnabled.collectAsState()
+    val scanSaved by viewModel.scanSaved.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    val scanLauncher = rememberMultiPhotoCaptureLauncher(maxItems = HealthRecordsViewModel.MAX_SCAN_PAGES) { viewModel.onScanPages(it) }
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var addingFor by remember { mutableStateOf<MarkerType?>(null) }
@@ -120,6 +126,13 @@ fun HealthRecordsScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = PermissionController.createRequestPermissionResultContract()
     ) { viewModel.onPermissionResult() }
+
+    LaunchedEffect(scanSaved) {
+        scanSaved?.let {
+            snackbar.showSnackbar(context.resources.getQuantityString(R.plurals.body_records_scan_added, it, it))
+            viewModel.clearScanSaved()
+        }
+    }
 
     LaunchedEffect(import.message) {
         import.message?.let {
@@ -208,10 +221,32 @@ fun HealthRecordsScreen(
         MarkerPickerDialog(
             markers = records.visibleMarkers,
             onDismiss = { showAddPicker = false },
+            onScan = {
+                showAddPicker = false
+                viewModel.openScan()
+            },
             onPick = {
                 showAddPicker = false
                 addingFor = it
             }
+        )
+    }
+    scan?.let { state ->
+        ReportScanSheet(
+            state = state,
+            aiEnabled = aiEnabled,
+            onTakePhoto = scanLauncher.takePhoto,
+            onPickPhotos = scanLauncher.pickFromGallery,
+            onRead = viewModel::readScan,
+            onRestart = viewModel::restartScan,
+            onUpdateRow = viewModel::updateScanRow,
+            onSetDate = viewModel::setScanDate,
+            onSave = viewModel::saveScan,
+            onOpenAiSettings = {
+                viewModel.dismissScan()
+                onNavigateToAiSettings()
+            },
+            onDismiss = viewModel::dismissScan
         )
     }
     addingFor?.let { type ->
@@ -444,6 +479,18 @@ private fun ProfileSection(
     onDelete: (Long) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
+    // Allergies drive the food allergen alerts, so removing one is confirmed.
+    var removing by remember { mutableStateOf<HealthProfileItem?>(null) }
+    removing?.let { item ->
+        AlertDialog(
+            onDismissRequest = { removing = null },
+            title = { Text(stringResource(R.string.body_records_remove_item_confirm, item.name)) },
+            confirmButton = {
+                TextButton(onClick = { onDelete(item.id); removing = null }) { Text(stringResource(R.string.body_records_remove)) }
+            },
+            dismissButton = { TextButton(onClick = { removing = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
@@ -460,7 +507,7 @@ private fun ProfileSection(
                     // The whole chip is the remove button - a 16dp icon alone is too small to hit.
                     InputChip(
                         selected = false,
-                        onClick = { onDelete(item.id) },
+                        onClick = { removing = item },
                         label = { Text(item.name + (item.note?.let { " · $it" } ?: "")) },
                         trailingIcon = {
                             Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))

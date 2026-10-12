@@ -20,19 +20,7 @@ data class BodyMetricsUiState(
 ) {
     val allMetrics get() = groups.flatMap { it.metrics }
     val availableCount get() = allMetrics.count { it.isAvailable }
-
-    /** Tape/profile inputs that would unlock the most still-missing metrics, most useful first. */
-    val missingInputs: List<String>
-        get() = allMetrics.filterNot { it.isAvailable }
-            .flatMap { it.missingInputs }
-            .filter { it in ENTERABLE_INPUTS }
-            .groupingBy { it }.eachCount()
-            .entries.sortedByDescending { it.value }
-            .map { it.key }
 }
-
-/** Inputs the user can fill in on the Body Fat calculator (vs. synced data or scans). */
-private val ENTERABLE_INPUTS = setOf("Height", "Weight", "Age", "Sex", "Waist", "Hips", "Chest", "Neck")
 
 class BodyMetricsViewModel(repository: BodyMetricsRepository) : ViewModel() {
 

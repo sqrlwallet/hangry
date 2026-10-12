@@ -113,17 +113,6 @@ fun TrainingScreen(
     val isTodayData = todayZoneDistribution.totalCount > 0
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                expandedHeight = 56.dp,
-                // A tab now, so no back arrow.
-                title = { Text(stringResource(R.string.title_training)) },
-                actions = {
-                    HangryInfoIconButton(title = stringResource(R.string.metrics_training_about), sections = trainingInfoSections())
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         // Pull down to sync new workouts from Health Connect, with Dash, like on Today.
@@ -146,23 +135,25 @@ fun TrainingScreen(
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
             item {
-                // Active burn in one slim row; the workout count is in Dash's note below.
+                // A tab without a top bar: active burn in one slim row leads, with the screen's
+                // explainer at its end. The workout count is in Dash's note below.
                 HangryCard {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = if (isToday) stringResource(R.string.metrics_training_active_burn_today) else stringResource(R.string.metrics_training_active_burn),
                             style = MaterialTheme.typography.titleSmall,
-                            color = tokens.textSecondary
+                            color = tokens.textSecondary,
+                            modifier = Modifier.weight(1f)
                         )
                         Text(
                             text = stringResource(R.string.metrics_components_kcal_value, uiState.todayActiveCalories.toInt()),
                             style = MaterialTheme.typography.titleMedium,
                             color = tokens.chartColors.trainingLoad
                         )
+                        HangryInfoIconButton(title = stringResource(R.string.metrics_training_about), sections = trainingInfoSections(), compact = true)
                     }
                 }
             }
@@ -171,7 +162,7 @@ fun TrainingScreen(
             item {
                 Text(
                     text = dayHeading(stringResource(R.string.metrics_training_workouts), activeDate),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = tokens.textPrimary
                 )
             }

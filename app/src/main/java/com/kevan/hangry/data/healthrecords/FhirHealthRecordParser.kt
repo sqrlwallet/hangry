@@ -135,20 +135,7 @@ object FhirHealthRecordParser {
     }
 
     /** Converts a value in any unit the marker accepts to its canonical unit; null if unknown. */
-    fun toCanonical(type: MarkerType, value: Double, unit: String?): Double? {
-        val normalized = unit?.trim()?.lowercase()?.replace(" ", "") ?: return value
-        if (normalized.isEmpty()) return value
-        val alias = when (normalized) {
-            "mm[hg]", "mmhg" -> "mmhg"
-            "mg/dl", "mg/100ml" -> "mg/dl"
-            "mmol/l" -> "mmol/l"
-            "%", "percent" -> "%"
-            "ng/dl" -> "ng/dl"
-            "nmol/l" -> "nmol/l"
-            else -> normalized
-        }
-        return type.units.firstOrNull { it.label.lowercase().replace(" ", "") == alias }?.let { value * it.toCanonical }
-    }
+    fun toCanonical(type: MarkerType, value: Double, unit: String?): Double? = type.toCanonical(value, unit)
 
     private fun marker(
         type: MarkerType, value: Double, secondary: Double?, at: Instant, context: GlucoseContext?,

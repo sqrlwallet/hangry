@@ -39,7 +39,7 @@ import com.kevan.hangry.ui.components.DashEmptyScene
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.DateNavigatorBar
 import com.kevan.hangry.ui.components.HangryCard
-import com.kevan.hangry.ui.components.HangryInfoIconButton
+import com.kevan.hangry.ui.components.HangryInfoDialog
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
@@ -95,7 +95,6 @@ private fun nutritionInfoSections(): List<HangryInfoSection> = listOf(
     )
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NutritionScreen(
     viewModel: NutritionViewModel,
@@ -125,8 +124,6 @@ fun NutritionScreen(
     var showDescribeDialog by remember { mutableStateOf(false) }
     var showQuickLogSheet by remember { mutableStateOf(false) }
 
-    var showOverflowMenu by remember { mutableStateOf(false) }
-
     val photoLauncher = rememberPhotoCaptureLauncher { uri: Uri -> viewModel.logMealFromPhoto(uri) }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -154,46 +151,6 @@ fun NutritionScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) },
-        topBar = {
-            TopAppBar(
-                expandedHeight = 56.dp,
-                // A tab, so no back arrow.
-                title = { Text(stringResource(R.string.title_nutrition)) },
-                actions = {
-                    HangryInfoIconButton(title = stringResource(R.string.nutrition_about_title), sections = nutritionInfoSections())
-                    IconButton(onClick = { viewModel.openWeeklyReview(calorieTarget) }) {
-                        Icon(imageVector = Icons.Default.Insights, contentDescription = stringResource(R.string.nutrition_weekly_open_label))
-                    }
-                    // Typing a meal in by hand is deliberately tucked away here: the photo is the
-                    // default path everywhere, and AI fills in the details. Saved meals live here too,
-                    // with Quick add on screen as the everyday way in.
-                    Box {
-                        IconButton(onClick = { showOverflowMenu = true }) {
-                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = stringResource(R.string.nutrition_cd_more_options))
-                        }
-                        DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.nutrition_cd_saved_meals)) },
-                                leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null) },
-                                onClick = {
-                                    showOverflowMenu = false
-                                    onNavigateToMealPlan()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.nutrition_enter_manually)) },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                                onClick = {
-                                    showOverflowMenu = false
-                                    showQuickLogSheet = true
-                                }
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         LazyColumn(
@@ -205,10 +162,18 @@ fun NutritionScreen(
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = 16.dp + LocalDockInset.current),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
+            // A tab without a top bar: the date bar leads, with the screen's menu at its end.
             item {
                 DateNavigatorBar(
                     selectedDate = uiState.selectedDate,
-                    onDateSelected = { date -> viewModel.selectDate(date) }
+                    onDateSelected = { date -> viewModel.selectDate(date) },
+                    actions = {
+                        NutritionMenu(
+                            onWeeklyReview = { viewModel.openWeeklyReview(calorieTarget) },
+                            onSavedMeals = onNavigateToMealPlan,
+                            onEnterManually = { showQuickLogSheet = true }
+                        )
+                    }
                 )
             }
 
@@ -465,6 +430,47 @@ fun NutritionScreen(
             } else null,
             onLogMealPlan = { plan -> viewModel.logFromMealPlan(plan) }
         )
+    }
+}
+
+/**
+ * Everything that used to sit in the top bar: the weekly review, saved meals, typing a meal in by
+ * hand (deliberately tucked away - the photo is the default path) and what this screen does.
+ */
+@Composable
+private fun NutritionMenu(onWeeklyReview: () -> Unit, onSavedMeals: () -> Unit, onEnterManually: () -> Unit) {
+    val tokens = LocalHangryTokens.current
+    var expanded by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.nutrition_cd_more_options), tint = tokens.textSecondary, modifier = Modifier.size(20.dp))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nutrition_info_weekly_title)) },
+                leadingIcon = { Icon(Icons.Default.Insights, contentDescription = null) },
+                onClick = { expanded = false; onWeeklyReview() }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nutrition_cd_saved_meals)) },
+                leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null) },
+                onClick = { expanded = false; onSavedMeals() }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nutrition_enter_manually)) },
+                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                onClick = { expanded = false; onEnterManually() }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nutrition_about_title)) },
+                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
+                onClick = { expanded = false; showAbout = true }
+            )
+        }
+    }
+    if (showAbout) {
+        HangryInfoDialog(title = stringResource(R.string.nutrition_about_title), sections = nutritionInfoSections(), onDismiss = { showAbout = false })
     }
 }
 

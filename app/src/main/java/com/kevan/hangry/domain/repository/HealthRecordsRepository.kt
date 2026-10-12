@@ -5,6 +5,7 @@ import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.domain.model.HealthRecordsImportResult
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
+import com.kevan.hangry.domain.model.RecordSource
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
@@ -21,7 +22,8 @@ interface HealthRecordsRepository {
         secondaryValue: Double?,
         measuredAt: Instant,
         glucoseContext: GlucoseContext?,
-        note: String?
+        note: String?,
+        source: RecordSource = RecordSource.MANUAL
     )
     suspend fun deleteReading(id: Long)
 

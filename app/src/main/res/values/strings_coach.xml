@@ -21,8 +21,9 @@
     <string name="coach_starter_hamstrings_back">📝 Tight hamstrings &amp; lower back</string>
     <string name="coach_starter_supplements">💊 Review my supplements</string>
     <string name="coach_ask_dash">Ask %1$s</string>
-    <string name="coach_personal_journal">Personal Journal</string>
-    <string name="coach_last_7_days_loaded">Last 7 days loaded</string>
+    <string name="coach_more_options">More options</string>
+    <string name="coach_menu_journal">Journal &amp; memories</string>
+    <string name="coach_menu_journal_count">Journal &amp; memories (%1$d)</string>
     <string name="coach_what_dash_knows_title">What Dash knows</string>
     <string name="coach_what_dash_knows_body">%1$s can see your last 7 days of sleep, recovery, strain, workouts and meals, 4-week trends, body metrics, health records, supplements, posture checks and the memories you\'ve shared.</string>
     <string name="coach_couldnt_reply">%1$s couldn\'t reply</string>

@@ -811,12 +811,16 @@ fun HangryNavGraph(
                 factory = HealthRecordsViewModel.provideFactory(
                     repository = appContainer.healthRecordsRepository,
                     healthConnect = appContainer.healthConnectDataSource,
-                    summaries = appContainer.dailySummaryRepository
+                    summaries = appContainer.dailySummaryRepository,
+                    context = appContext,
+                    userProfileRepository = appContainer.userProfileRepository,
+                    labReportAnalyzer = appContainer.labReportAnalyzer
                 )
             )
             HealthRecordsScreen(
                 viewModel = healthRecordsViewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAiSettings = { navController.openAiSettings() }
             )
         }
 

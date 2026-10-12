@@ -770,7 +770,11 @@ private fun EditGoalsDialog(
                         hipCircumferenceCm = hipInput.toDoubleOrNull(),
                         updatedAt = Instant.now()
                     )
-                    onSave(updated, parsedCurrentWeight)
+                    // Only a changed weight is a new weigh-in; re-saving the pre-filled one would
+                    // stamp an old reading as today's and skew trends and the calorie target.
+                    val weightChanged = parsedCurrentWeight != null &&
+                        (initialWeightKg == null || kotlin.math.abs(parsedCurrentWeight - initialWeightKg) >= 0.05)
+                    onSave(updated, parsedCurrentWeight.takeIf { weightChanged })
                 }
             ) {
                 Text(stringResource(R.string.settings_save))

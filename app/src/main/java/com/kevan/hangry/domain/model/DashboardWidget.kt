@@ -26,7 +26,9 @@ enum class WidgetType {
     BODY_CHECK,
     OVERNIGHT_VITALS,
     /** Cycle phase; only drawn for women who log periods. */
-    CYCLE
+    CYCLE,
+    /** Dash's read on the day under the overview; its own card so it can be hidden. */
+    DAILY_BRIEFING
 }
 
 @Serializable
@@ -80,6 +82,9 @@ data class DashboardWidget(
             WidgetType.OVERNIGHT_VITALS
         )
 
+        /** The overview card always leads; everything else follows the user's order. */
+        val DISPLAY_ORDER: Comparator<DashboardWidget> = compareBy({ it.type != WidgetType.RECOVERY_HERO }, { it.order })
+
         /** The Vitals card's name - older layouts saved it as "Key Vitals". */
         const val VITALS_TITLE = "Vitals"
 
@@ -88,6 +93,13 @@ data class DashboardWidget(
                 id = "recovery_hero",
                 type = WidgetType.RECOVERY_HERO,
                 title = "Recovery, Sleep & Activity",
+                isVisible = true,
+                order = 0
+            ),
+            DashboardWidget(
+                id = "daily_briefing",
+                type = WidgetType.DAILY_BRIEFING,
+                title = "Daily Briefing",
                 isVisible = true,
                 order = 0
             ),

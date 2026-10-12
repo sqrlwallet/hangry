@@ -239,7 +239,7 @@ class NutritionViewModel(
         return if (base64 != null) {
             foodAnalyzer.analyzePhoto(base64, note, allergies())
         } else if (!note.isNullOrBlank()) {
-            foodAnalyzer.analyzeDescription(note)
+            foodAnalyzer.analyzeDescription(note, allergies())
         } else {
             Result.failure(IllegalArgumentException("Provide a photo or description to analyze."))
         }

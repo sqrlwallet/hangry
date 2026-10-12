@@ -40,9 +40,11 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -80,7 +82,7 @@ import com.kevan.hangry.domain.model.CoachActionStatus
 import com.kevan.hangry.ui.components.DashEmptyScene
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.HangryCard
-import com.kevan.hangry.ui.components.HangryInfoIconButton
+import com.kevan.hangry.ui.components.HangryInfoDialog
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.navigation.LocalDockInset
@@ -199,79 +201,12 @@ fun AiCoachScreen(
         viewModel.refreshState()
     }
 
+    var showAboutDash by remember { mutableStateOf(false) }
+
+    // No top bar (like Today): content starts under the status bar and a small floating
+    // cluster at the top end holds history / new chat, with the rarer items in its menu.
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) },
-        topBar = {
-            TopAppBar(
-                expandedHeight = 56.dp,
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        DashAvatar(size = 30.dp)
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f, fill = false)) {
-                            Text(
-                                MASCOT_NAME,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = tokens.textPrimary
-                            )
-                            // The open chat's title; a new chat says what Dash can see instead.
-                            if (uiState.isAiConfigured) {
-                                Text(
-                                    uiState.activeTitle ?: stringResource(R.string.coach_last_7_days_loaded),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = tokens.textSecondary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        if (uiState.isAiConfigured) {
-                            HangryInfoIconButton(
-                                title = stringResource(R.string.coach_about_dash, MASCOT_NAME),
-                                sections = listOf(
-                                    HangryInfoSection(heading = "", body = stringResource(R.string.coach_about_dash_body)),
-                                    HangryInfoSection(
-                                        heading = stringResource(R.string.coach_what_dash_knows_title),
-                                        body = stringResource(R.string.coach_what_dash_knows_body, MASCOT_NAME)
-                                    )
-                                ),
-                                compact = true
-                            )
-                        }
-                    }
-                },
-                // A tab, so no back arrow.
-                actions = {
-                    IconButton(onClick = { viewModel.setShowHistory(true) }) {
-                        Icon(Icons.Default.History, contentDescription = stringResource(R.string.coach_chat_history), tint = tokens.textPrimary)
-                    }
-                    IconButton(onClick = { viewModel.setShowJournalSheet(true) }) {
-                        BadgedBox(
-                            badge = {
-                                if (uiState.journalEntries.isNotEmpty()) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    ) {
-                                        Text("${uiState.journalEntries.size}")
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Book, contentDescription = stringResource(R.string.coach_personal_journal), tint = tokens.textPrimary)
-                        }
-                    }
-                    // New chat (deleting one lives in the history sheet)
-                    if (uiState.messages.isNotEmpty() || uiState.activeConversationId != null) {
-                        IconButton(onClick = { viewModel.newChat() }, enabled = !uiState.isLoading) {
-                            Icon(Icons.Default.AddComment, contentDescription = stringResource(R.string.coach_new_chat), tint = tokens.textPrimary)
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         // The message box has to sit above the floating tab bar (hidden while typing).
@@ -279,98 +214,140 @@ fun AiCoachScreen(
         // for it here, on top of what's already reserved for the nav bar or dock.
         val dockInset = LocalDockInset.current
         val bottomReserved = maxOf(innerPadding.calculateBottomPadding(), dockInset)
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding(), bottom = bottomReserved)
-                .consumeWindowInsets(PaddingValues(bottom = bottomReserved))
-                .imePadding()
-        ) {
-            if (!uiState.isAiConfigured) {
-                AiNotConfiguredBanner(
-                    aiEnabled = uiState.aiFeaturesEnabled,
-                    hasApiKey = uiState.hasApiKey,
-                    onNavigateToAiSettings = onNavigateToAiSettings,
-                    modifier = Modifier.padding(HangryTokens.Spacing.m)
-                )
-            } else {
-
-                // Error banner if any - a worried Dash with what went wrong.
-                uiState.errorMessage?.let { err ->
-                    DashAlertCard(
-                        title = stringResource(R.string.coach_couldnt_reply, MASCOT_NAME),
-                        message = err,
-                        onDismiss = { viewModel.dismissError() },
-                        mascotSize = 40.dp,
-                        modifier = Modifier.padding(horizontal = ChatGutter, vertical = HangryTokens.Spacing.xs)
+        val topInset = innerPadding.calculateTopPadding()
+        Box(modifier = modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = topInset, bottom = bottomReserved)
+                    .consumeWindowInsets(PaddingValues(bottom = bottomReserved))
+                    .imePadding()
+            ) {
+                if (!uiState.isAiConfigured) {
+                    AiNotConfiguredBanner(
+                        aiEnabled = uiState.aiFeaturesEnabled,
+                        hasApiKey = uiState.hasApiKey,
+                        onNavigateToAiSettings = onNavigateToAiSettings,
+                        modifier = Modifier
+                            .padding(top = TopControlsClearance)
+                            .padding(HangryTokens.Spacing.m)
                     )
-                }
+                } else {
 
-                // Main chat area
-                Box(modifier = Modifier.weight(1f)) {
-                    if (uiState.messages.isEmpty()) {
-                        EmptyConversationView(starters = starters, onSelectStarter = sendStarter)
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s),
-                            contentPadding = PaddingValues(horizontal = ChatGutter, vertical = HangryTokens.Spacing.s)
-                        ) {
-                            items(uiState.messages, key = { it.id }) { message ->
-                                CoachMessageItem(
-                                    message = message,
-                                    onExecuteAction = { index -> viewModel.executeAction(message.id, index) },
-                                    onDismissAction = { index -> viewModel.dismissAction(message.id, index) },
-                                    onCopy = { text ->
-                                        clipboardManager.setText(AnnotatedString(text))
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar(message = copiedMessage, duration = SnackbarDuration.Short)
-                                        }
-                                    }
+                    // Error banner if any - a worried Dash with what went wrong.
+                    uiState.errorMessage?.let { err ->
+                        DashAlertCard(
+                            title = stringResource(R.string.coach_couldnt_reply, MASCOT_NAME),
+                            message = err,
+                            onDismiss = { viewModel.dismissError() },
+                            mascotSize = 40.dp,
+                            modifier = Modifier
+                                .padding(top = TopControlsClearance)
+                                .padding(horizontal = ChatGutter, vertical = HangryTokens.Spacing.xs)
+                        )
+                    }
+                    // Room for the floating controls, unless the error card already pushed things down.
+                    val chatTopPadding = if (uiState.errorMessage != null) HangryTokens.Spacing.s else TopControlsClearance
+
+                    // Main chat area
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (uiState.messages.isEmpty()) {
+                            EmptyConversationView(starters = starters, onSelectStarter = sendStarter, topPadding = chatTopPadding)
+                        } else {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s),
+                                contentPadding = PaddingValues(
+                                    start = ChatGutter,
+                                    end = ChatGutter,
+                                    top = chatTopPadding,
+                                    bottom = HangryTokens.Spacing.s
                                 )
-                            }
+                            ) {
+                                items(uiState.messages, key = { it.id }) { message ->
+                                    CoachMessageItem(
+                                        message = message,
+                                        onExecuteAction = { index -> viewModel.executeAction(message.id, index) },
+                                        onDismissAction = { index -> viewModel.dismissAction(message.id, index) },
+                                        onCopy = { text ->
+                                            clipboardManager.setText(AnnotatedString(text))
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar(message = copiedMessage, duration = SnackbarDuration.Short)
+                                            }
+                                        }
+                                    )
+                                }
 
-                            if (uiState.isLoading) {
-                                item {
-                                    val partial = uiState.streamingReply
-                                    if (partial.isNullOrBlank()) CoachLoadingBubble() else StreamingReplyBubble(partial)
+                                if (uiState.isLoading) {
+                                    item {
+                                        val partial = uiState.streamingReply
+                                        if (partial.isNullOrBlank()) CoachLoadingBubble() else StreamingReplyBubble(partial)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                // Follow-up suggestions; out of the way while Dash replies or you're writing.
-                if (uiState.messages.isNotEmpty() && !uiState.isLoading && inputText.isEmpty() && uiState.pendingImages.isEmpty()) {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = HangryTokens.Spacing.xs),
-                        contentPadding = PaddingValues(horizontal = ChatGutter),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        items(starters) { starter ->
-                            StarterChip(text = starter, onClick = { sendStarter(starter) }, singleLine = true)
+                    // Follow-up suggestions; out of the way while Dash replies or you're writing.
+                    if (uiState.messages.isNotEmpty() && !uiState.isLoading && inputText.isEmpty() && uiState.pendingImages.isEmpty()) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = HangryTokens.Spacing.xs),
+                            contentPadding = PaddingValues(horizontal = ChatGutter),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            items(starters) { starter ->
+                                StarterChip(text = starter, onClick = { sendStarter(starter) }, singleLine = true)
+                            }
                         }
                     }
-                }
 
-                ChatInputBar(
-                    text = inputText,
-                    onTextChange = { inputText = it },
-                    pendingImages = uiState.pendingImages,
-                    onRemoveImage = viewModel::removeImage,
-                    canAttach = !uiState.isLoading && uiState.pendingImages.size < AiCoachViewModel.MAX_IMAGES,
-                    onTakePhoto = { photoLauncher.takePhoto() },
-                    onPickFromGallery = { photoLauncher.pickFromGallery() },
-                    canDictate = canDictate,
-                    onDictate = { runCatching { speechLauncher.launch(speechIntent) } },
-                    isLoading = uiState.isLoading,
-                    canSend = canSend,
-                    onSend = sendInput
-                )
+                    ChatInputBar(
+                        text = inputText,
+                        onTextChange = { inputText = it },
+                        pendingImages = uiState.pendingImages,
+                        onRemoveImage = viewModel::removeImage,
+                        canAttach = !uiState.isLoading && uiState.pendingImages.size < AiCoachViewModel.MAX_IMAGES,
+                        onTakePhoto = { photoLauncher.takePhoto() },
+                        onPickFromGallery = { photoLauncher.pickFromGallery() },
+                        canDictate = canDictate,
+                        onDictate = { runCatching { speechLauncher.launch(speechIntent) } },
+                        isLoading = uiState.isLoading,
+                        canSend = canSend,
+                        onSend = sendInput
+                    )
+                }
             }
+
+            DashTopControls(
+                showNewChat = uiState.messages.isNotEmpty() || uiState.activeConversationId != null,
+                newChatEnabled = !uiState.isLoading,
+                journalCount = uiState.journalEntries.size,
+                showAbout = uiState.isAiConfigured,
+                onHistory = { viewModel.setShowHistory(true) },
+                onNewChat = { viewModel.newChat() },
+                onJournal = { viewModel.setShowJournalSheet(true) },
+                onAbout = { showAboutDash = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = topInset + HangryTokens.Spacing.xs, end = ChatGutter)
+            )
         }
+    }
+
+    if (showAboutDash) {
+        HangryInfoDialog(
+            title = stringResource(R.string.coach_about_dash, MASCOT_NAME),
+            sections = listOf(
+                HangryInfoSection(heading = "", body = stringResource(R.string.coach_about_dash_body)),
+                HangryInfoSection(
+                    heading = stringResource(R.string.coach_what_dash_knows_title),
+                    body = stringResource(R.string.coach_what_dash_knows_body, MASCOT_NAME)
+                )
+            ),
+            onDismiss = { showAboutDash = false }
+        )
     }
 
     if (uiState.showHistory) {
@@ -417,6 +394,96 @@ fun AiCoachScreen(
                 showAddJournalDialog = false
             }
         )
+    }
+}
+
+/** Space the chat leaves at the top so its first item clears [DashTopControls]. */
+private val TopControlsClearance = 52.dp
+
+/**
+ * Dash's top controls: a small translucent pill floating at the top end, so the chat scrolls
+ * underneath instead of sitting below a solid bar. History and new chat are one tap away; the
+ * journal and "About Dash" are tucked in the overflow menu.
+ */
+@Composable
+private fun DashTopControls(
+    showNewChat: Boolean,
+    newChatEnabled: Boolean,
+    journalCount: Int,
+    showAbout: Boolean,
+    onHistory: () -> Unit,
+    onNewChat: () -> Unit,
+    onJournal: () -> Unit,
+    onAbout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tokens = LocalHangryTokens.current
+    var menuOpen by remember { mutableStateOf(false) }
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = tokens.glassSurface,
+        border = BorderStroke(1.dp, tokens.cardBorder),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = HangryTokens.Spacing.xxs),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onHistory, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    Icons.Default.History,
+                    contentDescription = stringResource(R.string.coach_chat_history),
+                    tint = tokens.textPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            if (showNewChat) {
+                IconButton(onClick = onNewChat, enabled = newChatEnabled, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        Icons.Default.AddComment,
+                        contentDescription = stringResource(R.string.coach_new_chat),
+                        tint = if (newChatEnabled) tokens.textPrimary else tokens.textMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Box {
+                IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.coach_more_options),
+                        tint = tokens.textPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                if (journalCount > 0) stringResource(R.string.coach_menu_journal_count, journalCount)
+                                else stringResource(R.string.coach_menu_journal)
+                            )
+                        },
+                        leadingIcon = { Icon(Icons.Default.Book, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onJournal()
+                        }
+                    )
+                    if (showAbout) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.coach_about_dash, MASCOT_NAME)) },
+                            leadingIcon = { Icon(Icons.Outlined.Info, contentDescription = null) },
+                            onClick = {
+                                menuOpen = false
+                                onAbout()
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -641,13 +708,15 @@ private fun AiNotConfiguredBanner(
 @Composable
 private fun EmptyConversationView(
     starters: List<String>,
-    onSelectStarter: (String) -> Unit
+    onSelectStarter: (String) -> Unit,
+    topPadding: Dp = 0.dp
 ) {
     val tokens = LocalHangryTokens.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .padding(top = topPadding)
             .padding(horizontal = HangryTokens.Spacing.m, vertical = HangryTokens.Spacing.m),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally

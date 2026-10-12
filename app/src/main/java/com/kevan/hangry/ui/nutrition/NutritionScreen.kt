@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +44,7 @@ import com.kevan.hangry.ui.components.HangryInfoDialog
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
+import com.kevan.hangry.ui.components.UndoDeleteEffect
 import com.kevan.hangry.ui.components.dayHeading
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.navigation.LocalDockInset
@@ -54,7 +56,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.annotation.StringRes
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
-import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 
@@ -63,6 +64,46 @@ private enum class MealBucket(@StringRes val titleRes: Int) {
     LUNCH(R.string.nutrition_meal_lunch),
     DINNER(R.string.nutrition_meal_dinner),
     SNACKS(R.string.nutrition_meal_snacks)
+}
+
+/** Today's entries under Breakfast / Lunch / Dinner / Snacks, empty meals left out. */
+private fun groupByMeal(entries: List<FoodLogEntity>): Map<MealBucket, List<FoodLogEntity>> {
+    val zone = ZoneId.systemDefault()
+    return entries.groupBy { getMealBucket(it.timestamp, zone) }.toSortedMap(compareBy { it.ordinal })
+}
+
+/** The "Logged X" snackbar's visuals: Edit is its action, Undo a second button beside it. */
+private class LoggedSnackbarVisuals(
+    override val message: String,
+    override val actionLabel: String,
+    val undoLabel: String
+) : SnackbarVisuals {
+    override val withDismissAction: Boolean get() = false
+    override val duration: SnackbarDuration get() = SnackbarDuration.Short
+    /** Set when Undo closed the snackbar, which otherwise reads as a plain dismissal. */
+    var undone = false
+}
+
+@Composable
+private fun LoggedSnackbar(data: SnackbarData, visuals: LoggedSnackbarVisuals) {
+    val actionColors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionColor)
+    Snackbar(
+        modifier = Modifier.padding(12.dp),
+        action = {
+            Row {
+                TextButton(
+                    onClick = {
+                        visuals.undone = true
+                        data.dismiss()
+                    },
+                    colors = actionColors
+                ) { Text(visuals.undoLabel) }
+                TextButton(onClick = { data.performAction() }, colors = actionColors) { Text(visuals.actionLabel) }
+            }
+        }
+    ) {
+        Text(visuals.message)
+    }
 }
 
 private fun getMealBucket(timestamp: Instant, zone: ZoneId = ZoneId.systemDefault()): MealBucket {
@@ -112,17 +153,33 @@ fun NutritionScreen(
 
     // No target until there's enough data for a real one - never an assumed 2000 kcal.
     val calorieTarget = dashboardState.calorieGoal?.dailyCalorieTarget
-    val totalProtein = uiState.todayEntries.sumOf { it.proteinG }
-    val totalCarbs = uiState.todayEntries.sumOf { it.carbsG }
-    val totalFat = uiState.todayEntries.sumOf { it.fatG }
-    val totalFiber = uiState.todayEntries.sumOf { it.fiberG }
+    val entries = uiState.todayEntries
+    val totalProtein = remember(entries) { entries.sumOf { it.proteinG } }
+    val totalCarbs = remember(entries) { entries.sumOf { it.carbsG } }
+    val totalFat = remember(entries) { entries.sumOf { it.fatG } }
+    val totalFiber = remember(entries) { entries.sumOf { it.fiberG } }
+    val groupedEntries = remember(entries) { groupByMeal(entries) }
     val macroGoals = NutritionTargets.macros(calorieTarget)
     val proteinGoal = macroGoals?.proteinG
     val carbsGoal = macroGoals?.carbsG
     val fatGoal = macroGoals?.fatG
 
-    var showDescribeDialog by remember { mutableStateOf(false) }
-    var showQuickLogSheet by remember { mutableStateOf(false) }
+    var showDescribeDialog by rememberSaveable { mutableStateOf(false) }
+    var showQuickLogSheet by rememberSaveable { mutableStateOf(false) }
+    // Hidden at once; the entry, its photo and its Health Connect record go when the snackbar closes.
+    var pendingDelete by remember { mutableStateOf<FoodLogEntity?>(null) }
+    val deleteEntry: (FoodLogEntity) -> Unit = { entry ->
+        viewModel.hideEntry(entry)
+        pendingDelete = entry
+    }
+    UndoDeleteEffect(
+        pending = pendingDelete,
+        snackbarHostState = snackbarHostState,
+        message = { context.getString(R.string.nutrition_entry_deleted_snackbar, it.foodName) },
+        onUndo = viewModel::undoDelete,
+        onCommit = viewModel::commitDelete,
+        onSettled = { pendingDelete = null }
+    )
 
     val photoLauncher = rememberPhotoCaptureLauncher { uri: Uri -> viewModel.logMealFromPhoto(uri) }
 
@@ -133,24 +190,33 @@ fun NutritionScreen(
         }
     }
 
-    // Auto-save confirmation: brief, dismissible, with a one-tap correction path instead of a
-    // blocking review dialog on every single entry.
+    // Auto-save confirmation: brief, dismissible, with one-tap Edit and Undo instead of a
+    // blocking review dialog on every single entry - a wrong AI guess is one tap from gone.
     LaunchedEffect(uiState.lastSavedEntry) {
         val saved = uiState.lastSavedEntry ?: return@LaunchedEffect
-        val result = snackbarHostState.showSnackbar(
+        val visuals = LoggedSnackbarVisuals(
             message = context.getString(R.string.nutrition_logged_snackbar, saved.foodName, saved.calories),
             actionLabel = context.getString(R.string.nutrition_edit),
-            duration = SnackbarDuration.Short
+            undoLabel = context.getString(R.string.nutrition_undo)
         )
-        if (result == SnackbarResult.ActionPerformed) {
-            viewModel.startEdit(saved)
-        } else {
-            viewModel.clearLastSaved()
+        val result = snackbarHostState.showSnackbar(visuals)
+        when {
+            result == SnackbarResult.ActionPerformed -> viewModel.startEdit(saved)
+            visuals.undone -> {
+                viewModel.clearLastSaved()
+                viewModel.deleteEntry(saved)
+            }
+            else -> viewModel.clearLastSaved()
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = LocalDockInset.current)) { data ->
+                val logged = data.visuals as? LoggedSnackbarVisuals
+                if (logged == null) Snackbar(data) else LoggedSnackbar(data, logged)
+            }
+        },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         LazyColumn(
@@ -299,19 +365,6 @@ fun NutritionScreen(
                     }
                 }
             } else {
-                val groupedEntries = run {
-                    val zone = ZoneId.systemDefault()
-                    val map = linkedMapOf<MealBucket, MutableList<FoodLogEntity>>()
-                    for (bucket in MealBucket.entries) {
-                        map[bucket] = mutableListOf()
-                    }
-                    for (entry in uiState.todayEntries) {
-                        val bucket = getMealBucket(entry.timestamp, zone)
-                        map[bucket]?.add(entry)
-                    }
-                    map.filter { it.value.isNotEmpty() }
-                }
-
                 groupedEntries.forEach { (bucket, bucketEntries) ->
                     item(key = "header_${bucket.name}") {
                         Row(
@@ -343,7 +396,7 @@ fun NutritionScreen(
                             },
                             onDelete = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.deleteEntry(entry)
+                                deleteEntry(entry)
                             }
                         )
                     }
@@ -406,8 +459,8 @@ fun NutritionScreen(
             onDismiss = viewModel::cancelEdit,
             onSave = viewModel::saveEdit,
             onDelete = {
-                viewModel.deleteEntry(entry)
                 viewModel.cancelEdit()
+                deleteEntry(entry)
             }
         )
     }
@@ -587,13 +640,16 @@ private fun LogActionButton(
 @Composable
 private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -> Unit) {
     val tokens = LocalHangryTokens.current
+    // No file check in composition: a photo that's gone just fails to load and the slot drops out.
+    var photoMissing by remember(entry.photoPath) { mutableStateOf(false) }
     HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (entry.photoPath != null && File(entry.photoPath).exists()) {
+            if (entry.photoPath != null && !photoMissing) {
                 AsyncImage(
                     model = entry.photoPath,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    onError = { photoMissing = true },
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(8.dp))
@@ -618,7 +674,7 @@ private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -
 
 @Composable
 private fun DescribeFoodDialog(onDismiss: () -> Unit, onAnalyze: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+    var text by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.nutrition_describe_title)) },
@@ -647,27 +703,29 @@ private fun EditFoodEntryDialog(
     onSave: (FoodLogEntity) -> Unit,
     onDelete: () -> Unit
 ) {
-    var foodName by remember { mutableStateOf(entry.foodName) }
-    var calories by remember { mutableStateOf(entry.calories.toString()) }
+    var photoMissing by remember(entry.photoPath) { mutableStateOf(false) }
+    var foodName by rememberSaveable(entry.id) { mutableStateOf(entry.foodName) }
+    var calories by rememberSaveable(entry.id) { mutableStateOf(entry.calories.toString()) }
     val shownProtein = entry.proteinG.toInt().toString()
     val shownCarbs = entry.carbsG.toInt().toString()
     val shownFat = entry.fatG.toInt().toString()
     val shownFiber = entry.fiberG.toInt().toString()
-    var protein by remember { mutableStateOf(shownProtein) }
-    var carbs by remember { mutableStateOf(shownCarbs) }
-    var fat by remember { mutableStateOf(shownFat) }
-    var fiber by remember { mutableStateOf(shownFiber) }
+    var protein by rememberSaveable(entry.id) { mutableStateOf(shownProtein) }
+    var carbs by rememberSaveable(entry.id) { mutableStateOf(shownCarbs) }
+    var fat by rememberSaveable(entry.id) { mutableStateOf(shownFat) }
+    var fiber by rememberSaveable(entry.id) { mutableStateOf(shownFiber) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.nutrition_edit_entry_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (entry.photoPath != null && File(entry.photoPath).exists()) {
+                if (entry.photoPath != null && !photoMissing) {
                     AsyncImage(
                         model = entry.photoPath,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
+                        onError = { photoMissing = true },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp)

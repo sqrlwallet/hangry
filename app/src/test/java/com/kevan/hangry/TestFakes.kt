@@ -43,11 +43,13 @@ internal class FakeHealthRecordsRepository : HealthRecordsRepository {
         readings += type to value
     }
     override suspend fun deleteReading(id: Long) {}
+    override suspend fun updateReading(id: Long, value: Double, secondaryValue: Double?, measuredAt: Instant, glucoseContext: GlucoseContext?, note: String?) {}
     override suspend fun setGoal(type: MarkerType, targetValue: Double, targetSecondary: Double?, targetDate: LocalDate?) {}
     override suspend fun clearGoal(type: MarkerType) {}
     override suspend fun addProfileItem(kind: HealthProfileKind, name: String, note: String?) {}
     override suspend fun deleteProfileItem(id: Long) {}
     override suspend fun logPeriod(start: LocalDate, end: LocalDate?) {}
+    override suspend fun updatePeriod(id: Long, start: LocalDate, end: LocalDate?) {}
     override suspend fun deletePeriod(id: Long) {}
     override suspend fun setPregnancy(isPregnant: Boolean, dueDate: LocalDate?) {}
     override suspend fun importFromHealthConnect() = HealthRecordsImportResult(0, 0, 0, false)

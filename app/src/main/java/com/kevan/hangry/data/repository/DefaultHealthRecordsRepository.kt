@@ -73,6 +73,28 @@ class DefaultHealthRecordsRepository(
         if (marker != null && marker.healthConnectSynced) healthConnectDataSource.deleteHealthMarker(marker)
     }
 
+    override suspend fun updateReading(
+        id: Long, value: Double, secondaryValue: Double?, measuredAt: Instant,
+        glucoseContext: GlucoseContext?, note: String?
+    ) {
+        val old = dao.getMarker(id) ?: return
+        val type = MarkerType.entries.firstOrNull { it.id == old.type }
+        val updated = old.copy(
+            value = value,
+            secondaryValue = secondaryValue.takeIf { type?.hasSecondaryValue == true },
+            measuredAt = measuredAt,
+            date = measuredAt.atZone(zone).toLocalDate(),
+            glucoseContext = glucoseContext?.name.takeIf { type == MarkerType.BLOOD_GLUCOSE },
+            note = note?.trim()?.takeIf { it.isNotEmpty() },
+            healthConnectSynced = false
+        )
+        // Same row id (insert replaces). Our Health Connect copy is removed and shared again with
+        // the corrected value; readings imported from Health Connect stay as the other app wrote them.
+        dao.insertMarker(updated)
+        if (old.healthConnectSynced) healthConnectDataSource.deleteHealthMarker(old)
+        if (old.sourceRecordId == null) writeToHealthConnect(updated)
+    }
+
     /** Blood pressure and glucose entered in Hangry are shared with other apps via Health Connect. */
     private suspend fun writeToHealthConnect(marker: HealthMarkerEntity) {
         if (marker.type != MarkerType.BLOOD_PRESSURE.id && marker.type != MarkerType.BLOOD_GLUCOSE.id) return
@@ -119,6 +141,13 @@ class DefaultHealthRecordsRepository(
         dao.insertPeriods(
             listOf(MenstrualPeriodEntity(startDate = start, endDate = end?.takeIf { !it.isBefore(start) }, source = RecordSource.MANUAL.name))
         )
+    }
+
+    override suspend fun updatePeriod(id: Long, start: LocalDate, end: LocalDate?) {
+        val old = dao.getPeriods().firstOrNull { it.id == id } ?: return
+        // Same row id; insertPeriods ignores conflicts, so the old row goes first.
+        dao.deletePeriod(id)
+        dao.insertPeriods(listOf(old.copy(startDate = start, endDate = end?.takeIf { !it.isBefore(start) })))
     }
 
     override suspend fun deletePeriod(id: Long) = dao.deletePeriod(id)

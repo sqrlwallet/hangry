@@ -35,10 +35,13 @@ import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.PoseGuide
+import com.kevan.hangry.ui.components.UndoDeleteEffect
+import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +55,17 @@ fun BodyFatCalculatorScreen(
     val tokens = LocalHangryTokens.current
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    // Hidden at once; only removed from storage when the undo snackbar closes.
+    var pendingDelete by remember { mutableStateOf<BodyFatScanEntity?>(null) }
+    UndoDeleteEffect(
+        pending = pendingDelete,
+        snackbarHostState = snackbarHostState,
+        message = { context.getString(R.string.body_bodyfat_scan_deleted, it.date.format(SCAN_DATE)) },
+        onUndo = { viewModel.undoDelete(it.id) },
+        onCommit = { viewModel.commitDelete(it.id) },
+        onSettled = { pendingDelete = null }
+    )
 
     val photoLauncher = rememberMultiPhotoCaptureLauncher(
         maxItems = (3 - uiState.photos.size).coerceAtLeast(2)
@@ -553,7 +567,7 @@ fun BodyFatCalculatorScreen(
                                             color = tokens.textMuted
                                         )
                                     }
-                                    val dateStr = scan.date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                                    val dateStr = scan.date.format(SCAN_DATE)
                                     val weightStr = scan.weightKg?.let { stringResource(R.string.body_bodyfat_scan_weight, it.toString()) }
                                     val lbmStr = scan.leanMassKg?.let { stringResource(R.string.body_bodyfat_scan_lbm, it.toString()) }
                                     val fatStr = scan.fatMassKg?.let { stringResource(R.string.body_bodyfat_scan_fat, it.toString()) }
@@ -564,7 +578,10 @@ fun BodyFatCalculatorScreen(
                                         color = tokens.textSecondary
                                     )
                                 }
-                                IconButton(onClick = { viewModel.deleteScan(scan.id) }) {
+                                IconButton(onClick = {
+                                    viewModel.hideScan(scan.id)
+                                    pendingDelete = scan
+                                }) {
                                     Icon(
                                         imageVector = Icons.Default.DeleteOutline,
                                         contentDescription = stringResource(R.string.body_bodyfat_delete_scan),
@@ -582,6 +599,8 @@ fun BodyFatCalculatorScreen(
 }
 
 private enum class EstimateMethod { AI, NAVY, HISTORY }
+
+private val SCAN_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
 
 @Composable
 private fun CardHeader(

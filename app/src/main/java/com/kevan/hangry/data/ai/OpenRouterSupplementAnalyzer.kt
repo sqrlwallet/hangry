@@ -2,11 +2,11 @@ package com.kevan.hangry.data.ai
 
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiDefaults
+import com.kevan.hangry.domain.ai.AiJson
 import com.kevan.hangry.domain.ai.SupplementAnalyzer
 import com.kevan.hangry.domain.ai.extractJsonPayload
 import com.kevan.hangry.domain.model.SupplementAnalysisResult
 import com.kevan.hangry.domain.repository.UserProfileRepository
-import kotlinx.serialization.json.Json
 
 private const val SYSTEM_PROMPT = """You read dietary supplement packaging for a personal health-tracking app. You get 1-3 photos: usually the front of the bottle/box and the "Supplement Facts" / nutrition label.
 
@@ -31,8 +31,6 @@ class OpenRouterSupplementAnalyzer(
     private val userProfileRepository: UserProfileRepository
 ) : SupplementAnalyzer {
 
-    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
-
     override suspend fun analyzePhotos(imagesBase64: List<String>, note: String?, userContext: String?): Result<SupplementAnalysisResult> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
         val model = AiDefaults.analysisModel(userProfileRepository.getProfileSync()?.preferredAiModel)
@@ -42,7 +40,7 @@ class OpenRouterSupplementAnalyzer(
             userContext?.takeIf { it.isNotBlank() }?.let { append("\n\nUser context for cautions only:\n$it") }
         }
         return client.chatCompletion(apiKey, model, SYSTEM_PROMPT, userText, imagesBase64).mapCatching { raw ->
-            json.decodeFromString(SupplementAnalysisResult.serializer(), extractJsonPayload(raw))
+            AiJson.decodeFromString(SupplementAnalysisResult.serializer(), extractJsonPayload(raw))
         }.recoverCatching { e ->
             if (e is OpenRouterException) throw e
             throw OpenRouterException.MalformedResponse(e)

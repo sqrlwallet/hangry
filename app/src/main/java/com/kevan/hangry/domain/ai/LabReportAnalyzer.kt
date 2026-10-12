@@ -3,7 +3,6 @@ package com.kevan.hangry.domain.ai
 import com.kevan.hangry.domain.model.GlucoseContext
 import com.kevan.hangry.domain.model.MarkerType
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -67,8 +66,6 @@ internal data class LabResultJson(
 /** Turns the model's answer into reviewable values: marker mapping, unit conversion and sanity checks. */
 object LabReportParser {
 
-    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
-
     /** The marker list the model maps onto. */
     fun markerCatalog(markers: List<MarkerType>): String = markers.joinToString("\n") { m ->
         "- ${m.id}: ${m.label}, canonical unit ${m.canonicalUnit}" +
@@ -81,19 +78,11 @@ object LabReportParser {
      * Throws when the answer has no JSON object in it.
      */
     fun parse(raw: String, allowed: Set<MarkerType> = MarkerType.entries.toSet(), today: LocalDate = LocalDate.now()): LabReportScan {
-        val report = json.decodeFromString(LabReportJson.serializer(), jsonObjectIn(raw))
+        val report = AiJson.decodeFromString(LabReportJson.serializer(), extractJsonPayload(raw))
         val values = report.results.mapNotNull { r -> toValue(r, allowed) }
         val reportDate = (listOf(report.reportDate) + report.results.map { it.date })
             .firstNotNullOfOrNull { date(it.text(), today) }
         return LabReportScan(reportDate, values)
-    }
-
-    /** Strips code fences and any chatter around the JSON object. */
-    internal fun jsonObjectIn(raw: String): String {
-        val s = extractJsonPayload(raw)
-        val start = s.indexOf('{')
-        val end = s.lastIndexOf('}')
-        return if (start >= 0 && end > start) s.substring(start, end + 1) else s
     }
 
     private fun toValue(r: LabResultJson, allowed: Set<MarkerType>): ScannedLabValue? {

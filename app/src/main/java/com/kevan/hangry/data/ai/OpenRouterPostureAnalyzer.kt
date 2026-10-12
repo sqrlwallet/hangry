@@ -2,13 +2,13 @@ package com.kevan.hangry.data.ai
 
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiDefaults
+import com.kevan.hangry.domain.ai.AiJson
 import com.kevan.hangry.domain.ai.PostureAnalyzer
 import com.kevan.hangry.domain.ai.extractJsonPayload
 import com.kevan.hangry.domain.model.PostureAnalysisResult
 import com.kevan.hangry.domain.model.PostureExercise
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 private const val SYSTEM_PROMPT = """You are an expert biomechanics, physical therapy, and postural assessment specialist. The user submits 1 to 5 photos (which may show front, side, back, or three-quarter views, standing or sitting) for posture evaluation.
 
@@ -57,11 +57,11 @@ private data class PostureResponseJson(
 ) {
     @Serializable
     data class ExerciseJson(
-        val name: String,
-        val description: String,
-        val targetArea: String,
-        val sets: Int,
-        val reps: String
+        val name: String = "",
+        val description: String = "",
+        val targetArea: String = "",
+        val sets: Int = 3,
+        val reps: String = ""
     )
 }
 
@@ -70,8 +70,6 @@ class OpenRouterPostureAnalyzer(
     private val keyStore: SecureKeyStore,
     private val userProfileRepository: UserProfileRepository
 ) : PostureAnalyzer {
-
-    private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun analyzeScan(imagesBase64: List<String>): Result<PostureAnalysisResult> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
@@ -83,14 +81,14 @@ class OpenRouterPostureAnalyzer(
         }
 
         return client.chatCompletion(apiKey, model, SYSTEM_PROMPT, userText, imagesBase64).mapCatching { raw ->
-            val parsed = json.decodeFromString(PostureResponseJson.serializer(), extractJsonPayload(raw))
+            val parsed = AiJson.decodeFromString(PostureResponseJson.serializer(), extractJsonPayload(raw))
             PostureAnalysisResult(
                 isValid = parsed.valid,
                 invalidPhotoIndices = parsed.invalidPhotoIndices,
                 rejectionReason = parsed.reason,
                 score = parsed.score,
                 findings = parsed.findings,
-                exercises = parsed.exercises.map {
+                exercises = parsed.exercises.filter { it.name.isNotBlank() }.map {
                     PostureExercise(
                         name = it.name,
                         description = it.description,

@@ -19,7 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Sync
@@ -45,6 +45,7 @@ import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.MetricRangeBar
 import com.kevan.hangry.ui.components.MetricStatusChip
+import com.kevan.hangry.ui.components.UndoDeleteEffect
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
@@ -118,10 +119,26 @@ fun HealthRecordsScreen(
     val scanLauncher = rememberMultiPhotoCaptureLauncher(maxItems = HealthRecordsViewModel.MAX_SCAN_PAGES) { viewModel.onScanPages(it) }
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    var addingFor by remember { mutableStateOf<MarkerType?>(null) }
-    var showAddPicker by remember { mutableStateOf(false) }
-    var detailFor by remember { mutableStateOf<MarkerType?>(null) }
-    var goalFor by remember { mutableStateOf<MarkerType?>(null) }
+    // Saveable so an open sheet (and what's typed in it) survives rotation.
+    var addingFor by rememberSaveable { mutableStateOf<MarkerType?>(null) }
+    var showAddPicker by rememberSaveable { mutableStateOf(false) }
+    var detailFor by rememberSaveable { mutableStateOf<MarkerType?>(null) }
+    var goalFor by rememberSaveable { mutableStateOf<MarkerType?>(null) }
+    var editingReadingId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    // Deleted rows are hidden at once and only removed (with their Health Connect copies) once
+    // the undo snackbar closes.
+    var pendingDelete by remember { mutableStateOf<PendingRecordDelete?>(null) }
+    UndoDeleteEffect(
+        pending = pendingDelete,
+        snackbarHostState = snackbar,
+        message = {
+            context.getString(if (it.isPeriod) R.string.body_records_period_deleted else R.string.body_records_reading_deleted)
+        },
+        onUndo = { if (it.isPeriod) viewModel.undoPeriodDelete(it.id) else viewModel.undoReadingDelete(it.id) },
+        onCommit = { if (it.isPeriod) viewModel.commitPeriodDelete(it.id) else viewModel.commitReadingDelete(it.id) },
+        onSettled = { pendingDelete = null }
+    )
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = PermissionController.createRequestPermissionResultContract()
@@ -170,7 +187,8 @@ fun HealthRecordsScreen(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbar) },
+        // While the marker sheet is open it shows the snackbar itself (it would be hidden behind it).
+        snackbarHost = { if (detailFor == null) SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
@@ -211,7 +229,14 @@ fun HealthRecordsScreen(
                     "Profile" -> {
                         ProfileTab(records = records, viewModel = viewModel)
                     }
-                    "Cycle" -> CycleTab(records = records, viewModel = viewModel)
+                    "Cycle" -> CycleTab(
+                        records = records,
+                        viewModel = viewModel,
+                        onDeletePeriod = { id ->
+                            viewModel.hidePeriod(id)
+                            pendingDelete = PendingRecordDelete(id, isPeriod = true)
+                        }
+                    )
                 }
             }
         }
@@ -250,7 +275,7 @@ fun HealthRecordsScreen(
         )
     }
     addingFor?.let { type ->
-        AddReadingSheet(
+        ReadingSheet(
             type = type,
             onDismiss = { addingFor = null },
             onSave = { value, secondary, at, context, note ->
@@ -266,8 +291,31 @@ fun HealthRecordsScreen(
             onDismiss = { detailFor = null },
             onAddReading = { addingFor = type },
             onEditGoal = { goalFor = type },
-            onDeleteReading = viewModel::deleteReading
+            onEditReading = { editingReadingId = it.id },
+            snackbarHostState = snackbar
         )
+    }
+    editingReadingId?.let { id ->
+        val reading = records.readings.firstOrNull { it.id == id }
+        if (reading == null) {
+            // Deleted elsewhere (or the snapshot is still loading after a restore).
+            if (records.readings.isNotEmpty()) LaunchedEffect(id) { editingReadingId = null }
+        } else {
+            ReadingSheet(
+                type = reading.type,
+                existing = reading,
+                onDismiss = { editingReadingId = null },
+                onSave = { value, secondary, at, glucoseContext, note ->
+                    viewModel.updateReading(reading.id, value, secondary, at, glucoseContext, note)
+                    editingReadingId = null
+                },
+                onDelete = {
+                    editingReadingId = null
+                    viewModel.hideReading(reading.id)
+                    pendingDelete = PendingRecordDelete(reading.id, isPeriod = false)
+                }
+            )
+        }
     }
     goalFor?.let { type ->
         GoalSheet(
@@ -286,6 +334,9 @@ fun HealthRecordsScreen(
         )
     }
 }
+
+/** A reading or period waiting out its undo snackbar. */
+private data class PendingRecordDelete(val id: Long, val isPeriod: Boolean)
 
 @Composable
 private fun HealthConnectCard(state: HealthConnectImportState, onConnect: () -> Unit, onImport: () -> Unit) {
@@ -402,9 +453,9 @@ internal fun GoalSummary(type: MarkerType, records: HealthRecordsSnapshot) {
 @Composable
 private fun ProfileTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsViewModel) {
     val tokens = LocalHangryTokens.current
-    var adding by remember { mutableStateOf<HealthProfileKind?>(null) }
+    var adding by rememberSaveable { mutableStateOf<HealthProfileKind?>(null) }
 
-    var pickingDueDate by remember { mutableStateOf(false) }
+    var pickingDueDate by rememberSaveable { mutableStateOf(false) }
     HangryCard(modifier = Modifier.fillMaxWidth()) {
         ProfileSection(
             title = stringResource(R.string.body_records_allergies),
@@ -521,9 +572,10 @@ private fun ProfileSection(
 }
 
 @Composable
-private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsViewModel) {
+private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsViewModel, onDeletePeriod: (Long) -> Unit) {
     val tokens = LocalHangryTokens.current
-    var logging by remember { mutableStateOf(false) }
+    var logging by rememberSaveable { mutableStateOf(false) }
+    var editingPeriodId by rememberSaveable { mutableStateOf<Long?>(null) }
     val stats = HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, LocalDate.now())
     val skinTemps by viewModel.skinTempByDate.collectAsState()
     val insight = CycleTemperature.insight(stats, skinTemps, LocalDate.now(), records.periods.map { it.startDate })
@@ -535,7 +587,9 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
             DashEmptyState(
                 scene = DashEmptyScene.RECORDS,
                 title = stringResource(R.string.body_records_no_periods_title),
-                body = stringResource(R.string.body_records_no_periods_body) 
+                body = stringResource(R.string.body_records_no_periods_body),
+                actionLabel = stringResource(R.string.body_records_log_period),
+                onAction = { logging = true }
             )
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.m)) {
@@ -548,12 +602,12 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
                 CycleStat(stringResource(R.string.body_records_avg_period), stats.averagePeriodDays?.let { stringResource(R.string.body_records_days_value, it) } ?: "—", Modifier.weight(1f))
             }
             insight?.let { CyclePhase(it, hasTemperature = skinTemps.isNotEmpty()) }
-        }
-        Spacer(Modifier.height(12.dp))
-        Button(onClick = { logging = true }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.body_records_log_period))
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { logging = true }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.body_records_log_period))
+            }
         }
     }
     Text(
@@ -566,7 +620,13 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
         HangryCard(modifier = Modifier.fillMaxWidth()) {
             records.periods.take(12).forEachIndexed { index, period ->
                 if (index > 0) HorizontalDivider(color = tokens.cardBorder.copy(alpha = 0.5f))
-                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Tap a period to correct its dates or delete it.
+                Row(
+                    Modifier.fillMaxWidth()
+                        .clickable(onClickLabel = stringResource(R.string.body_records_edit_period)) { editingPeriodId = period.id }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Column(Modifier.weight(1f)) {
                         Text(
                             period.startDate.format(DATE) + (period.endDate?.let { " – ${it.format(DATE)}" } ?: stringResource(R.string.body_records_period_ongoing)),
@@ -575,9 +635,7 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
                         )
                         Text(period.source.label, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                     }
-                    IconButton(onClick = { viewModel.deletePeriod(period.id) }) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.body_records_delete_period), tint = tokens.textMuted)
-                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = tokens.textMuted, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -591,6 +649,22 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
                 logging = false
             }
         )
+    }
+    editingPeriodId?.let { id ->
+        records.periods.firstOrNull { it.id == id }?.let { period ->
+            LogPeriodDialog(
+                existing = period,
+                onDismiss = { editingPeriodId = null },
+                onSave = { start, end ->
+                    viewModel.updatePeriod(period.id, start, end)
+                    editingPeriodId = null
+                },
+                onDelete = {
+                    editingPeriodId = null
+                    onDeletePeriod(period.id)
+                }
+            )
+        }
     }
 }
 

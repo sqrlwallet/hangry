@@ -23,10 +23,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,8 +43,14 @@ import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.components.HangryPendingNotice
 import com.kevan.hangry.ui.components.HangryRingGauge
+import com.kevan.hangry.ui.components.UndoDeleteEffect
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+/** Scan dates as "Mar 4, 2026", matching body fat history. */
+internal val POSTURE_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
 
 @Composable
 private fun postureInfoSections(): List<HangryInfoSection> = listOf(
@@ -72,8 +82,21 @@ fun PostureScreen(
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    // Hidden at once; the scan and its photos are only removed when the undo snackbar closes.
+    var pendingDelete by remember { mutableStateOf<PostureScanEntity?>(null) }
+    UndoDeleteEffect(
+        pending = pendingDelete,
+        snackbarHostState = snackbarHostState,
+        message = { context.getString(R.string.body_posture_scan_deleted, it.date.format(POSTURE_DATE)) },
+        onUndo = viewModel::undoDelete,
+        onCommit = viewModel::commitDelete,
+        onSettled = { pendingDelete = null }
+    )
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 expandedHeight = 56.dp,
@@ -199,7 +222,7 @@ fun PostureScreen(
                                     color = tokens.textMuted
                                 )
                                 Text(
-                                    text = latest.date.toString(),
+                                    text = latest.date.format(POSTURE_DATE),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Medium,
                                     color = tokens.textPrimary
@@ -216,22 +239,29 @@ fun PostureScreen(
                         DashEmptyState(
                             scene = DashEmptyScene.POSTURE,
                             title = stringResource(R.string.body_posture_no_scans_title),
-                            body = stringResource(R.string.body_posture_no_scans_body)
+                            body = stringResource(R.string.body_posture_no_scans_body),
+                            actionLabel = stringResource(R.string.body_posture_start_first),
+                            onAction = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onStartNewScan()
+                            }
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+                    if (latest != null) {
+                        Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
-                    Button(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onStartNewScan()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (latest != null) stringResource(R.string.body_posture_new_check) else stringResource(R.string.body_posture_start_first))
+                        Button(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onStartNewScan()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.body_posture_new_check))
+                        }
                     }
                 }
             }
@@ -338,7 +368,10 @@ fun PostureScreen(
                     PostureScanRow(
                         scan = scan,
                         onClick = { onOpenScan(scan.id) },
-                        onDelete = { viewModel.deleteScan(scan) }
+                        onDelete = {
+                            viewModel.hideScan(scan)
+                            pendingDelete = scan
+                        }
                     )
                 }
             }
@@ -431,7 +464,7 @@ private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelet
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = scan.date.toString(),
+                        text = scan.date.format(POSTURE_DATE),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
                         color = tokens.textPrimary

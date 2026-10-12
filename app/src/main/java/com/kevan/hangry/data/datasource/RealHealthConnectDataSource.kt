@@ -33,13 +33,16 @@ class RealHealthConnectDataSource(
     private val context: Context
 ) : HealthConnectDataSource {
 
-    private val client: HealthConnectClient? by lazy {
+    // Resolved again on each use until Health Connect is there: it can be installed, updated or
+    // enabled after the first look, and a remembered "not available" would hide it until restart.
+    private val clientHolder = ResolvedOnce {
         if (HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE) {
             HealthConnectClient.getOrCreate(context)
         } else {
             null
         }
     }
+    private val client: HealthConnectClient? get() = clientHolder.get()
 
     companion object {
         const val PERMISSION_READ_HEALTH_DATA_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY"
@@ -186,7 +189,8 @@ class RealHealthConnectDataSource(
         timeRangeFilter: TimeRangeFilter,
         pageSize: Int = 1000
     ): List<T> {
-        val activeClient = client ?: return emptyList()
+        // Unavailable is a failure, not "no records": the sync would read it as everything deleted.
+        val activeClient = client ?: throw IllegalStateException("Health Connect isn't available")
         val allRecords = mutableListOf<T>()
         var pageToken: String? = null
         try {
@@ -499,7 +503,8 @@ class RealHealthConnectDataSource(
         metric: AggregateMetric<T>,
         required: Boolean = false
     ): Map<LocalDate, Pair<T, Set<String>>> {
-        val activeClient = client ?: return emptyMap()
+        val activeClient = client
+            ?: if (required) throw IllegalStateException("Health Connect isn't available") else return emptyMap()
         return try {
             activeClient.aggregateGroupByPeriod(
                 AggregateGroupByPeriodRequest(
@@ -1138,4 +1143,14 @@ class RealHealthConnectDataSource(
 /** Health Connect's route as plain points - also used for routes the user just consented to share. */
 fun ExerciseRoute.toRoutePoints(): List<RoutePoint> = route.map {
     RoutePoint(it.time, it.latitude, it.longitude, it.altitude?.inMeters)
+}
+
+/**
+ * A value looked up on first use and kept once found. A null result isn't kept, so the next
+ * [get] looks again.
+ */
+internal class ResolvedOnce<T : Any>(private val resolve: () -> T?) {
+    @Volatile private var value: T? = null
+
+    fun get(): T? = value ?: synchronized(this) { value ?: resolve()?.also { value = it } }
 }

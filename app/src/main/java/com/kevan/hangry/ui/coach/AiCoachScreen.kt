@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,7 +124,8 @@ fun AiCoachScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
 
-    var inputText by remember { mutableStateOf("") }
+    // Saveable: a half-typed question survives rotation and process death.
+    var inputText by rememberSaveable { mutableStateOf("") }
     val photoLauncher = rememberMultiPhotoCaptureLauncher(maxItems = AiCoachViewModel.MAX_IMAGES) { uris ->
         viewModel.attachImages(uris)
     }
@@ -1147,7 +1149,9 @@ private fun CoachJournalBottomSheet(
                 scene = DashEmptyScene.MEMORIES,
                 title = stringResource(R.string.coach_journal_empty_title),
                 body = stringResource(R.string.coach_journal_empty_body, MASCOT_NAME),
-                modifier = Modifier.padding(vertical = HangryTokens.Spacing.m)
+                modifier = Modifier.padding(vertical = HangryTokens.Spacing.m),
+                actionLabel = stringResource(R.string.coach_journal_add_entry),
+                onAction = onAddEntry
             )
         } else {
             LazyColumn(

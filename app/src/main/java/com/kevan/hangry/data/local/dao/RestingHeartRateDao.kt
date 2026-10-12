@@ -31,6 +31,13 @@ interface RestingHeartRateDao {
     @Query("SELECT COUNT(*) FROM resting_heart_rate")
     suspend fun getCount(): Int
 
+    /** Resting heart rate readings imported from Health Connect in a synced window, to find ones gone from it. */
+    @Query("SELECT recordFingerprint FROM resting_heart_rate WHERE timestamp >= :start AND timestamp < :end AND sourcePackageName NOT LIKE 'com.kevan.hangry%' AND sourcePackageName != 'manual' AND recordFingerprint NOT LIKE 'manual%'")
+    suspend fun getImportedFingerprintsBetween(start: java.time.Instant, end: java.time.Instant): List<String>
+
+    @Query("DELETE FROM resting_heart_rate WHERE recordFingerprint IN (:fingerprints)")
+    suspend fun deleteByFingerprints(fingerprints: List<String>)
+
     @Query("DELETE FROM resting_heart_rate")
     suspend fun deleteAll()
 }

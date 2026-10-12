@@ -38,6 +38,11 @@
     <string name="delete_all_data_title">Delete All Health Data</string>
     <string name="delete_all_data_confirmation">This will permanently delete all imported health records, recovery scores, and summaries from this device. This action cannot be undone.</string>
     <string name="cancel">Cancel</string>
+    <string name="undo">Undo</string>
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_body">What you\'ve typed here won\'t be saved.</string>
+    <string name="discard">Discard</string>
+    <string name="keep_editing">Keep editing</string>
 
     <!-- AppWidgets -->
     <string name="widget_activity_description">Today\'s steps and active calories.</string>

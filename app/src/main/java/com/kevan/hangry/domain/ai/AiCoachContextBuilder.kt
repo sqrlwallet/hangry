@@ -60,8 +60,6 @@ class AiCoachContextBuilder(
     private val supplementRepository: SupplementRepository? = null,
     /** Intermittent fasting, only when the user has turned it on. Optional for tests. */
     private val fastingRepository: com.kevan.hangry.domain.repository.FastingRepository? = null,
-    /** This week's longevity pillars (strength, zone 2, zone 4-5, mobility, balance). Optional for tests. */
-    private val longevityRepository: com.kevan.hangry.data.repository.LongevityRepository? = null,
     /** Guided programs the user has turned on (stress, focus, knees, back...). Optional for tests. */
     private val programsRepository: com.kevan.hangry.data.repository.ProgramsRepository? = null,
     private val bodyAgeLoader: BodyAgeLoader? = null,
@@ -92,7 +90,7 @@ class AiCoachContextBuilder(
         val now = java.time.ZonedDateTime.now(zone)
         sb.appendLine("=== NOW ===")
         sb.appendLine(
-            "Local time: " + now.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, h:mm a", java.util.Locale.US)) +
+            "Local time: " + now.format(LOCAL_TIME_FORMAT) +
                 " (${zone.id}). Use this for anything time-related (\"tonight\", \"today\", dose times, meal timing)."
         )
         sb.appendLine()
@@ -145,16 +143,6 @@ class AiCoachContextBuilder(
             sb.appendLine("Keep advice simple and gentle. If they mention pain or feeling worse, suggest the easier versions and checking with a professional.")
             sb.appendLine()
         }
-        longevityRepository?.let { repo ->
-            runCatching { repo.observeWeek(today).first() }.getOrNull()?.let { week ->
-                sb.appendLine("=== LONGEVITY PILLARS (this week, Mon-Sun, ${week.pillarsMet}/5 targets met) ===")
-                week.pillars.forEach { p ->
-                    sb.appendLine("• ${p.pillar.label}: " + if (p.measurable) "${p.value}/${p.pillar.goal} ${p.pillar.unit}" else "no heart-rate data")
-                }
-                sb.appendLine()
-            }
-        }
-
         streaksLoader?.let { loader ->
             val stepGoal = profile?.dailyStepGoal ?: 10000L
             val sleepTarget = profile?.sleepDurationTargetMinutes ?: 480
@@ -223,7 +211,7 @@ class AiCoachContextBuilder(
         if (workouts.isEmpty()) {
             sb.appendLine("No exercise sessions recorded in the last 7 days.")
         } else {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(zone)
+            val formatter = DATE_TIME_FORMAT.withZone(zone)
             workouts.forEach { w ->
                 val timeStr = formatter.format(w.startTime)
                 val titleStr = w.title?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
@@ -505,7 +493,7 @@ class AiCoachContextBuilder(
         if (validSessions.isEmpty()) {
             sb.appendLine("No detailed sleep stage sessions recorded in the last 7 days.")
         } else {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zone)
+            val formatter = DATE_FORMAT.withZone(zone)
             validSessions.sortedByDescending { it.startTime }.take(7).forEach { s ->
                 val dateStr = formatter.format(s.startTime)
                 val durH = s.durationMinutes / 60
@@ -537,3 +525,7 @@ class AiCoachContextBuilder(
 
     private fun f(value: Double) = "%,.0f".format(Locale.US, value)
 }
+
+private val LOCAL_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, h:mm a", Locale.US)
+private val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")

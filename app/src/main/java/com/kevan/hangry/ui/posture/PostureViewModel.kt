@@ -16,6 +16,7 @@ import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.util.PosturePhotoStorage
 import com.kevan.hangry.util.clearCapturedImageCache
 import com.kevan.hangry.util.readImageAsBase64Jpeg
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,17 +38,22 @@ class PostureViewModel(
     private val _uiState = MutableStateFlow(PostureUiState())
     val uiState: StateFlow<PostureUiState> = _uiState.asStateFlow()
 
+    /** Scans deleted on screen but still undoable - hidden now, removed for real on [commitDelete]. */
+    private val pendingDeleteIds = MutableStateFlow<Set<Long>>(emptySet())
+
     init {
         viewModelScope.launch {
             combine(
                 postureScanRepository.getAll(),
-                postureScanRepository.getLatest(),
+                pendingDeleteIds,
                 userProfileRepository.getProfile()
-            ) { scans, latest, profile ->
+            ) { scans, hidden, profile ->
+                val visible = scans.filter { it.id !in hidden }
                 _uiState.update {
                     it.copy(
-                        scans = scans,
-                        latestScan = latest,
+                        scans = visible,
+                        // Newest first, so the first visible scan is the latest.
+                        latestScan = visible.firstOrNull(),
                         aiFeaturesEnabled = profile?.aiFeaturesEnabled ?: false
                     )
                 }
@@ -83,6 +89,11 @@ class PostureViewModel(
     }
 
     fun analyze() {
+        // Photos only go to the AI when the user has AI features on - not just when the UI hides the button.
+        if (!_uiState.value.aiFeaturesEnabled) {
+            _uiState.update { it.copy(errorMessage = context.getString(R.string.body_posture_enable_ai)) }
+            return
+        }
         val photos = _uiState.value.capturedPhotos
         if (photos.size < MIN_POSTURE_PHOTOS) return
 
@@ -142,10 +153,21 @@ class PostureViewModel(
         }
     }
 
-    fun deleteScan(scan: com.kevan.hangry.data.local.entity.PostureScanEntity) {
-        viewModelScope.launch {
+    /** Hides [scan] at once; the scan and its photos stay on disk until [commitDelete]. */
+    fun hideScan(scan: com.kevan.hangry.data.local.entity.PostureScanEntity) {
+        pendingDeleteIds.update { it + scan.id }
+    }
+
+    fun undoDelete(scan: com.kevan.hangry.data.local.entity.PostureScanEntity) {
+        pendingDeleteIds.update { it - scan.id }
+    }
+
+    /** Deletes for real once the undo window closes - even if the screen is leaving meanwhile. */
+    fun commitDelete(scan: com.kevan.hangry.data.local.entity.PostureScanEntity) {
+        viewModelScope.launch(NonCancellable) {
             postureScanRepository.delete(scan)
             PosturePhotoStorage.deletePhotos(scan.photoPaths())
+            pendingDeleteIds.update { it - scan.id }
         }
     }
 

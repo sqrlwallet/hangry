@@ -90,6 +90,7 @@ class AiCoachContextBuilderTest {
         override suspend fun fillStageSegments(fingerprint: String, stageSegments: String) {}
         override fun getSessionsBetween(start: Instant, end: Instant): Flow<List<SleepSessionEntity>> = flowOf(sleepSessions)
         override suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<SleepSessionEntity> = sleepSessions
+        override suspend fun getSessionsEndingBetween(start: Instant, end: Instant): List<SleepSessionEntity> = sleepSessions
         override fun getLatestSession(): Flow<SleepSessionEntity?> = flowOf(null)
         override suspend fun getOldestSession(): SleepSessionEntity? = null
         override suspend fun getCount(): Int = sleepSessions.size

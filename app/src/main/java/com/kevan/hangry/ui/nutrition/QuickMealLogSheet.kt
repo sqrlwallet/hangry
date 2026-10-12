@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +32,8 @@ import com.kevan.hangry.data.local.entity.MealPlanEntity
 import com.kevan.hangry.data.local.entity.savedMealKey
 import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.ui.coach.DashSpinner
+import com.kevan.hangry.ui.components.DiscardChangesDialog
+import com.kevan.hangry.ui.components.rememberDiscardGuardSheetState
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
@@ -52,14 +55,16 @@ fun QuickMealLogSheet(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var photoUri by remember { mutableStateOf(initialPhotoUri) }
-    var foodName by remember { mutableStateOf("") }
-    var caloriesText by remember { mutableStateOf("") }
-    var proteinText by remember { mutableStateOf("") }
-    var carbsText by remember { mutableStateOf("") }
-    var fatText by remember { mutableStateOf("") }
-    var fiberText by remember { mutableStateOf("") }
-    var showMacros by remember { mutableStateOf(false) }
+    // Saveable so a rotation mid-entry doesn't wipe what was typed.
+    var photoUri by rememberSaveable { mutableStateOf(initialPhotoUri) }
+    var foodName by rememberSaveable { mutableStateOf("") }
+    var caloriesText by rememberSaveable { mutableStateOf("") }
+    var proteinText by rememberSaveable { mutableStateOf("") }
+    var carbsText by rememberSaveable { mutableStateOf("") }
+    var fatText by rememberSaveable { mutableStateOf("") }
+    var fiberText by rememberSaveable { mutableStateOf("") }
+    var showMacros by rememberSaveable { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     var isEstimating by remember { mutableStateOf(false) }
     var estimateError by remember { mutableStateOf<String?>(null) }
@@ -92,9 +97,23 @@ fun QuickMealLogSheet(
     // With a photo attached, a chip fills the form so the photo is kept with the entry.
     val chipsFill = photoUri != null || typedQuery.length >= 2 || onLogMealPlan == null
 
+    val hasUnsavedInput = listOf(foodName, caloriesText, proteinText, carbsText, fatText, fiberText).any { it.isNotBlank() }
+    val requestDismiss = { if (hasUnsavedInput) confirmDiscard = true else onDismiss() }
+    val sheetState = rememberDiscardGuardSheetState(hasUnsavedInput) { confirmDiscard = true }
+
+    if (confirmDiscard) {
+        DiscardChangesDialog(
+            onDiscard = {
+                confirmDiscard = false
+                onDismiss()
+            },
+            onKeepEditing = { confirmDiscard = false }
+        )
+    }
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        onDismissRequest = requestDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
@@ -117,7 +136,7 @@ fun QuickMealLogSheet(
                     style = MaterialTheme.typography.titleLarge,
                     color = tokens.textPrimary
                 )
-                IconButton(onClick = onDismiss) {
+                IconButton(onClick = requestDismiss) {
                     Icon(Icons.Default.Close, contentDescription = stringResource(R.string.nutrition_cd_close), tint = tokens.textMuted)
                 }
             }

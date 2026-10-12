@@ -152,9 +152,10 @@
     <string name="body_bodyfat_method_reported">Reported</string>
     <string name="body_bodyfat_method_navy">US Navy</string>
     <string name="body_bodyfat_scan_weight">%1$skg</string>
-    <string name="body_bodyfat_scan_lbm">LBM: %1$skg</string>
+    <string name="body_bodyfat_scan_lbm">Lean mass: %1$skg</string>
     <string name="body_bodyfat_scan_fat">Fat: %1$skg</string>
     <string name="body_bodyfat_delete_scan">Delete scan</string>
+    <string name="body_bodyfat_scan_deleted">Body fat scan from %1$s deleted</string>
     <string name="body_bodyfat_category_essential_fat">Essential Fat</string>
     <string name="body_bodyfat_category_athletic">Athletic</string>
     <string name="body_bodyfat_category_fitness">Fitness</string>
@@ -276,10 +277,13 @@
     <string name="body_records_prediction_disclaimer">Predictions are estimates from your own history and aren\'t reliable for contraception or fertility planning.</string>
     <string name="body_records_period_ongoing">" – ongoing"</string>
     <string name="body_records_delete_period">Delete period</string>
+    <string name="body_records_edit_period">Edit period</string>
+    <string name="body_records_period_deleted">Period deleted</string>
 
     <!-- Health records sheets -->
     <string name="body_records_add_a_reading_title">Add a reading</string>
     <string name="body_records_add_marker">Add %1$s</string>
+    <string name="body_records_edit_marker">Edit %1$s</string>
     <string name="body_records_systolic_top">Systolic (top)</string>
     <string name="body_records_diastolic_bottom">Diastolic (bottom)</string>
     <string name="body_records_marker_with_unit">%1$s (%2$s)</string>
@@ -288,12 +292,15 @@
     <string name="body_records_note_optional">Note (optional)</string>
     <string name="body_records_note_placeholder">e.g. lab report, after coffee</string>
     <string name="body_records_save_reading">Save reading</string>
+    <string name="body_records_save_changes">Save changes</string>
     <string name="body_records_tracking_disclaimer_short">For your own tracking - not medical advice.</string>
     <string name="body_records_edit_goal">Edit goal</string>
     <string name="body_records_set_goal">Set a goal</string>
     <string name="body_records_glucose_ranges_note">Ranges shown are for %1$s readings; fasting limits are tighter.</string>
     <string name="body_records_history">History</string>
     <string name="body_records_delete_reading">Delete reading</string>
+    <string name="body_records_edit_reading">Edit reading</string>
+    <string name="body_records_reading_deleted">Reading deleted</string>
     <string name="body_records_what_it_is">What it is</string>
     <string name="body_records_your_reading">Your reading</string>
     <string name="body_records_why_it_matters">Why it matters</string>
@@ -407,6 +414,7 @@
     <string name="body_posture_row_minor">Minor Imbalance</string>
     <string name="body_posture_row_correction">Correction Needed</string>
     <string name="body_posture_delete">Delete</string>
+    <string name="body_posture_scan_deleted">Posture scan from %1$s deleted</string>
 
     <!-- Posture capture -->
     <string name="body_posture_check_saved">Posture Check Saved</string>

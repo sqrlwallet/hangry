@@ -27,8 +27,10 @@ import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.ui.widget.HangryWidgetUpdater
 import com.kevan.hangry.util.clearCapturedImageCache
 import com.kevan.hangry.util.readImageAsBase64Jpeg
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -89,6 +92,12 @@ class NutritionViewModel(
     private val _uiState = MutableStateFlow(NutritionUiState())
     val uiState: StateFlow<NutritionUiState> = _uiState.asStateFlow()
 
+    /**
+     * Entries deleted on screen but still undoable: hidden at once, removed for real (row, photo
+     * and Health Connect record) only in [commitDelete] - or in [onCleared] if the screen goes first.
+     */
+    private val pendingDeletes = MutableStateFlow<Map<Long, FoodLogEntity>>(emptyMap())
+
     private data class NutritionSources(
         val targetDate: LocalDate,
         val entries: List<FoodLogEntity>,
@@ -104,9 +113,12 @@ class NutritionViewModel(
                     foodLogRepository.getForDate(date),
                     foodLogRepository.getTotalCaloriesForDate(date),
                     mealPlanRepository.getAll(),
-                    userProfileRepository.getProfile()
-                ) { entries, total, plans, profile ->
-                    NutritionSources(date, entries, total, plans, profile)
+                    userProfileRepository.getProfile(),
+                    pendingDeletes
+                ) { entries, total, plans, profile, hidden ->
+                    val visible = entries.filter { it.id !in hidden }
+                    val hiddenCalories = entries.filter { it.id in hidden }.sumOf { it.calories }
+                    NutritionSources(date, visible, (total - hiddenCalories).coerceAtLeast(0), plans, profile)
                 }
             }.collect { sources ->
                 _uiState.update {
@@ -147,21 +159,27 @@ class NutritionViewModel(
      * afterwards. Only when AI can't do it does the manual details sheet appear, photo attached.
      */
     fun logMealFromPhoto(uri: Uri) {
-        if (!_uiState.value.aiFeaturesEnabled) {
+        if (!aiEnabled) {
             openManualReview(uri, context.getString(R.string.nutrition_manual_review_ai_off))
             return
         }
         analyzePhoto(uri, note = null)
     }
 
-    fun analyzePhoto(uri: Uri, note: String?) {
-        val base64 = context.readImageAsBase64Jpeg(uri, maxDimension = FOOD_PHOTO_MAX_DIMENSION)
-        if (base64 == null) {
-            _uiState.update { it.copy(errorMessage = context.getString(R.string.nutrition_error_read_photo)) }
-            return
-        }
+    /**
+     * Every AI entry point checks this itself rather than trusting the UI to hide its button:
+     * with AI off, nothing is sent to the model.
+     */
+    private val aiEnabled: Boolean get() = _uiState.value.aiFeaturesEnabled
+
+    private fun analyzePhoto(uri: Uri, note: String?) {
         _uiState.update { it.copy(isAnalyzing = true) }
         viewModelScope.launch {
+            val base64 = readPhoto(uri)
+            if (base64 == null) {
+                _uiState.update { it.copy(isAnalyzing = false, errorMessage = context.getString(R.string.nutrition_error_read_photo)) }
+                return@launch
+            }
             foodAnalyzer.analyzePhoto(base64, note, allergies()).fold(
                 onSuccess = { result -> autoSave(result, FoodLogSource.PHOTO, uri) },
                 onFailure = { e ->
@@ -182,6 +200,10 @@ class NutritionViewModel(
 
     fun analyzeDescription(text: String) {
         if (text.isBlank()) return
+        if (!aiEnabled) {
+            _uiState.update { it.copy(errorMessage = context.getString(R.string.nutrition_describe_ai_off)) }
+            return
+        }
         _uiState.update { it.copy(isAnalyzing = true) }
         viewModelScope.launch {
             foodAnalyzer.analyzeDescription(text, allergies()).fold(
@@ -222,9 +244,7 @@ class NutritionViewModel(
             val saved = entry.copy(id = id)
             val synced = healthConnectDataSource.writeNutritionRecord(saved)
             if (synced) foodLogRepository.markSyncedToHealthConnect(id)
-            if (photoUri != null) {
-                context.clearCapturedImageCache()
-            }
+            if (photoUri != null) clearCapturedPhotos()
             _uiState.update {
                 it.copy(
                     isAnalyzing = false,
@@ -235,7 +255,8 @@ class NutritionViewModel(
     }
 
     suspend fun estimateFood(photoUri: Uri?, note: String?): Result<FoodAnalysisResult> {
-        val base64 = photoUri?.let { context.readImageAsBase64Jpeg(it, maxDimension = FOOD_PHOTO_MAX_DIMENSION) }
+        if (!aiEnabled) return Result.failure(IllegalStateException(context.getString(R.string.nutrition_estimate_ai_off)))
+        val base64 = photoUri?.let { readPhoto(it) }
         return if (base64 != null) {
             foodAnalyzer.analyzePhoto(base64, note, allergies())
         } else if (!note.isNullOrBlank()) {
@@ -251,7 +272,7 @@ class NutritionViewModel(
             date = _selectedDate.value,
             timestamp = Instant.now(),
             source = source,
-            foodName = analysis.foodName,
+            foodName = analysis.foodName.ifBlank { context.getString(R.string.nutrition_default_meal_name) },
             calories = analysis.calories,
             proteinG = analysis.proteinG,
             carbsG = analysis.carbsG,
@@ -265,7 +286,7 @@ class NutritionViewModel(
         val saved = entry.copy(id = id)
         val synced = healthConnectDataSource.writeNutritionRecord(saved)
         if (synced) foodLogRepository.markSyncedToHealthConnect(id)
-        context.clearCapturedImageCache()
+        clearCapturedPhotos()
         _uiState.update {
             it.copy(
                 isAnalyzing = false,
@@ -341,12 +362,41 @@ class NutritionViewModel(
         viewModelScope.launch { mealPlanRepository.upsert(meal.copy(id = 0)) }
     }
 
+    /** Removes [entry] at once - the snackbar's Undo for something just logged. */
     fun deleteEntry(entry: FoodLogEntity) {
-        viewModelScope.launch {
-            foodLogRepository.delete(entry)
-            if (entry.source != FoodLogSource.HEALTH_CONNECT) healthConnectDataSource.deleteNutritionRecord(entry)
-            entry.photoPath?.let { File(it).delete() }
+        viewModelScope.launch { removeEntry(entry) }
+    }
+
+    /** Hides [entry] at once; it's only deleted for real in [commitDelete], so Undo can bring it back. */
+    fun hideEntry(entry: FoodLogEntity) {
+        pendingDeletes.update { it + (entry.id to entry) }
+    }
+
+    fun undoDelete(entry: FoodLogEntity) {
+        pendingDeletes.update { it - entry.id }
+    }
+
+    /** Deletes for real once the undo window closes - even if the screen is leaving meanwhile. */
+    fun commitDelete(entry: FoodLogEntity) {
+        viewModelScope.launch(NonCancellable) {
+            removeEntry(entry)
+            pendingDeletes.update { it - entry.id }
         }
+    }
+
+    private suspend fun removeEntry(entry: FoodLogEntity) {
+        foodLogRepository.delete(entry)
+        if (entry.source != FoodLogSource.HEALTH_CONNECT) healthConnectDataSource.deleteNutritionRecord(entry)
+        entry.photoPath?.let { path -> withContext(Dispatchers.IO) { File(path).delete() } }
+    }
+
+    override fun onCleared() {
+        // Anything still waiting on its undo snackbar was deleted on purpose: finish the job.
+        val leftover = pendingDeletes.value.values.toList()
+        if (leftover.isNotEmpty()) {
+            viewModelScope.launch(NonCancellable) { leftover.forEach { removeEntry(it) } }
+        }
+        super.onCleared()
     }
 
     private var reviewJob: Job? = null
@@ -416,8 +466,14 @@ class NutritionViewModel(
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    private fun movePhotoToPermanentStorage(sourceUri: Uri): String? {
-        return runCatching {
+    private suspend fun readPhoto(uri: Uri): String? = withContext(Dispatchers.IO) {
+        context.readImageAsBase64Jpeg(uri, maxDimension = FOOD_PHOTO_MAX_DIMENSION)
+    }
+
+    private suspend fun clearCapturedPhotos() = withContext(Dispatchers.IO) { context.clearCapturedImageCache() }
+
+    private suspend fun movePhotoToPermanentStorage(sourceUri: Uri): String? = withContext(Dispatchers.IO) {
+        runCatching {
             val dir = File(context.filesDir, "food_photos").apply { mkdirs() }
             val dest = File(dir, "food_${System.currentTimeMillis()}.jpg")
             context.contentResolver.openInputStream(sourceUri)?.use { input ->

@@ -3,6 +3,7 @@ package com.kevan.hangry.ui.components
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,7 +41,10 @@ fun DashEmptyState(
     body: String? = null,
     infoTitle: String? = null,
     infoBody: String? = null,
-    imageSize: Dp = 96.dp
+    imageSize: Dp = 96.dp,
+    /** Optional next step under the hint, e.g. "Take a scan"; shown only with [onAction]. */
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
     val tokens = LocalHangryTokens.current
     val bob = rememberIdleBob(durationMillis = 2400)
@@ -78,6 +82,12 @@ fun DashEmptyState(
                 color = tokens.textSecondary,
                 textAlign = TextAlign.Center
             )
+        }
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
+            FilledTonalButton(onClick = onAction) {
+                Text(actionLabel)
+            }
         }
     }
 }

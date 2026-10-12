@@ -32,6 +32,7 @@ import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.components.DashEmptyScene
 import com.kevan.hangry.ui.components.DashEmptyState
+import com.kevan.hangry.ui.components.DateNavigatorBar
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.WorkoutFormat
 import com.kevan.hangry.ui.components.HangryInfoIconButton
@@ -134,6 +135,14 @@ fun TrainingScreen(
             contentPadding = PaddingValues(top = HangryTokens.Spacing.s, bottom = HangryTokens.Spacing.m + LocalDockInset.current),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
+            item {
+                // The day shown here is the one picked on Today (shared); show it and let it change.
+                DateNavigatorBar(
+                    selectedDate = activeDate,
+                    onDateSelected = { date -> viewModel.selectDate(date) }
+                )
+            }
+
             item {
                 // A tab without a top bar: active burn in one slim row leads, with the screen's
                 // explainer at its end. The workout count is in Dash's note below.

@@ -42,7 +42,6 @@ interface AppContainer {
     val supplementAnalyzer: SupplementAnalyzer
     val supplementRepository: SupplementRepository
     val fastingRepository: com.kevan.hangry.domain.repository.FastingRepository
-    val longevityRepository: com.kevan.hangry.data.repository.LongevityRepository
     val programsRepository: com.kevan.hangry.data.repository.ProgramsRepository
     val stressCalculator: StressCalculator
     val dashboardWidgetRepository: DashboardWidgetRepository
@@ -168,10 +167,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             prefs = com.kevan.hangry.data.fasting.FastingPrefs(context),
             scheduler = com.kevan.hangry.data.fasting.FastingReminderScheduler(context)
         )
-    }
-
-    override val longevityRepository: com.kevan.hangry.data.repository.LongevityRepository by lazy {
-        com.kevan.hangry.data.repository.LongevityRepository(database)
     }
 
     override val programsRepository: com.kevan.hangry.data.repository.ProgramsRepository by lazy {
@@ -311,7 +306,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             healthRecordsRepository = healthRecordsRepository,
             supplementRepository = supplementRepository,
             fastingRepository = fastingRepository,
-            longevityRepository = longevityRepository,
             programsRepository = programsRepository,
             bodyAgeLoader = BodyAgeLoader(database),
             streaksLoader = StreaksLoader(database, fastingRepository),

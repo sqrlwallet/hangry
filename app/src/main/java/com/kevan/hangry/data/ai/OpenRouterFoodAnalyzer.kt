@@ -2,12 +2,12 @@ package com.kevan.hangry.data.ai
 
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiDefaults
+import com.kevan.hangry.domain.ai.AiJson
 import com.kevan.hangry.domain.ai.FoodAnalyzer
 import com.kevan.hangry.domain.ai.extractJsonPayload
 import com.kevan.hangry.domain.model.FoodAnalysisResult
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 private const val SYSTEM_PROMPT = """You are a certified nutrition specialist and dietary estimation assistant inside a personal health app. Given a photo of food, a meal plate, a beverage, packaged food, or a text description of a meal/snack, estimate the nutrition of EXACTLY the amount shown or described - not a typical serving of that dish.
 
@@ -37,18 +37,19 @@ internal data class FoodNutrientsJson(
 
 @Serializable
 internal data class FoodItemJson(
-    val name: String,
-    val grams: Double,
+    val name: String = "",
+    val grams: Double = 0.0,
     val per100g: FoodNutrientsJson = FoodNutrientsJson()
 )
 
 @Serializable
 internal data class FoodAnalysisJson(
-    val foodName: String,
+    val foodName: String = "",
     val items: List<FoodItemJson> = emptyList(),
     val portionNote: String = "",
-    // Whole-meal totals: only used when the model skips the itemized breakdown.
-    val calories: Int = 0,
+    // Whole-meal totals: only used when the model skips the itemized breakdown. Models write
+    // fractional calories (512.4) as often as whole ones, so it's read as a Double and rounded.
+    val calories: Double = 0.0,
     val proteinG: Double = 0.0,
     val carbsG: Double = 0.0,
     val fatG: Double = 0.0,
@@ -65,10 +66,13 @@ internal data class FoodAnalysisJson(
  */
 internal fun FoodAnalysisJson.toResult(checkAllergens: Boolean): FoodAnalysisResult {
     val warnings = if (checkAllergens) allergenWarnings.filter { it.isNotBlank() } else emptyList()
-    val weighed = items.filter { it.grams > 0 }
+    val weighed = items.filter { it.grams > 0 && it.grams.isFinite() }
+    // A missing meal name falls back to the components rather than logging a nameless entry.
+    val name = foodName.trim().ifBlank { weighed.map { it.name.trim() }.filter { it.isNotBlank() }.joinToString(", ") }
     if (weighed.isEmpty()) {
+        if (name.isBlank() && calories <= 0.0) throw IllegalStateException("No food in the response")
         return FoodAnalysisResult(
-            foodName = foodName, calories = calories, proteinG = proteinG, carbsG = carbsG, fatG = fatG,
+            foodName = name, calories = Math.round(calories.coerceAtLeast(0.0)).toInt(), proteinG = proteinG, carbsG = carbsG, fatG = fatG,
             fiberG = fiberG, sugarG = sugarG, sodiumMg = sodiumMg,
             confidenceNote = confidenceNote.ifBlank { portionNote }, allergenWarnings = warnings
         )
@@ -77,7 +81,7 @@ internal fun FoodAnalysisJson.toResult(checkAllergens: Boolean): FoodAnalysisRes
     fun Double.round1() = Math.round(this * 10) / 10.0
     val breakdown = weighed.joinToString(", ") { "~${Math.round(it.grams)}g ${it.name}" }
     return FoodAnalysisResult(
-        foodName = foodName,
+        foodName = name,
         calories = Math.round(total { it.calories }).toInt(),
         proteinG = total { it.proteinG }.round1(),
         carbsG = total { it.carbsG }.round1(),
@@ -97,13 +101,15 @@ ALLERGEN CHECK:
 The user has these allergies: ${allergies.joinToString(", ")}.
 Add "allergenWarnings": a list of short warnings, one per allergy this food likely or possibly contains, naming the allergen and where it's likely hiding (e.g. "Peanuts - satay sauce usually contains peanuts", "Shellfish - possible shrimp in the fried rice"). Include hidden and cross-contamination risks common for the dish. Use an empty list if none apply. Never list allergies that aren't in the user's list."""
 
+/** Reads the model's answer, tolerating fences, chatter around the JSON and loosely typed values. */
+internal fun parseFoodAnalysis(raw: String): FoodAnalysisJson =
+    AiJson.decodeFromString(FoodAnalysisJson.serializer(), extractJsonPayload(raw))
+
 class OpenRouterFoodAnalyzer(
     private val client: OpenRouterClient,
     private val keyStore: SecureKeyStore,
     private val userProfileRepository: UserProfileRepository
 ) : FoodAnalyzer {
-
-    private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun analyzePhoto(imageBase64: String, note: String?, allergies: List<String>): Result<FoodAnalysisResult> {
         val userText = note?.takeIf { it.isNotBlank() }
@@ -123,7 +129,7 @@ class OpenRouterFoodAnalyzer(
         // The allergen check is only asked for when the user has allergies on record.
         val systemPrompt = if (allergies.isEmpty()) SYSTEM_PROMPT else SYSTEM_PROMPT + allergenInstructions(allergies)
         return client.chatCompletion(apiKey, model, systemPrompt, userText, imagesBase64).mapCatching { raw ->
-            json.decodeFromString(FoodAnalysisJson.serializer(), extractJsonPayload(raw))
+            parseFoodAnalysis(raw)
                 .toResult(checkAllergens = allergies.isNotEmpty())
         }.recoverCatching { e ->
             if (e is OpenRouterException) throw e

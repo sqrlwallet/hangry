@@ -1,6 +1,7 @@
 package com.kevan.hangry.data.repository
 
 import com.kevan.hangry.data.local.HangryDatabase
+import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.domain.calculation.BodyAgeCalculator
 import com.kevan.hangry.domain.calculation.BodyAgeInputs
 import com.kevan.hangry.domain.calculation.BodyAgeResult
@@ -64,7 +65,7 @@ class BodyAgeLoader(private val database: HangryDatabase) {
 
         val bodyFat = database.bodyFatScanDao().getLatestScanSync()
             ?.takeIf { !it.date.isBefore(end.minusDays(180)) && !it.date.isAfter(end) }?.bodyFatPercentage
-            ?: summaries.lastOrNull { it.bodyFatPercentage != null }?.bodyFatPercentage
+            ?: newestValue(summaries) { it.bodyFatPercentage }
         val heightCm = database.heightDao().getLatestHeightSync()?.heightCm ?: profileHeightCm
         val weightKg = database.weightDao().getLatestWeightSync()?.weightKg
         val bmi = if (heightCm != null && weightKg != null && heightCm > 0) weightKg / ((heightCm / 100) * (heightCm / 100)) else null
@@ -73,7 +74,7 @@ class BodyAgeLoader(private val database: HangryDatabase) {
             age = age,
             sex = sex,
             daysWithData = daysWithData,
-            vo2Max = summaries.lastOrNull { it.vo2Max != null }?.vo2Max,
+            vo2Max = newestValue(summaries) { it.vo2Max },
             restingHeartRate = avg(summaries.mapNotNull { it.restingHeartRate }),
             hrvRmssd = avg(summaries.mapNotNull { it.hrvRmssd }),
             averageSteps = avg(summaries.mapNotNull { it.steps?.toDouble() }),
@@ -90,3 +91,7 @@ class BodyAgeLoader(private val database: HangryDatabase) {
         const val WINDOW_DAYS = 30L
     }
 }
+
+/** The most recent day's [value] that was recorded, whatever order [summaries] come in. */
+internal fun <T : Any> newestValue(summaries: List<DailyHealthSummaryEntity>, value: (DailyHealthSummaryEntity) -> T?): T? =
+    summaries.filter { value(it) != null }.maxByOrNull { it.date }?.let(value)

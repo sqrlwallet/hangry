@@ -45,14 +45,21 @@ class HangryBackupManager(private val context: Context) {
 
     /** Writes a complete backup to [out]. Returns the number of files saved besides the database. */
     suspend fun writeBackup(out: OutputStream): Int = withContext(Dispatchers.IO) {
-        val database = HangryDatabase.getDatabase(context)
-        // Fold the write-ahead log into the main file so copying that one file is a full snapshot.
-        database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
-        val dbFile = context.getDatabasePath(DB_NAME)
+        val snapshot = snapshotDatabase()
+        try {
+            writeZip(out, snapshot)
+        } finally {
+            deleteWithSidecars(snapshot.file)
+        }
+    }
+
+    private class DbSnapshot(val file: File, val version: Int)
+
+    private fun writeZip(out: OutputStream, snapshot: DbSnapshot): Int {
         val manifest = BackupManifest(
             app = APP_ID,
             format = FORMAT,
-            dbVersion = database.openHelper.readableDatabase.version,
+            dbVersion = snapshot.version,
             appVersion = appVersion(),
             createdAtEpochMs = System.currentTimeMillis(),
             filesDir = context.filesDir.absolutePath
@@ -63,7 +70,7 @@ class HangryBackupManager(private val context: Context) {
             zip.write(json.encodeToString(BackupManifest.serializer(), manifest).toByteArray())
             zip.closeEntry()
 
-            zip.addFile(dbFile, "$DB_PREFIX$DB_NAME")
+            zip.addFile(snapshot.file, "$DB_PREFIX$DB_NAME")
 
             for (dirName in FILE_DIRS) {
                 val dir = File(context.filesDir, dirName)
@@ -77,7 +84,66 @@ class HangryBackupManager(private val context: Context) {
                 fileCount++
             }
         }
-        fileCount
+        return fileCount
+    }
+
+    /**
+     * A consistent, self-contained copy of hangry.db in the cache folder, taken while the app
+     * (and the sync worker) may still be writing to it. Copying the live file instead could catch
+     * a half-applied write-ahead log.
+     *
+     * - SQLite 3.27+ (Android 11 and later): `VACUUM INTO`, which reads one snapshot and never
+     *   blocks writers.
+     * - Older SQLite (Android 9-10): hold Room's write transaction so nothing can commit, copy the
+     *   database together with its write-ahead log, then fold the log into the copy offline.
+     */
+    private fun snapshotDatabase(): DbSnapshot {
+        val database = HangryDatabase.getDatabase(context)
+        val db = database.openHelper.writableDatabase
+        val snapshot = File(context.cacheDir, SNAPSHOT_NAME)
+        deleteWithSidecars(snapshot)
+
+        val sqliteVersion = runCatching {
+            db.query("SELECT sqlite_version()").use { c -> if (c.moveToFirst()) c.getString(0) else null }
+        }.getOrNull()
+        val vacuumed = supportsVacuumInto(sqliteVersion) && runCatching {
+            db.execSQL("VACUUM INTO ?", arrayOf<Any>(snapshot.path))
+        }.onFailure { deleteWithSidecars(snapshot) }.isSuccess
+
+        if (!vacuumed) {
+            val dbFile = context.getDatabasePath(DB_NAME)
+            val wal = File(dbFile.path + "-wal")
+            // While this transaction holds the write lock no one can commit or reset the log, so
+            // the database file plus its log is a complete, consistent pair.
+            database.runInTransaction(Runnable {
+                dbFile.copyTo(snapshot, overwrite = true)
+                if (wal.exists()) wal.copyTo(File(snapshot.path + "-wal"), overwrite = true)
+            })
+        }
+
+        // Fold any copied log into the snapshot (switching out of WAL checkpoints it) and refuse to
+        // write a backup that wouldn't restore.
+        val version = runCatching {
+            SQLiteDatabase.openDatabase(
+                snapshot,
+                SQLiteDatabase.OpenParams.Builder()
+                    .setOpenFlags(SQLiteDatabase.OPEN_READWRITE)
+                    .setJournalMode("DELETE")
+                    .build()
+            ).use { copy ->
+                val intact = copy.rawQuery("PRAGMA quick_check", null).use { c -> c.moveToFirst() && c.getString(0) == "ok" }
+                if (intact) copy.version else null
+            }
+        }.getOrNull()
+        if (version == null || File(snapshot.path + "-wal").exists()) {
+            deleteWithSidecars(snapshot)
+            throw BackupException("Couldn't read Hangry's data to back it up. Try again in a moment.")
+        }
+        return DbSnapshot(snapshot, version)
+    }
+
+    private fun deleteWithSidecars(file: File) {
+        listOf("", "-wal", "-shm", "-journal").forEach { File(file.path + it).delete() }
     }
 
     /**
@@ -203,6 +269,7 @@ class HangryBackupManager(private val context: Context) {
         private const val FILES_PREFIX = "files/"
         private const val PREFS_PREFIX = "shared_prefs/"
         private const val SECURE_PREFS = "hangry_secure_prefs"
+        private const val SNAPSHOT_NAME = "backup_snapshot.db"
 
         /** App-private folders holding the user's photos and Jetpack DataStore settings. */
         internal val FILE_DIRS = listOf("food_photos", "posture_photos", "supplement_photos", "coach_images", "datastore")
@@ -220,6 +287,13 @@ class HangryBackupManager(private val context: Context) {
         internal fun isOwnPrefsFile(name: String) =
             name.endsWith(".xml") && name != "$SECURE_PREFS.xml" && !name.contains('/') &&
                 (name.startsWith("hangry_") || name in EXTRA_PREFS)
+
+        /** `VACUUM INTO` arrived in SQLite 3.27.0 (Android 11 ships 3.28; Android 9-10 are older). */
+        internal fun supportsVacuumInto(sqliteVersion: String?): Boolean {
+            val parts = sqliteVersion?.trim()?.split('.')?.map { it.toIntOrNull() ?: return false } ?: return false
+            val (major, minor) = (parts + listOf(0, 0)).take(2)
+            return major > 3 || (major == 3 && minor >= 27)
+        }
 
         /** Throws unless this phone's Hangry can open a backup described by [manifest]. */
         internal fun checkManifest(manifest: BackupManifest, currentDbVersion: Int) {

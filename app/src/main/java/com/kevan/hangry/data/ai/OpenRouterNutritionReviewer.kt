@@ -2,12 +2,12 @@ package com.kevan.hangry.data.ai
 
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiDefaults
+import com.kevan.hangry.domain.ai.AiJson
 import com.kevan.hangry.domain.ai.NutritionReviewer
 import com.kevan.hangry.domain.ai.extractJsonPayload
 import com.kevan.hangry.domain.model.NutritionReview
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 private const val SYSTEM_PROMPT = """You are a registered dietitian reviewing one week of a person's food log inside a personal health app. You get their daily targets, per-day totals and the meals they logged.
 
@@ -60,13 +60,11 @@ class OpenRouterNutritionReviewer(
     private val userProfileRepository: UserProfileRepository
 ) : NutritionReviewer {
 
-    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
-
     override suspend fun review(weekText: String): Result<NutritionReview> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())
         val model = AiDefaults.analysisModel(userProfileRepository.getProfileSync()?.preferredAiModel)
         return client.chatCompletion(apiKey, model, SYSTEM_PROMPT, "Review my last week of eating.\n\n$weekText").mapCatching { raw ->
-            json.decodeFromString(NutritionReviewJson.serializer(), extractJsonPayload(raw)).toReview()
+            AiJson.decodeFromString(NutritionReviewJson.serializer(), extractJsonPayload(raw)).toReview()
                 .also { if (it.headline.isBlank() && it.recommendations.isEmpty()) throw IllegalStateException("Empty review") }
         }.recoverCatching { e ->
             if (e is OpenRouterException) throw e

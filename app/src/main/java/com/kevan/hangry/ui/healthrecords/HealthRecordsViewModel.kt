@@ -21,10 +21,12 @@ import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.util.clearCapturedImageCache
 import com.kevan.hangry.util.readImageAsBase64Jpeg
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -107,7 +109,17 @@ class HealthRecordsViewModel(
         ?: flowOf(emptyMap()))
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
-    val records: StateFlow<HealthRecordsSnapshot> = repository.observe()
+    /** Readings / periods deleted on screen but still undoable - hidden now, removed on commit. */
+    private val hiddenReadings = MutableStateFlow<Set<Long>>(emptySet())
+    private val hiddenPeriods = MutableStateFlow<Set<Long>>(emptySet())
+
+    val records: StateFlow<HealthRecordsSnapshot> = combine(repository.observe(), hiddenReadings, hiddenPeriods) { snapshot, readings, periods ->
+        if (readings.isEmpty() && periods.isEmpty()) snapshot
+        else snapshot.copy(
+            readings = snapshot.readings.filter { it.id !in readings },
+            periods = snapshot.periods.filter { it.id !in periods }
+        )
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HealthRecordsSnapshot())
 
     private val _import = MutableStateFlow(HealthConnectImportState())
@@ -124,7 +136,19 @@ class HealthRecordsViewModel(
     fun addReading(type: MarkerType, value: Double, secondary: Double?, measuredAt: Instant, context: GlucoseContext?, note: String?) =
         viewModelScope.launch { repository.addReading(type, value, secondary, measuredAt, context, note) }
 
-    fun deleteReading(id: Long) = viewModelScope.launch { repository.deleteReading(id) }
+    fun updateReading(id: Long, value: Double, secondary: Double?, measuredAt: Instant, context: GlucoseContext?, note: String?) =
+        viewModelScope.launch { repository.updateReading(id, value, secondary, measuredAt, context, note) }
+
+    /** Hides the reading at once; it (and its Health Connect copy) is only removed on [commitReadingDelete]. */
+    fun hideReading(id: Long) = hiddenReadings.update { it + id }
+
+    fun undoReadingDelete(id: Long) = hiddenReadings.update { it - id }
+
+    // NonCancellable: the undo window can close as the screen is leaving.
+    fun commitReadingDelete(id: Long) = viewModelScope.launch(NonCancellable) {
+        repository.deleteReading(id)
+        hiddenReadings.update { it - id }
+    }
 
     fun setGoal(type: MarkerType, target: Double, secondary: Double?, date: LocalDate?) =
         viewModelScope.launch { repository.setGoal(type, target, secondary, date) }
@@ -138,7 +162,16 @@ class HealthRecordsViewModel(
 
     fun logPeriod(start: LocalDate, end: LocalDate?) = viewModelScope.launch { repository.logPeriod(start, end) }
 
-    fun deletePeriod(id: Long) = viewModelScope.launch { repository.deletePeriod(id) }
+    fun updatePeriod(id: Long, start: LocalDate, end: LocalDate?) = viewModelScope.launch { repository.updatePeriod(id, start, end) }
+
+    fun hidePeriod(id: Long) = hiddenPeriods.update { it + id }
+
+    fun undoPeriodDelete(id: Long) = hiddenPeriods.update { it - id }
+
+    fun commitPeriodDelete(id: Long) = viewModelScope.launch(NonCancellable) {
+        repository.deletePeriod(id)
+        hiddenPeriods.update { it - id }
+    }
 
     fun setPregnancy(isPregnant: Boolean, dueDate: LocalDate?) =
         viewModelScope.launch { repository.setPregnancy(isPregnant, dueDate) }

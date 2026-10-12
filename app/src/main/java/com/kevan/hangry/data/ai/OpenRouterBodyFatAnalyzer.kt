@@ -2,6 +2,7 @@ package com.kevan.hangry.data.ai
 
 import com.kevan.hangry.data.security.SecureKeyStore
 import com.kevan.hangry.domain.ai.AiDefaults
+import com.kevan.hangry.domain.ai.AiJson
 import com.kevan.hangry.domain.ai.BodyFatAnalyzer
 import com.kevan.hangry.domain.ai.extractJsonPayload
 import com.kevan.hangry.domain.model.BiologicalSex
@@ -9,7 +10,6 @@ import com.kevan.hangry.domain.model.BodyFatAnalysisResult
 import com.kevan.hangry.domain.model.BodyFatCategory
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
@@ -74,8 +74,6 @@ class OpenRouterBodyFatAnalyzer(
     private val userProfileRepository: UserProfileRepository
 ) : BodyFatAnalyzer {
 
-    private val json = Json { ignoreUnknownKeys = true }
-
     override suspend fun analyzeBodyFat(
         imagesBase64: List<String>,
         heightCm: Double?,
@@ -106,7 +104,7 @@ class OpenRouterBodyFatAnalyzer(
         val userText = biometricsBuilder.toString()
 
         return client.chatCompletion(apiKey, model, SYSTEM_PROMPT, userText, imagesBase64).mapCatching { raw ->
-            val parsed = json.decodeFromString(BodyFatResponseJson.serializer(), extractJsonPayload(raw))
+            val parsed = AiJson.decodeFromString(BodyFatResponseJson.serializer(), extractJsonPayload(raw))
             if (!parsed.valid) {
                 BodyFatAnalysisResult(
                     isValid = false,

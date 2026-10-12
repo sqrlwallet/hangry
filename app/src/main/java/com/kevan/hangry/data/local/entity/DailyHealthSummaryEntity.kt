@@ -60,5 +60,7 @@ data class DailyHealthSummaryEntity(
  *    and a week of debt, time asleep instead of time in bed.
  * 4: SpO2 and breathing rate from the night's sleep, sleeping heart rate, skin temperature.
  * 5: overnight readings from one app per night; body signals judged against personal spread.
+ * 6: each night's sleep belongs to the day it ends (naps and early-evening sleep no longer missed
+ *    or counted twice); time zone read per calculation.
  */
-const val SUMMARY_CALCULATION_VERSION = 5
+const val SUMMARY_CALCULATION_VERSION = 6

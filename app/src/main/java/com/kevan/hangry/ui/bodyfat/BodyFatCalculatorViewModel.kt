@@ -21,6 +21,7 @@ import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.util.clearCapturedImageCache
 import com.kevan.hangry.util.readImageAsBase64Jpeg
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,14 +51,19 @@ class BodyFatCalculatorViewModel(
 
     private var hasInitializedInputs = false
 
+    /** Scans deleted on screen but still undoable - hidden now, removed for real on [commitDelete]. */
+    private val pendingDeleteIds = MutableStateFlow<Set<Long>>(emptySet())
+
     init {
         viewModelScope.launch {
             combine(
                 userProfileRepository.getProfile(),
                 weightDao.getLatestWeight(),
                 heightDao.getLatestHeight(),
-                bodyFatRepository.getAllScans()
-            ) { profile, latestWeight, latestHeight, allScans ->
+                bodyFatRepository.getAllScans(),
+                pendingDeleteIds
+            ) { profile, latestWeight, latestHeight, storedScans, hidden ->
+                val allScans = storedScans.filter { it.id !in hidden }
                 val hasKey = secureKeyStore.getApiKey() != null
                 val isAiEnabled = profile?.aiFeaturesEnabled ?: false
                 val latestScan = allScans.firstOrNull()
@@ -434,9 +440,20 @@ class BodyFatCalculatorViewModel(
         }
     }
 
-    fun deleteScan(id: Long) {
-        viewModelScope.launch {
+    /** Hides the scan at once; it stays stored until [commitDelete]. */
+    fun hideScan(id: Long) {
+        pendingDeleteIds.update { it + id }
+    }
+
+    fun undoDelete(id: Long) {
+        pendingDeleteIds.update { it - id }
+    }
+
+    /** Deletes for real once the undo window closes - even if the screen is leaving meanwhile. */
+    fun commitDelete(id: Long) {
+        viewModelScope.launch(NonCancellable) {
             bodyFatRepository.deleteScan(id)
+            pendingDeleteIds.update { it - id }
         }
     }
 

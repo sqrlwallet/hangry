@@ -1,6 +1,12 @@
 package com.kevan.hangry.data.ai
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -10,6 +16,7 @@ import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -84,6 +91,7 @@ class OpenRouterClient {
         userText: String,
         imagesBase64: List<String> = emptyList()
     ): Result<String> = withContext(Dispatchers.IO) {
+        // Built off the main thread: the body carries the base64 photos.
         val requestBody = buildJsonObject {
             put("model", model)
             putJsonArray("messages") {
@@ -127,43 +135,47 @@ class OpenRouterClient {
     /**
      * Same as [chatCompletionMessages] but streamed: [onDelta] receives each text fragment as
      * the model writes it (on the IO thread). Returns the full text once the stream ends.
+     * Cancelling the caller cancels the HTTP call and stops [onDelta] immediately.
      */
     suspend fun streamChatCompletionMessages(
         apiKey: String,
         model: String,
         messages: List<OpenRouterMessage>,
         onDelta: (String) -> Unit
-    ): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            val response = try {
-                httpClient.newCall(buildRequest(apiKey, messagesBody(model, messages, stream = true).toString())).execute()
+    ): Result<String> = withContext(Dispatchers.IO) { streamMessages(apiKey, model, messages, onDelta) }
+
+    private suspend fun streamMessages(
+        apiKey: String,
+        model: String,
+        messages: List<OpenRouterMessage>,
+        onDelta: (String) -> Unit
+    ): Result<String> = resultOf {
+        execute(buildRequest(apiKey, messagesBody(model, messages, stream = true).toString())) { response ->
+            throwForStatus(response.code, response.isSuccessful)
+            val source = response.body?.source() ?: throw OpenRouterException.EmptyResponse()
+            val full = StringBuilder()
+            try {
+                while (true) {
+                    // Leaving the chat cancels the call; stop before handing out another fragment.
+                    ensureActive()
+                    val line = source.readUtf8Line() ?: break
+                    // SSE: "data: {...}" chunks; ":" lines are keep-alive comments.
+                    if (!line.startsWith("data:")) continue
+                    val payload = line.removePrefix("data:").trim()
+                    if (payload == "[DONE]") break
+                    val chunk = runCatching { json.decodeFromString(StreamChunk.serializer(), payload) }.getOrNull() ?: continue
+                    if (chunk.error != null) throw OpenRouterException.ServerError(chunk.error.code ?: 500)
+                    val delta = chunk.choices.firstOrNull()?.delta?.content ?: continue
+                    if (delta.isNotEmpty()) {
+                        full.append(delta)
+                        onDelta(delta)
+                    }
+                }
             } catch (e: IOException) {
+                ensureActive()
                 throw OpenRouterException.NoNetwork(e)
             }
-            response.use {
-                throwForStatus(it.code, it.isSuccessful)
-                val source = it.body?.source() ?: throw OpenRouterException.EmptyResponse()
-                val full = StringBuilder()
-                try {
-                    while (true) {
-                        val line = source.readUtf8Line() ?: break
-                        // SSE: "data: {...}" chunks; ":" lines are keep-alive comments.
-                        if (!line.startsWith("data:")) continue
-                        val payload = line.removePrefix("data:").trim()
-                        if (payload == "[DONE]") break
-                        val chunk = runCatching { json.decodeFromString(StreamChunk.serializer(), payload) }.getOrNull() ?: continue
-                        if (chunk.error != null) throw OpenRouterException.ServerError(chunk.error.code ?: 500)
-                        val delta = chunk.choices.firstOrNull()?.delta?.content ?: continue
-                        if (delta.isNotEmpty()) {
-                            full.append(delta)
-                            onDelta(delta)
-                        }
-                    }
-                } catch (e: IOException) {
-                    throw OpenRouterException.NoNetwork(e)
-                }
-                full.toString().takeIf { text -> text.isNotBlank() } ?: throw OpenRouterException.EmptyResponse()
-            }
+            full.toString().takeIf { text -> text.isNotBlank() } ?: throw OpenRouterException.EmptyResponse()
         }
     }
 
@@ -212,26 +224,59 @@ class OpenRouterClient {
         }
     }
 
-    private fun executeRequest(apiKey: String, requestBodyJson: String): Result<String> {
-        return runCatching {
-            val response = try {
-                httpClient.newCall(buildRequest(apiKey, requestBodyJson)).execute()
+    private suspend fun executeRequest(apiKey: String, requestBodyJson: String): Result<String> = resultOf {
+        execute(buildRequest(apiKey, requestBodyJson)) { response ->
+            val bodyText = try {
+                response.body?.string().orEmpty()
             } catch (e: IOException) {
+                ensureActive()
                 throw OpenRouterException.NoNetwork(e)
             }
+            throwForStatus(response.code, response.isSuccessful)
+            val parsed = try {
+                json.decodeFromString(ChatCompletionResponse.serializer(), bodyText)
+            } catch (e: Exception) {
+                throw OpenRouterException.MalformedResponse(e)
+            }
+            parsed.choices.firstOrNull()?.message?.content?.takeIf { text -> text.isNotBlank() }
+                ?: throw OpenRouterException.EmptyResponse()
+        }
+    }
 
-            response.use {
-                val bodyText = it.body?.string().orEmpty()
-                throwForStatus(it.code, it.isSuccessful)
-                val parsed = try {
-                    json.decodeFromString(ChatCompletionResponse.serializer(), bodyText)
-                } catch (e: Exception) {
-                    throw OpenRouterException.MalformedResponse(e)
-                }
-                parsed.choices.firstOrNull()?.message?.content?.takeIf { text -> text.isNotBlank() }
-                    ?: throw OpenRouterException.EmptyResponse()
+    /**
+     * Runs [request] on the IO dispatcher and hands the open response to [handle]. Cancelling the
+     * calling coroutine (the user left the screen) cancels the HTTP call itself, which unblocks
+     * any read in progress, so nothing keeps downloading or streaming for up to the read timeout.
+     */
+    private suspend fun <T> execute(request: Request, handle: CoroutineScope.(Response) -> T): T = withContext(Dispatchers.IO) {
+        val call = httpClient.newCall(request)
+        val canceller = launch(start = CoroutineStart.UNDISPATCHED) {
+            try {
+                awaitCancellation()
+            } finally {
+                call.cancel()
             }
         }
+        try {
+            val response = try {
+                call.execute()
+            } catch (e: IOException) {
+                ensureActive()
+                throw OpenRouterException.NoNetwork(e)
+            }
+            response.use { handle(it) }
+        } finally {
+            canceller.cancel()
+        }
+    }
+
+    /** Like runCatching, but cancellation propagates instead of turning into a failed Result. */
+    private inline fun <T> resultOf(block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 }
 

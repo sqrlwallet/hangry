@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,11 +38,9 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
 
 /**
- * The single "why we need this + grant it now" onboarding screen. Used to be two screens (an
- * explanation, then a separate permission-request screen); merging them removes a full tap-
- * through step, and the Health Connect permission dialog now launches automatically the moment
- * this screen determines Health Connect is available, instead of waiting for the user to find
- * and tap a button - they can still retry manually if they dismiss the system dialog.
+ * The single "why we need this + grant it now" onboarding screen. The rationale (what each
+ * permission powers) is shown first; the Health Connect system dialog only opens when the user
+ * taps the grant button - never on its own, and never again just because the screen rotated.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,8 +56,8 @@ fun PermissionSetupScreen(
 
     var isAvailable by remember { mutableStateOf(false) }
     var hasFullPermissions by remember { mutableStateOf(false) }
-    var permissionRequested by remember { mutableStateOf(false) }
-    var autoRequestTriggered by remember { mutableStateOf(false) }
+    // One-shot flag: survives rotation so the "some permissions paused" note doesn't reset.
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
     var categoryStatus by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
 
     val updateRequired = providerStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
@@ -80,15 +79,6 @@ fun PermissionSetupScreen(
         coroutineScope.launch {
             hasFullPermissions = dataSource.hasPermissions()
             refreshCategoryStatus()
-        }
-    }
-
-    // Pop the system permission dialog the moment we know Health Connect can accept it, so
-    // granting access is the very first thing the user is asked to do here - no button hunt.
-    LaunchedEffect(isAvailable) {
-        if (isAvailable && !hasFullPermissions && !autoRequestTriggered) {
-            autoRequestTriggered = true
-            requestPermissionsLauncher.launch((dataSource as? RealHealthConnectDataSource)?.permissionsToRequest() ?: RealHealthConnectDataSource.PERMISSIONS)
         }
     }
 

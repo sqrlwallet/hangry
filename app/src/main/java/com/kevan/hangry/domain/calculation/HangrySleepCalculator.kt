@@ -18,7 +18,13 @@ import kotlin.math.sqrt
  * day; the Sleep Score weighs how much of that need was met with how well the night went. See
  * docs/logic/06-scores-recovery-sleep-strain-stress.md.
  */
-class HangrySleepCalculator(private val zone: ZoneId = ZoneId.systemDefault()) : SleepCalculator {
+class HangrySleepCalculator(
+    // Read on every calculation, not once: after the phone changes time zone, wake-up days and
+    // bed/wake clock times follow the new zone.
+    private val zoneProvider: () -> ZoneId = { ZoneId.systemDefault() }
+) : SleepCalculator {
+
+    constructor(zone: ZoneId) : this({ zone })
 
     override fun analyzeSleep(
         currentSession: SleepSessionEntity?,
@@ -27,9 +33,10 @@ class HangrySleepCalculator(private val zone: ZoneId = ZoneId.systemDefault()) :
         previousDayStrain: Double?,
         rollingAverageStrain: Double?
     ): SleepAnalysis {
+        val zone = zoneProvider()
         // One entry per night (the main sleep of each wake-up day), so naps and split sessions
         // don't count as extra nights in averages, debt or consistency.
-        val nights = mainSleeps(recentSessions)
+        val nights = mainSleeps(recentSessions, zone)
         val sevenDayAvg = nights.take(7).takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
         val thirtyDayAvg = nights.take(30).takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
 
@@ -44,8 +51,8 @@ class HangrySleepCalculator(private val zone: ZoneId = ZoneId.systemDefault()) :
                 .coerceIn(target, target + MAX_EXTRA_NEED_MINUTES)
 
         val timingNights = listOfNotNull(currentSession) + nights.take(if (currentSession == null) 7 else 6)
-        val consistency = timingConsistency(timingNights)
-        val recommendedBedtime = recommendedBedtime(listOfNotNull(currentSession) + nights, tonightsNeed)
+        val consistency = timingConsistency(timingNights, zone)
+        val recommendedBedtime = recommendedBedtime(listOfNotNull(currentSession) + nights, tonightsNeed, zone)
 
         if (currentSession == null) {
             return SleepAnalysis(
@@ -132,7 +139,7 @@ class HangrySleepCalculator(private val zone: ZoneId = ZoneId.systemDefault()) :
     }
 
     /** The longest session per wake-up day, newest first. */
-    fun mainSleeps(sessions: List<SleepSessionEntity>): List<SleepSessionEntity> =
+    fun mainSleeps(sessions: List<SleepSessionEntity>, zone: ZoneId = zoneProvider()): List<SleepSessionEntity> =
         sessions.groupBy { it.endTime.atZone(zone).toLocalDate() }
             .toSortedMap(compareByDescending { it })
             .values
@@ -165,23 +172,23 @@ class HangrySleepCalculator(private val zone: ZoneId = ZoneId.systemDefault()) :
      * circular spread of each - so 23:50 and 00:10 count as 20 minutes apart. A 30-minute spread
      * scores 85, an hour 70, two hours 40. Needs 3 nights.
      */
-    private fun timingConsistency(nights: List<SleepSessionEntity>): Int? {
+    private fun timingConsistency(nights: List<SleepSessionEntity>, zone: ZoneId): Int? {
         if (nights.size < 3) return null
-        val bedSpread = circularSpreadMinutes(nights.map { minuteOfDay(it.startTime) })
-        val wakeSpread = circularSpreadMinutes(nights.map { minuteOfDay(it.endTime) })
+        val bedSpread = circularSpreadMinutes(nights.map { minuteOfDay(it.startTime, zone) })
+        val wakeSpread = circularSpreadMinutes(nights.map { minuteOfDay(it.endTime, zone) })
         return (100 - CONSISTENCY_POINTS_PER_MINUTE * (bedSpread + wakeSpread) / 2).roundToInt().coerceIn(0, 100)
     }
 
     /** Usual wake time (circular mean over the last week) minus tonight's need. */
-    private fun recommendedBedtime(nights: List<SleepSessionEntity>, needMinutes: Int): LocalTime? {
-        val wakes = nights.take(7).map { minuteOfDay(it.endTime) }
+    private fun recommendedBedtime(nights: List<SleepSessionEntity>, needMinutes: Int, zone: ZoneId): LocalTime? {
+        val wakes = nights.take(7).map { minuteOfDay(it.endTime, zone) }
         if (wakes.isEmpty()) return null
         val avgWake = circularMeanMinutes(wakes)
         val bedtime = (((avgWake - needMinutes) % 1440 + 1440) % 1440).roundToInt() % 1440
         return LocalTime.of(bedtime / 60, bedtime % 60)
     }
 
-    private fun minuteOfDay(instant: java.time.Instant): Double =
+    private fun minuteOfDay(instant: java.time.Instant, zone: ZoneId): Double =
         instant.atZone(zone).let { it.hour * 60.0 + it.minute }
 
     /** 92%+ asleep while in bed scores 100; 65% or less scores 0. */

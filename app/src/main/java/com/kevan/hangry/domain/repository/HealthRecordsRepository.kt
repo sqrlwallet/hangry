@@ -27,6 +27,16 @@ interface HealthRecordsRepository {
     )
     suspend fun deleteReading(id: Long)
 
+    /** Corrects a reading's value, time, glucose context or note; keeps its type and source. */
+    suspend fun updateReading(
+        id: Long,
+        value: Double,
+        secondaryValue: Double?,
+        measuredAt: Instant,
+        glucoseContext: GlucoseContext?,
+        note: String?
+    )
+
     suspend fun setGoal(type: MarkerType, targetValue: Double, targetSecondary: Double?, targetDate: LocalDate?)
     suspend fun clearGoal(type: MarkerType)
 
@@ -34,6 +44,7 @@ interface HealthRecordsRepository {
     suspend fun deleteProfileItem(id: Long)
 
     suspend fun logPeriod(start: LocalDate, end: LocalDate?)
+    suspend fun updatePeriod(id: Long, start: LocalDate, end: LocalDate?)
     suspend fun deletePeriod(id: Long)
     suspend fun setPregnancy(isPregnant: Boolean, dueDate: LocalDate?)
 

@@ -47,6 +47,13 @@ class BackupRulesTest {
     }
 
     @Test
+    fun vacuumIntoOnlyOnSqlite327AndLater() {
+        listOf("3.27.0", "3.28.0", "3.32.2", "3.44.3", "4.0.0").forEach { assertTrue(it, HangryBackupManager.supportsVacuumInto(it)) }
+        // Android 9 and 10 ship SQLite 3.22: their backups copy the database under a write lock instead.
+        listOf("3.22.0", "3.26.9", "2.99.0", "", "garbage", null).forEach { assertFalse("$it", HangryBackupManager.supportsVacuumInto(it)) }
+    }
+
+    @Test
     fun manifestChecks() {
         val ok = BackupManifest(app = "com.kevan.hangry", format = 1, dbVersion = 31)
         HangryBackupManager.checkManifest(ok, currentDbVersion = 31)

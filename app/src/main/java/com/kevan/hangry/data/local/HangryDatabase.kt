@@ -47,7 +47,9 @@ import com.kevan.hangry.data.local.entity.*
         CoachConversationEntity::class
     ],
     version = 33,
-    exportSchema = false
+    // Schemas land in app/schemas/ - commit each new version's JSON alongside its migration,
+    // HangryMigrationTest (androidTest) runs the migrations against them.
+    exportSchema = true
 )
 @TypeConverters(DateConverters::class)
 abstract class HangryDatabase : RoomDatabase() {
@@ -660,7 +662,10 @@ abstract class HangryDatabase : RoomDatabase() {
                             runCatching { db.query("PRAGMA temp_store = MEMORY").close() }
                         }
                     })
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    // No destructive fallback: a missing migration must crash on open rather than
+                    // silently wipe food logs, supplements, journal and manual entries. Only the
+                    // pre-release v1 schema (never restorable, see HangryBackupManager) is dropped.
+                    .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
                     .build()
                 INSTANCE = instance
                 instance

@@ -49,7 +49,7 @@ fun PostureScanDetailScreen(
         topBar = {
             TopAppBar(
                 expandedHeight = 56.dp,
-                title = { Text(scan?.date?.toString() ?: stringResource(R.string.body_posture_scan)) },
+                title = { Text(scan?.date?.format(POSTURE_DATE) ?: stringResource(R.string.body_posture_scan)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back))

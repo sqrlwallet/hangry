@@ -33,6 +33,13 @@ interface HrvDao {
     @Query("SELECT COUNT(*) FROM hrv_measurements")
     suspend fun getCount(): Int
 
+    /** HRV readings imported from Health Connect in a synced window, to find ones gone from it. */
+    @Query("SELECT recordFingerprint FROM hrv_measurements WHERE timestamp >= :start AND timestamp < :end AND sourcePackageName NOT LIKE 'com.kevan.hangry%' AND sourcePackageName != 'manual' AND recordFingerprint NOT LIKE 'manual%'")
+    suspend fun getImportedFingerprintsBetween(start: java.time.Instant, end: java.time.Instant): List<String>
+
+    @Query("DELETE FROM hrv_measurements WHERE recordFingerprint IN (:fingerprints)")
+    suspend fun deleteByFingerprints(fingerprints: List<String>)
+
     @Query("DELETE FROM hrv_measurements")
     suspend fun deleteAll()
 }

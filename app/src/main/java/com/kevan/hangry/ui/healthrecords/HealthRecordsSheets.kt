@@ -9,11 +9,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -26,9 +28,13 @@ import com.kevan.hangry.domain.model.GoalDirection
 import com.kevan.hangry.domain.model.HealthProfileKind
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerGoal
+import com.kevan.hangry.domain.model.MarkerReading
+import com.kevan.hangry.domain.model.MenstrualPeriod
 import com.kevan.hangry.domain.model.MarkerType
 import com.kevan.hangry.domain.model.MarkerUnit
+import com.kevan.hangry.ui.components.DiscardChangesDialog
 import com.kevan.hangry.ui.components.MetricBandTable
+import com.kevan.hangry.ui.components.rememberDiscardGuardSheetState
 import com.kevan.hangry.ui.components.MetricInfoBlock
 import com.kevan.hangry.ui.components.MetricRangeBar
 import com.kevan.hangry.ui.components.MetricStatusChip
@@ -81,38 +87,61 @@ internal fun MarkerPickerDialog(markers: List<MarkerType>, onDismiss: () -> Unit
     )
 }
 
-/** [onSave] receives values already converted to the marker's canonical unit. */
+/**
+ * Adds a reading, or edits [existing] (with a delete button). [onSave] receives values already
+ * converted to the marker's canonical unit. Typed input survives rotation, and closing with
+ * unsaved changes asks first.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-internal fun AddReadingSheet(
+internal fun ReadingSheet(
     type: MarkerType,
     onDismiss: () -> Unit,
-    onSave: (value: Double, secondary: Double?, measuredAt: Instant, context: GlucoseContext?, note: String?) -> Unit
+    onSave: (value: Double, secondary: Double?, measuredAt: Instant, context: GlucoseContext?, note: String?) -> Unit,
+    existing: MarkerReading? = null,
+    onDelete: (() -> Unit)? = null
 ) {
     val tokens = LocalHangryTokens.current
-    var unit by remember { mutableStateOf(type.units.first()) }
-    var valueText by remember { mutableStateOf("") }
-    var secondaryText by remember { mutableStateOf("") }
-    var context by remember { mutableStateOf(GlucoseContext.FASTING) }
-    var date by remember { mutableStateOf(LocalDate.now()) }
-    var note by remember { mutableStateOf("") }
-    var pickingDate by remember { mutableStateOf(false) }
+    val firstUnit = type.units.first()
+    fun display(canonical: Double?) = canonical?.let { String.format(Locale.US, "%.${type.decimals}f", it / firstUnit.toCanonical) } ?: ""
+    val initialValue = remember(existing) { display(existing?.value) }
+    val initialSecondary = remember(existing) { display(existing?.secondaryValue) }
+    val initialContext = existing?.glucoseContext ?: GlucoseContext.FASTING
+    val initialDate = existing?.date ?: LocalDate.now()
+    val initialNote = existing?.note.orEmpty()
+
+    var unitIndex by rememberSaveable { mutableIntStateOf(0) }
+    val unit = type.units[unitIndex.coerceIn(0, type.units.lastIndex)]
+    var valueText by rememberSaveable { mutableStateOf(initialValue) }
+    var secondaryText by rememberSaveable { mutableStateOf(initialSecondary) }
+    var context by rememberSaveable { mutableStateOf(initialContext) }
+    var date by rememberSaveable { mutableStateOf(initialDate) }
+    var note by rememberSaveable { mutableStateOf(initialNote) }
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
+    var confirmingDiscard by rememberSaveable { mutableStateOf(false) }
 
     val value = valueText.replace(',', '.').toDoubleOrNull()
     val secondary = secondaryText.replace(',', '.').toDoubleOrNull()
     val valid = value != null && value > 0 && (!type.hasSecondaryValue || (secondary != null && secondary > 0))
+    val dirty = valueText != initialValue || secondaryText != initialSecondary || date != initialDate || note != initialNote ||
+        (type == MarkerType.BLOOD_GLUCOSE && context != initialContext)
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    val sheetState = rememberDiscardGuardSheetState(hasUnsavedChanges = dirty, onAttemptDismiss = { confirmingDiscard = true })
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m).padding(bottom = HangryTokens.Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(stringResource(R.string.body_records_add_marker, type.label.lowercase()), style = MaterialTheme.typography.titleLarge)
+            Text(
+                if (existing != null) stringResource(R.string.body_records_edit_marker, type.label.lowercase())
+                else stringResource(R.string.body_records_add_marker, type.label.lowercase()),
+                style = MaterialTheme.typography.titleLarge
+            )
             if (type.units.size > 1) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    type.units.forEach { u ->
-                        FilterChip(selected = unit == u, onClick = { unit = u }, label = { Text(u.label) })
+                    type.units.forEachIndexed { i, u ->
+                        FilterChip(selected = unit == u, onClick = { unitIndex = i }, label = { Text(u.label) })
                     }
                 }
             }
@@ -144,8 +173,12 @@ internal fun AddReadingSheet(
             )
             Button(
                 onClick = {
-                    val at = if (date == LocalDate.now()) Instant.now()
-                    else date.atTime(LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant()
+                    val at = when {
+                        // An unchanged day keeps the reading's original time.
+                        existing != null && date == existing.date -> existing.measuredAt
+                        date == LocalDate.now() -> Instant.now()
+                        else -> date.atTime(LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant()
+                    }
                     onSave(
                         value!! * unit.toCanonical,
                         secondary?.times(unit.toCanonical),
@@ -156,7 +189,18 @@ internal fun AddReadingSheet(
                 },
                 enabled = valid,
                 modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) { Text(stringResource(R.string.body_records_save_reading)) }
+            ) { Text(stringResource(if (existing != null) R.string.body_records_save_changes else R.string.body_records_save_reading)) }
+            if (onDelete != null) {
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.body_records_delete_reading))
+                }
+            }
             Text(
                 stringResource(R.string.body_records_tracking_disclaimer_short),
                 style = MaterialTheme.typography.labelSmall,
@@ -170,6 +214,15 @@ internal fun AddReadingSheet(
             pickingDate = false
         })
     }
+    if (confirmingDiscard) {
+        DiscardChangesDialog(
+            onDiscard = {
+                confirmingDiscard = false
+                onDismiss()
+            },
+            onKeepEditing = { confirmingDiscard = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -180,80 +233,89 @@ internal fun MarkerDetailSheet(
     onDismiss: () -> Unit,
     onAddReading: () -> Unit,
     onEditGoal: () -> Unit,
-    onDeleteReading: (Long) -> Unit
+    onEditReading: (MarkerReading) -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
     val tokens = LocalHangryTokens.current
     val history = records.history(type)
     val metric = HealthMarkerCalculator.describe(type, history.firstOrNull(), records.sex)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(
-            modifier = Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
-                .padding(horizontal = HangryTokens.Spacing.m).padding(bottom = HangryTokens.Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
-        ) {
-            Column {
-                Text(type.label, style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(metric.displayValue, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
-                        color = if (metric.isAvailable) tokens.textPrimary else tokens.textMuted)
-                    if (metric.isAvailable) {
-                        Text(" ${type.canonicalUnit}", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary, modifier = Modifier.padding(bottom = 6.dp))
-                    }
-                }
-                metric.status?.let { MetricStatusChip(it, metric.tone) }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onAddReading, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.body_records_add_reading))
-                }
-                OutlinedButton(onClick = onEditGoal, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (records.goal(type) != null) stringResource(R.string.body_records_edit_goal) else stringResource(R.string.body_records_set_goal))
-                }
-            }
-            if (records.goal(type) != null) GoalSummary(type = type, records = records)
-            if (metric.bands.isNotEmpty()) {
-                if (metric.isAvailable) MetricRangeBar(metric)
-                MetricBandTable(metric)
-                if (type == MarkerType.BLOOD_GLUCOSE) {
-                    Text(
-                        stringResource(R.string.body_records_glucose_ranges_note, (history.firstOrNull()?.glucoseContext ?: GlucoseContext.RANDOM).label.lowercase()),
-                        style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
-                    )
-                }
-            }
-            if (history.isNotEmpty()) {
-                Text(stringResource(R.string.body_records_history), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
-                history.take(30).forEach { reading ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                "${HealthMarkerCalculator.format(type, reading.value, reading.secondaryValue)} ${type.canonicalUnit}" +
-                                    (reading.glucoseContext?.let { " · ${it.label.lowercase()}" } ?: ""),
-                                style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary
-                            )
-                            Text(
-                                "${reading.date.format(DATE)} · ${reading.source.label}" + (reading.note?.let { " · $it" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
-                            )
-                        }
-                        IconButton(onClick = { onDeleteReading(reading.id) }) {
-                            Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.body_records_delete_reading), tint = tokens.textMuted)
+        // The sheet covers the screen's snackbar, so "Reading deleted · Undo" shows in here.
+        Box {
+            Column(
+                modifier = Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
+                    .padding(horizontal = HangryTokens.Spacing.m).padding(bottom = HangryTokens.Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
+            ) {
+                Column {
+                    Text(type.label, style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(metric.displayValue, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
+                            color = if (metric.isAvailable) tokens.textPrimary else tokens.textMuted)
+                        if (metric.isAvailable) {
+                            Text(" ${type.canonicalUnit}", style = MaterialTheme.typography.titleMedium, color = tokens.textSecondary, modifier = Modifier.padding(bottom = 6.dp))
                         }
                     }
+                    metric.status?.let { MetricStatusChip(it, metric.tone) }
                 }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onAddReading, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.body_records_add_reading))
+                    }
+                    OutlinedButton(onClick = onEditGoal, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (records.goal(type) != null) stringResource(R.string.body_records_edit_goal) else stringResource(R.string.body_records_set_goal))
+                    }
+                }
+                if (records.goal(type) != null) GoalSummary(type = type, records = records)
+                if (metric.bands.isNotEmpty()) {
+                    if (metric.isAvailable) MetricRangeBar(metric)
+                    MetricBandTable(metric)
+                    if (type == MarkerType.BLOOD_GLUCOSE) {
+                        Text(
+                            stringResource(R.string.body_records_glucose_ranges_note, (history.firstOrNull()?.glucoseContext ?: GlucoseContext.RANDOM).label.lowercase()),
+                            style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
+                        )
+                    }
+                }
+                if (history.isNotEmpty()) {
+                    Text(stringResource(R.string.body_records_history), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
+                    history.take(30).forEach { reading ->
+                        // Tap a reading to correct or delete it.
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable(onClickLabel = stringResource(R.string.body_records_edit_reading)) { onEditReading(reading) }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "${HealthMarkerCalculator.format(type, reading.value, reading.secondaryValue)} ${type.canonicalUnit}" +
+                                        (reading.glucoseContext?.let { " · ${it.label.lowercase()}" } ?: ""),
+                                    style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary
+                                )
+                                Text(
+                                    "${reading.date.format(DATE)} · ${reading.source.label}" + (reading.note?.let { " · $it" } ?: ""),
+                                    style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
+                                )
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = tokens.textMuted, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+                MetricInfoBlock(stringResource(R.string.body_records_what_it_is), metric.info.whatItIs)
+                MetricInfoBlock(stringResource(R.string.body_records_your_reading), metric.info.howCalculated)
+                MetricInfoBlock(stringResource(R.string.body_records_why_it_matters), metric.info.whyItMatters)
+                MetricInfoBlock(stringResource(R.string.body_records_ranges_from), metric.info.source)
+                Text(
+                    stringResource(R.string.body_records_reference_disclaimer),
+                    style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
+                )
             }
-            MetricInfoBlock(stringResource(R.string.body_records_what_it_is), metric.info.whatItIs)
-            MetricInfoBlock(stringResource(R.string.body_records_your_reading), metric.info.howCalculated)
-            MetricInfoBlock(stringResource(R.string.body_records_why_it_matters), metric.info.whyItMatters)
-            MetricInfoBlock(stringResource(R.string.body_records_ranges_from), metric.info.source)
-            Text(
-                stringResource(R.string.body_records_reference_disclaimer),
-                style = MaterialTheme.typography.labelSmall, color = tokens.textMuted
-            )
+            SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
         }
     }
 }
@@ -270,18 +332,24 @@ internal fun GoalSheet(
 ) {
     val tokens = LocalHangryTokens.current
     val (suggested, suggestedSecondary) = HealthMarkerCalculator.suggestedGoal(type, sex)
-    var unit by remember { mutableStateOf(type.units.first()) }
     fun display(canonical: Double?, u: MarkerUnit) = canonical?.let { String.format(Locale.US, "%.${if (u.toCanonical == 1.0) type.decimals else 1}f", it / u.toCanonical) } ?: ""
-    var targetText by remember { mutableStateOf(display(existing?.targetValue ?: suggested, type.units.first())) }
-    var secondaryText by remember { mutableStateOf(display(existing?.targetSecondary ?: suggestedSecondary, type.units.first())) }
-    var date by remember { mutableStateOf(existing?.targetDate) }
-    var pickingDate by remember { mutableStateOf(false) }
+    val initialTarget = remember(existing) { display(existing?.targetValue ?: suggested, type.units.first()) }
+    val initialSecondary = remember(existing) { display(existing?.targetSecondary ?: suggestedSecondary, type.units.first()) }
+    var unitIndex by rememberSaveable { mutableIntStateOf(0) }
+    val unit = type.units[unitIndex.coerceIn(0, type.units.lastIndex)]
+    var targetText by rememberSaveable { mutableStateOf(initialTarget) }
+    var secondaryText by rememberSaveable { mutableStateOf(initialSecondary) }
+    var date by rememberSaveable { mutableStateOf(existing?.targetDate) }
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
+    var confirmingDiscard by rememberSaveable { mutableStateOf(false) }
 
     val target = targetText.replace(',', '.').toDoubleOrNull()
     val secondary = secondaryText.replace(',', '.').toDoubleOrNull()
     val lower = type.defaultGoalDirection == GoalDirection.LOWER
+    val dirty = unitIndex != 0 || targetText != initialTarget || secondaryText != initialSecondary || date != existing?.targetDate
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    val sheetState = rememberDiscardGuardSheetState(hasUnsavedChanges = dirty, onAttemptDismiss = { confirmingDiscard = true })
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
                 .padding(horizontal = HangryTokens.Spacing.m).padding(bottom = HangryTokens.Spacing.xl),
@@ -294,11 +362,11 @@ internal fun GoalSheet(
             )
             if (type.units.size > 1) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    type.units.forEach { u ->
+                    type.units.forEachIndexed { i, u ->
                         FilterChip(selected = unit == u, onClick = {
                             // Keep the same target when switching units.
                             target?.let { targetText = display(it * unit.toCanonical, u) }
-                            unit = u
+                            unitIndex = i
                         }, label = { Text(u.label) })
                     }
                 }
@@ -330,15 +398,30 @@ internal fun GoalSheet(
             pickingDate = false
         })
     }
+    if (confirmingDiscard) {
+        DiscardChangesDialog(
+            onDiscard = {
+                confirmingDiscard = false
+                onDismiss()
+            },
+            onKeepEditing = { confirmingDiscard = false }
+        )
+    }
 }
 
 @Composable
 internal fun AddProfileItemDialog(kind: HealthProfileKind, onDismiss: () -> Unit, onSave: (String, String?) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var note by rememberSaveable { mutableStateOf("") }
+    var confirmingDiscard by rememberSaveable { mutableStateOf(false) }
     val isAllergy = kind == HealthProfileKind.ALLERGY
+    if (confirmingDiscard) {
+        DiscardChangesDialog(onDiscard = onDismiss, onKeepEditing = { confirmingDiscard = false })
+        return
+    }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        // A tap outside doesn't silently throw away what was typed.
+        onDismissRequest = { if (name.isBlank() && note.isBlank()) onDismiss() else confirmingDiscard = true },
         title = { Text(if (isAllergy) stringResource(R.string.body_records_add_allergy) else stringResource(R.string.body_records_add_condition)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -359,18 +442,34 @@ internal fun AddProfileItemDialog(kind: HealthProfileKind, onDismiss: () -> Unit
 }
 
 @Composable
-internal fun LogPeriodDialog(onDismiss: () -> Unit, onSave: (LocalDate, LocalDate?) -> Unit) {
-    var start by remember { mutableStateOf(LocalDate.now()) }
-    var end by remember { mutableStateOf<LocalDate?>(null) }
-    var picking by remember { mutableStateOf<String?>(null) }
+internal fun LogPeriodDialog(
+    onDismiss: () -> Unit,
+    onSave: (LocalDate, LocalDate?) -> Unit,
+    existing: MenstrualPeriod? = null,
+    onDelete: (() -> Unit)? = null
+) {
+    var start by rememberSaveable { mutableStateOf(existing?.startDate ?: LocalDate.now()) }
+    var end by rememberSaveable { mutableStateOf(existing?.endDate) }
+    var picking by rememberSaveable { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.body_records_log_period)) },
+        title = { Text(stringResource(if (existing != null) R.string.body_records_edit_period else R.string.body_records_log_period)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.body_records_period_started, start.format(DATE))) }
                 OutlinedButton(onClick = { picking = "end" }, modifier = Modifier.fillMaxWidth()) {
                     Text(end?.let { stringResource(R.string.body_records_period_ended, it.format(DATE)) } ?: stringResource(R.string.body_records_period_still_going))
+                }
+                if (onDelete != null) {
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.body_records_delete_period))
+                    }
                 }
             }
         },

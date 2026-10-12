@@ -51,7 +51,7 @@ fun SavedMealsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    var query by remember { mutableStateOf("") }
+    var query by rememberSaveable { mutableStateOf("") }
     // Sticks between taps so e.g. a double helping of several foods is quick; every row shows
     // the numbers for the chosen portion, so it's never a surprise.
     var portion by rememberSaveable { mutableDoubleStateOf(1.0) }
@@ -59,8 +59,11 @@ fun SavedMealsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var deleted by remember { mutableStateOf<MealPlanEntity?>(null) }
 
-    val q = query.trim().lowercase()
-    val saved = uiState.mealPlans.filter { q.isEmpty() || it.name.lowercase().contains(q) }
+    val mealPlans = uiState.mealPlans
+    val saved = remember(mealPlans, query) {
+        val q = query.trim().lowercase()
+        mealPlans.filter { q.isEmpty() || it.name.lowercase().contains(q) }
+    }
 
     LaunchedEffect(uiState.lastSavedEntry) {
         val entry = uiState.lastSavedEntry ?: return@LaunchedEffect

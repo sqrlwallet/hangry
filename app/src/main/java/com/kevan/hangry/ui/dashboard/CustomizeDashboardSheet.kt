@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,7 +39,7 @@ fun CustomizeDashboardSheet(
     onDismiss: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
-    var showCreateDialog by remember { mutableStateOf(false) }
+    var showCreateDialog by rememberSaveable { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -204,11 +205,14 @@ fun CreateCustomWidgetDialog(
     onDismiss: () -> Unit,
     onCreate: (DashboardWidget) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var selectedMetric by remember { mutableStateOf(MetricType.STEPS) }
-    var targetGoalText by remember { mutableStateOf("") }
-    var selectedStyle by remember { mutableStateOf(WidgetDisplayStyle.RING) }
+    // Saveable so a half-filled card survives rotation and process death.
+    var title by rememberSaveable { mutableStateOf("") }
+    var selectedMetric by rememberSaveable { mutableStateOf(MetricType.STEPS) }
+    var targetGoalText by rememberSaveable { mutableStateOf("") }
+    var selectedStyle by rememberSaveable { mutableStateOf(WidgetDisplayStyle.RING) }
     var metricDropdownExpanded by remember { mutableStateOf(false) }
+    // Plain names rather than enum names like "RHR".
+    val metricLabels = MetricType.entries.associateWith { metricLabel(it) }
 
     val defaultGoalSuggestions = mapOf(
         MetricType.STEPS to ("10000" to "steps"),
@@ -243,7 +247,7 @@ fun CreateCustomWidgetDialog(
                     onExpandedChange = { metricDropdownExpanded = !metricDropdownExpanded }
                 ) {
                     OutlinedTextField(
-                        value = selectedMetric.name.replace('_', ' '),
+                        value = metricLabels.getValue(selectedMetric),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(R.string.dashboard_select_metric)) },
@@ -259,7 +263,7 @@ fun CreateCustomWidgetDialog(
                     ) {
                         MetricType.entries.forEach { metric ->
                             DropdownMenuItem(
-                                text = { Text(metric.name.replace('_', ' ')) },
+                                text = { Text(metricLabels.getValue(metric)) },
                                 onClick = {
                                     selectedMetric = metric
                                     if (targetGoalText.isBlank()) {
@@ -310,7 +314,7 @@ fun CreateCustomWidgetDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val finalTitle = if (title.isNotBlank()) title else selectedMetric.name.replace('_', ' ')
+                    val finalTitle = if (title.isNotBlank()) title else metricLabels.getValue(selectedMetric)
                     val goal = targetGoalText.toDoubleOrNull()
                     val unit = defaultGoalSuggestions[selectedMetric]?.second
 
@@ -337,3 +341,19 @@ fun CreateCustomWidgetDialog(
         }
     )
 }
+
+@Composable
+private fun metricLabel(metric: MetricType): String = stringResource(
+    when (metric) {
+        MetricType.STEPS -> R.string.dashboard_metric_steps
+        MetricType.ACTIVE_CALORIES -> R.string.dashboard_metric_active_calories
+        MetricType.RHR -> R.string.dashboard_metric_resting_hr
+        MetricType.HRV -> R.string.dashboard_metric_hrv
+        MetricType.VO2_MAX -> R.string.dashboard_metric_vo2_max
+        MetricType.SPO2 -> R.string.dashboard_metric_spo2
+        MetricType.SLEEP_DURATION -> R.string.dashboard_metric_sleep_duration
+        MetricType.DAY_STRAIN -> R.string.dashboard_metric_day_strain
+        MetricType.STRESS -> R.string.dashboard_metric_stress
+        MetricType.WEIGHT -> R.string.dashboard_metric_weight
+    }
+)

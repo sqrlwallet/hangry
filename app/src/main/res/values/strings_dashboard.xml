@@ -13,6 +13,16 @@
     <string name="dashboard_widget_title_label">Widget Title</string>
     <string name="dashboard_widget_title_placeholder">e.g. My Steps Goal</string>
     <string name="dashboard_select_metric">Select Health Metric</string>
+    <string name="dashboard_metric_steps">Steps</string>
+    <string name="dashboard_metric_active_calories">Active calories</string>
+    <string name="dashboard_metric_resting_hr">Resting heart rate</string>
+    <string name="dashboard_metric_hrv">Heart rate variability</string>
+    <string name="dashboard_metric_vo2_max">Cardio fitness (VO2 max)</string>
+    <string name="dashboard_metric_spo2">Blood oxygen</string>
+    <string name="dashboard_metric_sleep_duration">Sleep duration</string>
+    <string name="dashboard_metric_day_strain">Day strain</string>
+    <string name="dashboard_metric_stress">Stress</string>
+    <string name="dashboard_metric_weight">Weight</string>
     <string name="dashboard_target_goal_label">Target Goal (Optional)</string>
     <string name="dashboard_target_goal_placeholder">e.g. %1$s</string>
     <string name="dashboard_display_style">Display Style</string>

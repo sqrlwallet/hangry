@@ -59,6 +59,38 @@ interface HeartRateDao {
     @Query("SELECT COUNT(*) FROM heart_rate_samples")
     suspend fun getCount(): Int
 
+    /**
+     * Every imported heart rate record with a sample in a synced window, with the time of its
+     * first and last stored sample (across all time, not just the window).
+     */
+    @Query("""
+        SELECT sourceRecordId, MIN(timestamp) AS firstSample, MAX(timestamp) AS lastSample
+        FROM heart_rate_samples
+        WHERE sourceRecordId IN (
+            SELECT DISTINCT sourceRecordId FROM heart_rate_samples
+            WHERE timestamp >= :start AND timestamp < :end AND sourceRecordId IS NOT NULL
+                AND sourcePackageName NOT LIKE 'com.kevan.hangry%' AND sourcePackageName != 'manual' AND recordFingerprint NOT LIKE 'manual%'
+        )
+        GROUP BY sourceRecordId
+    """)
+    suspend fun getImportedRecordSpansBetween(start: Instant, end: Instant): List<HeartRateRecordSpan>
+
+    @Query("SELECT recordFingerprint FROM heart_rate_samples WHERE sourceRecordId IN (:recordIds)")
+    suspend fun getFingerprintsForRecords(recordIds: List<String>): List<String>
+
+    @Query("DELETE FROM heart_rate_samples WHERE sourceRecordId IN (:recordIds)")
+    suspend fun deleteByRecordIds(recordIds: List<String>)
+
+    @Query("DELETE FROM heart_rate_samples WHERE recordFingerprint IN (:fingerprints)")
+    suspend fun deleteByFingerprints(fingerprints: List<String>)
+
     @Query("DELETE FROM heart_rate_samples")
     suspend fun deleteAll()
 }
+
+/** One stored heart rate record: its first and last sample. */
+data class HeartRateRecordSpan(
+    val sourceRecordId: String,
+    val firstSample: Instant,
+    val lastSample: Instant
+)

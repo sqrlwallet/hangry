@@ -315,4 +315,7 @@
     <string name="nutrition_supplements_delete_body">Its reminders and history are removed too. To stop for now, turn off Currently taking instead.</string>
     <string name="nutrition_supplements_exact_alarm_hint">Reminders may be a few minutes late - allow on-time alarms</string>
     <string name="nutrition_supplements_dose_time">Dose time</string>
+    <string name="nutrition_describe_ai_off">Turn on AI Features in Settings to log a meal from a description, or enter it manually.</string>
+    <string name="nutrition_estimate_ai_off">AI Features are off. Turn them on in Settings to estimate meals automatically.</string>
+    <string name="nutrition_entry_deleted_snackbar">Deleted %1$s</string>
 </resources>

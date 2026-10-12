@@ -6,6 +6,7 @@ import com.kevan.hangry.domain.ai.AiCoachContextBuilder
 import com.kevan.hangry.domain.ai.AiCoachService
 import com.kevan.hangry.domain.ai.AiDefaults
 import com.kevan.hangry.domain.ai.StreamingReply
+import com.kevan.hangry.domain.ai.AiJson
 import com.kevan.hangry.domain.ai.extractJsonPayload
 import com.kevan.hangry.domain.model.CoachAction
 import com.kevan.hangry.domain.model.CoachActionStatus
@@ -202,7 +203,7 @@ $DASH_ACTION_GUIDE
     }
 }
 
-private val coachJson = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+private val coachJson = AiJson
 
 /**
  * Field by field, so one malformed action or journal entry can't turn the whole reply into

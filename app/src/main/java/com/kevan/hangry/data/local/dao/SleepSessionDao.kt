@@ -23,6 +23,10 @@ interface SleepSessionDao {
     @Query("SELECT * FROM sleep_sessions WHERE startTime >= :start AND endTime <= :end ORDER BY startTime DESC")
     suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<SleepSessionEntity>
 
+    /** Sessions that end in [start, end) - a sleep belongs to the day it ends on. */
+    @Query("SELECT * FROM sleep_sessions WHERE endTime >= :start AND endTime < :end ORDER BY startTime DESC")
+    suspend fun getSessionsEndingBetween(start: Instant, end: Instant): List<SleepSessionEntity>
+
     @Query("SELECT * FROM sleep_sessions ORDER BY startTime DESC LIMIT 1")
     fun getLatestSession(): Flow<SleepSessionEntity?>
 

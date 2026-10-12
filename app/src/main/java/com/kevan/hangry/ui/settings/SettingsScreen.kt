@@ -47,6 +47,7 @@ import com.kevan.hangry.domain.repository.StorageBreakdown
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import com.kevan.hangry.ui.bodyage.BirthdayPickerDialog
+import com.kevan.hangry.ui.components.DiscardChangesDialog
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
@@ -95,7 +96,7 @@ fun SettingsScreen(
 
     var showDeleteHealthDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
-    var showEditGoalsDialog by remember { mutableStateOf(false) }
+    var showEditGoalsDialog by rememberSaveable { mutableStateOf(false) }
     var isDeletingHealth by remember { mutableStateOf(false) }
     var isResetting by remember { mutableStateOf(false) }
     var isOptimizingDb by remember { mutableStateOf(false) }
@@ -541,9 +542,10 @@ private fun EditGoalsDialog(
     onSave: (UserProfileEntity, Double?) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
-    var ageInput by remember { mutableStateOf(profile?.age?.toString() ?: "") }
-    var dateOfBirth by remember { mutableStateOf(profile?.dateOfBirth) }
-    var pickingBirthday by remember { mutableStateOf(false) }
+    // Saveable: everything typed here survives rotation and process death.
+    var ageInput by rememberSaveable { mutableStateOf(profile?.age?.toString() ?: "") }
+    var dateOfBirth by rememberSaveable { mutableStateOf(profile?.dateOfBirth) }
+    var pickingBirthday by rememberSaveable { mutableStateOf(false) }
     if (pickingBirthday) {
         BirthdayPickerDialog(initial = dateOfBirth, onDismiss = { pickingBirthday = false }, onPicked = {
             dateOfBirth = it
@@ -551,23 +553,32 @@ private fun EditGoalsDialog(
             pickingBirthday = false
         })
     }
-    var heightInput by remember { mutableStateOf(profile?.heightCm?.toInt()?.toString() ?: "") }
-    var currentWeightInput by remember { mutableStateOf(initialWeightKg?.toString() ?: profile?.currentWeightKg?.toString() ?: "") }
-    var weightGoalInput by remember { mutableStateOf(profile?.weightGoalKg?.toString() ?: "") }
-    var sleepGoalInput by remember {
+    var heightInput by rememberSaveable { mutableStateOf(profile?.heightCm?.toInt()?.toString() ?: "") }
+    var currentWeightInput by rememberSaveable { mutableStateOf(initialWeightKg?.toString() ?: profile?.currentWeightKg?.toString() ?: "") }
+    var weightGoalInput by rememberSaveable { mutableStateOf(profile?.weightGoalKg?.toString() ?: "") }
+    var sleepGoalInput by rememberSaveable {
         mutableStateOf(((profile?.sleepGoalMinutes ?: 480) / 60.0).let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() })
     }
-    var maxHrInput by remember { mutableStateOf(profile?.maxHeartRate?.toString() ?: "") }
-    var selectedSex by remember { mutableStateOf(profile?.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() }) }
-    var targetDate by remember { mutableStateOf(profile?.goalTargetDate) }
-    var neckInput by remember { mutableStateOf(profile?.neckCircumferenceCm?.toString() ?: "") }
-    var chestInput by remember { mutableStateOf(profile?.chestCircumferenceCm?.toString() ?: "") }
-    var waistInput by remember { mutableStateOf(profile?.waistCircumferenceCm?.toString() ?: "") }
-    var hipInput by remember { mutableStateOf(profile?.hipCircumferenceCm?.toString() ?: "") }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var maxHrInput by rememberSaveable { mutableStateOf(profile?.maxHeartRate?.toString() ?: "") }
+    var selectedSex by rememberSaveable { mutableStateOf(profile?.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() }) }
+    var targetDate by rememberSaveable { mutableStateOf(profile?.goalTargetDate) }
+    var neckInput by rememberSaveable { mutableStateOf(profile?.neckCircumferenceCm?.toString() ?: "") }
+    var chestInput by rememberSaveable { mutableStateOf(profile?.chestCircumferenceCm?.toString() ?: "") }
+    var waistInput by rememberSaveable { mutableStateOf(profile?.waistCircumferenceCm?.toString() ?: "") }
+    var hipInput by rememberSaveable { mutableStateOf(profile?.hipCircumferenceCm?.toString() ?: "") }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var confirmingDiscard by rememberSaveable { mutableStateOf(false) }
+
+    val currentFields = arrayListOf(
+        ageInput, dateOfBirth?.toString(), heightInput, currentWeightInput, weightGoalInput, sleepGoalInput,
+        maxHrInput, selectedSex?.name, targetDate?.toString(), neckInput, chestInput, waistInput, hipInput
+    )
+    // What the dialog opened with, kept across rotation so "unsaved changes" stays accurate.
+    val initialFields = rememberSaveable { currentFields }
+    val requestDismiss = { if (currentFields != initialFields) confirmingDiscard = true else onDismiss() }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = requestDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.settings_goals_body_metrics), modifier = Modifier.weight(1f, fill = false))
@@ -781,7 +792,7 @@ private fun EditGoalsDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = requestDismiss) {
                 Text(stringResource(R.string.cancel))
             }
         }
@@ -812,6 +823,16 @@ private fun EditGoalsDialog(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    if (confirmingDiscard) {
+        DiscardChangesDialog(
+            onDiscard = {
+                confirmingDiscard = false
+                onDismiss()
+            },
+            onKeepEditing = { confirmingDiscard = false }
+        )
     }
 }
 

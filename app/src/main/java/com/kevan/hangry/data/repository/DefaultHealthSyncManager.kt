@@ -12,11 +12,13 @@ import com.kevan.hangry.data.local.entity.SUMMARY_CALCULATION_VERSION
 import com.kevan.hangry.data.local.entity.SyncStateEntity
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
+import com.kevan.hangry.data.local.entity.HeartRateSampleEntity
+import com.kevan.hangry.data.local.entity.HeightMeasurementEntity
+import com.kevan.hangry.data.local.entity.HrvMeasurementEntity
+import com.kevan.hangry.data.local.entity.RestingHeartRateEntity
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
-import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.NutritionRecord
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.DayMetrics
@@ -63,12 +65,12 @@ class DefaultHealthSyncManager(
     private val strainCalculator: StrainCalculator,
     private val calorieCalculator: CalorieCalculator,
     /** Remembers one-time data fixes that have run; null in tests. */
-    private val prefs: android.content.SharedPreferences? = null
-) : HealthSyncManager {
-
+    private val prefs: android.content.SharedPreferences? = null,
     // Every "what day is it" / day-boundary computation in this class uses the device's local
-    // zone, matching DashboardViewModel - a day starts at local midnight, not UTC midnight.
-    private val zone = ZoneId.systemDefault()
+    // zone, matching DashboardViewModel - a day starts at local midnight, not UTC midnight. Read
+    // at the start of each sync or recalculation, so travelling moves the day boundaries too.
+    private val zoneProvider: () -> ZoneId = { ZoneId.systemDefault() }
+) : HealthSyncManager {
 
     // Serializes syncHistorical/recalculateAllBaselines so the periodic background worker and
     // a manual trigger (or two manual triggers) can never interleave writes to the same days -
@@ -79,6 +81,7 @@ class DefaultHealthSyncManager(
       syncMutex.withLock {
         emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "INITIALIZING"))
 
+        val zone = zoneProvider()
         val today = LocalDate.now(zone)
         val startDate = if (days <= 0) {
             val earliestInHc = try {
@@ -108,58 +111,68 @@ class DefaultHealthSyncManager(
         // means "deleted" for the last 30 days - older local history is left alone.
         val granted = runCatching { dataSource.grantedPermissions() }.getOrDefault(emptySet())
         val canSeeAllHistory = RealHealthConnectDataSource.PERMISSION_READ_HEALTH_DATA_HISTORY in granted
-        // The nutrition read returns nothing on failure, so only trust an empty-looking window
-        // when access is there and something came back.
-        val canReadMeals = HealthPermission.getReadPermission(NutritionRecord::class) in granted
+        // Each type is read only with its own permission. A type that isn't granted is skipped -
+        // nothing read, nothing stored removed - instead of failing the whole sync.
+        val readable = HealthSyncPlan.readableTypes(granted)
         val fullyVisibleFrom = today.minusDays(29)
 
         try {
+            // Health Connect missing (uninstalled, disabled, mid-update) or no access at all is a
+            // failed sync, never an empty one - an empty read would look like everything deleted.
+            if (!dataSource.isAvailable()) throw IllegalStateException("Health Connect isn't available right now")
+            if (readable.isEmpty()) throw SecurityException("No Health Connect data can be read")
+
             for ((chunkIndex, chunk) in chunks.withIndex()) {
                 val (chunkStart, chunkEnd) = chunk
                 // Apply a 2-hour overlap window to catch late-arriving records
                 val chunkStartInstant = chunkStart.atStartOfDay(zone).toInstant().minus(2, ChronoUnit.HOURS)
                 val chunkEndInstant = chunkEnd.plusDays(1).atStartOfDay(zone).toInstant()
 
+                // The day-based reads (resting HR, HRV) cover whole local days, no overlap.
+                val chunkDaysStart = chunkStart.atStartOfDay(zone).toInstant()
+
                 val chunkLabel = "Batch ${chunkIndex + 1}/${chunks.size}"
 
+                // Null = not granted, so not read. A read that fails throws and fails the sync,
+                // so a list here is always a complete read of its window.
                 // 1. Sleep Sessions
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Sleep)"))
-                val sleepSessions = dataSource.fetchSleepSessions(chunkStartInstant, chunkEndInstant)
+                val sleepSessions = if (SyncedType.SLEEP in readable) dataSource.fetchSleepSessions(chunkStartInstant, chunkEndInstant) else null
 
                 // 2. Exercise Sessions
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Workouts)"))
-                val workouts = dataSource.fetchExerciseSessions(chunkStartInstant, chunkEndInstant)
+                val workouts = if (SyncedType.WORKOUTS in readable) dataSource.fetchExerciseSessions(chunkStartInstant, chunkEndInstant) else null
 
                 // 3. Resting Heart Rate
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Resting HR)"))
-                val rhrRecords = dataSource.fetchRestingHeartRates(chunkStart, chunkEnd)
+                val rhrRecords = if (SyncedType.RESTING_HEART_RATE in readable) dataSource.fetchRestingHeartRates(chunkStart, chunkEnd) else null
 
                 // 4. HRV RMSSD
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (HRV)"))
-                val hrvRecords = dataSource.fetchHrvMeasurements(chunkStart, chunkEnd)
+                val hrvRecords = if (SyncedType.HRV in readable) dataSource.fetchHrvMeasurements(chunkStart, chunkEnd) else null
 
                 // 5. Steps & Activity
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Steps)"))
-                val stepsRecords = dataSource.fetchStepsSummaries(chunkStart, chunkEnd)
+                val stepsRecords = if (SyncedType.STEPS in readable) dataSource.fetchStepsSummaries(chunkStart, chunkEnd) else null
 
                 // 6. Continuous Heart Rate Samples (Wear OS / Galaxy Watch / Fitbit continuous HR)
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Heart Rate)"))
-                val hrRecords = dataSource.fetchHeartRateSamples(chunkStartInstant, chunkEndInstant)
+                val hrRecords = if (SyncedType.HEART_RATE in readable) dataSource.fetchHeartRateSamples(chunkStartInstant, chunkEndInstant) else null
 
                 // 7. Weight & Height Measurements
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Weight)"))
-                val weightRecords = dataSource.fetchWeightMeasurements(chunkStartInstant, chunkEndInstant)
-                val heightRecords = dataSource.fetchHeightMeasurements(chunkStartInstant, chunkEndInstant)
+                val weightRecords = if (SyncedType.WEIGHT in readable) dataSource.fetchWeightMeasurements(chunkStartInstant, chunkEndInstant) else null
+                val heightRecords = if (SyncedType.HEIGHT in readable) dataSource.fetchHeightMeasurements(chunkStartInstant, chunkEndInstant) else null
 
                 // 8. External Nutrition Records
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Nutrition)"))
-                val nutritionRecords = dataSource.fetchNutritionRecords(chunkStartInstant, chunkEndInstant)
+                val nutritionRecords = if (SyncedType.NUTRITION in readable) dataSource.fetchNutritionRecords(chunkStartInstant, chunkEndInstant) else null
 
                 // 9. Vitals & Cardio Fitness (SpO2, VO2 Max, Respiratory Rate, Blood Pressure)
                 emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "$chunkLabel (Vitals)"))
 
-                val chunkRead = sleepSessions.size + workouts.size + rhrRecords.size + hrvRecords.size +
-                    stepsRecords.size + hrRecords.size + weightRecords.size + heightRecords.size + nutritionRecords.size
+                val chunkRead = listOf(sleepSessions, workouts, rhrRecords, hrvRecords, stepsRecords, hrRecords,
+                    weightRecords, heightRecords, nutritionRecords).sumOf { it?.size ?: 0 }
                 totalRead += chunkRead
 
                 // Perform all database writes for this chunk in an atomic transaction
@@ -167,47 +180,62 @@ class DefaultHealthSyncManager(
                 database.withTransaction {
                     // Drop what's no longer in Health Connect for this window: records deleted or
                     // edited at the source, and copies another app already reported (the fetch
-                    // keeps one copy per event - see HealthDedup).
-                    if (canSeeAllHistory || !chunkStart.isBefore(fullyVisibleFrom)) {
-                        removeStale(chunkStartInstant, chunkEndInstant, sleepSessions, workouts, weightRecords,
-                            nutritionRecords.takeIf { canReadMeals && it.isNotEmpty() })
+                    // keeps one copy per event - see HealthDedup). Types not read are left alone.
+                    val windowVisible = canSeeAllHistory || !chunkStart.isBefore(fullyVisibleFrom)
+                    if (windowVisible) {
+                        removeStale(
+                            from = chunkStartInstant,
+                            to = chunkEndInstant,
+                            daysFrom = chunkDaysStart,
+                            sleep = sleepSessions,
+                            workouts = workouts,
+                            weights = weightRecords,
+                            // The nutrition read returns nothing on failure, so only trust an
+                            // empty-looking window when something came back.
+                            meals = nutritionRecords?.takeIf { it.isNotEmpty() },
+                            restingHr = rhrRecords,
+                            hrv = hrvRecords,
+                            heartRate = hrRecords,
+                            heights = heightRecords
+                        )
                     }
-                    val sleepInserted = database.sleepSessionDao().insertOrIgnore(sleepSessions)
+                    val sleepInserted = database.sleepSessionDao().insertOrIgnore(sleepSessions.orEmpty())
                     chunkInserted += sleepInserted.count { it != -1L }
                     // Nights saved before stage timelines were kept get theirs now.
-                    sleepSessions.forEach { session ->
+                    sleepSessions.orEmpty().forEach { session ->
                         session.stageSegments?.let { database.sleepSessionDao().fillStageSegments(session.recordFingerprint, it) }
                     }
 
-                    val workoutInserted = database.exerciseSessionDao().insertOrIgnore(workouts)
+                    val workoutInserted = database.exerciseSessionDao().insertOrIgnore(workouts.orEmpty())
                     chunkInserted += workoutInserted.count { it != -1L }
                     // Already-saved workouts are refreshed too, so edits and newly read details land.
-                    workouts.forEach { database.exerciseSessionDao().updateDetails(it) }
+                    workouts.orEmpty().forEach { database.exerciseSessionDao().updateDetails(it) }
 
-                    val rhrInserted = database.restingHeartRateDao().insertOrIgnore(rhrRecords)
+                    val rhrInserted = database.restingHeartRateDao().insertOrIgnore(rhrRecords.orEmpty())
                     chunkInserted += rhrInserted.count { it != -1L }
 
-                    val hrvInserted = database.hrvDao().insertOrIgnore(hrvRecords)
+                    val hrvInserted = database.hrvDao().insertOrIgnore(hrvRecords.orEmpty())
                     chunkInserted += hrvInserted.count { it != -1L }
 
-                    // Older days Health Connect can't show (no full-history access) keep what's stored.
-                    if (canSeeAllHistory || !chunkStart.isBefore(fullyVisibleFrom)) {
+                    // Older days Health Connect can't show (no full-history access) keep what's
+                    // stored, and so do steps when they weren't read.
+                    if (stepsRecords != null && windowVisible) {
                         database.stepsDao().deleteBetween(chunkStart, chunkEnd)
                     }
-                    val stepsInserted = database.stepsDao().insertOrIgnore(stepsRecords)
+                    val stepsInserted = database.stepsDao().insertOrIgnore(stepsRecords.orEmpty())
                     chunkInserted += stepsInserted.count { it != -1L }
 
-                    val hrInserted = database.heartRateDao().insertOrIgnore(hrRecords)
+                    val hrInserted = database.heartRateDao().insertOrIgnore(hrRecords.orEmpty())
                     chunkInserted += hrInserted.count { it != -1L }
-                    workouts.forEach { applyWorkoutHeartRate(it) }
+                    workouts.orEmpty().forEach { applyWorkoutHeartRate(it) }
 
-                    val weightInserted = database.weightDao().insertOrIgnore(weightRecords)
+                    val weightInserted = database.weightDao().insertOrIgnore(weightRecords.orEmpty())
                     chunkInserted += weightInserted.count { it != -1L }
 
-                    val heightInserted = database.heightDao().insertOrIgnore(heightRecords)
+                    val heightInserted = database.heightDao().insertOrIgnore(heightRecords.orEmpty())
                     chunkInserted += heightInserted.count { it != -1L }
 
-                    val nutritionInserted = database.foodLogDao().insertOrIgnore(nutritionRecords)
+                    val nutritionInserted = database.foodLogDao().insertOrIgnore(nutritionRecords.orEmpty())
                     chunkInserted += nutritionInserted.count { it != -1L }
 
                     // Update SyncStateEntity checkpoint
@@ -230,7 +258,7 @@ class DefaultHealthSyncManager(
 
             // 6. Calculate Derived Daily Summaries & Recovery Scores across affected range
             emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "CALCULATIONS"))
-            computeDailySummaries(startDate, today)
+            computeDailySummaries(startDate, today, zone)
 
             // Final SyncState update
             database.syncStateDao().insertOrReplace(
@@ -287,6 +315,7 @@ class DefaultHealthSyncManager(
     override fun recalculateAllBaselines(): Flow<SyncProgress> = flow {
       syncMutex.withLock {
         emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "SCANNING_RECORDS"))
+        val zone = zoneProvider()
         val today = LocalDate.now(zone)
         val earliestSteps = database.stepsDao().getEarliestDate()
         val oldestSleep = database.sleepSessionDao().getOldestSession()?.startTime?.atZone(zone)?.toLocalDate()
@@ -295,32 +324,77 @@ class DefaultHealthSyncManager(
         val earliestDate = listOfNotNull(earliestSteps, oldestSleep, oldestExercise).minOrNull() ?: today.minusDays(28)
 
         emit(SyncProgress(status = SyncStatus.IN_PROGRESS, currentDataType = "CALCULATING_HISTORICAL_DAYS"))
-        computeDailySummaries(earliestDate, today)
+        computeDailySummaries(earliestDate, today, zone)
         emit(SyncProgress(status = SyncStatus.SUCCESS, currentDataType = "DONE"))
       }
     }.flowOn(Dispatchers.IO)
 
+    /**
+     * Drops what a complete read of a window no longer has. A null list means that type wasn't
+     * read, so nothing of it is touched. [from]..[to] is the instant window that was read;
+     * [daysFrom]..[to] the whole-day window of resting heart rate and HRV.
+     */
     private suspend fun removeStale(
         from: Instant,
         to: Instant,
-        sleep: List<SleepSessionEntity>,
-        workouts: List<ExerciseSessionEntity>,
-        weights: List<WeightMeasurementEntity>,
-        meals: List<FoodLogEntity>?
+        daysFrom: Instant,
+        sleep: List<SleepSessionEntity>?,
+        workouts: List<ExerciseSessionEntity>?,
+        weights: List<WeightMeasurementEntity>?,
+        meals: List<FoodLogEntity>?,
+        restingHr: List<RestingHeartRateEntity>?,
+        hrv: List<HrvMeasurementEntity>?,
+        heartRate: List<HeartRateSampleEntity>?,
+        heights: List<HeightMeasurementEntity>?
     ) {
-        val sleepDao = database.sleepSessionDao()
-        (sleepDao.getImportedFingerprintsStartingBetween(from, to) - sleep.map { it.recordFingerprint }.toSet())
-            .chunked(500).forEach { sleepDao.deleteByFingerprints(it) }
-        val workoutDao = database.exerciseSessionDao()
-        (workoutDao.getImportedFingerprintsStartingBetween(from, to) - workouts.map { it.recordFingerprint }.toSet())
-            .chunked(500).forEach { workoutDao.deleteByFingerprints(it) }
-        val weightDao = database.weightDao()
-        (weightDao.getImportedFingerprintsBetween(from, to) - weights.map { it.recordFingerprint }.toSet())
-            .chunked(500).forEach { weightDao.deleteByFingerprints(it) }
-        if (meals == null) return
-        val foodDao = database.foodLogDao()
-        (foodDao.getImportedIdsBetween(FoodLogSource.HEALTH_CONNECT, from, to) - meals.mapNotNull { it.sourceRecordId }.toSet())
-            .chunked(500).forEach { foodDao.deleteBySourceRecordIds(it) }
+        if (sleep != null) {
+            val dao = database.sleepSessionDao()
+            HealthSyncPlan.stale(dao.getImportedFingerprintsStartingBetween(from, to), sleep.map { it.recordFingerprint })
+                .chunked(500).forEach { dao.deleteByFingerprints(it) }
+        }
+        if (workouts != null) {
+            val dao = database.exerciseSessionDao()
+            HealthSyncPlan.stale(dao.getImportedFingerprintsStartingBetween(from, to), workouts.map { it.recordFingerprint })
+                .chunked(500).forEach { dao.deleteByFingerprints(it) }
+        }
+        if (weights != null) {
+            val dao = database.weightDao()
+            HealthSyncPlan.stale(dao.getImportedFingerprintsBetween(from, to), weights.map { it.recordFingerprint })
+                .chunked(500).forEach { dao.deleteByFingerprints(it) }
+        }
+        if (restingHr != null) {
+            val dao = database.restingHeartRateDao()
+            HealthSyncPlan.stale(dao.getImportedFingerprintsBetween(daysFrom, to), restingHr.map { it.recordFingerprint })
+                .chunked(500).forEach { dao.deleteByFingerprints(it) }
+        }
+        if (hrv != null) {
+            val dao = database.hrvDao()
+            HealthSyncPlan.stale(dao.getImportedFingerprintsBetween(daysFrom, to), hrv.map { it.recordFingerprint })
+                .chunked(500).forEach { dao.deleteByFingerprints(it) }
+        }
+        if (heights != null) {
+            val dao = database.heightDao()
+            HealthSyncPlan.stale(dao.getImportedFingerprintsBetween(from, to), heights.map { it.recordFingerprint })
+                .chunked(500).forEach { dao.deleteByFingerprints(it) }
+        }
+        if (heartRate != null) {
+            val dao = database.heartRateDao()
+            val readIds = heartRate.mapNotNullTo(HashSet()) { it.sourceRecordId }
+            // Records gone from Health Connect...
+            HealthSyncPlan.staleHeartRateRecords(dao.getImportedRecordSpansBetween(from, to), readIds, from, to)
+                .chunked(500).forEach { dao.deleteByRecordIds(it) }
+            // ...and samples an edit took out of a record that's still there.
+            val readSamples = heartRate.mapTo(HashSet()) { it.recordFingerprint }
+            readIds.toList().chunked(500).forEach { ids ->
+                HealthSyncPlan.stale(dao.getFingerprintsForRecords(ids), readSamples)
+                    .chunked(500).forEach { dao.deleteByFingerprints(it) }
+            }
+        }
+        if (meals != null) {
+            val dao = database.foodLogDao()
+            HealthSyncPlan.stale(dao.getImportedIdsBetween(FoodLogSource.HEALTH_CONNECT, from, to), meals.mapNotNull { it.sourceRecordId })
+                .chunked(500).forEach { dao.deleteBySourceRecordIds(it) }
+        }
     }
 
     /** Average and peak heart rate during a workout, from the continuous samples already saved. */
@@ -365,6 +439,7 @@ class DefaultHealthSyncManager(
     private suspend fun reimportForDedupIfNeeded(): Boolean {
         val prefs = prefs ?: return false
         if (prefs.getInt(KEY_DEDUP_VERSION, 0) >= DEDUP_VERSION) return false
+        val zone = zoneProvider()
         val today = LocalDate.now(zone)
         val oldest = listOfNotNull(
             database.stepsDao().getEarliestDate(),
@@ -378,9 +453,11 @@ class DefaultHealthSyncManager(
         }
         val days = ChronoUnit.DAYS.between(oldest, today).toInt().coerceAtLeast(1)
         val result = syncHistorical(days).lastOrNull()
-        // No access right now (permission, Health Connect missing): try again next launch.
-        if (result?.status == SyncStatus.SUCCESS) prefs.edit().putInt(KEY_DEDUP_VERSION, DEDUP_VERSION).apply()
-        return true
+        // No access right now (permission, Health Connect missing): try again next launch, and
+        // let the caller's own checks run - a failed sync recomputed nothing.
+        val succeeded = HealthSyncPlan.reimportSucceeded(result?.status)
+        if (succeeded) prefs.edit().putInt(KEY_DEDUP_VERSION, DEDUP_VERSION).apply()
+        return succeeded
     }
 
     override suspend fun recalculateIfScoringChanged() {
@@ -399,13 +476,16 @@ class DefaultHealthSyncManager(
         // A full sync covers today anyway; don't queue up behind it.
         if (!syncMutex.tryLock()) return@withContext false
         try {
+            val zone = zoneProvider()
             val today = LocalDate.now(zone)
             // Same 2-hour overlap as a full sync, for records that arrive late.
             val from = today.atStartOfDay(zone).toInstant().minus(2, ChronoUnit.HOURS)
             val to = Instant.now()
-            val heartRate = dataSource.fetchHeartRateSamples(from, to)
-            val workouts = dataSource.fetchExerciseSessions(from, to)
-            val steps = dataSource.fetchStepsSummaries(today, today)
+            // Like a full sync, only what's granted is read.
+            val readable = HealthSyncPlan.readableTypes(dataSource.grantedPermissions())
+            val heartRate = if (SyncedType.HEART_RATE in readable) dataSource.fetchHeartRateSamples(from, to) else emptyList()
+            val workouts = if (SyncedType.WORKOUTS in readable) dataSource.fetchExerciseSessions(from, to) else emptyList()
+            val steps = if (SyncedType.STEPS in readable) dataSource.fetchStepsSummaries(today, today) else emptyList()
             database.withTransaction {
                 database.heartRateDao().insertOrIgnore(heartRate)
                 database.exerciseSessionDao().insertOrIgnore(workouts)
@@ -418,7 +498,7 @@ class DefaultHealthSyncManager(
                     database.stepsDao().insertOrIgnore(steps)
                 }
             }
-            computeDailySummaries(today, today)
+            computeDailySummaries(today, today, zone)
             true
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -546,7 +626,7 @@ class DefaultHealthSyncManager(
      * below), so a quick sync no longer recomputes all of history - that full pass is
      * recalculateAllBaselines(), run when the scoring rules change.
      */
-    private suspend fun computeDailySummaries(start: LocalDate, end: LocalDate) {
+    private suspend fun computeDailySummaries(start: LocalDate, end: LocalDate, zone: ZoneId) {
         val effectiveStart = start
 
         val daysBetween = ChronoUnit.DAYS.between(effectiveStart, end).toInt()
@@ -636,8 +716,9 @@ class DefaultHealthSyncManager(
             val dayStart = date.atStartOfDay(zone).toInstant()
             val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
 
-            val sleepSessions = database.sleepSessionDao().getSessionsBetweenList(dayStart.minus(6, ChronoUnit.HOURS), dayEnd)
-            val primarySleep = sleepSessions.maxByOrNull { it.durationMinutes }
+            // A sleep belongs to the day it ends on - each session to exactly one day.
+            val sleepSessions = database.sleepSessionDao().getSessionsEndingBetween(dayStart, dayEnd)
+            val primarySleep = HealthSyncPlan.primarySleep(date, sleepSessions, zone)
 
             val workouts = database.exerciseSessionDao().getSessionsBetweenList(dayStart, dayEnd)
             val trainingLoad = workouts.sumOf { trainingLoadCalculator.estimateSessionLoad(it) }
@@ -655,9 +736,9 @@ class DefaultHealthSyncManager(
 
             // Real sleep history (fixes the previous behavior of always analyzing sleep with
             // an empty history) so sleep need/performance/consistency are personal-baseline driven.
-            val sleepHistoryForCalc = database.sleepSessionDao().getSessionsBetweenList(
-                dayStart.minus(6, ChronoUnit.HOURS).minus(30, ChronoUnit.DAYS),
-                dayStart.minus(6, ChronoUnit.HOURS)
+            val sleepHistoryForCalc = database.sleepSessionDao().getSessionsEndingBetween(
+                dayStart.minus(30, ChronoUnit.DAYS),
+                dayStart
             )
             val previousDate = date.minusDays(1)
             val prevDaySummary = summaryFor(previousDate)
@@ -719,7 +800,7 @@ class DefaultHealthSyncManager(
                 ?: currentExistingSummary?.takeIf { it.calculationVersion >= SUMMARY_CALCULATION_VERSION }?.restingHeartRate
                 ?: rhr?.restingBpm
                 ?: run {
-                    val rhrWindowEnd = if (date == LocalDate.now()) Instant.now() else dayEnd
+                    val rhrWindowEnd = if (date == LocalDate.now(zone)) Instant.now() else dayEnd
                     val rhrWindowStart = rhrWindowEnd.minus(24, ChronoUnit.HOURS)
                     val awakeSamples = database.heartRateDao().getSamplesBetweenList(rhrWindowStart, rhrWindowEnd)
                         .filter { s -> sleepOverlappingDay.none { !s.timestamp.isBefore(it.startTime) && s.timestamp.isBefore(it.endTime) } }

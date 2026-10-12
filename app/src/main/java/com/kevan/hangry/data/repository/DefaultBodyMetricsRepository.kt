@@ -2,12 +2,15 @@ package com.kevan.hangry.data.repository
 
 import com.kevan.hangry.data.local.dao.DailyHealthSummaryDao
 import com.kevan.hangry.data.local.dao.ExerciseSessionDao
+import com.kevan.hangry.data.local.dao.FoodLogDao
 import com.kevan.hangry.data.local.dao.HeightDao
 import com.kevan.hangry.data.local.dao.WeightDao
 import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
+import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.UserProfileEntity
+import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.domain.calculation.BodyMetricsCalculator
 import com.kevan.hangry.domain.calculation.EnergyBalanceCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
@@ -18,6 +21,7 @@ import com.kevan.hangry.domain.repository.BodyMetricsRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -28,6 +32,7 @@ class DefaultBodyMetricsRepository(
     private val bodyFatRepository: BodyFatRepository,
     private val dailyHealthSummaryDao: DailyHealthSummaryDao,
     private val exerciseSessionDao: ExerciseSessionDao,
+    private val foodLogDao: FoodLogDao,
     private val bodyMetricsCalculator: BodyMetricsCalculator,
     private val energyBalanceCalculator: EnergyBalanceCalculator,
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -38,6 +43,7 @@ class DefaultBodyMetricsRepository(
         val summariesStart: LocalDate = today.minusDays(14)
         val end: LocalDate = today.minusDays(1)
         val workoutsStart: LocalDate = today.minusDays(EnergyBalanceCalculator.WINDOW_DAYS.toLong())
+        val adaptiveStart: LocalDate = today.minusDays(EnergyBalanceCalculator.ADAPTIVE_WINDOW_DAYS.toLong())
     }
 
     override fun observe(): Flow<BodyMetricsSnapshot> {
@@ -51,8 +57,10 @@ class DefaultBodyMetricsRepository(
         return combine(
             measurements,
             dailyHealthSummaryDao.getSummariesBetween(w.summariesStart, w.end),
-            exerciseSessionDao.getSessionsBetween(w.workoutsStart.atStartOfDay(zone).toInstant(), w.today.atStartOfDay(zone).toInstant())
-        ) { m, summaries, workouts -> build(w.today, m, summaries, workouts) }
+            exerciseSessionDao.getSessionsBetween(w.workoutsStart.atStartOfDay(zone).toInstant(), w.today.atStartOfDay(zone).toInstant()),
+            foodLogDao.getBetween(w.adaptiveStart, w.end),
+            weightDao.getAllWeights()
+        ) { m, summaries, workouts, foodLogs, weights -> build(w.today, m, summaries, workouts, foodLogs, weights) }
     }
 
     override suspend fun current(): BodyMetricsSnapshot {
@@ -69,7 +77,9 @@ class DefaultBodyMetricsRepository(
             summaries = dailyHealthSummaryDao.getSummariesBetweenList(w.summariesStart, w.end),
             workouts = exerciseSessionDao.getSessionsBetweenList(
                 w.workoutsStart.atStartOfDay(zone).toInstant(), w.today.atStartOfDay(zone).toInstant()
-            )
+            ),
+            foodLogs = foodLogDao.getBetweenList(w.adaptiveStart, w.end),
+            weights = weightDao.getAllWeights().first()
         )
     }
 
@@ -84,7 +94,9 @@ class DefaultBodyMetricsRepository(
         today: LocalDate,
         m: Measurements,
         summaries: List<DailyHealthSummaryEntity>,
-        workouts: List<ExerciseSessionEntity>
+        workouts: List<ExerciseSessionEntity>,
+        foodLogs: List<FoodLogEntity>,
+        weights: List<WeightMeasurementEntity>
     ): BodyMetricsSnapshot {
         val profile = m.profile
         val weightKg = m.latestWeightKg ?: profile?.currentWeightKg
@@ -107,7 +119,9 @@ class DefaultBodyMetricsRepository(
             measuredBodyFatPercent = m.scan
                 ?.takeIf { it.method in setOf("NAVY_CIRCUMFERENCE", "AI_MULTIMODAL", "REPORTED") }
                 ?.takeIf { !it.date.isBefore(today.minusDays(90)) }
-                ?.bodyFatPercentage
+                ?.bodyFatPercentage,
+            foodLogs = foodLogs,
+            weights = weights
         )
         val input = BodyMetricsInput(
             heightCm = heightCm,

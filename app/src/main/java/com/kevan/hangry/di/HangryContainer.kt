@@ -136,6 +136,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             bodyFatRepository = bodyFatRepository,
             dailyHealthSummaryDao = database.dailyHealthSummaryDao(),
             exerciseSessionDao = database.exerciseSessionDao(),
+            foodLogDao = database.foodLogDao(),
             bodyMetricsCalculator = bodyMetricsCalculator,
             energyBalanceCalculator = energyBalanceCalculator
         )

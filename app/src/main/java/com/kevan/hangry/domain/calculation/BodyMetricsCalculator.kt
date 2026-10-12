@@ -614,10 +614,10 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
     private fun maintenanceCalories(c: Derived): BodyMetric {
         val info = { how: String ->
             MetricInfo(
-                whatItIs = "How many calories you can eat per day to stay at your current weight, based on how you actually lived the last 7 days.",
+                whatItIs = "How many calories you can eat per day to stay at your current weight, based on how you actually lived recently - and, once you've logged enough meals and weigh-ins, on what your weight actually did.",
                 howCalculated = how,
                 whyItMatters = "It's the anchor for every nutrition goal: eat at it to maintain, below it to lose fat, above it to gain. Because it uses your own steps and workouts, it moves with you - a more active week raises it.",
-                source = "BMR (Katch–McArdle with a recent body-fat scan, else Mifflin–St Jeor) for the time you weren't active, plus every step (~0.5 kcal per kg per km walked, plus resting burn while walking) and every workout in full, plus 10% for digesting food (thermic effect of food)."
+                source = "BMR (Katch–McArdle with a recent body-fat scan, else Mifflin–St Jeor) for the time you weren't active, plus every step (~0.5 kcal per kg per km walked, plus resting burn while walking) and every workout in full, plus 10% for digesting food (thermic effect of food). With 14+ fully-logged days and a weight trend over the last 28 days, it's blended with average intake − weight change × 7,700 kcal/kg."
             )
         }
         val result = c.input.energy
@@ -634,7 +634,8 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
             "• Steps: ${f(e.avgCountedSteps, 0)} steps outside workouts × ${f(e.kcalPerStep, 3)} kcal = ${f(e.stepKcal, 0)} kcal\n" +
             "• Workouts: ${e.workoutsCounted} session(s), averaging ${f(e.avgWorkoutKcal, 0)} kcal per day, counted in full\n" +
             "• Digesting food (thermic effect, 10%): ${f(e.tefKcal, 0)} kcal\n" +
-            "= ${f(e.maintenanceKcal, 0)} kcal/day." + if (notes.isNotEmpty()) "\n$notes" else ""
+            "= ${f(e.formulaMaintenanceKcal, 0)} kcal/day from activity.\n" + adaptiveHow(e) +
+            if (notes.isNotEmpty()) "\n$notes" else ""
         return BodyMetric(
             id = "maintenance",
             name = "Maintenance calories",
@@ -645,12 +646,21 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
         )
     }
 
+    private fun adaptiveHow(e: com.kevan.hangry.domain.model.EnergyBalanceEstimate): String {
+        val a = e.adaptive ?: return "Learning from your logs: needs ${e.adaptiveMissing ?: "more food logs and weigh-ins"}. Until then this is the activity estimate."
+        val change = a.weeklyWeightChangeKg
+        return "From your logs (${a.windowStart} to ${a.windowEnd}): you ate ${f(a.avgIntakeKcal, 0)} kcal/day on ${a.loggedDays} fully-logged days " +
+            "and your weight trend ${if (change < 0) "fell" else "rose"} ${f(kotlin.math.abs(change), 2)} kg/week across ${a.weighIns} weigh-ins, " +
+            "so you burnt about ${f(a.maintenanceKcal, 0)} kcal/day.\n" +
+            "Blended ${f(a.weight * 100, 0)}% from your logs, ${f((1 - a.weight) * 100, 0)}% from activity = ${f(e.maintenanceKcal, 0)} kcal/day."
+    }
+
     private fun goalCalories(c: Derived): BodyMetric {
         val info = { how: String ->
             MetricInfo(
                 whatItIs = "How much to eat each day to reach your goal weight by your target date.",
                 howCalculated = how,
-                whyItMatters = "It turns a goal into a daily number. Aggressive timelines are capped at about 0.7 kg per week (and never below 1,200 kcal) so you lose fat, not muscle.",
+                whyItMatters = "It turns a goal into a daily number. Losing is capped at about 1% of your weight a week (at most 750 kcal/day) and never below your resting burn or 1,500 kcal (men) / 1,200 kcal (women); gaining is capped at about 0.5% a week, so you lose fat and gain muscle rather than the other way round.",
                 source = "~7,700 kcal per kg of body fat, applied evenly across the days until your target date."
             )
         }

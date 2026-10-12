@@ -1,6 +1,7 @@
 package com.kevan.hangry.ui.nutrition
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,18 +10,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.calculation.NutritionTargets
@@ -91,7 +95,7 @@ fun WeeklyReviewSheet(
                     modifier = Modifier.padding(vertical = HangryTokens.Spacing.s)
                 )
                 else -> {
-                    AveragesGrid(summary, state.calorieTarget)
+                    AveragesList(summary, state.calorieTarget)
 
                     if (state.aiAvailable) {
                         when {
@@ -121,8 +125,15 @@ fun WeeklyReviewSheet(
                     }
 
                     if (state.tips.isNotEmpty()) {
-                        SectionTitle(if (state.aiReview != null) stringResource(R.string.nutrition_weekly_by_numbers) else stringResource(R.string.nutrition_weekly_recommendations))
-                        state.tips.forEach { tip -> ReviewCard(title = tip.title, body = tip.body) }
+                        if (state.aiReview != null) {
+                            // Dash's review already covers these - keep them one tap away, not repeated.
+                            ExpandableSection(title = stringResource(R.string.nutrition_weekly_by_numbers_count, state.tips.size)) {
+                                state.tips.forEach { tip -> ReviewItem(title = tip.title, body = tip.body) }
+                            }
+                        } else {
+                            SectionTitle(stringResource(R.string.nutrition_weekly_recommendations))
+                            state.tips.forEach { tip -> ReviewCard(title = tip.title, body = tip.body) }
+                        }
                     }
 
                     FiberGuideSection()
@@ -147,67 +158,159 @@ private fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = LocalHangryTokens.current.textPrimary)
 }
 
-/** Daily averages against target, one tile per nutrient. */
+private enum class NutrientStatus { ON_TARGET, LOW, HIGH, UNDER_LIMIT, OVER_LIMIT }
+
+/**
+ * Where a daily average sits against its goal. [band] is how far either side still counts as
+ * on target; minimums (protein, fiber) are never "high", limits (sodium) are pass/fail.
+ */
+private fun nutrientStatus(current: Double, goal: Double?, band: Double, kind: GoalKind): NutrientStatus? {
+    if (goal == null || goal <= 0) return null
+    val ratio = current / goal
+    return when (kind) {
+        GoalKind.LIMIT -> if (ratio <= 1.0) NutrientStatus.UNDER_LIMIT else NutrientStatus.OVER_LIMIT
+        GoalKind.MINIMUM -> if (ratio >= 1 - band) NutrientStatus.ON_TARGET else NutrientStatus.LOW
+        GoalKind.TARGET -> when {
+            ratio < 1 - band -> NutrientStatus.LOW
+            ratio > 1 + band -> NutrientStatus.HIGH
+            else -> NutrientStatus.ON_TARGET
+        }
+    }
+}
+
+private enum class GoalKind { TARGET, MINIMUM, LIMIT }
+
+/** Daily averages against target: one full-width row per nutrient, with a status at the end. */
 @Composable
-private fun AveragesGrid(summary: NutritionWeekSummary, calorieTarget: Int?) {
+private fun AveragesList(summary: NutritionWeekSummary, calorieTarget: Int?) {
     val tokens = LocalHangryTokens.current
     val macros = NutritionTargets.macros(calorieTarget)
     val fiberTarget = NutritionTargets.fiberG(calorieTarget)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.nutrition_weekly_daily_average), style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AverageTile(stringResource(R.string.nutrition_field_calories), "${summary.avgCalories}", calorieTarget?.let { stringResource(R.string.nutrition_weekly_of_kcal, it) } ?: stringResource(R.string.nutrition_kcal_unit),
-                summary.avgCalories.toDouble(), calorieTarget?.toDouble(), tokens.macroColors.calories, Modifier.weight(1f))
-            AverageTile(stringResource(R.string.nutrition_macro_protein), stringResource(R.string.nutrition_grams, summary.avgProteinG.roundToInt()), macros?.let { stringResource(R.string.nutrition_weekly_of_grams, it.proteinG.roundToInt()) } ?: "",
-                summary.avgProteinG, macros?.proteinG, tokens.macroColors.protein, Modifier.weight(1f))
-            AverageTile(stringResource(R.string.nutrition_macro_fiber), stringResource(R.string.nutrition_grams, summary.avgFiberG.roundToInt()), stringResource(R.string.nutrition_weekly_of_grams, fiberTarget.roundToInt()),
-                summary.avgFiberG, fiberTarget, tokens.macroColors.fiber, Modifier.weight(1f))
+    val grams: @Composable (Double) -> String = { g -> stringResource(R.string.nutrition_grams, g.roundToInt()) }
+    Surface(
+        color = tokens.textSecondary.copy(alpha = 0.06f),
+        shape = RoundedCornerShape(HangryTokens.CornerRadii.medium),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.nutrition_weekly_daily_average), style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
+            NutrientRow(
+                label = stringResource(R.string.nutrition_field_calories),
+                value = "${summary.avgCalories}",
+                goal = calorieTarget?.let { stringResource(R.string.nutrition_weekly_kcal_value, it) },
+                current = summary.avgCalories.toDouble(), goalValue = calorieTarget?.toDouble(),
+                status = nutrientStatus(summary.avgCalories.toDouble(), calorieTarget?.toDouble(), 0.10, GoalKind.TARGET),
+                color = tokens.macroColors.calories, emphasized = true
+            )
+            NutrientRow(
+                label = stringResource(R.string.nutrition_macro_protein), value = grams(summary.avgProteinG),
+                goal = macros?.let { grams(it.proteinG) }, current = summary.avgProteinG, goalValue = macros?.proteinG,
+                status = nutrientStatus(summary.avgProteinG, macros?.proteinG, 0.10, GoalKind.MINIMUM),
+                color = tokens.macroColors.protein
+            )
+            NutrientRow(
+                label = stringResource(R.string.nutrition_macro_fiber), value = grams(summary.avgFiberG),
+                goal = grams(fiberTarget), current = summary.avgFiberG, goalValue = fiberTarget,
+                status = nutrientStatus(summary.avgFiberG, fiberTarget, 0.10, GoalKind.MINIMUM),
+                color = tokens.macroColors.fiber
+            )
+            NutrientRow(
+                label = stringResource(R.string.nutrition_macro_carbs), value = grams(summary.avgCarbsG),
+                goal = macros?.let { grams(it.carbsG) }, current = summary.avgCarbsG, goalValue = macros?.carbsG,
+                status = nutrientStatus(summary.avgCarbsG, macros?.carbsG, 0.20, GoalKind.TARGET),
+                color = tokens.macroColors.carbs
+            )
+            NutrientRow(
+                label = stringResource(R.string.nutrition_macro_fat), value = grams(summary.avgFatG),
+                goal = macros?.let { grams(it.fatG) }, current = summary.avgFatG, goalValue = macros?.fatG,
+                status = nutrientStatus(summary.avgFatG, macros?.fatG, 0.20, GoalKind.TARGET),
+                color = tokens.macroColors.fat
+            )
+            NutrientRow(
+                label = stringResource(R.string.nutrition_weekly_sodium),
+                value = stringResource(R.string.nutrition_mg, summary.avgSodiumMg.roundToInt()),
+                goal = stringResource(R.string.nutrition_mg, SODIUM_LIMIT_MG.roundToInt()),
+                current = summary.avgSodiumMg, goalValue = SODIUM_LIMIT_MG,
+                status = nutrientStatus(summary.avgSodiumMg, SODIUM_LIMIT_MG, 0.0, GoalKind.LIMIT),
+                color = tokens.textSecondary
+            )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AverageTile(stringResource(R.string.nutrition_macro_carbs), stringResource(R.string.nutrition_grams, summary.avgCarbsG.roundToInt()), macros?.let { stringResource(R.string.nutrition_weekly_of_grams, it.carbsG.roundToInt()) } ?: "",
-                summary.avgCarbsG, macros?.carbsG, tokens.macroColors.carbs, Modifier.weight(1f))
-            AverageTile(stringResource(R.string.nutrition_macro_fat), stringResource(R.string.nutrition_grams, summary.avgFatG.roundToInt()), macros?.let { stringResource(R.string.nutrition_weekly_of_grams, it.fatG.roundToInt()) } ?: "",
-                summary.avgFatG, macros?.fatG, tokens.macroColors.fat, Modifier.weight(1f))
-            AverageTile(stringResource(R.string.nutrition_weekly_sodium), stringResource(R.string.nutrition_mg, summary.avgSodiumMg.roundToInt()), stringResource(R.string.nutrition_weekly_sodium_limit),
-                summary.avgSodiumMg, 2300.0, tokens.textSecondary, Modifier.weight(1f))
+    }
+}
+
+private const val SODIUM_LIMIT_MG = 2300.0
+
+@Composable
+private fun NutrientRow(
+    label: String,
+    value: String,
+    goal: String?,
+    current: Double,
+    goalValue: Double?,
+    status: NutrientStatus?,
+    color: Color,
+    emphasized: Boolean = false
+) {
+    val tokens = LocalHangryTokens.current
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(color))
+            Spacer(Modifier.width(8.dp))
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+            Text(
+                value,
+                style = if (emphasized) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = tokens.textPrimary
+            )
+            Text(
+                goal?.let { stringResource(R.string.nutrition_weekly_slash_goal, it) } ?: stringResource(R.string.nutrition_weekly_no_target),
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textMuted
+            )
+            if (status != null) {
+                Spacer(Modifier.width(8.dp))
+                StatusChip(status)
+            }
+        }
+        if (goalValue != null && goalValue > 0) {
+            LinearProgressIndicator(
+                progress = { (current / goalValue).toFloat().coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(if (emphasized) 6.dp else 4.dp).clip(RoundedCornerShape(3.dp)),
+                color = color,
+                trackColor = color.copy(alpha = 0.18f),
+                drawStopIndicator = {}
+            )
         }
     }
 }
 
 @Composable
-private fun AverageTile(
-    label: String,
-    value: String,
-    caption: String,
-    current: Double,
-    goal: Double?,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val tokens = LocalHangryTokens.current
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(HangryTokens.CornerRadii.medium))
-            .background(color.copy(alpha = 0.08f))
-            .padding(10.dp)
-    ) {
-        Column {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.SemiBold)
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = tokens.textPrimary)
-            Text(caption, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted, maxLines = 1)
-            if (goal != null && goal > 0) {
-                Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = { (current / goal).toFloat().coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-                    color = color,
-                    trackColor = color.copy(alpha = 0.22f)
-                )
-            }
-        }
+private fun StatusChip(status: NutrientStatus) {
+    val colors = LocalHangryTokens.current.scoreColors
+    val (text, fg, bg) = when (status) {
+        NutrientStatus.ON_TARGET -> Triple(R.string.nutrition_weekly_status_on_target, colors.primed, colors.primedContainer)
+        NutrientStatus.UNDER_LIMIT -> Triple(R.string.nutrition_weekly_status_under_limit, colors.primed, colors.primedContainer)
+        NutrientStatus.LOW -> Triple(R.string.nutrition_weekly_status_low, colors.balanced, colors.balancedContainer)
+        NutrientStatus.HIGH -> Triple(R.string.nutrition_weekly_status_high, colors.rebuild, colors.rebuildContainer)
+        NutrientStatus.OVER_LIMIT -> Triple(R.string.nutrition_weekly_status_over_limit, colors.rebuild, colors.rebuildContainer)
+    }
+    Surface(color = bg, shape = RoundedCornerShape(50)) {
+        Text(
+            stringResource(text),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = fg,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
     }
 }
 
+/**
+ * Dash's review, scannable: the headline and a short overview up top, then each
+ * recommendation as a card that opens for the why and how. Wins, foods and the fiber plan
+ * sit in sections that open on tap, so the sheet isn't one long wall of text.
+ */
 @Composable
 private fun AiReviewContent(review: NutritionReview) {
     val tokens = LocalHangryTokens.current
@@ -220,35 +323,127 @@ private fun AiReviewContent(review: NutritionReview) {
             }
         }
         if (review.overview.isNotBlank()) {
-            Text(review.overview, style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
-        }
-        if (review.wins.isNotEmpty()) {
-            SectionTitle(stringResource(R.string.nutrition_weekly_whats_working))
-            review.wins.forEach { Text(stringResource(R.string.nutrition_bullet_item, it), style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary) }
+            var expanded by rememberSaveable { mutableStateOf(false) }
+            var overflows by remember { mutableStateOf(false) }
+            Text(
+                review.overview,
+                style = MaterialTheme.typography.bodyMedium,
+                color = tokens.textSecondary,
+                maxLines = if (expanded) Int.MAX_VALUE else 3,
+                overflow = TextOverflow.Ellipsis,
+                onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow },
+                modifier = Modifier.animateContentSize().clickable(enabled = overflows || expanded) { expanded = !expanded }
+            )
         }
         if (review.recommendations.isNotEmpty()) {
             SectionTitle(stringResource(R.string.nutrition_weekly_try_this_week))
-            review.recommendations.forEach { rec ->
-                ReviewCard(title = rec.title, body = rec.why, detail = rec.how)
+            review.recommendations.forEachIndexed { index, rec ->
+                RecommendationCard(number = index + 1, rec = rec, initiallyExpanded = index == 0)
             }
         }
-        if (review.foodsToAdd.isNotEmpty()) {
-            SectionTitle(stringResource(R.string.nutrition_weekly_foods_to_add))
-            review.foodsToAdd.forEach { food ->
-                Row {
-                    Text("+ ", style = MaterialTheme.typography.bodyMedium, color = tokens.macroColors.carbs, fontWeight = FontWeight.Bold)
-                    Column {
-                        Text(food.food, style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary, fontWeight = FontWeight.SemiBold)
-                        if (food.why.isNotBlank()) {
-                            Text(food.why, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
-                        }
+        if (review.wins.isNotEmpty()) {
+            ExpandableSection(title = stringResource(R.string.nutrition_weekly_whats_working_count, review.wins.size), accent = tokens.scoreColors.primed) {
+                review.wins.forEach { win ->
+                    Row {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = tokens.scoreColors.primed, modifier = Modifier.size(16.dp).padding(top = 2.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(win, style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary)
                     }
                 }
             }
         }
-        if (review.fiberPlan.isNotBlank()) {
-            ReviewCard(title = stringResource(R.string.nutrition_weekly_fiber_plan), body = review.fiberPlan, accent = tokens.macroColors.fiber)
+        if (review.foodsToAdd.isNotEmpty()) {
+            ExpandableSection(title = stringResource(R.string.nutrition_weekly_foods_to_add_count, review.foodsToAdd.size), accent = tokens.macroColors.carbs) {
+                review.foodsToAdd.forEach { food -> ReviewItem(title = food.food, body = food.why) }
+            }
         }
+        if (review.fiberPlan.isNotBlank()) {
+            ExpandableSection(title = stringResource(R.string.nutrition_weekly_fiber_plan), accent = tokens.macroColors.fiber) {
+                Text(review.fiberPlan, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+            }
+        }
+    }
+}
+
+/** A recommendation: its title always visible, the why and how a tap away. */
+@Composable
+private fun RecommendationCard(number: Int, rec: NutritionReview.Recommendation, initiallyExpanded: Boolean) {
+    val tokens = LocalHangryTokens.current
+    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
+    val hasDetail = rec.why.isNotBlank() || rec.how.isNotBlank()
+    Surface(
+        color = tokens.brandAccent.copy(alpha = 0.07f),
+        shape = RoundedCornerShape(HangryTokens.CornerRadii.medium),
+        modifier = Modifier.fillMaxWidth().animateContentSize().clickable(enabled = hasDetail) { expanded = !expanded }
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(22.dp).clip(RoundedCornerShape(11.dp)).background(tokens.brandAccent),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("$number", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(rec.title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (hasDetail) ExpandIcon(expanded)
+            }
+            if (expanded) {
+                if (rec.why.isNotBlank()) Text(rec.why, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
+                if (rec.how.isNotBlank()) {
+                    Text(stringResource(R.string.nutrition_weekly_how, rec.how), style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary)
+                }
+            }
+        }
+    }
+}
+
+/** A titled section that opens on tap, with its contents hidden until then. */
+@Composable
+private fun ExpandableSection(title: String, accent: Color? = null, content: @Composable ColumnScope.() -> Unit) {
+    val tokens = LocalHangryTokens.current
+    var expanded by rememberSaveable(title) { mutableStateOf(false) }
+    Surface(
+        color = (accent ?: tokens.textSecondary).copy(alpha = 0.07f),
+        shape = RoundedCornerShape(HangryTokens.CornerRadii.medium),
+        modifier = Modifier.fillMaxWidth().animateContentSize()
+    ) {
+        Column {
+            Row(
+                Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary, modifier = Modifier.weight(1f))
+                ExpandIcon(expanded)
+            }
+            if (expanded) {
+                Column(
+                    Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    content = content
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExpandIcon(expanded: Boolean) {
+    Icon(
+        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+        contentDescription = stringResource(if (expanded) R.string.nutrition_weekly_show_less else R.string.nutrition_weekly_show_more),
+        tint = LocalHangryTokens.current.textMuted,
+        modifier = Modifier.size(20.dp)
+    )
+}
+
+/** A bold line with a short explanation under it, for lists inside a section. */
+@Composable
+private fun ReviewItem(title: String, body: String) {
+    val tokens = LocalHangryTokens.current
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
+        if (body.isNotBlank()) Text(body, style = MaterialTheme.typography.bodySmall, color = tokens.textSecondary)
     }
 }
 

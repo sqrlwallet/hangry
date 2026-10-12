@@ -2,6 +2,9 @@ package com.kevan.hangry
 
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
+import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.data.local.entity.FoodLogSource
+import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.domain.calculation.EnergyBalanceCalculator
 import com.kevan.hangry.domain.calculation.HangryCalorieCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
@@ -12,6 +15,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlin.math.roundToInt
 
 class EnergyBalanceCalculatorTest {
 
@@ -37,12 +41,28 @@ class EnergyBalanceCalculatorTest {
         summaries: List<DailyHealthSummaryEntity>,
         workouts: List<ExerciseSessionEntity> = emptyList(),
         goalWeight: Double? = null,
-        goalDate: LocalDate? = null
+        goalDate: LocalDate? = null,
+        foodLogs: List<FoodLogEntity> = emptyList(),
+        weights: List<WeightMeasurementEntity> = emptyList()
     ) = calculator.estimate(
         weightKg = 80.0, heightCm = 180.0, age = 30, sex = BiologicalSex.MALE,
         summaries = summaries, workouts = workouts,
-        goalWeightKg = goalWeight, goalDate = goalDate, today = today, zone = zone
+        goalWeightKg = goalWeight, goalDate = goalDate, today = today, zone = zone,
+        foodLogs = foodLogs, weights = weights
     )
+
+    private fun meal(offset: Long, kcal: Int) = FoodLogEntity(
+        date = today.minusDays(offset), timestamp = today.minusDays(offset).atTime(12, 0).toInstant(zone),
+        source = FoodLogSource.MANUAL, foodName = "Meal", calories = kcal,
+        proteinG = 0.0, carbsG = 0.0, fatG = 0.0, healthConnectSynced = false
+    )
+
+    private fun weighIn(offset: Long, kg: Double) = WeightMeasurementEntity(
+        recordFingerprint = "kg$offset", timestamp = today.minusDays(offset).atTime(7, 0).toInstant(zone), weightKg = kg
+    )
+
+    /** Weigh-ins every 4 days over the last 28, losing [kgPerWeek] steadily. */
+    private fun losing(kgPerWeek: Double) = (1L..28L step 4).map { weighIn(it, 80.0 + kgPerWeek * it / 7.0) }
 
     private val week = (1L..7L).map { day(it, 10_000) }
 
@@ -109,9 +129,49 @@ class EnergyBalanceCalculatorTest {
 
     @Test
     fun `goal date gives a daily deficit`() {
-        val e = estimate(week, goalWeight = 76.0, goalDate = today.plusDays(56)).estimate!!
-        // 4 kg x 7700 / 56 days = 550 kcal/day
+        val e = estimate(week, goalWeight = 78.0, goalDate = today.plusDays(56)).estimate!!
+        // 2 kg x 7700 / 56 days = 275 kcal/day
         assertNotNull(e.goal?.dailyCalorieTarget)
-        assertEquals(-550.0, e.dailyAdjustmentKcal!!, 1.0)
+        assertEquals(-275.0, e.dailyAdjustmentKcal!!, 1.0)
+    }
+
+    @Test
+    fun `a loss target stops at resting burn`() {
+        // 4 kg in 8 weeks would need ~1,780 kcal/day - this BMR - so it stops just above.
+        val e = estimate(week, goalWeight = 76.0, goalDate = today.plusDays(56)).estimate!!
+        assertEquals(e.bmrKcal.roundToInt(), e.goal!!.dailyCalorieTarget)
+        assertTrue(e.goal!!.isPaceAdjustedForSafety)
+    }
+
+    @Test
+    fun `intake and weight trend are learnt and blended into maintenance`() {
+        val formula = estimate(week).estimate!!.maintenanceKcal
+        // Eating 2,000 a day while losing 0.25 kg a week means burning 2,000 + 0.25 × 7,700 / 7 = 2,275.
+        val e = estimate(week, foodLogs = (1L..28L).map { meal(it, 2000) }, weights = losing(0.25)).estimate!!
+        val a = e.adaptive!!
+        assertEquals(28, a.loggedDays)
+        assertEquals(-0.25, a.weeklyWeightChangeKg, 0.001)
+        assertEquals(2275.0, a.maintenanceKcal, 1.0)
+        assertEquals(0.85, a.weight, 0.001)
+        assertEquals(formula, e.formulaMaintenanceKcal, 0.01)
+        assertEquals(formula * 0.15 + 2275.0 * 0.85, e.maintenanceKcal, 0.5)
+    }
+
+    @Test
+    fun `partly logged days don't count and too few leave the formula alone`() {
+        // 12 full days and 16 days with only a snack logged.
+        val logs = (1L..12L).map { meal(it, 2000) } + (13L..28L).map { meal(it, 300) }
+        val e = estimate(week, foodLogs = logs, weights = losing(0.25)).estimate!!
+        assertNull(e.adaptive)
+        assertTrue(e.adaptiveMissing!!.contains("2 more fully-logged"))
+        assertEquals(e.formulaMaintenanceKcal, e.maintenanceKcal, 0.0)
+    }
+
+    @Test
+    fun `numbers that don't add up are ignored`() {
+        // Eating 1,200 while gaining 1 kg a week would mean burning ~100 kcal/day.
+        val e = estimate(week, foodLogs = (1L..28L).map { meal(it, 1200) }, weights = losing(-1.0)).estimate!!
+        assertNull(e.adaptive)
+        assertEquals(e.formulaMaintenanceKcal, e.maintenanceKcal, 0.0)
     }
 }

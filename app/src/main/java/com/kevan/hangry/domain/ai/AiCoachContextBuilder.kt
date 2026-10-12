@@ -235,7 +235,9 @@ class AiCoachContextBuilder(
                 val totalCarbs = entries.sumOf { it.carbsG }
                 val totalFat = entries.sumOf { it.fatG }
                 val mealNames = entries.joinToString(", ") { "${it.foodName} (${it.calories} kcal)" }
-                sb.appendLine("• $date: Total $totalCal kcal (P: %.0fg, C: %.0fg, F: %.0fg) | Meals: $mealNames".format(java.util.Locale.US, totalProtein, totalCarbs, totalFat))
+                // Meal names go in after formatting: a name like "2% milk" would otherwise be read as a format slot.
+                val macros = "P: %.0fg, C: %.0fg, F: %.0fg".format(java.util.Locale.US, totalProtein, totalCarbs, totalFat)
+                sb.appendLine("• $date: Total $totalCal kcal ($macros) | Meals: $mealNames")
             }
         }
         sb.appendLine()
@@ -253,7 +255,7 @@ class AiCoachContextBuilder(
     }
 
     private fun appendEnergyBalance(sb: StringBuilder, energy: EnergyBalanceResult?) {
-        sb.appendLine("=== ENERGY BALANCE (last 7 full days, excluding today) ===")
+        sb.appendLine("=== ENERGY BALANCE (activity: last 7 full days; logs: last 28; excluding today) ===")
         val e = energy?.estimate
         if (e == null) {
             val missing = energy?.missing?.joinToString(", ") ?: "profile and step data"
@@ -261,12 +263,20 @@ class AiCoachContextBuilder(
             sb.appendLine()
             return
         }
-        sb.appendLine("Maintenance calories: ${f(e.maintenanceKcal)} kcal/day (averaged over ${e.daysWithData} days with data, ${e.windowStart} to ${e.windowEnd})")
+        sb.appendLine("Maintenance calories: ${f(e.maintenanceKcal)} kcal/day (activity averaged over ${e.daysWithData} days with data, ${e.windowStart} to ${e.windowEnd})")
         sb.appendLine("• Resting: BMR (${e.bmrMethod}) ${f(e.bmrKcal)} kcal, counted for the ${f(1440 - e.avgActiveMinutes)} inactive minutes = ${f(e.restingKcal)} kcal")
         sb.appendLine("• Steps: avg ${f(e.avgTotalSteps)} steps/day, ${f(e.avgCountedSteps)} outside workouts × ${"%.3f".format(Locale.US, e.kcalPerStep)} kcal/step (walking + resting burn while walking) = ${f(e.stepKcal)} kcal")
         sb.appendLine("• Workouts (counted in full): ${e.workoutsCounted} sessions, avg ${f(e.avgWorkoutKcal)} kcal/day" +
             if (e.workoutsWithoutCalories > 0) " (${e.workoutsWithoutCalories} had no calorie data)" else "")
         sb.appendLine("• Thermic effect of food (10%): ${f(e.tefKcal)} kcal")
+        sb.appendLine("• Activity estimate: ${f(e.formulaMaintenanceKcal)} kcal/day")
+        val adaptive = e.adaptive
+        if (adaptive != null) {
+            sb.appendLine("• Learnt from logs (${adaptive.windowStart} to ${adaptive.windowEnd}): ate ${f(adaptive.avgIntakeKcal)} kcal/day on ${adaptive.loggedDays} fully-logged days, weight trend ${"%+.2f".format(Locale.US, adaptive.weeklyWeightChangeKg)} kg/week over ${adaptive.weighIns} weigh-ins → burnt ~${f(adaptive.maintenanceKcal)} kcal/day")
+            sb.appendLine("• Maintenance blends ${f(adaptive.weight * 100)}% logs + ${f((1 - adaptive.weight) * 100)}% activity estimate")
+        } else {
+            sb.appendLine("• Not yet learning from logs (needs ${e.adaptiveMissing}) - maintenance is the activity estimate")
+        }
         val goal = e.goal
         when {
             e.goalWeightKg == null || e.goalDate == null ->
@@ -411,7 +421,7 @@ class AiCoachContextBuilder(
             snapshot.previous?.let { prev ->
                 val change = cur.bodyAge - prev.bodyAge
                 val trendStr = if (kotlin.math.abs(change) < 0.2) "stable" else if (change < 0) "trending %.1f years younger over the past month".format(Locale.US, kotlin.math.abs(change)) else "trending %.1f years older over the past month".format(Locale.US, change)
-                sb.appendLine("30-Day Trend: $trendStr (was %.1f yrs 30 days ago)".format(Locale.US, prev.bodyAge))
+                sb.appendLine("30-Day Trend: $trendStr (was ${"%.1f".format(Locale.US, prev.bodyAge)} yrs 30 days ago)")
             }
             if (cur.factors.isNotEmpty()) {
                 sb.appendLine("Key Drivers:")

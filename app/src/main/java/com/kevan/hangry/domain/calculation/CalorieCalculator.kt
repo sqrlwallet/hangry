@@ -34,6 +34,10 @@ interface CalorieCalculator {
         currentWeightKg: Double?,
         weightGoalKg: Double?,
         targetDate: LocalDate?,
-        today: LocalDate
+        today: LocalDate,
+        /** Resting burn - a loss target never goes below it. */
+        bmr: Double? = null,
+        /** Sets the minimum daily intake for a loss (1,500 male, 1,200 female). */
+        sex: BiologicalSex? = null
     ): CalorieGoalRecommendation?
 }

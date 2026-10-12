@@ -149,18 +149,25 @@
     <string name="nutrition_weekly_by_numbers">By the numbers</string>
     <string name="nutrition_weekly_recommendations">Recommendations</string>
     <string name="nutrition_weekly_daily_average">Daily average</string>
-    <string name="nutrition_weekly_of_kcal">of %1$d kcal</string>
-    <string name="nutrition_kcal_unit">kcal</string>
-    <string name="nutrition_weekly_of_grams">of %1$dg</string>
     <string name="nutrition_weekly_sodium">Sodium</string>
     <string name="nutrition_mg">%1$dmg</string>
-    <string name="nutrition_weekly_sodium_limit">under 2300mg</string>
-    <string name="nutrition_weekly_whats_working">What\'s working</string>
     <string name="nutrition_weekly_try_this_week">Try this week</string>
-    <string name="nutrition_weekly_foods_to_add">Foods to add</string>
     <string name="nutrition_weekly_fiber_plan">Your fiber plan</string>
     <string name="nutrition_weekly_how">How: %1$s</string>
     <string name="nutrition_weekly_eat_more_fiber">How to eat more fiber</string>
+    <string name="nutrition_weekly_by_numbers_count">By the numbers (%1$d)</string>
+    <string name="nutrition_weekly_whats_working_count">What\'s working (%1$d)</string>
+    <string name="nutrition_weekly_foods_to_add_count">Foods to add (%1$d)</string>
+    <string name="nutrition_weekly_kcal_value">%1$d kcal</string>
+    <string name="nutrition_weekly_slash_goal">" / %1$s"</string>
+    <string name="nutrition_weekly_no_target">" · no target"</string>
+    <string name="nutrition_weekly_status_on_target">On target</string>
+    <string name="nutrition_weekly_status_low">Low</string>
+    <string name="nutrition_weekly_status_high">High</string>
+    <string name="nutrition_weekly_status_under_limit">OK</string>
+    <string name="nutrition_weekly_status_over_limit">Over</string>
+    <string name="nutrition_weekly_show_more">Show more</string>
+    <string name="nutrition_weekly_show_less">Show less</string>
 
     <!-- Nutrition view model messages -->
     <string name="nutrition_manual_review_ai_off">Turn on AI Features in Settings and meals are filled in from the photo automatically.</string>

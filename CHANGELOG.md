@@ -1,3 +1,24 @@
+## 🚀 What's New in Hangry v1.32.0 — Smarter Calorie Targets
+
+Your daily calorie target now learns from what actually happens.
+
+### 🎯 Adaptive calorie target
+- **Learns your real maintenance**: once you've fully logged meals on 14+ of the last 28 days and weighed in on at least 4 days spread over 2+ weeks, Hangry compares what you ate with what your weight did and blends that into your maintenance calories. The more you log, the more it relies on your own data.
+- Partly-logged days are skipped, and numbers that don't add up (usually missed meals or a scale glitch) are ignored rather than steering your target.
+- **Safer goals**: a weight-loss target never drops below your resting burn or 1,500 kcal (men) / 1,200 kcal (women). Losing is capped at about 1% of your weight a week, and gaining at about 0.5% a week so it's mostly muscle.
+- Body Metrics and Dash both explain the blend and what's still needed.
+
+### 🥗 Clearer weekly review
+- Daily averages are now easy-to-scan rows with your target and an On target / Low / High badge.
+- Dash's review is broken into numbered recommendations you tap to open, with What's working, Foods to add and your fiber plan folded away until you want them.
+- "By the numbers" no longer repeats what Dash already said.
+
+### 🛠️ Fixes
+- Fixed Ask Dash crashing the app when a meal name contained a % sign (like "2% milk").
+- If Dash can't load your data for any reason, it now still answers instead of closing the app.
+
+---
+
 ## 🚀 What's New in Hangry v1.31.0 — Backup & Restore
 
 Your data, kept safe on your terms.

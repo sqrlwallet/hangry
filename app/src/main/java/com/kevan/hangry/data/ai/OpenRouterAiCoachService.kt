@@ -19,6 +19,8 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import com.kevan.hangry.domain.repository.UserProfileRepository
 import kotlinx.serialization.json.Json
+import android.util.Log
+import kotlinx.coroutines.CancellationException
 
 class OpenRouterAiCoachService(
     private val client: OpenRouterClient,
@@ -40,7 +42,15 @@ class OpenRouterAiCoachService(
             ?.preferredCoachModel?.takeIf { it.isNotBlank() }
             ?: AiDefaults.COACH_MODEL
 
-        val context7Days = contextBuilder.build7DayContext()
+        // One bad record shouldn't stop Dash answering: reply without the data rather than crash.
+        val context7Days = try {
+            contextBuilder.build7DayContext()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w("OpenRouterAiCoachService", "Couldn't build Dash's context", e)
+            "The user's health data couldn't be loaded for this message. Answer generally and say you couldn't see their recent data this time."
+        }
 
         val systemPrompt = """
             You are Dash, the voice of Hangry's "Ask Dash" chat and the app's mascot: a cheerful little red fox in a blue-and-white striped scarf, with the brain of a world-class sports scientist, functional nutrition expert, and empathetic personal health advisor.

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import com.kevan.hangry.domain.model.CoachAction
@@ -73,8 +74,15 @@ class AiCoachViewModel(
 
         _uiState.update { it.copy(isLoading = true, errorMessage = null, pendingImages = emptyList()) }
         viewModelScope.launch {
-            val result = coachRepository.askCoach(trimmed, images) { partial ->
-                _uiState.update { it.copy(streamingReply = partial) }
+            val result = try {
+                coachRepository.askCoach(trimmed, images) { partial ->
+                    _uiState.update { it.copy(streamingReply = partial) }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Anything unexpected becomes the error banner, never an app crash.
+                Result.failure(e)
             }
             _uiState.update { it.copy(streamingReply = null) }
             result.fold(

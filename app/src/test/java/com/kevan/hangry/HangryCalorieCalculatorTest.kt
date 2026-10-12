@@ -98,4 +98,41 @@ class HangryCalorieCalculatorTest {
         assertNull(result!!.dailyCalorieTarget)
         assertTrue(result.guidance.isNotBlank())
     }
+
+    @Test
+    fun testGoalRecommendation_lossNeverGoesBelowMaleFloorOrBmr() {
+        val today = LocalDate.of(2026, 1, 1)
+        val male = calculator.recommendDailyCalorieGoal(
+            tdee = 2000.0, currentWeightKg = 90.0, weightGoalKg = 70.0, targetDate = today.plusDays(30), today = today,
+            bmr = 1400.0, sex = BiologicalSex.MALE
+        )!!
+        assertEquals(1500, male.dailyCalorieTarget)
+        val highBmr = calculator.recommendDailyCalorieGoal(
+            tdee = 2100.0, currentWeightKg = 60.0, weightGoalKg = 50.0, targetDate = today.plusDays(30), today = today,
+            bmr = 1650.0, sex = BiologicalSex.FEMALE
+        )!!
+        assertEquals(1650, highBmr.dailyCalorieTarget)
+        assertTrue(highBmr.isPaceAdjustedForSafety)
+    }
+
+    @Test
+    fun testGoalRecommendation_floorNeverPushesAboveMaintenance() {
+        val today = LocalDate.of(2026, 1, 1)
+        val result = calculator.recommendDailyCalorieGoal(
+            tdee = 1400.0, currentWeightKg = 55.0, weightGoalKg = 50.0, targetDate = today.plusDays(60), today = today,
+            bmr = 1250.0, sex = BiologicalSex.MALE
+        )!!
+        assertEquals(1400, result.dailyCalorieTarget)
+    }
+
+    @Test
+    fun testGoalRecommendation_gainIsCappedAtHalfPercentPerWeek() {
+        val today = LocalDate.of(2026, 1, 1)
+        // 70 kg × 0.5% = 0.35 kg/week = 385 kcal/day.
+        val result = calculator.recommendDailyCalorieGoal(
+            tdee = 2500.0, currentWeightKg = 70.0, weightGoalKg = 80.0, targetDate = today.plusDays(30), today = today
+        )!!
+        assertEquals(2885, result.dailyCalorieTarget)
+        assertTrue(result.isPaceAdjustedForSafety)
+    }
 }

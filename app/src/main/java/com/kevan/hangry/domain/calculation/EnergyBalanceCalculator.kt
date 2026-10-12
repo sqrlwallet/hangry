@@ -2,6 +2,9 @@ package com.kevan.hangry.domain.calculation
 
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
+import com.kevan.hangry.data.local.entity.FoodLogEntity
+import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
+import com.kevan.hangry.domain.model.AdaptiveMaintenance
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.EnergyBalanceEstimate
 import com.kevan.hangry.domain.model.EnergyBalanceResult
@@ -25,6 +28,10 @@ import kotlin.math.roundToLong
  * - Averages are over days that actually have step data; days with no data are skipped rather
  *   than treated as zero-activity days.
  *
+ * Then, with 14+ well-logged days and a weight trend over the last 28, it learns from what
+ * actually happened (see [adaptive]) and blends that in - more of it the more days are logged.
+ * Formulas can be 10-20% off for any one person; intake vs. weight change isn't.
+ *
  * Nothing is guessed when inputs are missing: the result lists what's needed instead.
  */
 class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) {
@@ -41,7 +48,11 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         today: LocalDate,
         zone: ZoneId = ZoneId.systemDefault(),
         /** From a recent tape or photo scan only - not an estimate derived from BMI. */
-        measuredBodyFatPercent: Double? = null
+        measuredBodyFatPercent: Double? = null,
+        /** The last [ADAPTIVE_WINDOW_DAYS] full days of food logs, for [adaptive]. */
+        foodLogs: List<FoodLogEntity> = emptyList(),
+        /** Weigh-ins over the same window, for [adaptive]. */
+        weights: List<WeightMeasurementEntity> = emptyList()
     ): EnergyBalanceResult {
         val windowStart = today.minusDays(WINDOW_DAYS.toLong())
         val windowEnd = today.minusDays(1)
@@ -95,7 +106,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         val avgWorkoutKcal = workoutKcalSum / days
         val beforeFood = restingKcal + stepKcal + avgWorkoutKcal
         val tefKcal = beforeFood * TEF_FRACTION
-        val maintenance = beforeFood + tefKcal
+        val formulaMaintenance = beforeFood + tefKcal
+        val (adaptive, adaptiveMissing) = adaptive(foodLogs, weights, formulaMaintenance, today, zone)
+        val maintenance = adaptive?.let { formulaMaintenance * (1 - it.weight) + it.maintenanceKcal * it.weight } ?: formulaMaintenance
 
         val goal = if (goalWeightKg != null && goalDate != null) {
             calorieCalculator.recommendDailyCalorieGoal(
@@ -103,7 +116,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
                 currentWeightKg = weightKg,
                 weightGoalKg = goalWeightKg,
                 targetDate = goalDate,
-                today = today
+                today = today,
+                bmr = bmr,
+                sex = sex
             )
         } else null
 
@@ -124,6 +139,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
                 workoutsCounted = workoutsCounted,
                 workoutsWithoutCalories = workoutsWithoutCalories,
                 tefKcal = tefKcal,
+                formulaMaintenanceKcal = formulaMaintenance,
+                adaptive = adaptive,
+                adaptiveMissing = adaptiveMissing,
                 maintenanceKcal = maintenance,
                 goalWeightKg = goalWeightKg,
                 goalDate = goalDate,
@@ -133,8 +151,80 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         )
     }
 
+    /**
+     * Maintenance from the last [ADAPTIVE_WINDOW_DAYS] full days: average intake on well-logged
+     * days, minus the weight trend's slope × 7,700 kcal/kg. Returns why not when it can't.
+     */
+    private fun adaptive(
+        foodLogs: List<FoodLogEntity>,
+        weights: List<WeightMeasurementEntity>,
+        formulaMaintenance: Double,
+        today: LocalDate,
+        zone: ZoneId
+    ): Pair<AdaptiveMaintenance?, String?> {
+        val start = today.minusDays(ADAPTIVE_WINDOW_DAYS.toLong())
+        val end = today.minusDays(1)
+        // A day logging under half of maintenance is almost always a partly-logged day; counting
+        // it would make maintenance look lower than it is.
+        val intakeByDay = foodLogs.filter { it.date in start..end }
+            .groupBy { it.date }
+            .mapValues { (_, entries) -> entries.sumOf { it.calories }.toDouble() }
+            .filterValues { it >= formulaMaintenance * MIN_LOGGED_FRACTION }
+        val weightByDay = weights
+            .map { it.timestamp.atZone(zone).toLocalDate() to it.weightKg }
+            .filter { (day, _) -> day in start..end }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, kg) -> kg.average() }
+        val span = weightByDay.keys.let { days -> if (days.isEmpty()) 0L else java.time.temporal.ChronoUnit.DAYS.between(days.min(), days.max()) }
+
+        val missing = buildList {
+            if (intakeByDay.size < MIN_LOGGED_DAYS) add("${MIN_LOGGED_DAYS - intakeByDay.size} more fully-logged day(s) of food")
+            if (weightByDay.size < MIN_WEIGH_INS || span < MIN_WEIGH_IN_SPAN_DAYS) add("weigh-ins on at least $MIN_WEIGH_INS days spread over $MIN_WEIGH_IN_SPAN_DAYS+ days")
+        }
+        if (missing.isNotEmpty()) return null to missing.joinToString(" and ")
+
+        val slopePerDay = slope(weightByDay.map { (day, kg) -> java.time.temporal.ChronoUnit.DAYS.between(start, day).toDouble() to kg })
+        val avgIntake = intakeByDay.values.average()
+        val learnt = avgIntake - slopePerDay * HangryCalorieCalculator.KCAL_PER_KG
+        // Far from the formula usually means meals going unlogged or a scale glitch, not a
+        // metabolism 40% off average - don't let that steer the target.
+        if (learnt !in formulaMaintenance * ADAPTIVE_MIN_RATIO..formulaMaintenance * ADAPTIVE_MAX_RATIO) {
+            return null to "intake and weight change don't add up yet - check that every meal is logged"
+        }
+        val weight = (intakeByDay.size.toDouble() / ADAPTIVE_WINDOW_DAYS).coerceIn(ADAPTIVE_MIN_WEIGHT, ADAPTIVE_MAX_WEIGHT)
+        return AdaptiveMaintenance(
+            windowStart = start,
+            windowEnd = end,
+            loggedDays = intakeByDay.size,
+            avgIntakeKcal = avgIntake,
+            weighIns = weightByDay.size,
+            weeklyWeightChangeKg = slopePerDay * 7,
+            maintenanceKcal = learnt,
+            weight = weight
+        ) to null
+    }
+
+    /** Least-squares slope of y over x. */
+    private fun slope(points: List<Pair<Double, Double>>): Double {
+        val meanX = points.sumOf { it.first } / points.size
+        val meanY = points.sumOf { it.second } / points.size
+        val num = points.sumOf { (x, y) -> (x - meanX) * (y - meanY) }
+        val den = points.sumOf { (x, _) -> (x - meanX) * (x - meanX) }
+        return if (den == 0.0) 0.0 else num / den
+    }
+
     companion object {
         const val WINDOW_DAYS = 7
+        const val ADAPTIVE_WINDOW_DAYS = 28
+        const val MIN_LOGGED_DAYS = 14
+        const val MIN_WEIGH_INS = 4
+        const val MIN_WEIGH_IN_SPAN_DAYS = 14
+        private const val MIN_LOGGED_FRACTION = 0.5
+        private const val ADAPTIVE_MIN_RATIO = 0.7
+        private const val ADAPTIVE_MAX_RATIO = 1.4
+        /** At 14 logged days it's half the answer; by ~24 days it's most of it. */
+        private const val ADAPTIVE_MIN_WEIGHT = 0.5
+        private const val ADAPTIVE_MAX_WEIGHT = 0.85
         const val MIN_DAYS_WITH_DATA = 5
         /** Thermic effect of food - ~10% of daily energy goes to digesting what you eat. */
         const val TEF_FRACTION = 0.10

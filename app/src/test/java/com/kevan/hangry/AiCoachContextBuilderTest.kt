@@ -308,4 +308,33 @@ class AiCoachContextBuilderTest {
         assertTrue("Contains recommended strain", context.contains("Recommended Day Strain Target: 11.0 - 14.5 / 21"))
         assertTrue("Contains strain guidance", context.contains("Push toward upper limits."))
     }
+    @Test
+    fun `meal names with a percent sign don't crash the context`() = runBlocking {
+        val food = FoodLogEntity(
+            date = LocalDate.now(),
+            timestamp = Instant.now(),
+            source = FoodLogSource.MANUAL,
+            foodName = "2% milk & 0%s yogurt",
+            calories = 180,
+            proteinG = 14.0,
+            carbsG = 16.0,
+            fatG = 5.0,
+            healthConnectSynced = false
+        )
+        val builder = AiCoachContextBuilder(
+            userProfileRepository = FakeUserProfileRepository(),
+            weightDao = FakeWeightDao(),
+            dailyHealthSummaryDao = FakeDailyHealthSummaryDao(),
+            recoveryScoreDao = FakeRecoveryScoreDao(),
+            exerciseSessionDao = FakeExerciseSessionDao(),
+            sleepSessionDao = FakeSleepSessionDao(),
+            foodLogDao = FakeFoodLogDao(listOf(food)),
+            postureScanDao = FakePostureScanDao(),
+            coachJournalDao = FakeCoachJournalDao()
+        )
+
+        val context = builder.build7DayContext()
+        assertTrue(context.contains("2% milk & 0%s yogurt (180 kcal)"))
+        assertTrue(context.contains("P: 14g, C: 16g, F: 5g"))
+    }
 }

@@ -64,6 +64,8 @@ fun SavedMealsScreen(
         val q = query.trim().lowercase()
         mealPlans.filter { q.isEmpty() || it.name.lowercase().contains(q) }
     }
+    // The foods logged most stay at the top; everything else follows, most recent first.
+    val sections = remember(saved) { SavedMealOrder.split(saved) }
 
     LaunchedEffect(uiState.lastSavedEntry) {
         val entry = uiState.lastSavedEntry ?: return@LaunchedEffect
@@ -152,20 +154,35 @@ fun SavedMealsScreen(
             } else if (saved.isEmpty()) {
                 item { NoMatch(stringResource(R.string.nutrition_saved_no_match, query.trim())) }
             } else {
-                items(saved, key = { "saved_${it.id}" }) { meal ->
-                    SavedMealRow(
-                        meal = meal,
-                        portion = portion,
-                        onLog = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.logFromMealPlan(meal, portion)
-                        },
-                        onEdit = { editing = meal },
-                        onDelete = {
-                            viewModel.deleteSavedMeal(meal)
-                            deleted = meal
+                val groups = listOf(
+                    R.string.nutrition_saved_section_most_logged to sections.mostLogged,
+                    R.string.nutrition_saved_section_recent to sections.rest
+                ).filter { it.second.isNotEmpty() }
+                groups.forEach { (title, meals) ->
+                    // No headers when nothing is pinned: one plain list, as before.
+                    if (sections.mostLogged.isNotEmpty()) {
+                        item(key = "header_$title") {
+                            SectionHeader(
+                                text = stringResource(title),
+                                icon = if (title == R.string.nutrition_saved_section_most_logged) Icons.Default.PushPin else null
+                            )
                         }
-                    )
+                    }
+                    items(meals, key = { "saved_${it.id}" }) { meal ->
+                        SavedMealRow(
+                            meal = meal,
+                            portion = portion,
+                            onLog = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.logFromMealPlan(meal, portion)
+                            },
+                            onEdit = { editing = meal },
+                            onDelete = {
+                                viewModel.deleteSavedMeal(meal)
+                                deleted = meal
+                            }
+                        )
+                    }
                 }
             }
 
@@ -186,6 +203,21 @@ fun SavedMealsScreen(
                 editing = null
             }
         )
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector?) {
+    val tokens = LocalHangryTokens.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = HangryTokens.Spacing.xs)
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = tokens.textSecondary, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(HangryTokens.Spacing.xs))
+        }
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
     }
 }
 

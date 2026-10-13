@@ -28,8 +28,8 @@ android {
         applicationId = "com.kevan.hangry"
         minSdk = 28
         targetSdk = 36
-        versionCode = 42
-        versionName = "1.38.0"
+        versionCode = 43
+        versionName = "1.38.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

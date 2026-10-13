@@ -1,3 +1,8 @@
+## 📌 Hangry v1.38.1 — Favourites First
+
+### ✨ Improvements
+- **Saved meals** pins your most-logged foods at the top: your top 5 foods logged at least twice, under "Most logged", with everything else below by most recent.
+
 ## 🚀 What's New in Hangry v1.38.0 — New Widgets, Light & Dark
 
 Three new home screen widgets, and every widget now matches your phone's light or dark mode.

@@ -122,6 +122,8 @@
     <string name="nutrition_saved_portion_cd">%1$s portion</string>
     <string name="nutrition_portion_times">%1$s×</string>
     <string name="nutrition_portion_prefix">"%1$s× "</string>
+    <string name="nutrition_saved_section_most_logged">Most logged</string>
+    <string name="nutrition_saved_section_recent">Recent</string>
     <string name="nutrition_saved_logged_once">" · logged once"</string>
     <string name="nutrition_saved_logged_times">" · logged %1$d×"</string>
     <string name="nutrition_saved_options_for">Options for %1$s</string>

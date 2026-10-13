@@ -176,17 +176,31 @@ $$\text{Maintenance} = (\overline{\text{Resting}} + \overline{\text{StepCalories
 
 where Resting is BMR over each day's inactive minutes (Katch–McArdle from lean mass when there's a measured body-fat scan, else Mifflin–St Jeor) and the extra 10% is the thermic effect of food. It needs weight, height, age, sex and at least 5 of the 7 days with step data; otherwise it lists what's missing instead of guessing.
 
-### 8.5 Daily Calorie Goal
+### 8.5 Daily Calorie Target
 
-Given a weight goal and target date (Settings → Goals & Body Metrics), plus today's Total Burned as a TDEE estimate:
+`DailyCalorieTargetCalculator` works the target out for each day from that day's own burn, not a weekly average, so a workout or a big walking day earns more food and a quiet day less:
 
-$$\text{DailyAdjustment} = \frac{(\text{GoalWeight} - \text{CurrentWeight}) \times 7700}{\text{DaysRemaining}} \qquad \text{Target} = \text{TDEE} + \text{DailyAdjustment}$$
+$$\text{Burn}_{d} = \left(\text{BMR} \times \frac{1440 - \text{NEATMinutes} - \text{WorkoutMinutes}}{1440} + \text{NEAT}_{d} + \text{Workouts}_{d}\right) \times 1.10 \times \frac{\text{Maintenance}}{\text{FormulaMaintenance}}$$
 
-(7700 kcal ≈ 1 kg of body mass, a standard approximation.) Two safety guardrails, consistent with the app's non-shaming, non-medical wellness stance:
-- **Pace cap**: `|DailyAdjustment|` is capped at 750 kcal/day (≈0.68 kg/week); a more ambitious target date is flagged (`isPaceAdjustedForSafety`) and the guidance explains the safer pace used instead.
-- **Calorie floor**: a weight-loss target never drops below 1200 kcal/day.
+- **BMR** as in §8.4 (Katch–McArdle with a recent measured scan, else Mifflin–St Jeor), for the minutes that weren't active.
+- **NEAT** is the day's steps outside workouts, costed as §8.2 — or the 7-day average (§8.4) while that's higher. Steps keep adding up all day, so this keeps the morning target from starting at almost nothing; once the day's steps pass a usual day, they set it.
+- **Workouts** are the day's actual workouts, in full (§8.2), added as soon as they sync. Rest days add none.
+- **1.10** is the thermic effect of food.
+- The last factor is what the logs have taught (§8.4's adaptive blend ÷ the activity formula); 1.0 until there are 14+ well-logged days and a weight trend.
 
-A recommendation is only returned once TDEE, current weight, goal weight, and a future target date are all available — otherwise `null`, so the UI can show its own "add your goal" prompt rather than a fabricated number.
+Then the goal, from a goal weight (Settings → Goals & Body Metrics):
+
+$$\text{Target}_{d} = \text{Burn}_{d} + \text{DailyAdjustment}$$
+
+- **With a target date**: $\text{DailyAdjustment} = \frac{(\text{GoalWeight} - \text{CurrentWeight}) \times 7700}{\text{DaysRemaining}}$ (7700 kcal ≈ 1 kg).
+- **Without one**: a default pace of 0.5 kg/week to lose (−550 kcal/day) or 0.25 kg/week to gain (+275 kcal/day); within 0.5 kg of the goal it's maintenance.
+- **No goal weight**: the target is the day's burn — eat it to stay the same weight.
+
+Guardrails, consistent with the app's non-shaming, non-medical wellness stance:
+- **Pace cap**: loss at most ~1% of body weight a week and 750 kcal/day; gain at most ~0.5% a week and 500 kcal/day. A target date asking for more is flagged (`isPaceAdjustedForSafety`) and the guidance explains the safer pace used.
+- **Calorie floor**: a loss target never drops below resting burn or 1,500 kcal (male) / 1,200 kcal (female), unless the day's burn itself is lower.
+
+The Today card, Nutrition tab, Calories and Nutrition widgets, Body Metrics ("Today's calorie target", with the full breakdown) and Dash all use this number. Nothing is guessed: without the §8.4 inputs there is no target, and the UI says what's missing.
 
 ### 7.1 Sleep Score and Sleep Quality (0–100)
 

@@ -44,7 +44,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - **Saved meals & quick add** - every food you log is saved for one-tap logging again, in ½×, 1× or 2× portions, plus 56 common foods ready from day one.
 - **Intermittent fasting** - fasting timer, schedules, reminders and streaks.
 - **Allergy alerts** - if you've added allergies, meal photos are checked against them.
-- **Calorie target from real life** - maintenance = BMR + everyday steps + workouts + 10% for digesting food, from your last 7 full days. Set a goal weight and date for a daily target and safe deficit.
+- **Calorie target worked out daily** - today's BMR + NEAT (today's steps, or your usual day's until today's pass it) + today's workouts + 10% for digesting food, corrected by what your logs and weigh-ins show. A goal weight sets a safe deficit or surplus (0.5 kg/week to lose by default, or your own pace with a target date).
 - Entries sync to Health Connect, and edits update the Health Connect record.
 
 ### Training

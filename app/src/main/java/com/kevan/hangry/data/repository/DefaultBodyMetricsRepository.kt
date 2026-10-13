@@ -42,9 +42,11 @@ class DefaultBodyMetricsRepository(
 ) : BodyMetricsRepository {
 
     private data class Window(val today: LocalDate) {
-        // Only full past days - today's steps and burn are still accumulating.
+        // Averages and learning use full past days only (the calculator windows them); today's
+        // steps and workouts are loaded too, for today's own calorie target.
         val summariesStart: LocalDate = today.minusDays(14)
         val end: LocalDate = today.minusDays(1)
+        val workoutsEnd: LocalDate = today.plusDays(1)
         val workoutsStart: LocalDate = today.minusDays(EnergyBalanceCalculator.WINDOW_DAYS.toLong())
         val adaptiveStart: LocalDate = today.minusDays(EnergyBalanceCalculator.ADAPTIVE_WINDOW_DAYS.toLong())
     }
@@ -59,8 +61,8 @@ class DefaultBodyMetricsRepository(
         ) { profile, weight, height, scan -> Measurements(profile, weight?.weightKg, height?.heightCm, scan) }
         return combine(
             measurements,
-            dailyHealthSummaryDao.getSummariesBetween(w.summariesStart, w.end),
-            exerciseSessionDao.getSessionsBetween(w.workoutsStart.atStartOfDay(zone).toInstant(), w.today.atStartOfDay(zone).toInstant()),
+            dailyHealthSummaryDao.getSummariesBetween(w.summariesStart, w.today),
+            exerciseSessionDao.getSessionsBetween(w.workoutsStart.atStartOfDay(zone).toInstant(), w.workoutsEnd.atStartOfDay(zone).toInstant()),
             foodLogDao.getBetween(w.adaptiveStart, w.end),
             weightRepository.getAllWeights()
         ) { m, summaries, workouts, foodLogs, weights -> build(w.today, m, summaries, workouts, foodLogs, weights) }
@@ -77,9 +79,9 @@ class DefaultBodyMetricsRepository(
         return build(
             today = w.today,
             m = m,
-            summaries = dailyHealthSummaryDao.getSummariesBetweenList(w.summariesStart, w.end),
+            summaries = dailyHealthSummaryDao.getSummariesBetweenList(w.summariesStart, w.today),
             workouts = exerciseSessionDao.getSessionsBetweenList(
-                w.workoutsStart.atStartOfDay(zone).toInstant(), w.today.atStartOfDay(zone).toInstant()
+                w.workoutsStart.atStartOfDay(zone).toInstant(), w.workoutsEnd.atStartOfDay(zone).toInstant()
             ),
             foodLogs = foodLogDao.getBetweenList(w.adaptiveStart, w.end),
             weights = weightRepository.getAllWeights().first()
@@ -124,7 +126,8 @@ class DefaultBodyMetricsRepository(
         val weightKg = m.latestWeightKg ?: profile?.currentWeightKg
         val heightCm = m.latestHeightCm ?: profile?.heightCm
         val sex = profile?.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() }
-        val burns = summaries.mapNotNull { it.totalCalories?.takeIf { kcal -> kcal > 0 } }
+        // Full days only: today's burn is still adding up.
+        val burns = summaries.filter { it.date.isBefore(today) }.mapNotNull { it.totalCalories?.takeIf { kcal -> kcal > 0 } }
 
         val energy = energyBalanceCalculator.estimate(
             weightKg = weightKg,

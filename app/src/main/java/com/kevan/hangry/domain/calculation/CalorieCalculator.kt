@@ -26,8 +26,9 @@ interface CalorieCalculator {
     ): CalorieBurnResult
 
     /**
-     * Null when there isn't enough information (TDEE, current weight, goal weight, or a
-     * target date) to compute a recommendation yet.
+     * Null when there isn't enough information (TDEE, current weight or goal weight) to compute
+     * a recommendation yet. Without a [targetDate] it works toward the goal at a default safe
+     * pace (see CALCULATIONS.md §8.5).
      */
     fun recommendDailyCalorieGoal(
         tdee: Double?,

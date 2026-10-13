@@ -1,7 +1,6 @@
 package com.kevan.hangry.domain.calculation
 
 import com.kevan.hangry.domain.model.EnergyBalanceEstimate
-import kotlin.math.roundToInt
 
 /** Daily calorie and macro targets, shared by the Nutrition screen and the nutrition widgets. */
 object NutritionTargets {
@@ -9,11 +8,11 @@ object NutritionTargets {
     data class Macros(val proteinG: Double, val carbsG: Double, val fatG: Double)
 
     /**
-     * The goal's target when a goal weight and date are set, otherwise maintenance. Null until
-     * there's enough real data for an estimate - never an assumed 2000 kcal.
+     * Today's target: today's burn (BMR + NEAT + workouts + digestion) ± your goal, see
+     * [DailyCalorieTargetCalculator]. Null until there's enough real data for an estimate -
+     * never an assumed 2000 kcal.
      */
-    fun dailyCalories(estimate: EnergyBalanceEstimate?): Int? =
-        estimate?.let { it.goal?.dailyCalorieTarget ?: it.maintenanceKcal.roundToInt() }
+    fun dailyCalories(estimate: EnergyBalanceEstimate?): Int? = estimate?.today?.targetKcal
 
     /** A 25 / 50 / 25 protein / carbs / fat split of [calories], with sensible floors. */
     fun macros(calories: Int?): Macros? = calories?.let {

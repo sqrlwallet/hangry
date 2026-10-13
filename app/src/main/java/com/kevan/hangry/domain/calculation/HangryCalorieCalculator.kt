@@ -60,20 +60,33 @@ class HangryCalorieCalculator : CalorieCalculator {
         bmr: Double?,
         sex: BiologicalSex?
     ): CalorieGoalRecommendation? {
-        if (tdee == null || currentWeightKg == null || weightGoalKg == null || targetDate == null) return null
-
-        val daysRemaining = ChronoUnit.DAYS.between(today, targetDate).toInt()
-        if (daysRemaining <= 0) {
-            return CalorieGoalRecommendation(
-                dailyCalorieTarget = null,
-                weeklyPaceKg = 0.0,
-                isPaceAdjustedForSafety = false,
-                guidance = "Choose a target date in the future to get a daily calorie recommendation."
-            )
-        }
+        if (tdee == null || currentWeightKg == null || weightGoalKg == null) return null
 
         val weightChangeKg = weightGoalKg - currentWeightKg
-        val requestedDailyAdjustment = (weightChangeKg * KCAL_PER_KG) / daysRemaining
+        val requestedDailyAdjustment = if (targetDate == null) {
+            // Goal weight only: a steady default pace, and maintenance once you're there.
+            when {
+                abs(weightChangeKg) < AT_GOAL_KG -> return CalorieGoalRecommendation(
+                    dailyCalorieTarget = tdee.roundToInt(),
+                    weeklyPaceKg = 0.0,
+                    isPaceAdjustedForSafety = false,
+                    guidance = "You're at your goal weight - this keeps you there."
+                )
+                weightChangeKg < 0 -> -DEFAULT_WEEKLY_LOSS_KG * KCAL_PER_KG / 7.0
+                else -> DEFAULT_WEEKLY_GAIN_KG * KCAL_PER_KG / 7.0
+            }
+        } else {
+            val daysRemaining = ChronoUnit.DAYS.between(today, targetDate).toInt()
+            if (daysRemaining <= 0) {
+                return CalorieGoalRecommendation(
+                    dailyCalorieTarget = null,
+                    weeklyPaceKg = 0.0,
+                    isPaceAdjustedForSafety = false,
+                    guidance = "Choose a target date in the future to get a daily calorie recommendation."
+                )
+            }
+            (weightChangeKg * KCAL_PER_KG) / daysRemaining
+        }
 
         // Loss: at most ~1% of body weight a week (and never more than 750 kcal/day).
         // Gain: at most ~0.5% a week - faster than that is mostly fat, not muscle.
@@ -99,6 +112,9 @@ class HangryCalorieCalculator : CalorieCalculator {
         val guidance = when {
             safetyAdjusted && weightChangeKg < 0 && abs(actualWeeklyPaceKg) < 0.05 ->
                 "Eating less than this would take you below your resting burn - more daily movement is the safer way to lose weight from here."
+            // No date: the default pace (capped for smaller bodies) is the plan, not a correction.
+            targetDate == null && weightChangeKg < 0 -> "Losing about $paceText toward your goal weight. Set a target date to choose your own pace."
+            targetDate == null -> "Gaining about $paceText toward your goal weight. Set a target date to choose your own pace."
             safetyAdjusted && weightChangeKg < 0 -> "Your target date implies a faster loss than we'd recommend - capped at a safer pace of about $paceText."
             safetyAdjusted && weightChangeKg > 0 -> "Your target date implies a faster gain than we'd recommend - capped at about $paceText so it's mostly muscle, not fat."
             weightChangeKg < -0.05 -> "On track to lose about $paceText at this target."
@@ -120,6 +136,11 @@ class HangryCalorieCalculator : CalorieCalculator {
         const val MAX_DAILY_SURPLUS = 500.0
         const val MAX_WEEKLY_LOSS_FRACTION = 0.01
         const val MAX_WEEKLY_GAIN_FRACTION = 0.005
+        /** With a goal weight but no target date: a sustainable pace either way. */
+        const val DEFAULT_WEEKLY_LOSS_KG = 0.5
+        const val DEFAULT_WEEKLY_GAIN_KG = 0.25
+        /** Within this of the goal weight (and no date), the target is maintenance. */
+        const val AT_GOAL_KG = 0.5
         const val MIN_SAFE_CALORIES = 1200.0
         const val MIN_SAFE_CALORIES_MALE = 1500.0
 

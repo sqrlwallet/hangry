@@ -135,4 +135,34 @@ class HangryCalorieCalculatorTest {
         assertEquals(2885, result.dailyCalorieTarget)
         assertTrue(result.isPaceAdjustedForSafety)
     }
+
+    @Test
+    fun testGoalRecommendation_goalWeightAloneUsesDefaultPace() {
+        val today = LocalDate.of(2026, 1, 1)
+        val lose = calculator.recommendDailyCalorieGoal(tdee = 2500.0, currentWeightKg = 80.0, weightGoalKg = 75.0, targetDate = null, today = today)!!
+        assertEquals(1950, lose.dailyCalorieTarget) // 0.5 kg/week = 550 kcal/day
+        assertFalse(lose.isPaceAdjustedForSafety)
+        val gain = calculator.recommendDailyCalorieGoal(tdee = 2500.0, currentWeightKg = 70.0, weightGoalKg = 75.0, targetDate = null, today = today)!!
+        assertEquals(2775, gain.dailyCalorieTarget) // 0.25 kg/week = 275 kcal/day
+    }
+
+    @Test
+    fun testGoalRecommendation_atGoalWeightMaintains() {
+        val result = calculator.recommendDailyCalorieGoal(
+            tdee = 2300.0, currentWeightKg = 70.3, weightGoalKg = 70.0, targetDate = null, today = LocalDate.of(2026, 1, 1)
+        )!!
+        assertEquals(2300, result.dailyCalorieTarget)
+        assertEquals(0.0, result.weeklyPaceKg, 0.0)
+    }
+
+    @Test
+    fun testGoalRecommendation_defaultPaceStillCappedForSmallerBodies() {
+        // 45 kg × 1% = 0.45 kg/week = 495 kcal/day, below the 550 default.
+        val result = calculator.recommendDailyCalorieGoal(
+            tdee = 2000.0, currentWeightKg = 45.0, weightGoalKg = 42.0, targetDate = null, today = LocalDate.of(2026, 1, 1),
+            bmr = 1100.0, sex = BiologicalSex.FEMALE
+        )!!
+        assertEquals(1505, result.dailyCalorieTarget)
+        assertTrue(result.guidance.startsWith("Losing about"))
+    }
 }

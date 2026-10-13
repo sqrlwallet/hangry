@@ -658,51 +658,57 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
     private fun goalCalories(c: Derived): BodyMetric {
         val info = { how: String ->
             MetricInfo(
-                whatItIs = "How much to eat each day to reach your goal weight by your target date.",
+                whatItIs = "How much to eat today. It's worked out fresh each day from what today actually burns, then moved toward your goal weight.",
                 howCalculated = how,
-                whyItMatters = "It turns a goal into a daily number. Losing is capped at about 1% of your weight a week (at most 750 kcal/day) and never below your resting burn or 1,500 kcal (men) / 1,200 kcal (women); gaining is capped at about 0.5% a week, so you lose fat and gain muscle rather than the other way round.",
-                source = "~7,700 kcal per kg of body fat, applied evenly across the days until your target date."
+                whyItMatters = "A day with a long walk or a workout burns more than a rest day, so it gets more food; a quiet day gets less. Losing is capped at about 1% of your weight a week (at most 750 kcal/day) and never below your resting burn or 1,500 kcal (men) / 1,200 kcal (women); gaining is capped at about 0.5% a week, so you lose fat and gain muscle rather than the other way round.",
+                source = "BMR for the minutes you weren't active, plus NEAT (today's steps, or your 7-day average until today's pass it), plus today's workouts in full, plus 10% for digesting food - scaled by what your food logs and weigh-ins have shown. Then ~7,700 kcal per kg toward your goal: by your target date if you set one, otherwise about 0.5 kg a week to lose or 0.25 kg a week to gain."
             )
         }
         val result = c.input.energy
-        val e = result?.estimate ?: return unavailable(
-            "goal_calories", "Goal calorie target", "kcal/day",
-            info("Maintenance calories ± the daily deficit or surplus needed to reach your goal weight by your target date."),
+        val e = result?.estimate
+        val day = e?.today ?: return unavailable(
+            "goal_calories", "Today's calorie target", "kcal",
+            info("Resting burn + NEAT + today's workouts + 10% for digesting food, ± the deficit or surplus for your goal weight."),
             result?.missing ?: listOf("Weight", "Height", "Age", "Sex", "Step data")
         )
-        val goalWeight = e.goalWeightKg
-        val goalDate = e.goalDate
-        if (goalWeight == null || goalDate == null) {
-            return unavailable(
-                "goal_calories", "Goal calorie target", "kcal/day",
-                info("Set a goal weight and target date in Settings and we'll work out your daily calories."),
-                missing("Goal weight" to goalWeight, "Target date" to goalDate)
-            )
+        val neatHow = if (day.neatFromDay) {
+            "today's ${f(day.neatSteps, 0)} steps"
+        } else {
+            "your usual ${f(day.neatSteps, 0)} steps a day, until today's pass it"
         }
-        val goal = e.goal
-        val target = goal?.dailyCalorieTarget
-        if (goal == null || target == null) {
-            return unavailable("goal_calories", "Goal calorie target", "kcal/day", info(goal?.guidance ?: "Choose a target date in the future."), listOf("Future target date"))
+        val workoutHow = when {
+            day.workoutsCounted == 0 && day.workoutsWithoutCalories == 0 -> "none yet today"
+            else -> "${day.workoutsCounted} today, counted in full" +
+                if (day.workoutsWithoutCalories > 0) " (${day.workoutsWithoutCalories} had no calorie data)" else ""
         }
-        val weight = c.weightKg ?: goalWeight
-        val days = java.time.temporal.ChronoUnit.DAYS.between(e.windowEnd.plusDays(1), goalDate)
-        val change = goalWeight - weight
-        val requested = if (days > 0) change * 7700 / days else 0.0
-        val adjustment = target - e.maintenanceKcal
-        val how = "Going from ${f(weight, 1)} kg to ${f(goalWeight, 1)} kg by $goalDate ($days days): " +
-            "${f(kotlin.math.abs(change), 1)} kg × 7,700 kcal ÷ $days days = ${f(kotlin.math.abs(requested), 0)} kcal/day ${if (change < 0) "deficit" else "surplus"}.\n" +
-            "Maintenance ${f(e.maintenanceKcal, 0)} ${if (adjustment < 0) "−" else "+"} ${f(kotlin.math.abs(adjustment), 0)} = $target kcal/day.\n${goal.guidance}"
+        val learnt = if (day.adaptiveFactor != 1.0) {
+            "× ${f(day.adaptiveFactor, 2)} from what your food logs and weigh-ins have shown\n"
+        } else ""
+        val goal = day.goal
+        val goalHow = when {
+            e.goalWeightKg == null -> "No goal weight set, so this keeps you where you are. Set one in Settings to lose or gain."
+            goal?.dailyCalorieTarget == null -> goal?.guidance ?: "Choose a target date in the future."
+            else -> "${if (day.adjustmentKcal < 0) "−" else "+"} ${f(kotlin.math.abs(day.adjustmentKcal), 0)} kcal for your goal of ${f(e.goalWeightKg, 1)} kg" +
+                (e.goalDate?.let { " by $it" } ?: "") + "\n${goal.guidance}"
+        }
+        val how = "• Resting (${e.bmrMethod} BMR ${f(day.bmrKcal, 0)} kcal, for the time you weren't active): ${f(day.restingKcal, 0)} kcal\n" +
+            "• NEAT, $neatHow: ${f(day.neatKcal, 0)} kcal\n" +
+            "• Workouts, $workoutHow: ${f(day.workoutKcal, 0)} kcal\n" +
+            "• Digesting food (10%): ${f(day.tefKcal, 0)} kcal\n" +
+            learnt +
+            "= ${f(day.burnKcal, 0)} kcal burnt today.\n" +
+            "$goalHow\n= ${day.targetKcal} kcal today."
         val status = when {
-            adjustment <= -25 -> "${f(-adjustment, 0)} kcal/day deficit"
-            adjustment >= 25 -> "${f(adjustment, 0)} kcal/day surplus"
+            day.adjustmentKcal <= -25 -> "${f(-day.adjustmentKcal, 0)} kcal deficit"
+            day.adjustmentKcal >= 25 -> "${f(day.adjustmentKcal, 0)} kcal surplus"
             else -> "Maintain"
         }
         return BodyMetric(
             id = "goal_calories",
-            name = "Goal calorie target",
-            value = target.toDouble(),
-            displayValue = target.toString(),
-            unit = "kcal/day",
+            name = "Today's calorie target",
+            value = day.targetKcal.toDouble(),
+            displayValue = day.targetKcal.toString(),
+            unit = "kcal",
             statusOverride = status,
             info = info(how)
         )

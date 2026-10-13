@@ -43,11 +43,56 @@ data class EnergyBalanceEstimate(
     val maintenanceKcal: Double,
     val goalWeightKg: Double?,
     val goalDate: LocalDate?,
-    /** Null when no goal weight + target date is set. */
-    val goal: CalorieGoalRecommendation?
+    /** Against [maintenanceKcal] - a typical day. Null when no goal weight is set. */
+    val goal: CalorieGoalRecommendation?,
+    /** The inputs behind [bmrKcal] and a step's cost, kept for working out a day's target. */
+    val weightKg: Double,
+    val heightCm: Double,
+    val sex: BiologicalSex,
+    /** Active minutes from steps outside workouts, per day. */
+    val avgStepMinutes: Double,
+    /** Today's calorie target - see [DailyCalorieTarget]. */
+    val today: DailyCalorieTarget? = null
 ) {
     /** Negative = daily deficit, positive = surplus, relative to maintenance. */
     val dailyAdjustmentKcal: Double? get() = goal?.dailyCalorieTarget?.let { it - maintenanceKcal }
+}
+
+/**
+ * One day's calorie target, worked out for that day rather than averaged over a week:
+ *
+ *   burn   = (resting + NEAT + workouts) × 1.10 digestion × what your logs have taught
+ *   target = burn ± the daily deficit or surplus for your goal weight
+ *
+ * - Resting is BMR over the day's inactive minutes (active minutes carry their own resting burn).
+ * - NEAT is the day's steps outside workouts, or your 7-day average if that's higher - so the
+ *   morning target isn't starved before you've walked anywhere, and a big walking day earns more.
+ * - Workouts are the day's actual workouts, every calorie, as soon as they sync.
+ * - [adaptiveFactor] scales the formula by how far your intake vs. weight trend says it's off.
+ */
+data class DailyCalorieTarget(
+    val date: LocalDate,
+    val bmrKcal: Double,
+    val restingKcal: Double,
+    val neatKcal: Double,
+    val neatSteps: Double,
+    /** True when the day's own steps beat the 7-day average and set NEAT. */
+    val neatFromDay: Boolean,
+    val workoutKcal: Double,
+    val workoutsCounted: Int,
+    /** The day's workouts with no calorie data - they add nothing. */
+    val workoutsWithoutCalories: Int,
+    val tefKcal: Double,
+    /** Maintenance learnt from your logs ÷ the formula's; 1.0 until there's enough to learn from. */
+    val adaptiveFactor: Double,
+    /** What the day burns: the number to eat at to stay the same weight. */
+    val burnKcal: Double,
+    /** The goal's deficit or surplus on top of [burnKcal]; null when no goal weight is set. */
+    val goal: CalorieGoalRecommendation?,
+    val targetKcal: Int
+) {
+    /** Negative = deficit, positive = surplus. */
+    val adjustmentKcal: Double get() = targetKcal - burnKcal
 }
 
 data class EnergyBalanceResult(

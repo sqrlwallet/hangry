@@ -1,3 +1,15 @@
+## 🚀 What's New in Hangry v1.39.0 — A Calorie Target That Follows Your Day
+
+Your calorie target is now worked out fresh every day from what that day actually burns.
+
+### 🍽️ Daily calorie target
+- **Built from today**: resting burn (BMR) + NEAT + today's workouts + 10% for digesting food.
+- **NEAT** uses today's steps once they pass your usual day; until then, your 7-day average, so mornings don't start near zero.
+- **Workouts** add their full calories to today's target as soon as they sync. Rest days get less, active days more.
+- **Learns from you**: once you've logged enough meals and weigh-ins, the target is scaled by how far they show the formula is off.
+- **Goal weight alone is enough**: lose about 0.5 kg/week or gain about 0.25 kg/week toward it. A target date still sets your own pace, within the same safety caps.
+- **See the maths**: Body Metrics → "Today's calorie target" shows the full breakdown. Today, Nutrition, the calorie widgets and Dash all use the same number.
+
 ## 📌 Hangry v1.38.1 — Favourites First
 
 ### ✨ Improvements

@@ -28,6 +28,9 @@ import kotlin.math.roundToLong
  * - Averages are over days that actually have step data; days with no data are skipped rather
  *   than treated as zero-activity days.
  *
+ * Today's target is then worked out from today itself (see [DailyCalorieTargetCalculator]):
+ * summaries and workouts may include today, which the 7-day averages leave out.
+ *
  * Then, with 14+ well-logged days and a weight trend over the last 28, it learns from what
  * actually happened (see [adaptive]) and blends that in - more of it the more days are logged.
  * Formulas can be 10-20% off for any one person; intake vs. weight change isn't.
@@ -83,6 +86,7 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         var stepKcalSum = 0.0
         var workoutKcalSum = 0.0
         var activeMinutesSum = 0
+        var stepMinutesSum = 0
         var workoutsCounted = 0
         var workoutsWithoutCalories = 0
         val kcalPerStep = ActiveActivityCalculator.kcalPerStep(weightKg, heightCm, bmr)
@@ -95,6 +99,7 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
             totalSteps += daySteps
             countedSteps += ((active.stepCalories ?: 0.0) / kcalPerStep).roundToLong()
             activeMinutesSum += minutes
+            stepMinutesSum += active.stepMinutes
             restingKcalSum += bmr * (MINUTES_PER_DAY - minutes).coerceIn(0.0, MINUTES_PER_DAY) / MINUTES_PER_DAY
             stepKcalSum += active.stepCalories ?: 0.0
             workoutKcalSum += active.workoutCalories
@@ -110,7 +115,8 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         val (adaptive, adaptiveMissing) = adaptive(foodLogs, weights, formulaMaintenance, today, zone)
         val maintenance = adaptive?.let { formulaMaintenance * (1 - it.weight) + it.maintenanceKcal * it.weight } ?: formulaMaintenance
 
-        val goal = if (goalWeightKg != null && goalDate != null) {
+        // A goal weight is enough; a target date sets the pace when there is one.
+        val goal = if (goalWeightKg != null) {
             calorieCalculator.recommendDailyCalorieGoal(
                 tdee = maintenance,
                 currentWeightKg = weightKg,
@@ -122,33 +128,43 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
             )
         } else null
 
-        return EnergyBalanceResult(
-            estimate = EnergyBalanceEstimate(
-                windowStart = windowStart,
-                windowEnd = windowEnd,
-                daysWithData = stepsByDay.size,
-                bmrKcal = bmr,
-                bmrMethod = bmrMethod,
-                restingKcal = restingKcal,
-                avgActiveMinutes = activeMinutesSum / days,
-                avgTotalSteps = totalSteps / days,
-                avgCountedSteps = countedSteps / days,
-                kcalPerStep = kcalPerStep,
-                stepKcal = stepKcal,
-                avgWorkoutKcal = avgWorkoutKcal,
-                workoutsCounted = workoutsCounted,
-                workoutsWithoutCalories = workoutsWithoutCalories,
-                tefKcal = tefKcal,
-                formulaMaintenanceKcal = formulaMaintenance,
-                adaptive = adaptive,
-                adaptiveMissing = adaptiveMissing,
-                maintenanceKcal = maintenance,
-                goalWeightKg = goalWeightKg,
-                goalDate = goalDate,
-                goal = goal
-            ),
-            missing = emptyList()
+        val estimate = EnergyBalanceEstimate(
+            windowStart = windowStart,
+            windowEnd = windowEnd,
+            daysWithData = stepsByDay.size,
+            bmrKcal = bmr,
+            bmrMethod = bmrMethod,
+            restingKcal = restingKcal,
+            avgActiveMinutes = activeMinutesSum / days,
+            avgTotalSteps = totalSteps / days,
+            avgCountedSteps = countedSteps / days,
+            kcalPerStep = kcalPerStep,
+            stepKcal = stepKcal,
+            avgWorkoutKcal = avgWorkoutKcal,
+            workoutsCounted = workoutsCounted,
+            workoutsWithoutCalories = workoutsWithoutCalories,
+            tefKcal = tefKcal,
+            formulaMaintenanceKcal = formulaMaintenance,
+            adaptive = adaptive,
+            adaptiveMissing = adaptiveMissing,
+            maintenanceKcal = maintenance,
+            goalWeightKg = goalWeightKg,
+            goalDate = goalDate,
+            goal = goal,
+            weightKg = weightKg,
+            heightCm = heightCm,
+            sex = sex,
+            avgStepMinutes = stepMinutesSum / days
         )
+        // Today's own target: today's steps (or a usual day's, if more) and today's workouts.
+        val todayTarget = DailyCalorieTargetCalculator.calculate(
+            estimate = estimate,
+            date = today,
+            steps = summaries.firstOrNull { it.date == today }?.steps,
+            workouts = workoutsByDay[today].orEmpty(),
+            calorieCalculator = calorieCalculator
+        )
+        return EnergyBalanceResult(estimate = estimate.copy(today = todayTarget), missing = emptyList())
     }
 
     /**

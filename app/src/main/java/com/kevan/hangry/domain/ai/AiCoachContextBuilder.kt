@@ -255,7 +255,7 @@ class AiCoachContextBuilder(
     }
 
     private fun appendEnergyBalance(sb: StringBuilder, energy: EnergyBalanceResult?) {
-        sb.appendLine("=== ENERGY BALANCE (activity: last 7 full days; logs: last 28; excluding today) ===")
+        sb.appendLine("=== ENERGY BALANCE (typical day: last 7 full days; logs: last 28; today's target below) ===")
         val e = energy?.estimate
         if (e == null) {
             val missing = energy?.missing?.joinToString(", ") ?: "profile and step data"
@@ -277,17 +277,25 @@ class AiCoachContextBuilder(
         } else {
             sb.appendLine("• Not yet learning from logs (needs ${e.adaptiveMissing}) - maintenance is the activity estimate")
         }
-        val goal = e.goal
-        when {
-            e.goalWeightKg == null || e.goalDate == null ->
-                sb.appendLine("Goal: none set (no goal weight + target date). Eating ~${f(e.maintenanceKcal)} kcal/day maintains current weight.")
-            goal?.dailyCalorieTarget == null ->
-                sb.appendLine("Goal: ${"%.1f".format(Locale.US, e.goalWeightKg)} kg by ${e.goalDate} - ${goal?.guidance ?: "target date has passed"}")
-            else -> {
-                val adj = e.dailyAdjustmentKcal ?: 0.0
-                val kind = if (adj < 0) "deficit" else "surplus"
-                sb.appendLine("Goal: ${"%.1f".format(Locale.US, e.goalWeightKg)} kg by ${e.goalDate} → eat ${goal.dailyCalorieTarget} kcal/day (${f(kotlin.math.abs(adj))} kcal/day $kind, ~${"%.2f".format(Locale.US, kotlin.math.abs(goal.weeklyPaceKg))} kg/week). ${goal.guidance}")
+        val day = e.today
+        if (day != null) {
+            sb.appendLine("TODAY'S CALORIE TARGET: ${day.targetKcal} kcal (worked out for today, not averaged - this is the number the app shows)")
+            sb.appendLine("• Resting ${f(day.restingKcal)} + NEAT ${f(day.neatKcal)} (${if (day.neatFromDay) "today's ${f(day.neatSteps)} steps" else "usual ${f(day.neatSteps)} steps/day until today's pass it"}) + today's workouts ${f(day.workoutKcal)} + digestion ${f(day.tefKcal)}" +
+                (if (day.adaptiveFactor != 1.0) ", × ${"%.2f".format(Locale.US, day.adaptiveFactor)} learnt from logs" else "") +
+                " = ${f(day.burnKcal)} kcal burnt today")
+            val goal = day.goal
+            when {
+                e.goalWeightKg == null ->
+                    sb.appendLine("• Goal: no goal weight set, so the target is today's burn (maintains current weight).")
+                goal?.dailyCalorieTarget == null ->
+                    sb.appendLine("• Goal: ${"%.1f".format(Locale.US, e.goalWeightKg)} kg${e.goalDate?.let { " by $it" } ?: ""} - ${goal?.guidance ?: "target date has passed"}")
+                else -> {
+                    val adj = day.adjustmentKcal
+                    val kind = if (adj < 0) "deficit" else "surplus"
+                    sb.appendLine("• Goal: ${"%.1f".format(Locale.US, e.goalWeightKg)} kg${e.goalDate?.let { " by $it" } ?: " (no date: default pace)"} → ${f(kotlin.math.abs(adj))} kcal $kind, ~${"%.2f".format(Locale.US, kotlin.math.abs(goal.weeklyPaceKg))} kg/week. ${goal.guidance}")
+                }
             }
+            sb.appendLine("• The target rises when a workout syncs or today's steps pass the usual; a workout later today will add to it.")
         }
         sb.appendLine()
     }
@@ -295,7 +303,7 @@ class AiCoachContextBuilder(
     /** Where today stands against the calorie target, so "what should I eat tonight?" has an answer. */
     private fun appendToday(sb: StringBuilder, snapshot: BodyMetricsSnapshot, todayFood: List<com.kevan.hangry.data.local.entity.FoodLogEntity>) {
         val e = snapshot.input.energy?.estimate
-        val target = e?.goal?.dailyCalorieTarget ?: e?.maintenanceKcal?.toInt()
+        val target = e?.today?.targetKcal
         val eaten = todayFood.sumOf { it.calories }
         val protein = todayFood.sumOf { it.proteinG }
         sb.appendLine("=== TODAY SO FAR ===")

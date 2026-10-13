@@ -174,4 +174,77 @@ class EnergyBalanceCalculatorTest {
         assertNull(e.adaptive)
         assertEquals(e.formulaMaintenanceKcal, e.maintenanceKcal, 0.0)
     }
+
+    // region Today's target
+
+    @Test
+    fun `before today's steps pass a usual day, today's target uses the usual day`() {
+        // Today: 2,000 steps so far, no workout. Usual day: 10,000 steps.
+        val e = estimate(week + day(0, 2_000)).estimate!!
+        val t = e.today!!
+        assertEquals(today, t.date)
+        assertEquals(false, t.neatFromDay)
+        assertEquals(e.stepKcal, t.neatKcal, 0.01)
+        assertEquals(0.0, t.workoutKcal, 0.01)
+        // No goal and no workouts: a usual day's burn, which is maintenance.
+        assertEquals(e.formulaMaintenanceKcal, t.burnKcal, 0.5)
+        assertEquals(e.formulaMaintenanceKcal.roundToInt(), t.targetKcal)
+    }
+
+    @Test
+    fun `a big walking day earns more once it passes the usual`() {
+        val e = estimate(week + day(0, 20_000)).estimate!!
+        val t = e.today!!
+        assertTrue(t.neatFromDay)
+        assertEquals(20_000 * e.kcalPerStep, t.neatKcal, 0.5)
+        // 133 active minutes from steps; resting covers the rest of the day.
+        assertEquals(e.bmrKcal * (1440 - 133) / 1440, t.restingKcal, 0.5)
+        assertTrue(t.targetKcal > e.formulaMaintenanceKcal + 250)
+    }
+
+    @Test
+    fun `today's workout raises today's target as soon as it syncs`() {
+        val rest = estimate(week + day(0, 3_000)).estimate!!.today!!
+        val trained = estimate(week + day(0, 3_000), workouts = listOf(run(today, 60, 600.0, null))).estimate!!.today!!
+        assertEquals(1, trained.workoutsCounted)
+        // 600 active kcal + resting burn during the hour.
+        assertEquals(600.0 + 1780.0 * 60 / 1440, trained.workoutKcal, 0.5)
+        // The hour isn't counted as resting too; digestion adds 10% on top.
+        val expected = (trained.workoutKcal - 1780.0 * 60 / 1440) * 1.10
+        assertEquals(expected, trained.burnKcal - rest.burnKcal, 1.0)
+    }
+
+    @Test
+    fun `past workouts don't count toward today`() {
+        val e = estimate(week + day(0, 3_000), workouts = listOf(run(today.minusDays(1), 60, 600.0, null))).estimate!!
+        assertEquals(0.0, e.today!!.workoutKcal, 0.01)
+    }
+
+    @Test
+    fun `a goal weight alone sets a default pace deficit on today's burn`() {
+        // An active day, so the deficit isn't stopped by the resting-burn floor.
+        val t = estimate(week + day(0, 20_000), goalWeight = 75.0).estimate!!.today!!
+        // 0.5 kg/week × 7,700 / 7 = 550 kcal/day.
+        assertEquals(-550.0, t.adjustmentKcal, 1.0)
+        assertEquals(-0.5, t.goal!!.weeklyPaceKg, 0.01)
+    }
+
+    @Test
+    fun `a target date still sets the pace`() {
+        // 2 kg in 70 days = 220 kcal/day.
+        val t = estimate(week + day(0, 20_000), goalWeight = 78.0, goalDate = today.plusDays(70)).estimate!!.today!!
+        assertEquals(-220.0, t.adjustmentKcal, 1.0)
+    }
+
+    @Test
+    fun `what the logs have taught scales today's burn`() {
+        val logs = (1L..20L).map { meal(it, 2_200) }
+        val e = estimate(week + day(0, 3_000), foodLogs = logs, weights = losing(-0.25)).estimate!!
+        val t = e.today!!
+        assertNotNull(e.adaptive)
+        assertEquals(e.maintenanceKcal / e.formulaMaintenanceKcal, t.adaptiveFactor, 0.0001)
+        assertEquals(e.maintenanceKcal, t.burnKcal, 0.5)
+    }
+
+    // endregion
 }

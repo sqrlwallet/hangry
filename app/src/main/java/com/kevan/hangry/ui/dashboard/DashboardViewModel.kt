@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.dashboard
 
+import com.kevan.hangry.domain.calculation.DailyCalorieTargetCalculator
 import com.kevan.hangry.domain.calculation.BodySignals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -52,7 +53,7 @@ class DashboardViewModel(
     private val stressCalculator: StressCalculator,
     private val dashboardWidgetRepository: DashboardWidgetRepository,
     private val bodyFatRepository: BodyFatRepository,
-    /** Source of the 7-day maintenance/goal calorie estimate; null leaves the calorie goal blank. */
+    /** Source of the calorie estimate behind each day's target; null leaves the calorie goal blank. */
     private val bodyMetricsRepository: BodyMetricsRepository? = null,
     private val streaksLoader: StreaksLoader? = null,
     private val bodyAgeLoader: BodyAgeLoader? = null
@@ -244,15 +245,16 @@ class DashboardViewModel(
                     exerciseCalories = exerciseCalories,
                     activeMinutes = activeMinutes
                 )
-                // Built from the last 7 full days of steps and workouts rather than today's still
-                // accumulating burn, so the target doesn't swing through the day. With no goal
-                // set, the target is simply maintenance; with too little data, it stays blank.
+                // That day's own target: its steps (or a usual day's, if more) and its workouts,
+                // so a workout raises today's target as soon as it syncs. Blank with too little data.
                 val calorieGoal = energy?.let { e ->
-                    e.goal ?: CalorieGoalRecommendation(
-                        dailyCalorieTarget = e.maintenanceKcal.roundToInt(),
-                        weeklyPaceKg = 0.0,
-                        isPaceAdjustedForSafety = false,
-                        guidance = "Eat about this much to stay at your current weight, based on your last 7 days of steps and workouts."
+                    val day = DailyCalorieTargetCalculator.calculate(e, date, summary?.steps, todaysWorkouts, calorieCalculator)
+                    CalorieGoalRecommendation(
+                        dailyCalorieTarget = day.targetKcal,
+                        weeklyPaceKg = day.goal?.weeklyPaceKg ?: 0.0,
+                        isPaceAdjustedForSafety = day.goal?.isPaceAdjustedForSafety ?: false,
+                        guidance = day.goal?.guidance
+                            ?: "Eat about this much to stay at your current weight: today's resting burn, steps and workouts."
                     )
                 }
 

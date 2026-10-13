@@ -1,3 +1,23 @@
+## 🚀 What's New in Hangry v1.37.0 — Appearance, Fluid Navigation & Architecture Modernization
+
+Choose your theme, jump and swipe smoothly through dates, and enjoy snappy app startup with an overhauled architecture.
+
+### 🎨 Appearance & Themes
+- **Theme Selection**: Choose between **System Default**, **Dark (Obsidian)**, and **Light (Cream)** in Settings → Appearance. Theme changes apply instantly across the entire app without restarts.
+
+### 📅 Fluid Date Navigation & Gestures
+- **Date Picker Dialog**: Tap the date header anywhere to open an interactive calendar picker and jump directly to any date.
+- **Quick "Today" Action**: Tap "Today" on the date navigation bar when viewing historical dates to return home instantly.
+- **Horizontal Swipe Gestures**: Swipe left or right smoothly across Today, Nutrition, and Training tabs to flip between days.
+- **Tab Reselection**: Tapping the active bottom navigation tab smoothly scrolls back to the top and returns the view to today.
+
+### 🏗️ Architecture & Performance Overhaul
+- **Domain Abstractions**: Introduced `WeightRepository` and `HeightRepository` interfaces, cleanly decoupling domain logic and view models from Room DAOs.
+- **MVVM Decoupling**: Extracted `TrendsViewModel` and `SettingsViewModel`, shifting heavy multi-flow computations, database maintenance, and export logic off the Compose UI thread.
+- **Fast Startup**: Eliminated cold-start `runBlocking` calls on the main thread during onboarding checks in `MainActivity`.
+- **Background Decoupling**: Moved midnight resets and live strain polling out of the navigation graph into a dedicated `AppLifecycleSyncTracker`.
+- **Warning-Free Compilation**: Modernized deprecated icon and lifecycle APIs and enabled Kotlin 2.x parameter-property annotation targets.
+
 ## 🩹 Hangry v1.36.1 — Save Your Measurements
 
 ### 🛠️ Fixes

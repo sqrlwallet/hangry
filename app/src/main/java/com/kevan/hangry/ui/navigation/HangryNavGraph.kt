@@ -12,6 +12,8 @@ import com.kevan.hangry.ui.theme.HangryTheme
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.kevan.hangry.data.breathing.BreathingSessionState
@@ -60,12 +62,14 @@ import com.kevan.hangry.ui.posture.PostureViewModel
 import com.kevan.hangry.ui.recovery.RecoveryDetailsScreen
 import com.kevan.hangry.ui.settings.DataSourcesScreen
 import com.kevan.hangry.ui.settings.SettingsScreen
+import com.kevan.hangry.ui.settings.SettingsViewModel
 import com.kevan.hangry.ui.sleep.SleepScreen
 import com.kevan.hangry.ui.privacy.PrivacyPolicyScreen
 import com.kevan.hangry.ui.sync.HistoricalSyncSetupScreen
 import com.kevan.hangry.ui.sync.SyncProgressScreen
 import com.kevan.hangry.ui.training.TrainingScreen
 import com.kevan.hangry.ui.trends.TrendsScreen
+import com.kevan.hangry.ui.trends.TrendsViewModel
 import com.kevan.hangry.ui.widget.HomeScreenWidgetsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -160,7 +164,7 @@ fun HangryNavGraph(
             workoutRepository = appContainer.workoutRepository,
             healthSyncManager = appContainer.healthSyncManager,
             userProfileRepository = appContainer.userProfileRepository,
-            weightDao = appContainer.database.weightDao(),
+            weightRepository = appContainer.weightRepository,
             sleepCalculator = appContainer.sleepCalculator,
             trainingLoadCalculator = appContainer.trainingLoadCalculator,
             strainCalculator = appContainer.strainCalculator,
@@ -214,48 +218,57 @@ fun HangryNavGraph(
 
     val appContext = LocalContext.current.applicationContext
 
-    // Keep "today" and the data fresh: on every return to the app, and at midnight if it's open.
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                dashboardViewModel.onAppResumed()
-                nutritionViewModel.onDayMaybeChanged()
-            }
-        }
-        lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
-    }
-    // Live strain: while the app is on screen, pull today's heart rate every few minutes so
-    // strain builds up as the day goes on. The hourly background sync covers the rest, and the
-    // first sync after midnight settles yesterday's final number.
-    LaunchedEffect(lifecycle) {
-        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            while (true) {
-                if (appContainer.healthSyncManager.refreshToday()) {
-                    dashboardViewModel.refreshHabits()
-                    com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(appContext)
-                }
-                delay(LIVE_REFRESH_MS)
-            }
-        }
-    }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(millisUntilNextMidnight())
-            dashboardViewModel.onDayMaybeChanged()
-            nutritionViewModel.onDayMaybeChanged()
-        }
-    }
+    AppLifecycleSyncTracker(
+        dashboardViewModel = dashboardViewModel,
+        nutritionViewModel = nutritionViewModel,
+        syncManager = appContainer.healthSyncManager,
+        context = appContext
+    )
 
     NavHost(
         navController = navController,
         startDestination = finalStart,
         modifier = modifier,
-        enterTransition = { fadeIn(animationSpec = tween(220)) },
-        exitTransition = { fadeOut(animationSpec = tween(220)) },
-        popEnterTransition = { fadeIn(animationSpec = tween(220)) },
-        popExitTransition = { fadeOut(animationSpec = tween(220)) }
+        enterTransition = {
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
+                fadeIn(animationSpec = tween(180))
+            } else {
+                slideInHorizontally(initialOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeIn(animationSpec = tween(240))
+            }
+        },
+        exitTransition = {
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
+                fadeOut(animationSpec = tween(180))
+            } else {
+                slideOutHorizontally(targetOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeOut(animationSpec = tween(240))
+            }
+        },
+        popEnterTransition = {
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
+                fadeIn(animationSpec = tween(180))
+            } else {
+                slideInHorizontally(initialOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeIn(animationSpec = tween(240))
+            }
+        },
+        popExitTransition = {
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
+                fadeOut(animationSpec = tween(180))
+            } else {
+                slideOutHorizontally(targetOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeOut(animationSpec = tween(240))
+            }
+        }
     ) {
         // Onboarding Flow
         composable(Screen.Welcome.route) {
@@ -279,7 +292,7 @@ fun HangryNavGraph(
                 // after a reset) prefill it.
                 val stored by produceState<Pair<UserProfileEntity?, Double?>?>(null) {
                     value = appContainer.userProfileRepository.getProfileSync() to
-                        appContainer.database.weightDao().getLatestWeightSync()?.weightKg
+                        appContainer.weightRepository.getLatestWeightSync()?.weightKg
                 }
                 val (profile, latestWeight) = stored ?: return@HangryTheme
                 AboutYouScreen(
@@ -536,12 +549,18 @@ fun HangryNavGraph(
         }
 
         composable(Screen.Trends.route) {
+            val trendsViewModel: TrendsViewModel = viewModel(
+                factory = TrendsViewModel.provideFactory(
+                    dailySummaryRepository = appContainer.dailySummaryRepository,
+                    weightRepository = appContainer.weightRepository,
+                    workoutRepository = appContainer.workoutRepository,
+                    foodLogRepository = appContainer.foodLogRepository,
+                    bodyFatRepository = appContainer.bodyFatRepository,
+                    dispatchers = appContainer.dispatchers
+                )
+            )
             TrendsScreen(
-                dailySummaryRepository = appContainer.dailySummaryRepository,
-                weightDao = appContainer.database.weightDao(),
-                workoutRepository = appContainer.workoutRepository,
-                foodLogRepository = appContainer.foodLogRepository,
-                bodyFatRepository = appContainer.bodyFatRepository,
+                viewModel = trendsViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -572,19 +591,25 @@ fun HangryNavGraph(
 
         composable(Screen.Settings.route) { backStackEntry ->
             val expandAi = remember { backStackEntry.savedStateHandle.remove<Boolean>(EXPAND_AI_SETTINGS) == true }
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModel.provideFactory(
+                    syncManager = appContainer.healthSyncManager,
+                    exportManager = appContainer.localExportManager,
+                    backupManager = appContainer.backupManager,
+                    localStorageManager = appContainer.localStorageManager,
+                    userProfileRepository = appContainer.userProfileRepository,
+                    bodyMetricsRepository = appContainer.bodyMetricsRepository,
+                    weightRepository = appContainer.weightRepository,
+                    heightRepository = appContainer.heightRepository,
+                    calorieCalculator = appContainer.calorieCalculator,
+                    secureKeyStore = appContainer.secureKeyStore,
+                    openRouterClient = appContainer.openRouterClient,
+                    dispatchers = appContainer.dispatchers
+                )
+            )
             SettingsScreen(
+                viewModel = settingsViewModel,
                 expandAiInitially = expandAi,
-                syncManager = appContainer.healthSyncManager,
-                exportManager = appContainer.localExportManager,
-                backupManager = appContainer.backupManager,
-                localStorageManager = appContainer.localStorageManager,
-                userProfileRepository = appContainer.userProfileRepository,
-                bodyMetricsRepository = appContainer.bodyMetricsRepository,
-                weightDao = appContainer.database.weightDao(),
-                heightDao = appContainer.database.heightDao(),
-                calorieCalculator = appContainer.calorieCalculator,
-                secureKeyStore = appContainer.secureKeyStore,
-                openRouterClient = appContainer.openRouterClient,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -870,8 +895,8 @@ fun HangryNavGraph(
                 factory = BodyFatCalculatorViewModel.provideFactory(
                     context = LocalContext.current,
                     userProfileRepository = appContainer.userProfileRepository,
-                    weightDao = appContainer.database.weightDao(),
-                    heightDao = appContainer.database.heightDao(),
+                    weightRepository = appContainer.weightRepository,
+                    heightRepository = appContainer.heightRepository,
                     bodyFatCalculator = appContainer.bodyFatCalculator,
                     bodyFatAnalyzer = appContainer.bodyFatAnalyzer,
                     bodyFatRepository = appContainer.bodyFatRepository,
@@ -924,6 +949,3 @@ internal fun NavHostController.navigateToTab(route: String) {
         restoreState = true
     }
 }
-
-/** How often today's strain refreshes while the app is open. */
-private const val LIVE_REFRESH_MS = 5 * 60 * 1000L

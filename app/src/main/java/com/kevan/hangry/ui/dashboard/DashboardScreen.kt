@@ -94,6 +94,15 @@ fun DashboardScreen(
     val tokens = LocalHangryTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
     val dockInset = LocalDockInset.current
+    val scrollState = rememberScrollState()
+    val tabReselectionBus = com.kevan.hangry.ui.navigation.LocalTabReselectionBus.current
+    LaunchedEffect(tabReselectionBus) {
+        tabReselectionBus.events.collect { route ->
+            if (route == com.kevan.hangry.ui.navigation.Screen.Dashboard.route) {
+                scrollState.animateScrollTo(0)
+            }
+        }
+    }
 
     val isAnalyzingMeal = nutritionUiState?.isAnalyzing == true
 
@@ -254,7 +263,7 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .statusBarsPadding()
                 .padding(horizontal = HangryTokens.Spacing.m)
                 .padding(top = HangryTokens.Spacing.s)

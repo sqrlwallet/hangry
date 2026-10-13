@@ -120,6 +120,15 @@ private val DOCK_MARGINS = 10.dp
  */
 val LocalDockInset = compositionLocalOf { 0.dp }
 
+class TabReselectionBus {
+    val events = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 1)
+    fun notifyReselect(route: String) {
+        events.tryEmit(route)
+    }
+}
+
+val LocalTabReselectionBus = androidx.compose.runtime.staticCompositionLocalOf { TabReselectionBus() }
+
 @Composable
 fun rememberDockInset(currentRoute: String?): Dp {
     val density = LocalDensity.current
@@ -190,6 +199,7 @@ fun HangryBottomNavBar(
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val reselectionBus = LocalTabReselectionBus.current
                     BottomNavDestination.entries.forEach { destination ->
                         val selected = currentRoute == destination.route
 
@@ -197,9 +207,11 @@ fun HangryBottomNavBar(
                             destination = destination,
                             selected = selected,
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (!selected) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     navController.navigateToTab(destination.route)
+                                } else {
+                                    reselectionBus.notifyReselect(destination.route)
                                 }
                             }
                         )

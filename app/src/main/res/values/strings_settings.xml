@@ -219,6 +219,8 @@
     <string name="settings_more_customize_today_subtitle">Choose and reorder the cards on Today</string>
     <string name="settings_more_widgets">Home Screen Widgets</string>
     <string name="settings_more_settings_subtitle">Goals, sync, AI and your data</string>
+    <string name="settings_more_search_placeholder">Search tools &amp; settings…</string>
+    <string name="settings_more_no_results">No tools or settings matched.</string>
     <!-- Background access -->
     <string name="settings_done">Done</string>
     <string name="settings_not_now">Not now</string>
@@ -409,4 +411,12 @@
     <string name="settings_restore_cant_read">Couldn\'t read that file.</string>
     <string name="settings_restore_failed_title">Couldn\'t restore</string>
     <string name="settings_restore_ok">OK</string>
+
+    <!-- Appearance -->
+    <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_appearance_summary">Theme: %1$s</string>
+    <string name="settings_appearance_theme_title">Theme</string>
+    <string name="settings_appearance_theme_system">System</string>
+    <string name="settings_appearance_theme_dark">Obsidian</string>
+    <string name="settings_appearance_theme_light">Cream</string>
 </resources>

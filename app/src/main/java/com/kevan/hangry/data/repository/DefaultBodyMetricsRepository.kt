@@ -16,6 +16,8 @@ import com.kevan.hangry.domain.calculation.EnergyBalanceCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
 import com.kevan.hangry.domain.model.BodyMetricsInput
 import com.kevan.hangry.domain.model.BodyMetricsSnapshot
+import com.kevan.hangry.domain.repository.HeightRepository
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.BodyMetricsRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
@@ -28,8 +30,8 @@ import java.time.ZoneId
 
 class DefaultBodyMetricsRepository(
     private val userProfileRepository: UserProfileRepository,
-    private val weightDao: WeightDao,
-    private val heightDao: HeightDao,
+    private val weightRepository: WeightRepository,
+    private val heightRepository: HeightRepository,
     private val bodyFatRepository: BodyFatRepository,
     private val dailyHealthSummaryDao: DailyHealthSummaryDao,
     private val exerciseSessionDao: ExerciseSessionDao,
@@ -51,8 +53,8 @@ class DefaultBodyMetricsRepository(
         val w = Window(LocalDate.now(zone))
         val measurements = combine(
             userProfileRepository.getProfile(),
-            weightDao.getLatestWeight(),
-            heightDao.getLatestHeight(),
+            weightRepository.getLatestWeight(),
+            heightRepository.getLatestHeight(),
             bodyFatRepository.getLatestScan()
         ) { profile, weight, height, scan -> Measurements(profile, weight?.weightKg, height?.heightCm, scan) }
         return combine(
@@ -60,7 +62,7 @@ class DefaultBodyMetricsRepository(
             dailyHealthSummaryDao.getSummariesBetween(w.summariesStart, w.end),
             exerciseSessionDao.getSessionsBetween(w.workoutsStart.atStartOfDay(zone).toInstant(), w.today.atStartOfDay(zone).toInstant()),
             foodLogDao.getBetween(w.adaptiveStart, w.end),
-            weightDao.getAllWeights()
+            weightRepository.getAllWeights()
         ) { m, summaries, workouts, foodLogs, weights -> build(w.today, m, summaries, workouts, foodLogs, weights) }
     }
 
@@ -68,8 +70,8 @@ class DefaultBodyMetricsRepository(
         val w = Window(LocalDate.now(zone))
         val m = Measurements(
             profile = userProfileRepository.getProfileSync(),
-            latestWeightKg = weightDao.getLatestWeightSync()?.weightKg,
-            latestHeightCm = heightDao.getLatestHeightSync()?.heightCm,
+            latestWeightKg = weightRepository.getLatestWeightSync()?.weightKg,
+            latestHeightCm = heightRepository.getLatestHeightSync()?.heightCm,
             scan = bodyFatRepository.getLatestScanSync()
         )
         return build(
@@ -80,13 +82,13 @@ class DefaultBodyMetricsRepository(
                 w.workoutsStart.atStartOfDay(zone).toInstant(), w.today.atStartOfDay(zone).toInstant()
             ),
             foodLogs = foodLogDao.getBetweenList(w.adaptiveStart, w.end),
-            weights = weightDao.getAllWeights().first()
+            weights = weightRepository.getAllWeights().first()
         )
     }
 
     override suspend fun logWeight(kg: Double, takenAt: Instant) {
-        val newest = weightDao.getLatestWeightSync()?.timestamp?.let { !takenAt.isBefore(it) } ?: true
-        weightDao.insertOrIgnore(
+        val newest = weightRepository.getLatestWeightSync()?.timestamp?.let { !takenAt.isBefore(it) } ?: true
+        weightRepository.insertOrIgnore(
             listOf(
                 WeightMeasurementEntity(
                     recordFingerprint = "manual_entry_${Instant.now().toEpochMilli()}",

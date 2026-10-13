@@ -6,7 +6,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,9 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.Instant
@@ -45,6 +49,7 @@ fun DateNavigatorBar(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    showWeekStrip: Boolean = true,
     /** Extra buttons at the end of the bar, e.g. a screen's menu on a tab without a top bar. */
     actions: @Composable RowScope.() -> Unit = {}
 ) {
@@ -57,6 +62,7 @@ fun DateNavigatorBar(
     val canGoForward = selectedDate < today
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var dragAccumulator by remember { mutableFloatStateOf(0f) }
 
     val formattedDateText = when {
         isToday -> stringResource(R.string.metrics_components_date_today_with_date, selectedDate.format(DateTimeFormatter.ofPattern("MMM d")))
@@ -65,7 +71,27 @@ fun DateNavigatorBar(
     }
 
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(selectedDate, today, canGoForward) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        val threshold = 50f
+                        if (dragAccumulator > threshold) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onDateSelected(selectedDate.minusDays(1))
+                        } else if (dragAccumulator < -threshold && canGoForward) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onDateSelected(selectedDate.plusDays(1))
+                        }
+                        dragAccumulator = 0f
+                    },
+                    onDragCancel = { dragAccumulator = 0f },
+                    onHorizontalDrag = { _, dragAmount ->
+                        dragAccumulator += dragAmount
+                    }
+                )
+            },
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(
@@ -219,6 +245,14 @@ fun DateNavigatorBar(
                 }
             }
         }
+
+        if (showWeekStrip) {
+            WeekStrip(
+                selectedDate = selectedDate,
+                onDateSelected = onDateSelected,
+                today = today
+            )
+        }
     }
 
     if (showDatePicker) {
@@ -273,6 +307,105 @@ fun DateNavigatorBar(
                     todayDateBorderColor = MaterialTheme.colorScheme.primary
                 )
             )
+        }
+    }
+}
+
+/**
+ * Interactive 7-day week ribbon.
+ * Allows 1-tap jumping to any day this week with clear active indicator and today markers.
+ */
+@Composable
+fun WeekStrip(
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    today: LocalDate = rememberToday(),
+    modifier: Modifier = Modifier
+) {
+    val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
+    val startOfWeek = remember(selectedDate, today) {
+        if (!selectedDate.isBefore(today.minusDays(6)) && !selectedDate.isAfter(today)) {
+            today.minusDays(6)
+        } else {
+            selectedDate.minusDays(3)
+        }
+    }
+    val days = remember(startOfWeek) { (0L..6L).map { startOfWeek.plusDays(it) } }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(tokens.cardBackground)
+            .padding(horizontal = 4.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        days.forEach { date ->
+            val isSelected = date == selectedDate
+            val isToday = date == today
+            val isFuture = date.isAfter(today)
+            val dayInitial = date.dayOfWeek.name.take(1)
+            val dayNumber = date.dayOfMonth.toString()
+
+            val chipBg = when {
+                isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                isToday -> tokens.cardBorder.copy(alpha = 0.45f)
+                else -> Color.Transparent
+            }
+            val textColor = when {
+                isFuture -> tokens.textMuted.copy(alpha = 0.35f)
+                isSelected -> MaterialTheme.colorScheme.primary
+                isToday -> tokens.textPrimary
+                else -> tokens.textSecondary
+            }
+
+            Surface(
+                onClick = {
+                    if (!isFuture && !isSelected) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onDateSelected(date)
+                    }
+                },
+                enabled = !isFuture,
+                shape = RoundedCornerShape(10.dp),
+                color = chipBg,
+                border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) else null,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = dayInitial,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
+                        color = textColor
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = dayNumber,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else if (isToday) FontWeight.Bold else FontWeight.Medium
+                        ),
+                        color = textColor
+                    )
+                    if (isToday && !isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .size(3.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                }
+            }
         }
     }
 }

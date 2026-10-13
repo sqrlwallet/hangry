@@ -37,54 +37,86 @@ class MainActivity : ComponentActivity() {
         }
 
         // Start on Today (or Welcome before onboarding) from a cached flag - no waiting on the
-        // database. The database is only consulted once, the first launch after the flag existed.
-        val onboarded = OnboardingFlag.get(this) ?: runCatching {
-            kotlinx.coroutines.runBlocking { appContainer.userProfileRepository.getProfileSync()?.onboardingCompleted == true }
-        }.getOrElse {
-            android.util.Log.e("MainActivity", "Couldn't read onboarding state, falling back to Welcome", it)
-            false
-        }.also { OnboardingFlag.set(this, it) }
-        val startDestination = if (onboarded) Screen.Dashboard.route else Screen.Welcome.route
-
-        // A widget/notification destination always opens on top of the start screen, so Back
-        // lands on Today instead of a blank screen. Before onboarding, only the privacy policy
-        // (which Health Connect can ask to show) is allowed through.
-        val requested = getDestinationFromIntent(intent)
-        val deepLinkOnTop = requested?.takeIf { route ->
-            route != Screen.Dashboard.route && (onboarded || route == Screen.PrivacyPolicy.route)
-        }
+        // database. If the flag has not yet been recorded, it is checked asynchronously off the main thread.
+        var startDestination by mutableStateOf(
+            when (OnboardingFlag.get(this)) {
+                true -> Screen.Dashboard.route
+                false -> Screen.Welcome.route
+                null -> null
+            }
+        )
 
         setContent {
-            HangryTheme {
-                val navController = rememberNavController()
-                activeNavController = navController
-                LaunchedEffect(Unit) {
-                    if (deepLinkOnTop != null) {
-                        navController.navigate(deepLinkOnTop)
-                    }
-                }
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
+            val themeMode = com.kevan.hangry.data.prefs.ThemePrefs.themeMode(this)
+            val isDark = when (themeMode) {
+                com.kevan.hangry.data.prefs.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+                com.kevan.hangry.data.prefs.ThemeMode.DARK -> true
+                com.kevan.hangry.data.prefs.ThemeMode.LIGHT -> false
+            }
 
-                // The dock floats over the screens instead of sitting on its own strip, so
-                // content shows through behind it; tab screens pad by LocalDockInset so their
-                // last item can still scroll clear of it.
-                CompositionLocalProvider(LocalDockInset provides rememberDockInset(currentRoute)) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        HangryNavGraph(
-                            navController = navController,
-                            appContainer = appContainer,
-                            modifier = Modifier.fillMaxSize(),
-                            startDestination = startDestination,
-                            quickLogTrigger = quickLogTrigger,
-                            onQuickLogTriggerHandled = { quickLogTrigger = false }
-                        )
-                        HangryBottomNavBar(
-                            currentRoute = currentRoute,
-                            navController = navController,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
+            LaunchedEffect(startDestination) {
+                if (startDestination == null) {
+                    val resolved = kotlinx.coroutines.withContext(appContainer.dispatchers.io) {
+                        runCatching {
+                            appContainer.userProfileRepository.getProfileSync()?.onboardingCompleted == true
+                        }.getOrElse {
+                            android.util.Log.e("MainActivity", "Couldn't read onboarding state, falling back to Welcome", it)
+                            false
+                        }
                     }
+                    OnboardingFlag.set(this@MainActivity, resolved)
+                    startDestination = if (resolved) Screen.Dashboard.route else Screen.Welcome.route
+                }
+            }
+
+            val currentStartDestination = startDestination
+            HangryTheme(darkTheme = isDark) {
+                if (currentStartDestination != null) {
+                    val onboarded = currentStartDestination == Screen.Dashboard.route
+                    // A widget/notification destination always opens on top of the start screen, so Back
+                    // lands on Today instead of a blank screen. Before onboarding, only the privacy policy
+                    // (which Health Connect can ask to show) is allowed through.
+                    val requested = getDestinationFromIntent(intent)
+                    val deepLinkOnTop = requested?.takeIf { route ->
+                        route != Screen.Dashboard.route && (onboarded || route == Screen.PrivacyPolicy.route)
+                    }
+
+                    val navController = rememberNavController()
+                    activeNavController = navController
+                    LaunchedEffect(deepLinkOnTop) {
+                        if (deepLinkOnTop != null) {
+                            navController.navigate(deepLinkOnTop)
+                        }
+                    }
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+
+                    // The dock floats over the screens instead of sitting on its own strip, so
+                    // content shows through behind it; tab screens pad by LocalDockInset so their
+                    // last item can still scroll clear of it.
+                    val tabReselectionBus = remember { com.kevan.hangry.ui.navigation.TabReselectionBus() }
+                    CompositionLocalProvider(
+                        LocalDockInset provides rememberDockInset(currentRoute),
+                        com.kevan.hangry.ui.navigation.LocalTabReselectionBus provides tabReselectionBus
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            HangryNavGraph(
+                                navController = navController,
+                                appContainer = appContainer,
+                                modifier = Modifier.fillMaxSize(),
+                                startDestination = currentStartDestination,
+                                quickLogTrigger = quickLogTrigger,
+                                onQuickLogTriggerHandled = { quickLogTrigger = false }
+                            )
+                            HangryBottomNavBar(
+                                currentRoute = currentRoute,
+                                navController = navController,
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxSize())
                 }
             }
         }

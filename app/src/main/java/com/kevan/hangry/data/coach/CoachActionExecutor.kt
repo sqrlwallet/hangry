@@ -13,7 +13,7 @@ import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.repository.SupplementDraft
 import com.kevan.hangry.domain.repository.SupplementRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
-import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.HealthSyncManager
 import com.kevan.hangry.domain.repository.MealPlanRepository
@@ -45,7 +45,7 @@ class CoachActionExecutor(
     private val writeNutritionRecord: suspend (FoodLogEntity) -> Boolean,
     /** Optional so tests can leave them out; the matching actions then fail cleanly. */
     private val userProfileRepository: UserProfileRepository? = null,
-    private val weightDao: WeightDao? = null,
+    private val weightRepository: WeightRepository? = null,
     private val mealPlanRepository: MealPlanRepository? = null,
     private val sleepRepository: SleepRepository? = null,
     private val bodyFatRepository: BodyFatRepository? = null,
@@ -206,7 +206,7 @@ class CoachActionExecutor(
     }
 
     private suspend fun logWeight(action: CoachAction): String {
-        val dao = weightDao ?: error("Weight can't be logged here.")
+        val repo = weightRepository ?: error("Weight can't be logged here.")
         val w = action.weight ?: error("Missing weight.")
         val kg = when (w.unit?.trim()?.lowercase()) {
             null, "", "kg", "kgs", "kilograms" -> w.value
@@ -215,7 +215,7 @@ class CoachActionExecutor(
         }
         require(kg in 25.0..350.0) { "That weight doesn't look right." }
         val now = Instant.now()
-        dao.insertOrIgnore(
+        repo.insertOrIgnore(
             listOf(
                 com.kevan.hangry.data.local.entity.WeightMeasurementEntity(
                     recordFingerprint = "manual:ask-dash:${now.toEpochMilli()}",
@@ -395,7 +395,7 @@ class CoachActionExecutor(
         val profile = userProfileRepository?.getProfileSync()
         val sex = profile?.biologicalSex?.let { runCatching { com.kevan.hangry.domain.model.BiologicalSex.valueOf(it) }.getOrNull() }
             ?: com.kevan.hangry.domain.model.BiologicalSex.OTHER
-        val weight = weightDao?.getLatestWeightSync()?.weightKg ?: profile?.currentWeightKg
+        val weight = weightRepository?.getLatestWeightSync()?.weightKg ?: profile?.currentWeightKg
         val fat = weight?.let { it * p.percentage / 100.0 }
         repo.saveScan(
             com.kevan.hangry.data.local.entity.BodyFatScanEntity(

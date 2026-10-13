@@ -1,6 +1,6 @@
 package com.kevan.hangry
 
-import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.data.local.entity.*
 import com.kevan.hangry.domain.calculation.HangryCalorieCalculator
 import com.kevan.hangry.domain.calculation.HangrySleepCalculator
@@ -113,7 +113,7 @@ class DashboardViewModelTest {
             }
         }
 
-        val weightDao = object : WeightDao {
+        val weightRepo = object : WeightRepository {
             override suspend fun insertOrIgnore(records: List<WeightMeasurementEntity>): List<Long> = emptyList()
             override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = flowOf(null)
             override suspend fun getLatestWeightSync(): WeightMeasurementEntity? = null
@@ -161,7 +161,7 @@ class DashboardViewModelTest {
             workoutRepository = workoutRepo,
             healthSyncManager = syncManager,
             userProfileRepository = userProfileRepo,
-            weightDao = weightDao,
+            weightRepository = weightRepo,
             sleepCalculator = HangrySleepCalculator(),
             trainingLoadCalculator = trainingLoadCalculator,
             strainCalculator = HangryStrainCalculator(trainingLoadCalculator),

@@ -133,6 +133,14 @@ fun AiCoachScreen(
     val defaultStarters = QUICK_STARTERS.map { stringResource(it) }
     val starters = uiState.suggestions.ifEmpty { defaultStarters }
     val context = LocalContext.current
+    val tabReselectionBus = com.kevan.hangry.ui.navigation.LocalTabReselectionBus.current
+    LaunchedEffect(tabReselectionBus, uiState.messages.size) {
+        tabReselectionBus.events.collect { route ->
+            if (route == com.kevan.hangry.ui.navigation.Screen.AiCoach.route && uiState.messages.isNotEmpty()) {
+                listState.animateScrollToItem(uiState.messages.size - 1)
+            }
+        }
+    }
     val askDashPrompt = stringResource(R.string.coach_ask_dash, MASCOT_NAME)
     val copiedMessage = stringResource(R.string.coach_copied_to_clipboard)
 

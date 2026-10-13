@@ -3,7 +3,7 @@ package com.kevan.hangry
 import com.kevan.hangry.data.coach.CoachActionExecutor
 import com.kevan.hangry.data.local.dao.CoachJournalDao
 import com.kevan.hangry.data.local.dao.ExerciseSessionDao
-import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.data.local.entity.CoachJournalEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
@@ -81,7 +81,7 @@ class DashImprovementsTest {
         foodLogRepository = FakeFoodLogRepository(),
         writeNutritionRecord = { true },
         userProfileRepository = profiles,
-        weightDao = weights,
+        weightRepository = weights,
         exerciseSessionDao = exerciseSessions,
         coachJournalDao = coachJournals
     )
@@ -198,7 +198,7 @@ class DashImprovementsTest {
         override suspend fun saveProfile(profile: UserProfileEntity) { flow.value = profile }
     }
 
-    private class FakeWeightDao : WeightDao {
+    private class FakeWeightDao : WeightRepository {
         val inserted = mutableListOf<WeightMeasurementEntity>()
         override suspend fun insertOrIgnore(records: List<WeightMeasurementEntity>): List<Long> { inserted += records; return records.map { 1L } }
         override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = flowOf(inserted.lastOrNull())

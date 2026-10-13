@@ -7,7 +7,7 @@ import com.kevan.hangry.data.local.dao.FoodLogDao
 import com.kevan.hangry.data.local.dao.PostureScanDao
 import com.kevan.hangry.data.local.dao.RecoveryScoreDao
 import com.kevan.hangry.data.local.dao.SleepSessionDao
-import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.domain.calculation.BodySignals
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
@@ -44,7 +44,7 @@ import java.time.format.DateTimeFormatter
  */
 class AiCoachContextBuilder(
     private val userProfileRepository: UserProfileRepository,
-    private val weightDao: WeightDao,
+    private val weightRepository: WeightRepository,
     private val dailyHealthSummaryDao: DailyHealthSummaryDao,
     private val recoveryScoreDao: RecoveryScoreDao,
     private val exerciseSessionDao: ExerciseSessionDao,
@@ -76,7 +76,7 @@ class AiCoachContextBuilder(
         val endInstant = today.plusDays(1).atStartOfDay(zone).toInstant()
 
         val profile = userProfileRepository.getProfileSync()
-        val latestWeight = weightDao.getLatestWeightSync()
+        val latestWeight = weightRepository.getLatestWeightSync()
         val dailySummaries = dailyHealthSummaryDao.getSummariesBetweenList(startDate, today)
         val recoveryScores = recoveryScoreDao.getScoresBetweenList(startDate, today).associateBy { it.date }
         val workouts = exerciseSessionDao.getSessionsBetweenList(startInstant, endInstant)
@@ -201,7 +201,7 @@ class AiCoachContextBuilder(
         // Longer view so Dash can talk about direction, not just last week's raw numbers.
         val trendSummaries = dailyHealthSummaryDao.getSummariesBetweenList(today.minusDays(28), today.minusDays(1))
         val trendScores = recoveryScoreDao.getScoresBetweenList(today.minusDays(28), today.minusDays(1)).associate { it.date to it.score }
-        val weights = runCatching { weightDao.getAllWeights().first() }.getOrDefault(emptyList())
+        val weights = runCatching { weightRepository.getAllWeights().first() }.getOrDefault(emptyList())
         val trends = DashInsights.trendLines(trendSummaries, trendScores, weights, today, zone)
         sb.appendLine("=== TRENDS (last 7 full days vs the 3 weeks before) ===")
         if (trends.isEmpty()) sb.appendLine("Not enough history yet for trends.") else trends.forEach { sb.appendLine(it) }

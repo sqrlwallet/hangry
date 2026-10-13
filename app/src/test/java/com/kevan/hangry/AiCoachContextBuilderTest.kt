@@ -22,7 +22,7 @@ class AiCoachContextBuilderTest {
         }
     }
 
-    private class FakeWeightDao(var latest: WeightMeasurementEntity? = null) : WeightDao {
+    private class FakeWeightRepository(var latest: WeightMeasurementEntity? = null) : com.kevan.hangry.domain.repository.WeightRepository {
         override suspend fun insertOrIgnore(records: List<WeightMeasurementEntity>): List<Long> = emptyList()
         override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = flowOf(latest)
         override suspend fun getLatestWeightSync(): WeightMeasurementEntity? = latest
@@ -139,7 +139,7 @@ class AiCoachContextBuilderTest {
     fun build7DayContext_withEmptyData_buildsGracefully() = runBlocking {
         val builder = AiCoachContextBuilder(
             userProfileRepository = FakeUserProfileRepository(),
-            weightDao = FakeWeightDao(),
+            weightRepository = FakeWeightRepository(),
             dailyHealthSummaryDao = FakeDailyHealthSummaryDao(),
             recoveryScoreDao = FakeRecoveryScoreDao(),
             exerciseSessionDao = FakeExerciseSessionDao(),
@@ -223,7 +223,7 @@ class AiCoachContextBuilderTest {
 
         val builder = AiCoachContextBuilder(
             userProfileRepository = FakeUserProfileRepository(userProfile),
-            weightDao = FakeWeightDao(weight),
+            weightRepository = FakeWeightRepository(weight),
             dailyHealthSummaryDao = FakeDailyHealthSummaryDao(listOf(summary)),
             recoveryScoreDao = FakeRecoveryScoreDao(listOf(recovery)),
             exerciseSessionDao = FakeExerciseSessionDao(listOf(workout)),
@@ -288,7 +288,7 @@ class AiCoachContextBuilderTest {
 
         val builder = AiCoachContextBuilder(
             userProfileRepository = FakeUserProfileRepository(),
-            weightDao = FakeWeightDao(),
+            weightRepository = FakeWeightRepository(),
             dailyHealthSummaryDao = FakeDailyHealthSummaryDao(),
             recoveryScoreDao = FakeRecoveryScoreDao(listOf(recovery)),
             exerciseSessionDao = FakeExerciseSessionDao(),
@@ -324,7 +324,7 @@ class AiCoachContextBuilderTest {
         )
         val builder = AiCoachContextBuilder(
             userProfileRepository = FakeUserProfileRepository(),
-            weightDao = FakeWeightDao(),
+            weightRepository = FakeWeightRepository(),
             dailyHealthSummaryDao = FakeDailyHealthSummaryDao(),
             recoveryScoreDao = FakeRecoveryScoreDao(),
             exerciseSessionDao = FakeExerciseSessionDao(),

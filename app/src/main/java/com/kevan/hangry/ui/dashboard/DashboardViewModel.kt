@@ -4,7 +4,7 @@ import com.kevan.hangry.domain.calculation.BodySignals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
@@ -44,7 +44,7 @@ class DashboardViewModel(
     private val workoutRepository: WorkoutRepository,
     private val healthSyncManager: HealthSyncManager,
     private val userProfileRepository: UserProfileRepository,
-    private val weightDao: WeightDao,
+    private val weightRepository: WeightRepository,
     private val sleepCalculator: SleepCalculator,
     private val trainingLoadCalculator: TrainingLoadCalculator,
     private val strainCalculator: StrainCalculator,
@@ -158,7 +158,7 @@ class DashboardViewModel(
                 val energyFlow = bodyMetricsRepository?.observe()?.map { it.input.energy?.estimate } ?: flowOf(null)
                 val secondaryFlow = combine(
                     userProfileRepository.getProfile(),
-                    weightDao.getLatestWeight(),
+                    weightRepository.getLatestWeight(),
                     dashboardWidgetRepository.getWidgets(),
                     bodyFatRepository.getLatestScan(),
                     energyFlow
@@ -493,7 +493,7 @@ class DashboardViewModel(
             workoutRepository: WorkoutRepository,
             healthSyncManager: HealthSyncManager,
             userProfileRepository: UserProfileRepository,
-            weightDao: WeightDao,
+            weightRepository: WeightRepository,
             sleepCalculator: SleepCalculator,
             trainingLoadCalculator: TrainingLoadCalculator,
             strainCalculator: StrainCalculator,
@@ -513,7 +513,7 @@ class DashboardViewModel(
                     workoutRepository = workoutRepository,
                     healthSyncManager = healthSyncManager,
                     userProfileRepository = userProfileRepository,
-                    weightDao = weightDao,
+                    weightRepository = weightRepository,
                     sleepCalculator = sleepCalculator,
                     trainingLoadCalculator = trainingLoadCalculator,
                     strainCalculator = strainCalculator,

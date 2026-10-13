@@ -38,6 +38,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.data.repository.DefaultWeightRepository
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
@@ -102,23 +104,18 @@ enum class TrendMetricCategory(
     WEIGHT(R.string.body_trends_metric_weight, Icons.Default.MonitorWeight, "kg")
 }
 
-private enum class HistoryFilter(@StringRes val labelRes: Int) {
-    ALL(R.string.body_trends_filter_all_days),
-    WORKOUTS(R.string.body_trends_filter_workouts),
-    PRIMED(R.string.body_trends_filter_primed),
-    REBUILD(R.string.body_trends_filter_rebuild),
-    NUTRITION(R.string.body_trends_filter_has_meals),
-    BODY_SIGNALS(R.string.body_trends_filter_body_signals)
+enum class TrendDomain(val label: String, val metrics: List<TrendMetricCategory>) {
+    ALL("All", TrendMetricCategory.values().toList()),
+    RECOVERY_SLEEP("Recovery & Sleep", listOf(TrendMetricCategory.RECOVERY, TrendMetricCategory.SLEEP, TrendMetricCategory.HRV, TrendMetricCategory.RHR, TrendMetricCategory.SLEEPING_HR, TrendMetricCategory.SPO2)),
+    VITALS("Vitals", listOf(TrendMetricCategory.HRV, TrendMetricCategory.RHR, TrendMetricCategory.SKIN_TEMP, TrendMetricCategory.BREATHING, TrendMetricCategory.SPO2)),
+    ACTIVITY("Activity", listOf(TrendMetricCategory.STRAIN, TrendMetricCategory.STEPS, TrendMetricCategory.ACTIVE_CALORIES)),
+    BODY_FUEL("Body & Fuel", listOf(TrendMetricCategory.WEIGHT, TrendMetricCategory.NUTRITION_CALORIES))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrendsScreen(
-    dailySummaryRepository: DailySummaryRepository,
-    weightDao: WeightDao,
-    workoutRepository: WorkoutRepository,
-    foodLogRepository: FoodLogRepository,
-    bodyFatRepository: BodyFatRepository? = null,
+    viewModel: TrendsViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToDashboardForDate: (LocalDate) -> Unit = {},
     onNavigateToNutritionForDate: (LocalDate) -> Unit = {},
@@ -132,11 +129,13 @@ fun TrendsScreen(
     val zone = remember { ZoneId.systemDefault() }
     val today = remember { LocalDate.now(zone) }
 
-    var selectedTimeframe by remember { mutableStateOf(TrendTimeframe.DAYS_30) }
-    var selectedMetric by remember { mutableStateOf(TrendMetricCategory.RECOVERY) }
-    var historyFilter by remember { mutableStateOf(HistoryFilter.ALL) }
+    val state by viewModel.uiState.collectAsState()
+    val selectedTimeframe = state.selectedTimeframe
+    val selectedMetric = state.selectedMetric
+    val selectedDomain = state.selectedDomain
+    val historyFilter = state.historyFilter
+    val inspectingDate = state.inspectingDate
 
-    var inspectingDate by remember { mutableStateOf<LocalDate?>(null) }
     var showJumpDatePicker by remember { mutableStateOf(false) }
 
     // Start date for queries
@@ -145,40 +144,24 @@ fun TrendsScreen(
         if (days != null) today.minusDays(days) else LocalDate.of(2020, 1, 1)
     }
 
-    // Biometric data flows for selected timeframe
-    val scoresFlow = remember(queryStartDate) {
-        dailySummaryRepository.getScoresBetween(queryStartDate, today)
-    }
-    val summariesFlow = remember(queryStartDate) {
-        dailySummaryRepository.getSummariesBetween(queryStartDate, today)
-    }
-    val foodLogsFlow = remember(queryStartDate) {
-        foodLogRepository.getBetween(queryStartDate, today)
-    }
-
-    val scores by scoresFlow.collectAsState(initial = emptyList())
-    val summaries by summariesFlow.collectAsState(initial = emptyList())
-    val foodLogs by foodLogsFlow.collectAsState(initial = emptyList())
-    val allWorkouts by workoutRepository.getAllSessions().collectAsState(initial = emptyList())
-    val allWeights by weightDao.getAllWeights().collectAsState(initial = emptyList())
-    val allBodyFatScans by (bodyFatRepository?.getAllScans() ?: kotlinx.coroutines.flow.flowOf(emptyList()))
-        .collectAsState(initial = emptyList())
+    val scores = state.scores
+    val summaries = state.summaries
+    val foodLogs = state.foodLogs
+    val allWorkouts = state.allWorkouts
+    val allWeights = state.allWeights
+    val allBodyFatScans = state.allBodyFatScans
+    val latestWeight = state.latestWeight
 
     // Weight tracking metrics: the smoothed trend and weekly rate (see WeightTrend)
-    val latestWeight by weightDao.getLatestWeight().collectAsState(initial = null)
     val weightTrend = remember(allWeights, today) { WeightTrend.summarize(allWeights, today, zone) }
     val units = rememberBodyUnitFormatter()
     var loggingWeight by remember { mutableStateOf(false) }
 
     // Weekly recap: always last 7 days vs the 7 days before that
-    val thisWeekScores by remember { dailySummaryRepository.getScoresBetween(today.minusDays(6), today) }
-        .collectAsState(initial = emptyList())
-    val lastWeekScores by remember { dailySummaryRepository.getScoresBetween(today.minusDays(13), today.minusDays(7)) }
-        .collectAsState(initial = emptyList())
-    val thisWeekSummaries by remember { dailySummaryRepository.getSummariesBetween(today.minusDays(6), today) }
-        .collectAsState(initial = emptyList())
-    val lastWeekSummaries by remember { dailySummaryRepository.getSummariesBetween(today.minusDays(13), today.minusDays(7)) }
-        .collectAsState(initial = emptyList())
+    val thisWeekScores = state.thisWeekScores
+    val lastWeekScores = state.lastWeekScores
+    val thisWeekSummaries = state.thisWeekSummaries
+    val lastWeekSummaries = state.lastWeekSummaries
 
     // Map workouts by date
     val workoutsByDate = remember(allWorkouts) {
@@ -347,7 +330,7 @@ fun TrendsScreen(
                                 .heightIn(min = 40.dp)
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    selectedTimeframe = timeframe
+                                    viewModel.setTimeframe(timeframe)
                                 }
                         ) {
                             Box(
@@ -403,7 +386,48 @@ fun TrendsScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Domain Category Bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        TrendDomain.values().forEach { domain ->
+                            val isDomainSelected = domain == selectedDomain
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isDomainSelected) MaterialTheme.colorScheme.primaryContainer else tokens.cardBorder.copy(alpha = 0.35f),
+                                border = if (isDomainSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)) else null,
+                                modifier = Modifier
+                                    .height(30.dp)
+                                    .clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        viewModel.setDomain(domain)
+                                        if (selectedMetric !in domain.metrics) {
+                                            viewModel.setMetric(domain.metrics.first())
+                                        }
+                                    }
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = domain.label,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = if (isDomainSelected) FontWeight.Bold else FontWeight.Medium
+                                        ),
+                                        color = if (isDomainSelected) MaterialTheme.colorScheme.onPrimaryContainer else tokens.textSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Metric Chip Bar
                     Row(
@@ -412,7 +436,7 @@ fun TrendsScreen(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        TrendMetricCategory.values().forEach { metric ->
+                        selectedDomain.metrics.forEach { metric ->
                             val isChosen = metric == selectedMetric
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
@@ -422,7 +446,7 @@ fun TrendsScreen(
                                     .height(34.dp)
                                     .clickable {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        selectedMetric = metric
+                                        viewModel.setMetric(metric)
                                     }
                             ) {
                                 Row(
@@ -461,7 +485,7 @@ fun TrendsScreen(
                         },
                         formatValue = formatMetricValue,
                         onPointClicked = { tappedDate ->
-                            inspectingDate = tappedDate
+                            viewModel.setInspectingDate(tappedDate)
                         }
                     )
 
@@ -536,14 +560,12 @@ fun TrendsScreen(
                             title = stringResource(R.string.body_trends_trend_weight),
                             body = stringResource(R.string.body_trends_weight_info)
                         )
-                        if (onLogWeight != null) {
-                            IconButton(onClick = { loggingWeight = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = stringResource(R.string.body_log_weight_action),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                        IconButton(onClick = { loggingWeight = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.body_log_weight_action),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                         TextButton(
                             onClick = onNavigateToBodyFatCalculator,
@@ -903,7 +925,7 @@ fun TrendsScreen(
                                 .height(30.dp)
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    historyFilter = filter
+                                    viewModel.setHistoryFilter(filter)
                                 }
                         ) {
                             Box(
@@ -971,7 +993,7 @@ fun TrendsScreen(
                                 caloriesIn = foodLogsByDate[dateItem]?.takeIf { it.isNotEmpty() }?.sumOf { it.calories },
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    inspectingDate = dateItem
+                                    viewModel.setInspectingDate(dateItem)
                                 }
                             )
                         }
@@ -990,19 +1012,23 @@ fun TrendsScreen(
             recoveryScore = scoreByDate[date],
             workouts = workoutsByDate[date] ?: emptyList(),
             foodLogs = foodLogsByDate[date] ?: emptyList(),
-            onDismiss = { inspectingDate = null },
+            onDismiss = { viewModel.setInspectingDate(null) },
             onNavigateToDashboard = onNavigateToDashboardForDate,
             onNavigateToNutrition = onNavigateToNutritionForDate
         )
     }
 
     // Direct Jump To Date Calendar Picker
-    if (loggingWeight && onLogWeight != null) {
+    if (loggingWeight) {
         LogWeightSheet(
             lastWeightKg = latestWeight?.weightKg,
             onDismiss = { loggingWeight = false },
             onSave = { kg, at ->
-                onLogWeight(kg, at)
+                if (onLogWeight != null) {
+                    onLogWeight(kg, at)
+                } else {
+                    viewModel.logWeight(kg, at)
+                }
                 loggingWeight = false
             }
         )
@@ -1027,7 +1053,7 @@ fun TrendsScreen(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             val chosenDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
-                            inspectingDate = chosenDate
+                            viewModel.setInspectingDate(chosenDate)
                         }
                         showJumpDatePicker = false
                     }
@@ -1053,6 +1079,42 @@ fun TrendsScreen(
             )
         }
     }
+}
+
+@Deprecated("Use TrendsScreen with TrendsViewModel")
+@Composable
+fun TrendsScreen(
+    dailySummaryRepository: DailySummaryRepository,
+    weightDao: WeightDao,
+    workoutRepository: WorkoutRepository,
+    foodLogRepository: FoodLogRepository,
+    bodyFatRepository: BodyFatRepository? = null,
+    onNavigateBack: () -> Unit,
+    onNavigateToDashboardForDate: (LocalDate) -> Unit = {},
+    onNavigateToNutritionForDate: (LocalDate) -> Unit = {},
+    onNavigateToBodyFatCalculator: () -> Unit = {},
+    onLogWeight: ((kg: Double, takenAt: java.time.Instant) -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    val weightRepository = remember(weightDao) { DefaultWeightRepository(weightDao) }
+    val viewModel: TrendsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = TrendsViewModel.provideFactory(
+            dailySummaryRepository = dailySummaryRepository,
+            weightRepository = weightRepository,
+            workoutRepository = workoutRepository,
+            foodLogRepository = foodLogRepository,
+            bodyFatRepository = bodyFatRepository
+        )
+    )
+    TrendsScreen(
+        viewModel = viewModel,
+        onNavigateBack = onNavigateBack,
+        onNavigateToDashboardForDate = onNavigateToDashboardForDate,
+        onNavigateToNutritionForDate = onNavigateToNutritionForDate,
+        onNavigateToBodyFatCalculator = onNavigateToBodyFatCalculator,
+        onLogWeight = onLogWeight,
+        modifier = modifier
+    )
 }
 
 /** Under this many kg a week either way, the trend reads as holding steady. */

@@ -168,6 +168,15 @@ fun NutritionScreen(
 
     var showDescribeDialog by rememberSaveable { mutableStateOf(false) }
     var showQuickLogSheet by rememberSaveable { mutableStateOf(false) }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val tabReselectionBus = com.kevan.hangry.ui.navigation.LocalTabReselectionBus.current
+    LaunchedEffect(tabReselectionBus) {
+        tabReselectionBus.events.collect { route ->
+            if (route == com.kevan.hangry.ui.navigation.Screen.Nutrition.route) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
     // Hidden at once; the entry, its photo and its Health Connect record go when the snackbar closes.
     var pendingDelete by remember { mutableStateOf<FoodLogEntity?>(null) }
     val deleteEntry: (FoodLogEntity) -> Unit = { entry ->
@@ -247,6 +256,7 @@ fun NutritionScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = modifier
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding())
@@ -365,17 +375,26 @@ fun NutritionScreen(
                 }
             }
 
-            if (uiState.mealPlans.isNotEmpty()) {
-                item {
-                    QuickAddRow(
-                        savedMeals = uiState.mealPlans,
-                        onLogSaved = { meal, portion ->
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.logFromMealPlan(meal, portion)
-                        },
-                        onSeeAll = onNavigateToMealPlan
-                    )
-                }
+            item {
+                QuickAddRow(
+                    savedMeals = uiState.mealPlans,
+                    onLogSaved = { meal, portion ->
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.logFromMealPlan(meal, portion)
+                    },
+                    onLogStaple = { staple ->
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.quickLogMeal(
+                            foodName = staple.name,
+                            calories = staple.calories,
+                            proteinG = staple.proteinG,
+                            carbsG = staple.carbsG,
+                            fatG = staple.fatG,
+                            fiberG = staple.fiberG
+                        )
+                    },
+                    onSeeAll = onNavigateToMealPlan
+                )
             }
 
             item {
@@ -556,11 +575,22 @@ private fun NutritionMenu(onWeeklyReview: () -> Unit, onSavedMeals: () -> Unit, 
     }
 }
 
-/** One-tap logging for what the user eats most: their most recent saved meals. */
+private data class StarterStaple(val name: String, val calories: Int, val proteinG: Double, val carbsG: Double, val fatG: Double, val fiberG: Double)
+private val STARTER_STAPLES = listOf(
+    StarterStaple("Protein Shake", 120, 24.0, 3.0, 1.5, 0.0),
+    StarterStaple("Banana", 105, 1.3, 27.0, 0.3, 3.1),
+    StarterStaple("2 Eggs", 140, 12.0, 1.0, 10.0, 0.0),
+    StarterStaple("Greek Yogurt", 130, 15.0, 6.0, 4.0, 0.0),
+    StarterStaple("Oatmeal", 150, 5.0, 27.0, 2.5, 4.0),
+    StarterStaple("Apple", 95, 0.5, 25.0, 0.3, 4.4)
+)
+
+/** One-tap logging for what the user eats most: their most recent saved meals or starter healthy staples. */
 @Composable
 private fun QuickAddRow(
     savedMeals: List<MealPlanEntity>,
     onLogSaved: (MealPlanEntity, Double) -> Unit,
+    onLogStaple: (StarterStaple) -> Unit,
     onSeeAll: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
@@ -577,11 +607,19 @@ private fun QuickAddRow(
                 color = tokens.textMuted,
                 modifier = Modifier.padding(start = HangryTokens.Spacing.s).weight(1f)
             )
-            TextButton(onClick = onSeeAll, contentPadding = PaddingValues(horizontal = 8.dp)) { Text(stringResource(R.string.nutrition_see_all)) }
+            if (savedMeals.isNotEmpty()) {
+                TextButton(onClick = onSeeAll, contentPadding = PaddingValues(horizontal = 8.dp)) { Text(stringResource(R.string.nutrition_see_all)) }
+            }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(recent, key = { "saved_${it.id}" }) { meal ->
-                QuickAddChip(name = meal.name, calories = meal.calories, onLog = { portion -> onLogSaved(meal, portion) })
+            if (recent.isNotEmpty()) {
+                items(recent, key = { "saved_${it.id}" }) { meal ->
+                    QuickAddChip(name = meal.name, calories = meal.calories, onLog = { portion -> onLogSaved(meal, portion) })
+                }
+            } else {
+                items(STARTER_STAPLES, key = { "staple_${it.name}" }) { staple ->
+                    QuickAddChip(name = staple.name, calories = staple.calories, onLog = { onLogStaple(staple) })
+                }
             }
         }
     }
@@ -666,36 +704,69 @@ private fun LogActionButton(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -> Unit) {
     val tokens = LocalHangryTokens.current
     // No file check in composition: a photo that's gone just fails to load and the slot drops out.
     var photoMissing by remember(entry.photoPath) { mutableStateOf(false) }
-    HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (entry.photoPath != null && !photoMissing) {
-                AsyncImage(
-                    model = entry.photoPath,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    onError = { photoMissing = true },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            val color = MaterialTheme.colorScheme.errorContainer
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(HangryTokens.CornerRadii.medium))
+                    .background(color)
+                    .padding(horizontal = 18.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DeleteOutline,
+                    contentDescription = stringResource(R.string.nutrition_delete),
+                    tint = MaterialTheme.colorScheme.onErrorContainer
                 )
-                Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = entry.foodName, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
-                Text(
-                    text = stringResource(R.string.nutrition_entry_macros, entry.calories, entry.proteinG.toInt(), entry.carbsG.toInt(), entry.fatG.toInt()) +
-                        if (entry.fiberG >= 0.5) stringResource(R.string.nutrition_entry_fiber_suffix, entry.fiberG.roundToInt()) else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.nutrition_delete), tint = tokens.textMuted)
+        }
+    ) {
+        HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (entry.photoPath != null && !photoMissing) {
+                    AsyncImage(
+                        model = entry.photoPath,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        onError = { photoMissing = true },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                    Spacer(modifier = Modifier.width(HangryTokens.Spacing.s))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = entry.foodName, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+                    Text(
+                        text = stringResource(R.string.nutrition_entry_macros, entry.calories, entry.proteinG.toInt(), entry.carbsG.toInt(), entry.fatG.toInt()) +
+                            if (entry.fiberG >= 0.5) stringResource(R.string.nutrition_entry_fiber_suffix, entry.fiberG.roundToInt()) else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textMuted
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.nutrition_delete), tint = tokens.textMuted)
+                }
             }
         }
     }

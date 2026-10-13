@@ -8,8 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.kevan.hangry.data.ai.OpenRouterException
-import com.kevan.hangry.data.local.dao.HeightDao
-import com.kevan.hangry.data.local.dao.WeightDao
+import com.kevan.hangry.domain.repository.HeightRepository
+import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.data.local.entity.BodyFatScanEntity
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.data.security.SecureKeyStore
@@ -38,8 +38,8 @@ class BodyFatCalculatorViewModel(
     @field:SuppressLint("StaticFieldLeak")
     private val context: Context,
     private val userProfileRepository: UserProfileRepository,
-    private val weightDao: WeightDao,
-    private val heightDao: HeightDao,
+    private val weightRepository: WeightRepository,
+    private val heightRepository: HeightRepository,
     private val bodyFatCalculator: BodyFatCalculator,
     private val bodyFatAnalyzer: BodyFatAnalyzer,
     private val bodyFatRepository: BodyFatRepository,
@@ -58,8 +58,8 @@ class BodyFatCalculatorViewModel(
         viewModelScope.launch {
             combine(
                 userProfileRepository.getProfile(),
-                weightDao.getLatestWeight(),
-                heightDao.getLatestHeight(),
+                weightRepository.getLatestWeight(),
+                heightRepository.getLatestHeight(),
                 bodyFatRepository.getAllScans(),
                 pendingDeleteIds
             ) { profile, latestWeight, latestHeight, storedScans, hidden ->
@@ -454,7 +454,7 @@ class BodyFatCalculatorViewModel(
         val previousWeight = currentProfile?.currentWeightKg
         val weightChanged = previousWeight == null || parsedWeight == null || kotlin.math.abs(parsedWeight - previousWeight) >= 0.05
         if (parsedWeight != null && parsedWeight > 0.0 && (!onlyChangedWeight || weightChanged)) {
-            weightDao.insertOrIgnore(
+            weightRepository.insertOrIgnore(
                 listOf(
                     WeightMeasurementEntity(
                         recordFingerprint = weightFingerprint,
@@ -509,8 +509,8 @@ class BodyFatCalculatorViewModel(
         fun provideFactory(
             context: Context,
             userProfileRepository: UserProfileRepository,
-            weightDao: WeightDao,
-            heightDao: HeightDao,
+            weightRepository: WeightRepository,
+            heightRepository: HeightRepository,
             bodyFatCalculator: BodyFatCalculator,
             bodyFatAnalyzer: BodyFatAnalyzer,
             bodyFatRepository: BodyFatRepository,
@@ -521,8 +521,8 @@ class BodyFatCalculatorViewModel(
                 return BodyFatCalculatorViewModel(
                     context = context.applicationContext,
                     userProfileRepository = userProfileRepository,
-                    weightDao = weightDao,
-                    heightDao = heightDao,
+                    weightRepository = weightRepository,
+                    heightRepository = heightRepository,
                     bodyFatCalculator = bodyFatCalculator,
                     bodyFatAnalyzer = bodyFatAnalyzer,
                     bodyFatRepository = bodyFatRepository,

@@ -65,17 +65,7 @@ import java.time.ZoneOffset
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
-    syncManager: HealthSyncManager,
-    exportManager: LocalExportManager,
-    backupManager: com.kevan.hangry.data.backup.HangryBackupManager,
-    localStorageManager: LocalStorageManager,
-    userProfileRepository: UserProfileRepository,
-    bodyMetricsRepository: BodyMetricsRepository,
-    weightDao: WeightDao,
-    heightDao: HeightDao,
-    calorieCalculator: CalorieCalculator,
-    secureKeyStore: SecureKeyStore,
-    openRouterClient: OpenRouterClient,
+    viewModel: SettingsViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToHistoricalSync: () -> Unit,
     onNavigateToDataSources: () -> Unit,
@@ -98,54 +88,55 @@ fun SettingsScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                SettingsEvent.JsonExportSaved -> snackbarHostState.showSnackbar(context.getString(R.string.settings_json_export_saved))
+                SettingsEvent.CsvExportSaved -> snackbarHostState.showSnackbar(context.getString(R.string.settings_csv_export_saved))
+                SettingsEvent.SyncCompleted -> snackbarHostState.showSnackbar(context.getString(R.string.settings_sync_completed))
+                SettingsEvent.RecalculateDone -> snackbarHostState.showSnackbar(context.getString(R.string.settings_recalculate_done))
+                SettingsEvent.DatabaseOptimized -> snackbarHostState.showSnackbar(context.getString(R.string.settings_optimize_db_done))
+                is SettingsEvent.CleanOrphansDone -> {
+                    if (event.cleanedFiles > 0 || event.freedCacheBytes > 0) {
+                        snackbarHostState.showSnackbar(context.getString(R.string.settings_clean_orphans_done, event.cleanedFiles, StorageBreakdown.formatBytes(event.freedCacheBytes)))
+                    } else {
+                        snackbarHostState.showSnackbar(context.getString(R.string.settings_clean_orphans_nothing))
+                    }
+                }
+                SettingsEvent.HealthDataDeleted -> snackbarHostState.showSnackbar(context.getString(R.string.settings_delete_health_done))
+                SettingsEvent.GoalsSaved -> snackbarHostState.showSnackbar(context.getString(R.string.settings_goals_saved))
+                is SettingsEvent.Error -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
+
+    val state by viewModel.uiState.collectAsState()
+    val isBusy = state.isBusy
+    val isOptimizingDb = state.isOptimizingDb
+    val isCleaningOrphans = state.isCleaningOrphans
+    val isDeletingHealth = state.isDeletingHealth
+    val isResetting = state.isResetting
+    val storageBreakdown = state.storageBreakdown
+    val profile = state.profile
+    val latestWeight = state.latestWeight
+    val effectiveHeightCm = state.effectiveHeightCm
+
     var showDeleteHealthDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
     var showEditGoalsDialog by rememberSaveable { mutableStateOf(false) }
-    var isDeletingHealth by remember { mutableStateOf(false) }
-    var isResetting by remember { mutableStateOf(false) }
-    var isOptimizingDb by remember { mutableStateOf(false) }
-    var isCleaningOrphans by remember { mutableStateOf(false) }
-    var storageBreakdown by remember { mutableStateOf<StorageBreakdown?>(null) }
-    // Shared across Sync Now / Recalculate Baselines / Export - these all hit the same local
-    // DB and Health Connect client, so running two at once serves no purpose and previously
-    // let an impatient double-tap queue up duplicate work with no feedback that it happened.
-    var isBusy by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        storageBreakdown = localStorageManager.getStorageBreakdown()
-    }
-
-    val profile by userProfileRepository.getProfile().collectAsState(initial = null)
-    val latestWeight by weightDao.getLatestWeight().collectAsState(initial = null)
-    val latestHeight by heightDao.getLatestHeight().collectAsState(initial = null)
-    // Health Connect (e.g. a smart scale) is the freshest source when present; the manually
-    // entered profile value is only a fallback for people without a synced height reading.
-    val effectiveHeightCm = latestHeight?.heightCm ?: profile?.heightCm
 
     val jsonExportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) {
-            coroutineScope.launch {
-                isBusy = true
-                val json = exportManager.exportDataAsJson()
-                context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
-                isBusy = false
-                snackbarHostState.showSnackbar(context.getString(R.string.settings_json_export_saved))
-            }
+            viewModel.exportJson(context.contentResolver, uri)
         }
     }
     val csvExportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
     ) { uri ->
         if (uri != null) {
-            coroutineScope.launch {
-                isBusy = true
-                val csv = exportManager.exportDataAsCsv()
-                context.contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray()) }
-                isBusy = false
-                snackbarHostState.showSnackbar(context.getString(R.string.settings_csv_export_saved))
-            }
+            viewModel.exportCsv(context.contentResolver, uri)
         }
     }
 
@@ -206,6 +197,7 @@ fun SettingsScreen(
             // Everything below is tucked into collapsed sections so the screen stays short.
             BackgroundSection()
             RemindersSection()
+            AppearanceSection()
             UnitsSection()
 
             SettingsCollapsibleSection(
@@ -219,12 +211,7 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_sync_now_subtitle),
                     enabled = !isBusy,
                     onClick = {
-                        isBusy = true
-                        coroutineScope.launch {
-                            syncManager.syncRecent().collect { }
-                            isBusy = false
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_sync_completed))
-                        }
+                        viewModel.syncRecent()
                     }
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
@@ -243,12 +230,7 @@ fun SettingsScreen(
                     info = stringResource(R.string.settings_recalculate_info),
                     enabled = !isBusy,
                     onClick = {
-                        isBusy = true
-                        coroutineScope.launch {
-                            syncManager.recalculateAllBaselines().collect { }
-                            isBusy = false
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_recalculate_done))
-                        }
+                        viewModel.recalculateAllBaselines()
                     }
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
@@ -261,23 +243,29 @@ fun SettingsScreen(
             }
 
             // AI Features Section (opt-in - see AiFeaturesSection for the consent flow)
-            SettingsCollapsibleSection(
-                title = stringResource(R.string.settings_ai_features),
-                summary = if (profile?.aiFeaturesEnabled == true) stringResource(R.string.settings_ai_summary_on) else stringResource(R.string.settings_ai_summary_off),
-                icon = Icons.Default.SmartToy,
-                initiallyExpanded = expandAiInitially,
-                modifier = Modifier.bringIntoViewRequester(aiSectionRequester)
-            ) {
-                AiFeaturesSection(
-                    userProfileRepository = userProfileRepository,
-                    secureKeyStore = secureKeyStore,
-                    openRouterClient = openRouterClient,
-                    coroutineScope = coroutineScope,
-                    snackbarHostState = snackbarHostState
-                )
+            val secureKeyStore = viewModel.secureKeyStore
+            val openRouterClient = viewModel.openRouterClient
+            if (secureKeyStore != null && openRouterClient != null) {
+                SettingsCollapsibleSection(
+                    title = stringResource(R.string.settings_ai_features),
+                    summary = if (profile?.aiFeaturesEnabled == true) stringResource(R.string.settings_ai_summary_on) else stringResource(R.string.settings_ai_summary_off),
+                    icon = Icons.Default.SmartToy,
+                    initiallyExpanded = expandAiInitially,
+                    modifier = Modifier.bringIntoViewRequester(aiSectionRequester)
+                ) {
+                    AiFeaturesSection(
+                        userProfileRepository = viewModel.userProfileRepository,
+                        secureKeyStore = secureKeyStore,
+                        openRouterClient = openRouterClient,
+                        coroutineScope = coroutineScope,
+                        snackbarHostState = snackbarHostState
+                    )
+                }
             }
 
-            BackupRestoreSection(backupManager = backupManager, snackbarHostState = snackbarHostState)
+            viewModel.backupManager?.let { backupMgr ->
+                BackupRestoreSection(backupManager = backupMgr, snackbarHostState = snackbarHostState)
+            }
 
             // Data Sovereignty & Export Section
             SettingsCollapsibleSection(
@@ -369,13 +357,7 @@ fun SettingsScreen(
                     info = stringResource(R.string.settings_optimize_db_info),
                     enabled = !isBusy && !isOptimizingDb,
                     onClick = {
-                        coroutineScope.launch {
-                            isOptimizingDb = true
-                            localStorageManager.optimizeDatabase()
-                            storageBreakdown = localStorageManager.getStorageBreakdown()
-                            isOptimizingDb = false
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_optimize_db_done))
-                        }
+                        viewModel.optimizeDatabase()
                     }
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = tokens.cardBorder)
@@ -386,19 +368,7 @@ fun SettingsScreen(
                     info = stringResource(R.string.settings_clean_orphans_info),
                     enabled = !isBusy && !isCleaningOrphans,
                     onClick = {
-                        coroutineScope.launch {
-                            isCleaningOrphans = true
-                            val cleanedFiles = localStorageManager.cleanOrphanedFiles()
-                            val freedCacheBytes = localStorageManager.clearCache()
-                            storageBreakdown = localStorageManager.getStorageBreakdown()
-                            isCleaningOrphans = false
-                            snackbarHostState.showSnackbar(
-                                if (cleanedFiles > 0 || freedCacheBytes > 0)
-                                    context.getString(R.string.settings_clean_orphans_done, cleanedFiles, StorageBreakdown.formatBytes(freedCacheBytes))
-                                else
-                                    context.getString(R.string.settings_clean_orphans_nothing)
-                            )
-                        }
+                        viewModel.cleanOrphanedFiles()
                     }
                 )
             }
@@ -447,16 +417,8 @@ fun SettingsScreen(
                 Button(
                     enabled = !isDeletingHealth,
                     onClick = {
-                        isDeletingHealth = true
-                        coroutineScope.launch {
-                            syncManager.clearAllData()
-                            localStorageManager.cleanOrphanedFiles()
-                            localStorageManager.clearCache()
-                            localStorageManager.optimizeDatabase()
-                            storageBreakdown = localStorageManager.getStorageBreakdown()
-                            isDeletingHealth = false
+                        viewModel.clearAllHealthData {
                             showDeleteHealthDialog = false
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_delete_health_done))
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = tokens.scoreColors.rebuild)
@@ -485,11 +447,7 @@ fun SettingsScreen(
                 Button(
                     enabled = !isResetting,
                     onClick = {
-                        isResetting = true
-                        coroutineScope.launch {
-                            syncManager.clearAllData()
-                            onResetToWelcome()
-                        }
+                        viewModel.resetApplication(onResetToWelcome)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = tokens.scoreColors.rebuild)
                 ) {
@@ -514,20 +472,64 @@ fun SettingsScreen(
             initialWeightKg = latestWeight?.weightKg ?: profile?.currentWeightKg,
             onDismiss = { showEditGoalsDialog = false },
             onSave = { updated, newWeight ->
-                coroutineScope.launch {
-                    val scoringInputsChanged = updated.maxHeartRate != profile?.maxHeartRate ||
-                        updated.sleepGoalMinutes != profile?.sleepGoalMinutes || updated.age != profile?.age
-                    userProfileRepository.saveProfile(updated)
-                    if (newWeight != null && newWeight > 0.0) bodyMetricsRepository.logWeight(newWeight)
+                viewModel.saveProfileAndGoals(updated, newWeight) {
                     showEditGoalsDialog = false
-                    snackbarHostState.showSnackbar(context.getString(R.string.settings_goals_saved))
-                    // Strain zones and sleep need depend on these - rescore history with them.
-                    if (scoringInputsChanged) syncManager.recalculateAllBaselines().collect { }
                 }
             }
         )
     }
 
+}
+
+@Deprecated("Use SettingsScreen with SettingsViewModel")
+@Composable
+fun SettingsScreen(
+    syncManager: HealthSyncManager,
+    exportManager: LocalExportManager,
+    backupManager: com.kevan.hangry.data.backup.HangryBackupManager,
+    localStorageManager: LocalStorageManager,
+    userProfileRepository: UserProfileRepository,
+    bodyMetricsRepository: BodyMetricsRepository,
+    weightDao: WeightDao,
+    heightDao: HeightDao,
+    calorieCalculator: CalorieCalculator,
+    secureKeyStore: SecureKeyStore,
+    openRouterClient: OpenRouterClient,
+    onNavigateBack: () -> Unit,
+    onNavigateToHistoricalSync: () -> Unit,
+    onNavigateToDataSources: () -> Unit,
+    onNavigateToPrivacyPolicy: () -> Unit = {},
+    onResetToWelcome: () -> Unit,
+    modifier: Modifier = Modifier,
+    expandAiInitially: Boolean = false
+) {
+    val weightRepository = remember(weightDao) { com.kevan.hangry.data.repository.DefaultWeightRepository(weightDao) }
+    val heightRepository = remember(heightDao) { com.kevan.hangry.data.repository.DefaultHeightRepository(heightDao) }
+    val viewModel: SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = SettingsViewModel.provideFactory(
+            syncManager = syncManager,
+            exportManager = exportManager,
+            backupManager = backupManager,
+            localStorageManager = localStorageManager,
+            userProfileRepository = userProfileRepository,
+            bodyMetricsRepository = bodyMetricsRepository,
+            weightRepository = weightRepository,
+            heightRepository = heightRepository,
+            calorieCalculator = calorieCalculator,
+            secureKeyStore = secureKeyStore,
+            openRouterClient = openRouterClient
+        )
+    )
+    SettingsScreen(
+        viewModel = viewModel,
+        onNavigateBack = onNavigateBack,
+        onNavigateToHistoricalSync = onNavigateToHistoricalSync,
+        onNavigateToDataSources = onNavigateToDataSources,
+        onNavigateToPrivacyPolicy = onNavigateToPrivacyPolicy,
+        onResetToWelcome = onResetToWelcome,
+        modifier = modifier,
+        expandAiInitially = expandAiInitially
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

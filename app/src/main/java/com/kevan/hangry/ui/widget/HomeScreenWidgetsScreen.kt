@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -398,7 +399,7 @@ private fun ActivityWidgetMockup() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            MetricColumn(icon = Icons.Default.DirectionsWalk, tint = Color(0xFF6AA8FF), value = "6,420", label = stringResource(R.string.dashboard_widget_mock_steps))
+            MetricColumn(icon = Icons.AutoMirrored.Filled.DirectionsWalk, tint = Color(0xFF6AA8FF), value = "6,420", label = stringResource(R.string.dashboard_widget_mock_steps))
             MetricColumn(icon = Icons.Default.LocalFireDepartment, tint = Color(0xFFFF7E1D), value = "450", label = stringResource(R.string.dashboard_widget_mock_active_kcal))
         }
     }

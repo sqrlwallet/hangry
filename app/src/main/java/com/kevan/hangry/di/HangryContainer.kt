@@ -58,6 +58,9 @@ interface AppContainer {
     val backupManager: com.kevan.hangry.data.backup.HangryBackupManager
     val localStorageManager: LocalStorageManager
     val bodyFatRepository: BodyFatRepository
+    val weightRepository: WeightRepository
+    val heightRepository: HeightRepository
+    val dispatchers: com.kevan.hangry.util.AppDispatchers
     val breathingRepository: BreathingRepository
     val waterLogRepository: com.kevan.hangry.data.repository.WaterLogRepository
     val breathingSessionController: BreathingSessionController
@@ -132,8 +135,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val bodyMetricsRepository: BodyMetricsRepository by lazy {
         DefaultBodyMetricsRepository(
             userProfileRepository = userProfileRepository,
-            weightDao = database.weightDao(),
-            heightDao = database.heightDao(),
+            weightRepository = weightRepository,
+            heightRepository = heightRepository,
             bodyFatRepository = bodyFatRepository,
             dailyHealthSummaryDao = database.dailyHealthSummaryDao(),
             exerciseSessionDao = database.exerciseSessionDao(),
@@ -244,6 +247,18 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         DefaultBodyFatRepository(database.bodyFatScanDao())
     }
 
+    override val weightRepository: WeightRepository by lazy {
+        DefaultWeightRepository(database.weightDao())
+    }
+
+    override val heightRepository: HeightRepository by lazy {
+        DefaultHeightRepository(database.heightDao())
+    }
+
+    override val dispatchers: com.kevan.hangry.util.AppDispatchers by lazy {
+        com.kevan.hangry.util.DefaultAppDispatchers()
+    }
+
     override val breathingRepository: BreathingRepository by lazy {
         DefaultBreathingRepository(database.breathingSessionDao(), healthConnectDataSource)
     }
@@ -299,7 +314,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     private val aiCoachContextBuilder: AiCoachContextBuilder by lazy {
         AiCoachContextBuilder(
             userProfileRepository = userProfileRepository,
-            weightDao = database.weightDao(),
+            weightRepository = weightRepository,
             dailyHealthSummaryDao = database.dailyHealthSummaryDao(),
             recoveryScoreDao = database.recoveryScoreDao(),
             exerciseSessionDao = database.exerciseSessionDao(),
@@ -340,7 +355,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
                 foodLogRepository = foodLogRepository,
                 writeNutritionRecord = healthConnectDataSource::writeNutritionRecord,
                 userProfileRepository = userProfileRepository,
-                weightDao = database.weightDao(),
+                weightRepository = weightRepository,
                 mealPlanRepository = mealPlanRepository,
                 sleepRepository = sleepRepository,
                 bodyFatRepository = bodyFatRepository,

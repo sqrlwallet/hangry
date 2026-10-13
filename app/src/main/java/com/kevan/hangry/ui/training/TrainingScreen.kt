@@ -113,6 +113,16 @@ fun TrainingScreen(
     }
     val isTodayData = todayZoneDistribution.totalCount > 0
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val tabReselectionBus = com.kevan.hangry.ui.navigation.LocalTabReselectionBus.current
+    LaunchedEffect(tabReselectionBus) {
+        tabReselectionBus.events.collect { route ->
+            if (route == com.kevan.hangry.ui.navigation.Screen.Training.route) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -128,6 +138,7 @@ fun TrainingScreen(
             }
         ) {
         LazyColumn(
+            state = listState,
             modifier = modifier
                 .fillMaxSize()
                 .padding(horizontal = HangryTokens.Spacing.m),

@@ -239,7 +239,7 @@ fun QuickMealLogSheet(
                         savedChips.forEach { plan ->
                             SuggestionChip(
                                 onClick = {
-                                    if (chipsFill || onLogMealPlan == null) {
+                                    if (chipsFill) {
                                         applyPick(FoodPick(plan.name, plan.calories, plan.proteinG, plan.carbsG, plan.fatG, plan.fiberG))
                                     } else {
                                         onLogMealPlan(plan)

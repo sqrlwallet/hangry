@@ -374,7 +374,43 @@
                 android:resource="@xml/widget_provider_nutrition" />
         </receiver>
 
-        <!-- Quick-add buttons on the Nutrition widget log a food without opening the app. -->
+        <receiver
+            android:name=".ui.widget.WaterWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Water">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_water" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.StrainWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Strain">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_strain" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.BedtimeWidgetProvider"
+            android:exported="true"
+            android:label="Hangry Bedtime">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_bedtime" />
+        </receiver>
+
+        <!-- Quick-add buttons on the Nutrition and Water widgets log a food or a drink without opening the app. -->
         <receiver
             android:name=".ui.widget.NutritionWidgetReceiver"
             android:exported="false" />

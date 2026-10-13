@@ -26,7 +26,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="HANGRY"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/widget_text"
             android:textSize="12sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -82,7 +82,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/widget_layout_recovery"
-                android:textColor="#B5AEB8"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
@@ -91,7 +91,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -104,7 +104,7 @@
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="1dp"
                 android:text="@string/widget_layout_calibrating"
-                android:textColor="#01A652"
+                android:textColor="@color/widget_green"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -114,7 +114,7 @@
         <FrameLayout
             android:layout_width="1dp"
             android:layout_height="match_parent"
-            android:background="#3A363F" />
+            android:background="@color/widget_outline" />
 
         <!-- Activity & Sleep Section -->
         <LinearLayout
@@ -139,7 +139,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/widget_layout_none_steps"
-                    android:textColor="#6AA8FF"
+                    android:textColor="@color/widget_blue"
                     android:textSize="12sp"
                     android:textStyle="bold" />
 
@@ -149,7 +149,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/widget_layout_none_kcal"
-                    android:textColor="#FF7E1D"
+                    android:textColor="@color/widget_orange"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -167,7 +167,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/widget_layout_sleep_none"
-                    android:textColor="#00A4FF"
+                    android:textColor="@color/widget_azure"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>

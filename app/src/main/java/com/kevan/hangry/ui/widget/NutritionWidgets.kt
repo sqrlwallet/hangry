@@ -37,10 +37,8 @@ internal object NutritionWidgets {
     private const val RC_QUICK_ADD = 310
     private const val RC_WATER = 320
 
-    private const val COLOR_TRACK = 0xFF2F2C33.toInt()
     private const val COLOR_CALORIES = 0xFFFF7E1D.toInt()
     private const val COLOR_OVER = 0xFFFF6B6B.toInt()
-    private const val COLOR_MUTED = 0xFFB5AEB8.toInt()
 
     private val QUICK_ADD_SLOTS = listOf(R.id.btn_nutrition_add_1, R.id.btn_nutrition_add_2, R.id.btn_nutrition_add_3)
 
@@ -57,7 +55,7 @@ internal object NutritionWidgets {
 
         for (id in caloriesIds) {
             val views = RemoteViews(context.packageName, R.layout.widget_calories)
-            bindCalories(views, text, ring, R.id.iv_calories_ring, R.id.tv_calories_value, R.id.tv_calories_subtitle, R.id.tv_calories_percent)
+            bindCalories(context, views, text, ring, R.id.iv_calories_ring, R.id.tv_calories_value, R.id.tv_calories_subtitle, R.id.tv_calories_percent)
             views.setOnClickPendingIntent(R.id.widget_calories_root, open(context, Screen.Nutrition.route, RC_CALORIES))
             manager.updateAppWidget(id, views)
         }
@@ -76,10 +74,10 @@ internal object NutritionWidgets {
 
         for (id in nutritionIds) {
             val views = RemoteViews(context.packageName, R.layout.widget_nutrition)
-            bindCalories(views, text, ring, R.id.iv_nutrition_ring, R.id.tv_nutrition_value, R.id.tv_nutrition_subtitle, R.id.tv_nutrition_percent)
-            bindMacro(views, R.id.tv_nutrition_protein, R.id.pb_nutrition_protein, entries.sumOf { it.proteinG }, goals?.proteinG, hide)
-            bindMacro(views, R.id.tv_nutrition_carbs, R.id.pb_nutrition_carbs, entries.sumOf { it.carbsG }, goals?.carbsG, hide)
-            bindMacro(views, R.id.tv_nutrition_fat, R.id.pb_nutrition_fat, entries.sumOf { it.fatG }, goals?.fatG, hide)
+            bindCalories(context, views, text, ring, R.id.iv_nutrition_ring, R.id.tv_nutrition_value, R.id.tv_nutrition_subtitle, R.id.tv_nutrition_percent)
+            bindMacro(context, views, R.id.tv_nutrition_protein, R.id.pb_nutrition_protein, entries.sumOf { it.proteinG }, goals?.proteinG, hide)
+            bindMacro(context, views, R.id.tv_nutrition_carbs, R.id.pb_nutrition_carbs, entries.sumOf { it.carbsG }, goals?.carbsG, hide)
+            bindMacro(context, views, R.id.tv_nutrition_fat, R.id.pb_nutrition_fat, entries.sumOf { it.fatG }, goals?.fatG, hide)
             QUICK_ADD_SLOTS.forEachIndexed { i, buttonId ->
                 val slot = slots.getOrNull(i)
                 views.setViewVisibility(buttonId, if (slot == null) View.GONE else View.VISIBLE)
@@ -105,20 +103,20 @@ internal object NutritionWidgets {
     }
 
     private fun bindCalories(
-        views: RemoteViews, text: NutritionWidgetText.CalorieText, ring: Bitmap,
+        context: Context, views: RemoteViews, text: NutritionWidgetText.CalorieText, ring: Bitmap,
         ringId: Int, valueId: Int, subtitleId: Int, percentId: Int
     ) {
         views.setImageViewBitmap(ringId, ring)
         views.setTextViewText(valueId, text.value)
         views.setTextViewText(subtitleId, text.subtitle)
         views.setTextViewText(percentId, text.percent.orEmpty())
-        views.setTextColor(percentId, if (text.over) COLOR_OVER else COLOR_CALORIES)
+        WidgetColors.setTextColor(context, views, percentId, if (text.over) R.color.widget_red else R.color.widget_orange)
         views.setViewVisibility(percentId, if (text.percent == null) View.GONE else View.VISIBLE)
     }
 
-    private fun bindMacro(views: RemoteViews, textId: Int, barId: Int, grams: Double, goal: Double?, hide: Boolean) {
+    private fun bindMacro(context: Context, views: RemoteViews, textId: Int, barId: Int, grams: Double, goal: Double?, hide: Boolean) {
         views.setTextViewText(textId, NutritionWidgetText.macro(grams, goal, hide))
-        views.setTextColor(textId, if (goal == null && !hide) COLOR_MUTED else 0xFFFFFFFF.toInt())
+        WidgetColors.setTextColor(context, views, textId, if (goal == null && !hide) R.color.widget_text_secondary else R.color.widget_text)
         views.setProgressBar(barId, 100, NutritionWidgetText.macroPercent(grams, goal, hide), false)
     }
 
@@ -153,7 +151,7 @@ internal object NutritionWidgets {
             strokeWidth = stroke
             strokeCap = Paint.Cap.ROUND
         }
-        canvas.drawArc(bounds, 0f, 360f, false, paint.apply { color = COLOR_TRACK })
+        canvas.drawArc(bounds, 0f, 360f, false, paint.apply { color = WidgetColors.TRACK })
         if (fraction != null && fraction > 0f) {
             val sweep = if (over) 360f else (360f * fraction).coerceAtLeast(4f)
             canvas.drawArc(bounds, -90f, sweep, false, paint.apply { color = if (over) COLOR_OVER else COLOR_CALORIES })

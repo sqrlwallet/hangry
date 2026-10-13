@@ -21,7 +21,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * Logs a food (or a glass of water) from a Nutrition widget quick-add button without opening the
+ * Logs a food (or some water) from a Nutrition or Water widget button without opening the
  * app: one portion, today, synced to Health Connect like any other entry. A toast confirms it;
  * mistakes are removed from the Nutrition tab.
  */
@@ -67,7 +67,7 @@ class NutritionWidgetReceiver : BroadcastReceiver() {
         }
     }
 
-    /** A glass of water for today, from the widget. Copied to Health Connect only if already allowed. */
+    /** A glass or bottle of water for today, from a widget. Copied to Health Connect only if already allowed. */
     private fun logWater(app: HangryApplication, intent: Intent) {
         val ml = intent.getIntExtra(EXTRA_WATER_ML, WaterIntake.GLASS_ML).coerceIn(1, WaterIntake.MAX_SINGLE_ML)
         val pending = goAsync()
@@ -82,6 +82,7 @@ class NutritionWidgetReceiver : BroadcastReceiver() {
             }
             try {
                 withContext(Dispatchers.Main) { Toast.makeText(app, message, Toast.LENGTH_SHORT).show() }
+                HangryWidgetUpdater.updateAllWidgets(app)
             } finally {
                 pending.finish()
             }

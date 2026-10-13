@@ -25,7 +25,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/widget_layout_goals"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -38,7 +38,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:text=""
-            android:textColor="#F7931E"
+            android:textColor="@color/widget_amber"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -63,7 +63,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text=""
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -73,7 +73,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text=""
-                android:textColor="#B5AEB8"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -107,7 +107,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text=""
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -117,7 +117,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text=""
-                android:textColor="#B5AEB8"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -151,7 +151,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text=""
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -161,7 +161,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text=""
-                android:textColor="#B5AEB8"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -183,6 +183,6 @@
         android:ellipsize="end"
         android:maxLines="2"
         android:text="@string/widget_layout_set_a_weight_goal_in_settings_or_a_marke"
-        android:textColor="#B5AEB8"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="12sp" />
 </LinearLayout>

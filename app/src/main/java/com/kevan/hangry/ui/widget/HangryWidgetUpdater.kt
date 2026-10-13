@@ -63,6 +63,9 @@ object HangryWidgetUpdater {
 
     private const val DEBOUNCE_MS = 750L
 
+    /** The app's default when no goal has been set, as on Today. */
+    private const val DEFAULT_STEP_GOAL = 6000L
+
     suspend fun updateAllWidgetsInternal(context: Context) {
         val app = context.applicationContext as? HangryApplication ?: return
         val container = app.container
@@ -75,8 +78,10 @@ object HangryWidgetUpdater {
 
         val latestSleep = container.sleepRepository.getLatestSession().firstOrNull()
 
+        val profile = container.userProfileRepository.getProfileSync()
+
         // 1. Update Activity Widgets
-        updateActivityWidgets(context, appWidgetManager, summary)
+        updateActivityWidgets(context, appWidgetManager, summary, profile?.dailyStepGoal ?: DEFAULT_STEP_GOAL)
 
         // 2. Update Quick Log Widgets
         updateQuickLogWidgets(context, appWidgetManager)
@@ -101,25 +106,47 @@ object HangryWidgetUpdater {
 
         // 9. Fasting
         FastingWidget.update(context, appWidgetManager, container.fastingRepository)
+
+        // 10. Water, Strain and Bedtime
+        DayWidgets.updateAll(context, appWidgetManager, container, today, summary, recovery?.state, WidgetPrefs.hideValues(context))
     }
 
     private fun updateActivityWidgets(
         context: Context,
         manager: AppWidgetManager,
-        summary: com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity?
+        summary: com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity?,
+        stepGoal: Long
     ) {
         val component = ComponentName(context, ActivityWidgetProvider::class.java)
         val ids = manager.getAppWidgetIds(component)
         if (ids.isEmpty()) return
 
+        val steps = summary?.steps
+        val stepsStr = steps?.let { String.format("%,d", it) } ?: "—"
+        val caloriesStr = summary?.activeCalories?.let { "${it.roundToInt()}" } ?: "—"
+        val minutesStr = summary?.activeMinutes?.toString() ?: "—"
+        val goal = stepGoal.takeIf { it > 0 }?.toDouble()
+        val percent = steps?.let { DayWidgetText.percent(it.toDouble(), goal) }
+        val chip = percent?.let { context.getString(R.string.dashboard_widget_percent, it) } ?: context.getString(R.string.widget_layout_today)
+        val stepsLabel = if (goal != null) {
+            context.getString(R.string.dashboard_widget_steps_of_goal, String.format("%,d", stepGoal))
+        } else {
+            context.getString(R.string.widget_layout_steps)
+        }
+
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_activity)
 
-            val stepsStr = summary?.steps?.let { String.format("%,d", it) } ?: "—"
-            val caloriesStr = summary?.activeCalories?.let { "${it.roundToInt()}" } ?: "—"
-
             views.setTextViewText(R.id.tv_steps_value, stepsStr)
+            views.setTextViewText(R.id.tv_steps_label, stepsLabel)
             views.setTextViewText(R.id.tv_calories_value, caloriesStr)
+            views.setTextViewText(R.id.tv_active_minutes_value, minutesStr)
+            views.setTextViewText(R.id.tv_activity_sync_status, chip)
+            WidgetColors.setTextColor(
+                context, views, R.id.tv_activity_sync_status,
+                if (percent != null && percent >= 100) R.color.widget_green else R.color.widget_blue
+            )
+            views.setProgressBar(R.id.pb_activity_steps, 100, steps?.let { DayWidgetText.progress(it.toDouble(), goal) } ?: 0, false)
 
             val clickIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

@@ -25,7 +25,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/widget_layout_eaten_today"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -38,7 +38,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:text=""
-            android:textColor="#FF7E1D"
+            android:textColor="@color/widget_orange"
             android:textSize="11sp"
             android:textStyle="bold"
             android:visibility="gone" />
@@ -71,7 +71,7 @@
                 android:layout_height="wrap_content"
                 android:maxLines="1"
                 android:text="—"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -79,7 +79,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/widget_layout_kcal"
-                android:textColor="#B5AEB8"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="11sp" />
         </LinearLayout>
     </FrameLayout>
@@ -93,6 +93,6 @@
         android:gravity="center_horizontal"
         android:maxLines="1"
         android:text="@string/widget_layout_nothing_logged_yet"
-        android:textColor="#B5AEB8"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="11sp" />
 </LinearLayout>

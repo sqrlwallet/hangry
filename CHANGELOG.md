@@ -1,3 +1,22 @@
+## 🚀 What's New in Hangry v1.38.0 — New Widgets, Light & Dark
+
+Three new home screen widgets, and every widget now matches your phone's light or dark mode.
+
+### 🧩 New widgets
+- **Water**: today's water against your target, counting drinks from other apps too. Log a glass or a bottle without opening the app.
+- **Strain**: today's strain so far on the 0–21 scale, with the range your recovery suggests shaded in, and today's workouts.
+- **Bedtime**: tonight's suggested bedtime, when to start winding down, any sleep debt, and how last night went.
+
+### ✨ Better widgets
+- **Light and dark**: all widgets follow your phone's dark mode, with readable colours on the light Cream background.
+- **Daily Activity** shows steps against your step goal with a progress bar, plus active minutes.
+- **Weight Trend** and **Goals** use your units (kg, lb or stones).
+- The widget gallery is grouped into sections, and its previews match light or dark mode.
+- **Hide values on widgets** also covers Water and Strain.
+
+### 🛠️ Fixes
+- Logging water from a widget or in the app now updates your widgets straight away.
+
 ## 🚀 What's New in Hangry v1.37.0 — Appearance, Fluid Navigation & Architecture Modernization
 
 Choose your theme, jump and swipe smoothly through dates, and enjoy snappy app startup with an overhauled architecture.

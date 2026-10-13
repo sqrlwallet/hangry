@@ -168,14 +168,15 @@ class NutritionViewModel(
     }
 
     init {
-        // Keeps the Calories / Nutrition home screen widgets in step with anything logged,
+        // Keeps the Calories / Nutrition / Water home screen widgets in step with anything logged,
         // edited or removed while the app is open (the first emission is the current state).
         viewModelScope.launch {
             val today = LocalDate.now(zone)
             combine(
                 foodLogRepository.getBetween(today.minusDays(1), today.plusDays(1)),
-                mealPlanRepository.getAll()
-            ) { entries, meals -> entries to meals }
+                mealPlanRepository.getAll(),
+                waterLogRepository?.observeLoggedMl(today) ?: flowOf(0)
+            ) { entries, meals, water -> Triple(entries, meals, water) }
                 .distinctUntilChanged()
                 .drop(1)
                 .collect { HangryWidgetUpdater.updateAllWidgets(context) }

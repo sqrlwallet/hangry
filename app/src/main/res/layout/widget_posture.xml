@@ -25,7 +25,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/widget_layout_posture"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -38,7 +38,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:text=""
-            android:textColor="#4ECDC4"
+            android:textColor="@color/widget_teal"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -58,7 +58,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="—"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/widget_text"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -69,7 +69,7 @@
             android:layout_marginStart="2dp"
             android:paddingBottom="3dp"
             android:text="/100"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="12sp" />
     </LinearLayout>
 
@@ -81,7 +81,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:text="@string/widget_layout_no_checks_yet"
-        android:textColor="#B5AEB8"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="12sp" />
 
     <TextView

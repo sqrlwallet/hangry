@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Home screen widget colours. These are the dark values (Obsidian); values-notnight holds the
+    light ones (Cream). Widgets follow the phone's dark mode, like the launcher around them.
+    Progress fills and icons keep the bright brand colours in both.
+-->
+<resources>
+    <color name="widget_surface">#252329</color>
+    <color name="widget_outline">#3A363F</color>
+    <color name="widget_track">#2F2C33</color>
+    <color name="widget_text">#FFFFFF</color>
+    <color name="widget_text_secondary">#B5AEB8</color>
+    <color name="widget_orange">#FF7E1D</color>
+    <color name="widget_amber">#F7931E</color>
+    <color name="widget_green">#01A652</color>
+    <color name="widget_red">#FF6B6B</color>
+    <color name="widget_blue">#6AA8FF</color>
+    <color name="widget_water">#7DBBFF</color>
+    <color name="widget_azure">#00A4FF</color>
+    <color name="widget_teal">#4ECDC4</color>
+    <color name="widget_sky">#6FC3DF</color>
+    <color name="widget_purple">#B39DDB</color>
+    <color name="widget_pink">#F48FB1</color>
+</resources>

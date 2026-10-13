@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import com.kevan.hangry.HangryApplication
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.NudgeText
+import com.kevan.hangry.domain.model.SleepAnalysis
 import com.kevan.hangry.ui.coach.DashMood
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +50,13 @@ object BedtimeReminder {
         alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger.toInstant().toEpochMilli(), pi)
     }
 
-    private suspend fun suggestedBedtime(context: Context): LocalTime? {
+    private suspend fun suggestedBedtime(context: Context): LocalTime? = tonightsPlan(context)?.recommendedBedtime
+
+    /**
+     * Tonight's sleep plan from the last two weeks of sleep - bedtime, tonight's need and debt.
+     * Also read by the Bedtime widget. Null with no recent sleep.
+     */
+    internal suspend fun tonightsPlan(context: Context): SleepAnalysis? {
         val container = (context.applicationContext as? HangryApplication)?.container ?: return null
         val now = Instant.now()
         val recent = container.database.sleepSessionDao()
@@ -57,7 +64,7 @@ object BedtimeReminder {
             .sortedByDescending { it.startTime }
         if (recent.isEmpty()) return null
         val goal = container.userProfileRepository.getProfileSync()?.sleepGoalMinutes ?: 480
-        return container.sleepCalculator.analyzeSleep(currentSession = null, recentSessions = recent, targetDurationMinutes = goal).recommendedBedtime
+        return container.sleepCalculator.analyzeSleep(currentSession = null, recentSessions = recent, targetDurationMinutes = goal)
     }
 
     internal fun plannedBedtime(context: Context): LocalTime? =

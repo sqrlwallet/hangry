@@ -26,30 +26,34 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/widget_layout_daily_activity"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
 
+        <!-- Share of the step goal; "Today" until there's a goal and steps to compare. -->
         <TextView
             android:id="@+id/tv_activity_sync_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_widget_chip"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
             android:text="@string/widget_layout_today"
-            android:textColor="#948D98"
-            android:textSize="11sp" />
+            android:textColor="@color/widget_blue"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- 3 Metrics in Row -->
+    <!-- Steps, active calories and active minutes -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <!-- Steps -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -58,8 +62,8 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:src="@drawable/ic_widget_steps"
                 android:contentDescription="@null" />
 
@@ -67,21 +71,23 @@
                 android:id="@+id/tv_steps_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="3dp"
+                android:maxLines="1"
                 android:text="—"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tv_steps_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:maxLines="1"
                 android:text="@string/widget_layout_steps"
-                android:textColor="#B5AEB8"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Calories -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -90,8 +96,8 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:src="@drawable/ic_widget_flame"
                 android:contentDescription="@null" />
 
@@ -99,18 +105,63 @@
                 android:id="@+id/tv_calories_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="3dp"
+                android:maxLines="1"
                 android:text="—"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:maxLines="1"
                 android:text="@string/widget_layout_active_kcal"
-                android:textColor="#B5AEB8"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_widget_timer"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/tv_active_minutes_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:maxLines="1"
+                android:text="—"
+                android:textColor="@color/widget_text"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:text="@string/widget_layout_active_min"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/pb_activity_steps"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_marginTop="8dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/bg_widget_progress_steps" />
 </LinearLayout>

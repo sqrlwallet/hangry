@@ -52,4 +52,12 @@
     <string name="widget_layout_vs_your_4_week_normal">vs your 4-week normal</string>
     <string name="widget_layout_weight">WEIGHT</string>
     <string name="widget_layout_weight_over_the_last_30_days">Weight over the last 30 days</string>
+    <string name="widget_layout_active_min">Active min</string>
+    <string name="widget_layout_bedtime">BEDTIME</string>
+    <string name="widget_layout_bedtime_need_sleep">Sync a few nights of sleep to get a bedtime</string>
+    <string name="widget_layout_so_far_today">So far today</string>
+    <string name="widget_layout_strain">STRAIN</string>
+    <string name="widget_layout_strain_out_of">/ 21</string>
+    <string name="widget_layout_tonight">Tonight</string>
+    <string name="widget_layout_water">WATER</string>
 </resources>

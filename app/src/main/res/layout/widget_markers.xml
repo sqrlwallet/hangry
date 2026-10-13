@@ -25,7 +25,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/widget_layout_health_markers"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/widget_layout_blood_pressure"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp" />
 
         <TextView
@@ -63,7 +63,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:text=""
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -76,7 +76,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:text="—"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/widget_text"
         android:textSize="18sp"
         android:textStyle="bold" />
     <LinearLayout
@@ -91,7 +91,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/widget_layout_blood_sugar"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp" />
 
         <TextView
@@ -102,7 +102,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:text=""
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -115,7 +115,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:text="—"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/widget_text"
         android:textSize="18sp"
         android:textStyle="bold" />
 </LinearLayout>

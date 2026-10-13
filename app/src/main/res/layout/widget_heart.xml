@@ -25,7 +25,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/widget_layout_heart"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/widget_layout_resting_hr"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="12sp" />
 
         <TextView
@@ -52,7 +52,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="—"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/widget_text"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -62,7 +62,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:text=""
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -78,7 +78,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="HRV"
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="12sp" />
 
         <TextView
@@ -86,7 +86,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="—"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/widget_text"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -96,7 +96,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:text=""
-            android:textColor="#B5AEB8"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -108,6 +108,6 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:text="@string/widget_layout_vs_your_4_week_normal"
-        android:textColor="#B5AEB8"
+        android:textColor="@color/widget_text_secondary"
         android:textSize="11sp" />
 </LinearLayout>

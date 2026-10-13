@@ -15,6 +15,7 @@ import android.view.View
 import android.widget.RemoteViews
 import com.kevan.hangry.MainActivity
 import com.kevan.hangry.R
+import com.kevan.hangry.data.prefs.UnitPrefs
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.di.AppContainer
 import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
@@ -22,6 +23,7 @@ import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
 import com.kevan.hangry.domain.model.MetricTone
+import com.kevan.hangry.ui.components.BodyUnitFormatter
 import com.kevan.hangry.ui.navigation.Screen
 import kotlinx.coroutines.flow.first
 import java.time.Duration
@@ -50,10 +52,6 @@ internal object HealthWidgets {
     private const val RC_POSTURE_NEW = 210
     private const val RC_CYCLE = 211
 
-    private const val COLOR_MUTED = 0xFFB5AEB8.toInt()
-    private const val COLOR_GOOD = 0xFF01A652.toInt()
-    private const val COLOR_CAUTION = 0xFFF7931E.toInt()
-    private const val COLOR_RISK = 0xFFFF6B6B.toInt()
 
     suspend fun updateAll(context: Context, manager: AppWidgetManager, container: AppContainer, today: LocalDate) {
         val hide = WidgetPrefs.hideValues(context)
@@ -69,9 +67,9 @@ internal object HealthWidgets {
         ids(HeartWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateHeart(context, manager, it, container, today, hide) }
         ids(HealthMarkersWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateMarkers(context, manager, it, records(), hide) }
         ids(GoalsWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let {
-            updateGoals(context, manager, it, records(), weights(), container.userProfileRepository.getProfileSync()?.weightGoalKg, hide)
+            updateGoals(context, manager, it, records(), weights(), container.userProfileRepository.getProfileSync()?.weightGoalKg, units(context), hide)
         }
-        ids(WeightWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateWeight(context, manager, it, weights(), hide) }
+        ids(WeightWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateWeight(context, manager, it, weights(), units(context), hide) }
         ids(PostureWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updatePosture(context, manager, it, container, today, hide) }
         ids(CycleWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateCycle(context, manager, it, records(), today, hide) }
     }
@@ -84,11 +82,15 @@ internal object HealthWidgets {
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
+    /** Weights in the units chosen in Settings → Units. */
+    private fun units(context: Context) =
+        BodyUnitFormatter(context.resources, UnitPrefs.weightUnit(context), UnitPrefs.lengthUnit(context))
+
     private fun toneColor(tone: MetricTone): Int = when (tone) {
-        MetricTone.GOOD -> COLOR_GOOD
-        MetricTone.CAUTION -> COLOR_CAUTION
-        MetricTone.RISK -> COLOR_RISK
-        MetricTone.NEUTRAL -> COLOR_MUTED
+        MetricTone.GOOD -> R.color.widget_green
+        MetricTone.CAUTION -> R.color.widget_amber
+        MetricTone.RISK -> R.color.widget_red
+        MetricTone.NEUTRAL -> R.color.widget_text_secondary
     }
 
     // region Breathe
@@ -137,8 +139,8 @@ internal object HealthWidgets {
         }
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_heart)
-            bindHeartRow(views, R.id.tv_heart_rhr, R.id.tv_heart_rhr_delta, rhr, context.getString(R.string.dashboard_widget_unit_bpm), higherIsBetter = false, hide)
-            bindHeartRow(views, R.id.tv_heart_hrv, R.id.tv_heart_hrv_delta, hrv, context.getString(R.string.dashboard_widget_unit_ms), higherIsBetter = true, hide)
+            bindHeartRow(context, views, R.id.tv_heart_rhr, R.id.tv_heart_rhr_delta, rhr, context.getString(R.string.dashboard_widget_unit_bpm), higherIsBetter = false, hide)
+            bindHeartRow(context, views, R.id.tv_heart_hrv, R.id.tv_heart_hrv_delta, hrv, context.getString(R.string.dashboard_widget_unit_ms), higherIsBetter = true, hide)
             views.setTextViewText(R.id.tv_heart_subtitle, subtitle)
             views.setOnClickPendingIntent(R.id.widget_heart_root, open(context, Screen.HeartMetrics.route, RC_HEART))
             manager.updateAppWidget(id, views)
@@ -146,7 +148,7 @@ internal object HealthWidgets {
     }
 
     private fun bindHeartRow(
-        views: RemoteViews, valueId: Int, deltaId: Int, reading: WidgetText.HeartReading?,
+        context: Context, views: RemoteViews, valueId: Int, deltaId: Int, reading: WidgetText.HeartReading?,
         unit: String, higherIsBetter: Boolean, hide: Boolean
     ) {
         views.setTextViewText(valueId, when {
@@ -156,10 +158,10 @@ internal object HealthWidgets {
         })
         val delta = reading?.delta
         views.setTextViewText(deltaId, if (hide) "" else WidgetText.deltaText(delta).orEmpty())
-        views.setTextColor(deltaId, when (WidgetText.isImprovement(delta, higherIsBetter)) {
-            true -> COLOR_GOOD
-            false -> COLOR_CAUTION
-            null -> COLOR_MUTED
+        WidgetColors.setTextColor(context, views, deltaId, when (WidgetText.isImprovement(delta, higherIsBetter)) {
+            true -> R.color.widget_green
+            false -> R.color.widget_amber
+            null -> R.color.widget_text_secondary
         })
     }
 
@@ -170,15 +172,15 @@ internal object HealthWidgets {
     private fun updateMarkers(context: Context, manager: AppWidgetManager, ids: IntArray, records: HealthRecordsSnapshot, hide: Boolean) {
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_markers)
-            bindMarker(views, R.id.tv_markers_bp, R.id.tv_markers_bp_status, MarkerType.BLOOD_PRESSURE, records, hide)
-            bindMarker(views, R.id.tv_markers_glucose, R.id.tv_markers_glucose_status, MarkerType.BLOOD_GLUCOSE, records, hide)
+            bindMarker(context, views, R.id.tv_markers_bp, R.id.tv_markers_bp_status, MarkerType.BLOOD_PRESSURE, records, hide)
+            bindMarker(context, views, R.id.tv_markers_glucose, R.id.tv_markers_glucose_status, MarkerType.BLOOD_GLUCOSE, records, hide)
             views.setOnClickPendingIntent(R.id.widget_markers_root, open(context, Screen.HealthRecords.route, RC_MARKERS))
             views.setOnClickPendingIntent(R.id.btn_markers_add, open(context, Screen.HealthRecords.route, RC_MARKERS_ADD))
             manager.updateAppWidget(id, views)
         }
     }
 
-    private fun bindMarker(views: RemoteViews, valueId: Int, statusId: Int, type: MarkerType, records: HealthRecordsSnapshot, hide: Boolean) {
+    private fun bindMarker(context: Context, views: RemoteViews, valueId: Int, statusId: Int, type: MarkerType, records: HealthRecordsSnapshot, hide: Boolean) {
         val latest = records.latest(type)
         val metric = HealthMarkerCalculator.describe(type, latest, records.sex)
         views.setTextViewText(valueId, when {
@@ -189,7 +191,7 @@ internal object HealthWidgets {
         val status = if (hide || latest == null) "" else metric.status.orEmpty()
         views.setTextViewText(statusId, status)
         views.setViewVisibility(statusId, if (status.isEmpty()) View.GONE else View.VISIBLE)
-        views.setTextColor(statusId, toneColor(metric.tone))
+        WidgetColors.setTextColor(context, views, statusId, toneColor(metric.tone))
     }
 
     // endregion
@@ -206,10 +208,10 @@ internal object HealthWidgets {
 
     private fun updateGoals(
         context: Context, manager: AppWidgetManager, ids: IntArray, records: HealthRecordsSnapshot,
-        weights: List<WeightMeasurementEntity>, weightGoalKg: Double?, hide: Boolean
+        weights: List<WeightMeasurementEntity>, weightGoalKg: Double?, units: BodyUnitFormatter, hide: Boolean
     ) {
         val rows = buildList {
-            weightGoalRow(context, weights, weightGoalKg)?.let(::add)
+            weightGoalRow(context, weights, weightGoalKg, units)?.let(::add)
             records.goals.filter { it.type.isVisibleFor(records.sex) }.forEach { goal ->
                 val latest = records.latest(goal.type)
                 val progress = HealthMarkerCalculator.progress(goal, latest)
@@ -233,7 +235,7 @@ internal object HealthWidgets {
                 if (row != null) {
                     views.setTextViewText(labelId, row.label)
                     views.setTextViewText(detailId, if (hide) "" else row.detail)
-                    views.setTextColor(detailId, if (row.reached) COLOR_GOOD else COLOR_MUTED)
+                    WidgetColors.setTextColor(context, views, detailId, if (row.reached) R.color.widget_green else R.color.widget_text_secondary)
                     val percent = ((row.fraction ?: if (row.reached) 1.0 else 0.0) * 100).roundToInt()
                     views.setProgressBar(barId, 100, percent, false)
                 }
@@ -251,7 +253,7 @@ internal object HealthWidgets {
      * Progress is measured from the oldest weigh-in in the last 6 months - the app doesn't
      * store when the goal was set, and that's the closest honest starting point.
      */
-    private fun weightGoalRow(context: Context, weights: List<WeightMeasurementEntity>, goalKg: Double?): GoalRow? {
+    private fun weightGoalRow(context: Context, weights: List<WeightMeasurementEntity>, goalKg: Double?, units: BodyUnitFormatter): GoalRow? {
         goalKg ?: return null
         val weightLabel = context.getString(R.string.dashboard_widget_goal_weight)
         val latest = weights.firstOrNull()?.weightKg ?: return GoalRow(weightLabel, context.getString(R.string.dashboard_widget_no_weigh_in_yet), null, false)
@@ -269,7 +271,12 @@ internal object HealthWidgets {
         val detail = if (reached) {
             context.getString(R.string.dashboard_widget_goal_reached)
         } else {
-            context.getString(R.string.dashboard_widget_weight_goal_progress, String.format(Locale.US, "%.1f", latest), String.format(Locale.US, "%.1f", goalKg))
+            context.getString(
+                R.string.dashboard_widget_weight_goal_progress,
+                String.format(Locale.US, "%.1f", units.weightNumber(latest)),
+                String.format(Locale.US, "%.1f", units.weightNumber(goalKg)),
+                units.weightSymbol
+            )
         }
         return GoalRow(weightLabel, detail, fraction, reached)
     }
@@ -278,7 +285,9 @@ internal object HealthWidgets {
 
     // region Weight
 
-    private fun updateWeight(context: Context, manager: AppWidgetManager, ids: IntArray, weights: List<WeightMeasurementEntity>, hide: Boolean) {
+    private fun updateWeight(
+        context: Context, manager: AppWidgetManager, ids: IntArray, weights: List<WeightMeasurementEntity>, units: BodyUnitFormatter, hide: Boolean
+    ) {
         val latest = weights.firstOrNull()
         val cutoff = Instant.now().minus(Duration.ofDays(30))
         val month = weights.filter { it.timestamp.isAfter(cutoff) }.sortedBy { it.timestamp }
@@ -295,9 +304,9 @@ internal object HealthWidgets {
             views.setTextViewText(R.id.tv_weight_value, when {
                 latest == null -> "—"
                 hide -> WidgetText.HIDDEN_VALUE
-                else -> context.getString(R.string.dashboard_widget_kg_value, String.format(Locale.US, "%.1f", latest.weightKg))
+                else -> units.weight(latest.weightKg)
             })
-            val changeText = if (hide || change == null) "" else context.getString(R.string.dashboard_widget_kg_value, String.format(Locale.US, "%+.1f", change))
+            val changeText = if (hide || change == null) "" else units.weightChange(change)
             views.setTextViewText(R.id.tv_weight_change, changeText)
             views.setViewVisibility(R.id.tv_weight_change, if (changeText.isEmpty()) View.GONE else View.VISIBLE)
             views.setTextViewText(R.id.tv_weight_subtitle, subtitle)

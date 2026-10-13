@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Light widget colours: the Cream theme's surfaces, with text shades that stay readable on them. -->
+<resources>
+    <color name="widget_surface">#FFFDFC</color>
+    <color name="widget_outline">#E7DFDA</color>
+    <color name="widget_track">#F2ECE8</color>
+    <color name="widget_text">#413D45</color>
+    <color name="widget_text_secondary">#6E6873</color>
+    <color name="widget_orange">#B8520A</color>
+    <color name="widget_amber">#B8520A</color>
+    <color name="widget_green">#00833F</color>
+    <color name="widget_red">#C62828</color>
+    <color name="widget_blue">#0C6FF9</color>
+    <color name="widget_water">#0079C2</color>
+    <color name="widget_azure">#0079C2</color>
+    <color name="widget_teal">#00796B</color>
+    <color name="widget_sky">#00728F</color>
+    <color name="widget_purple">#5E35B1</color>
+    <color name="widget_pink">#C2185B</color>
+</resources>

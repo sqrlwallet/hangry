@@ -2,6 +2,7 @@ package com.kevan.hangry.ui.nutrition
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,10 +20,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.ui.theme.SurfaceDark
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.FiberGuide
 import com.kevan.hangry.ui.components.HangryCard
@@ -102,17 +105,33 @@ fun MacroProgressBar(
                 }
             }
 
+            val isDark = tokens.cardBackground == SurfaceDark
             Spacer(modifier = Modifier.height(6.dp))
 
-            LinearProgressIndicator(
-                progress = { animCalorieProgress },
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = tokens.chartColors.activeCalories,
-                trackColor = tokens.chartColors.activeCalories.copy(alpha = 0.18f),
-            )
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (isDark) tokens.cardBorder.copy(alpha = 0.5f) else tokens.cardBorder.copy(alpha = 0.7f))
+            ) {
+                if (animCalorieProgress > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = animCalorieProgress.coerceIn(0f, 1f))
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        tokens.chartColors.activeCalories,
+                                        tokens.brandAccent
+                                    )
+                                )
+                            )
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s + 4.dp))
 
@@ -245,15 +264,24 @@ private fun MacroStat(
                 )
             }
         }
+        val isDark = tokens.cardBackground == SurfaceDark
         Spacer(modifier = Modifier.height(4.dp))
-        LinearProgressIndicator(
-            progress = { animProgress },
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(5.dp)
-                .clip(RoundedCornerShape(3.dp)),
-            color = color,
-            trackColor = color.copy(alpha = 0.22f),
-        )
+                .clip(RoundedCornerShape(3.dp))
+                .background(color.copy(alpha = if (isDark) 0.18f else 0.14f))
+        ) {
+            if (animProgress > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction = animProgress.coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(color)
+                )
+            }
+        }
     }
 }

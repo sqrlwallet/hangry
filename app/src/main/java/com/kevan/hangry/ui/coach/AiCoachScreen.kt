@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.kevan.hangry.ui.theme.SurfaceDark
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -279,6 +280,7 @@ fun AiCoachScreen(
                                 items(uiState.messages, key = { it.id }) { message ->
                                     CoachMessageItem(
                                         message = message,
+                                        modifier = Modifier.animateItem(),
                                         onExecuteAction = { index -> viewModel.executeAction(message.id, index) },
                                         onDismissAction = { index -> viewModel.dismissAction(message.id, index) },
                                         onCopy = { text ->
@@ -557,8 +559,9 @@ private fun ChatInputBar(
         }
 
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = tokens.cardBackground,
             shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, tokens.cardBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             // Icons sit on the bottom line so they stay put as a long message grows upwards.
@@ -639,7 +642,10 @@ private fun ChatInputBar(
                 }
 
                 IconButton(
-                    onClick = onSend,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSend()
+                    },
                     enabled = canSend,
                     modifier = Modifier
                         .size(40.dp)
@@ -901,11 +907,12 @@ private val DashAvatarSize = 26.dp
 /** Dash's side of the chat: a small avatar beside left-aligned content, leaving room on the right. */
 @Composable
 private fun DashSide(
+    modifier: Modifier = Modifier,
     avatar: @Composable () -> Unit = { DashAvatar(size = DashAvatarSize) },
     content: @Composable ColumnScope.() -> Unit
 ) {
     Row(
-        modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(end = 28.dp),
+        modifier = modifier.widthIn(max = 640.dp).fillMaxWidth().padding(end = 28.dp),
         verticalAlignment = Alignment.Top
     ) {
         Box(Modifier.size(DashAvatarSize), contentAlignment = Alignment.Center) { avatar() }
@@ -921,9 +928,12 @@ private fun DashSide(
 
 /** Your side of the chat: right-aligned, with room on the left so it reads as a reply. */
 @Composable
-private fun UserSide(content: @Composable ColumnScope.() -> Unit) {
+private fun UserSide(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(start = 48.dp),
+        modifier = modifier.fillMaxWidth().padding(start = 48.dp),
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         content = content
@@ -938,6 +948,8 @@ private fun MessageBubble(
     longPressLabel: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     val shape = if (isUser) {
         RoundedCornerShape(topStart = BubbleRadius, topEnd = BubbleRadius, bottomStart = BubbleRadius, bottomEnd = BubbleTail)
     } else {
@@ -949,12 +961,26 @@ private fun MessageBubble(
             .pointerInput(Unit) { detectTapGestures(onLongPress = { longPress?.invoke() }) }
             .semantics { onLongClick(label = longPressLabel) { longPress?.invoke(); true } }
     } else Modifier
+
+    val bubbleColor = if (isUser) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        tokens.cardBackground
+    }
+    val bubbleBorder = if (isUser) {
+        BorderStroke(1.dp, Color.White.copy(alpha = if (isDark) 0.16f else 0.28f))
+    } else {
+        BorderStroke(1.dp, tokens.cardBorder)
+    }
+
     Surface(
-        color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        color = bubbleColor,
         shape = shape,
+        border = bubbleBorder,
+        shadowElevation = if (isDark) 2.dp else 1.dp,
         modifier = gestures
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), content = content)
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), content = content)
     }
 }
 
@@ -963,7 +989,8 @@ private fun CoachMessageItem(
     message: CoachMessageEntity,
     onExecuteAction: (Int) -> Unit,
     onDismissAction: (Int) -> Unit,
-    onCopy: (String) -> Unit
+    onCopy: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val isUser = message.role == "user"
     val photos = remember(message.imagePaths) { message.imagePaths?.split(',')?.filter { it.isNotBlank() }.orEmpty() }
@@ -1002,7 +1029,7 @@ private fun CoachMessageItem(
         message.journalEntrySummary?.let { summary -> JournalSavedChip(summary) }
     }
 
-    if (isUser) UserSide(body) else DashSide(content = body)
+    if (isUser) UserSide(modifier = modifier, content = body) else DashSide(modifier = modifier, content = body)
 }
 
 /** Shown under a message when Dash saved something from it to the journal. */

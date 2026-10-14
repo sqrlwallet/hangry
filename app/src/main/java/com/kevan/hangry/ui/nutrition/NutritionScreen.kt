@@ -441,6 +441,7 @@ fun NutritionScreen(
                     items(bucketEntries, key = { it.id }) { entry ->
                         FoodLogRow(
                             entry = entry,
+                            modifier = Modifier.animateItem(),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.startEdit(entry)
@@ -723,7 +724,12 @@ private fun LogActionButton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -> Unit) {
+private fun FoodLogRow(
+    entry: FoodLogEntity,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val tokens = LocalHangryTokens.current
     // No file check in composition: a photo that's gone just fails to load and the slot drops out.
     var photoMissing by remember(entry.photoPath) { mutableStateOf(false) }
@@ -739,6 +745,7 @@ private fun FoodLogRow(entry: FoodLogEntity, onClick: () -> Unit, onDelete: () -
 
     SwipeToDismissBox(
         state = dismissState,
+        modifier = modifier,
         enableDismissFromStartToEnd = false,
         backgroundContent = {
             val color = MaterialTheme.colorScheme.errorContainer

@@ -16,6 +16,9 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
+import androidx.compose.ui.geometry.Offset
+import com.kevan.hangry.ui.theme.SurfaceDark
+
 @Composable
 fun HangryCard(
     modifier: Modifier = Modifier,
@@ -24,6 +27,7 @@ fun HangryCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(cornerRadius),
@@ -32,11 +36,20 @@ fun HangryCard(
         ),
         border = BorderStroke(
             width = 1.dp,
-            brush = Brush.verticalGradient(
-                listOf(
-                    tokens.edgeHighlight,
-                    tokens.edgeHighlight.copy(alpha = tokens.edgeHighlight.alpha * 0.4f)
-                )
+            brush = Brush.linearGradient(
+                colors = if (isDark) {
+                    listOf(
+                        Color.White.copy(alpha = 0.14f),
+                        Color.White.copy(alpha = 0.03f)
+                    )
+                } else {
+                    listOf(
+                        tokens.edgeHighlight.copy(alpha = (tokens.edgeHighlight.alpha * 1.5f).coerceAtMost(0.20f)),
+                        tokens.cardBorder.copy(alpha = 0.6f)
+                    )
+                },
+                start = Offset.Zero,
+                end = Offset.Infinite
             )
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = HangryTokens.Elevations.card)

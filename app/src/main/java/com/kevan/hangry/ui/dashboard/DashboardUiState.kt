@@ -20,6 +20,8 @@ data class DashboardUiState(
     val isSyncing: Boolean = false,
     val selectedDate: LocalDate = LocalDate.now(),
     val dailySummary: DailyHealthSummaryEntity? = null,
+    /** Trailing 7 days of daily health summaries (in chronological order) up to selectedDate. */
+    val recentSummaries7d: List<DailyHealthSummaryEntity> = emptyList(),
     /** Each overnight reading against your usual, for the Body check card. */
     val bodyCheck: List<com.kevan.hangry.domain.calculation.BodySignals.Comparison> = emptyList(),
     /** The last month's nightly skin temperature change, for the Cycle card. */

@@ -1,9 +1,13 @@
 package com.kevan.hangry.ui.sleep
 
 import com.kevan.hangry.ui.coach.DashMood
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import com.kevan.hangry.ui.theme.SurfaceDark
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -477,17 +481,42 @@ private fun SleepInBedDebtLine(inBedMinutes: Int?, asleepPct: Int?, debtMinutes:
 @Composable
 private fun SleepScorePart(label: String, value: Int?, weight: String) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     if (value == null) return
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+    val animProgress by animateFloatAsState(
+        targetValue = value / 100f,
+        animationSpec = tween(durationMillis = 650),
+        label = "anim_sleep_part_$label"
+    )
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.bodySmall, color = tokens.textPrimary, modifier = Modifier.weight(1f))
             Text(stringResource(R.string.metrics_sleep_score_part_value, value, weight), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
         }
-        LinearProgressIndicator(
-            progress = { value / 100f },
-            color = tokens.chartColors.sleep,
-            trackColor = tokens.cardBorder,
-            modifier = Modifier.fillMaxWidth().padding(top = 3.dp).height(5.dp).clip(RoundedCornerShape(3.dp))
-        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(tokens.chartColors.sleep.copy(alpha = if (isDark) 0.18f else 0.12f))
+        ) {
+            if (animProgress > 0.001f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction = animProgress.coerceIn(0f, 1f))
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    tokens.chartColors.sleep.copy(alpha = 0.85f),
+                                    tokens.chartColors.sleep
+                                )
+                            )
+                        )
+                )
+            }
+        }
     }
 }

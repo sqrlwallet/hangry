@@ -11,9 +11,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -22,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +35,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.kevan.hangry.ui.theme.SurfaceDark
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +72,9 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
     var customOpen by rememberSaveable { mutableStateOf(false) }
     val target = waterText(WaterFormat.amount(water.targetMl))
 
+    val isDark = tokens.cardBackground == SurfaceDark
+    val haptic = LocalHapticFeedback.current
+
     Column(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -84,23 +96,63 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
                 else stringResource(R.string.nutrition_water_tip_body_default, target)
             )
             Spacer(modifier = Modifier.weight(1f))
+
+            // Quick log pill (+1 glass / 250ml)
+            Surface(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onAdd(WaterIntake.GLASS_ML)
+                },
+                shape = RoundedCornerShape(12.dp),
+                color = color.copy(alpha = if (isDark) 0.18f else 0.12f),
+                border = BorderStroke(1.dp, color.copy(alpha = if (isDark) 0.35f else 0.25f)),
+                modifier = Modifier.padding(end = 4.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = waterText(WaterFormat.amount(WaterIntake.GLASS_ML)),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+                }
+            }
+
             Box {
                 IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(32.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = Icons.Default.MoreVert,
                         contentDescription = stringResource(R.string.nutrition_water_add),
-                        tint = color,
-                        modifier = Modifier.size(20.dp)
+                        tint = tokens.textSecondary,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.nutrition_water_glass, waterText(WaterFormat.amount(WaterIntake.GLASS_ML)))) },
-                        onClick = { menuOpen = false; onAdd(WaterIntake.GLASS_ML) }
+                        onClick = {
+                            menuOpen = false
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onAdd(WaterIntake.GLASS_ML)
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.nutrition_water_bottle, waterText(WaterFormat.amount(WaterIntake.BOTTLE_ML)))) },
-                        onClick = { menuOpen = false; onAdd(WaterIntake.BOTTLE_ML) }
+                        onClick = {
+                            menuOpen = false
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onAdd(WaterIntake.BOTTLE_ML)
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.nutrition_water_custom)) },
@@ -109,15 +161,31 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
                 }
             }
         }
-        LinearProgressIndicator(
-            progress = { progress },
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp)),
-            color = color,
-            trackColor = color.copy(alpha = 0.22f),
-        )
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(color.copy(alpha = if (isDark) 0.18f else 0.12f))
+        ) {
+            if (progress > 0.001f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(
+                            androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                colors = listOf(
+                                    color.copy(alpha = 0.85f),
+                                    color
+                                )
+                            )
+                        )
+                )
+            }
+        }
     }
 
     if (customOpen) {

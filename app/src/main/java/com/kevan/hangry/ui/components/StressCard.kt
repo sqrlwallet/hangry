@@ -1,8 +1,10 @@
 package com.kevan.hangry.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Spa
@@ -11,14 +13,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.StressLevel
 import com.kevan.hangry.domain.model.StressResult
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
 import kotlin.math.roundToInt
-import androidx.compose.ui.res.stringResource
-import com.kevan.hangry.R
 
 @Composable
 fun StressCard(
@@ -26,6 +30,7 @@ fun StressCard(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
 
     val level = stressResult.level
     val score = stressResult.score
@@ -65,13 +70,15 @@ fun StressCard(
 
                 Surface(
                     color = containerColor,
-                    shape = MaterialTheme.shapes.small
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, badgeColor.copy(alpha = if (isDark) 0.35f else 0.20f))
                 ) {
                     Text(
                         text = badgeLabel,
                         style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
                         color = badgeColor,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
             }

@@ -1,3 +1,23 @@
+## 🚀 What's New in Hangry v1.42.0 — Fluid Animations, Ambient Gauges & Luxury Materiality
+
+Visual polish, micro-sparklines, fluid spring transitions, and tailored light and dark luxury materiality across the entire app.
+
+### ✨ Visual Polish & Materiality
+- **Specular Hairline Borders**: Cards now feature diagonal linear gradient specular highlights tailored for both Dark mode (obsidian) and Light mode (warm cream).
+- **Ambient Gauge Glow**: Recovery, strain, and stress ring gauges cast a soft, glowing neon aura in dark mode and gentle warm backlight in light mode.
+- **Tabular Figures**: Metric numbers across the app use tabular figures (`tnum`) to eliminate number jitter during live updates.
+
+### 📈 Data Visualization & Micro-Sparklines
+- **Vitals Sparklines**: Resting Heart Rate and HRV metric tiles now embed 7-day chronological Bézier micro-sparklines with gradient area fills and pulsing current-value dots.
+- **Normal Range Corridor**: Interactive trend charts show a baseline normal-range corridor band (mean ± 1.0σ) with spring-physics smoothed scrubber tracking.
+- **Sleep Architecture**: Sleep stage range bars now feature smooth animated progress reveals with gradient fills.
+
+### 🌊 Fluid Transitions & Interactions
+- **Directional Date Navigation**: The date bar slides directionally (left when moving forward, right when moving back) with tactile spring week-strip chips.
+- **Quick-Log Water Pill**: 1-tap `+250ml` glass button directly in the water row with instant haptic feedback.
+- **Animated List Transitions**: Meals and coach chat messages glide smoothly into place with spring animations.
+- **Bouncy Habit Streaks**: Completed streaks pop with celebratory spring scale bounces and specular rings.
+
 ## 🚀 What's New in Hangry v1.41.1 — No More White Flash
 
 Dark mode stays dark, everywhere.

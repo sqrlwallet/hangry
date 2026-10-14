@@ -279,11 +279,16 @@ class DashboardViewModel(
                 val minutesGoal = profile?.dailyActivityMinutesGoal ?: 90
                 val caloriesGoal = profile?.dailyActiveCaloriesGoal ?: 500
 
+                val trailing7SummariesChronological = (recentSummaries.filter { !it.date.isBefore(date.minusDays(6)) && !it.date.isAfter(date) } + listOfNotNull(summary))
+                    .distinctBy { it.date }
+                    .sortedBy { it.date }
+
                 _uiState.update { current ->
                     current.copy(
                         isLoading = false,
                         selectedDate = date,
                         dailySummary = summary,
+                        recentSummaries7d = trailing7SummariesChronological,
                         // Values from the comparison; which ones are "off" from the stored day,
                         // which allowed for the cycle when it was calculated.
                         bodyCheck = summary?.let { s ->

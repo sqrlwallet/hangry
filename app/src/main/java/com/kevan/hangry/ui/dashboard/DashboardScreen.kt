@@ -355,7 +355,9 @@ fun DashboardScreen(
                     WidgetType.VITALS_CARD -> VitalsCard(
                         summary = uiState.dailySummary,
                         comparisons = uiState.bodyCheck,
-                        onClick = onNavigateToHeartMetrics
+                        onClick = onNavigateToHeartMetrics,
+                        rhrHistory = uiState.recentSummaries7d.map { it.restingHeartRate },
+                        hrvHistory = uiState.recentSummaries7d.map { it.hrvRmssd }
                     )
 
                     // Folded into the Vitals card.

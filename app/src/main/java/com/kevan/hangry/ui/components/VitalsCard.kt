@@ -27,7 +27,14 @@ import java.util.Locale
 /** How a reading sits against your usual - drives the dot beside its label. */
 private enum class VitalStatus { NORMAL, WATCH, OFF, UNKNOWN }
 
-private data class Vital(val label: String, val value: String, val note: String?, val status: VitalStatus)
+private data class Vital(
+    val label: String,
+    val value: String,
+    val note: String?,
+    val status: VitalStatus,
+    val sparklinePoints: List<Double?>? = null,
+    val sparklineColor: Color? = null
+)
 
 /**
  * Every overnight and heart reading in one card: resting heart rate, HRV, breathing, skin
@@ -40,7 +47,9 @@ fun VitalsCard(
     summary: DailyHealthSummaryEntity?,
     comparisons: List<BodySignals.Comparison>,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rhrHistory: List<Double?> = emptyList(),
+    hrvHistory: List<Double?> = emptyList()
 ) {
     val tokens = LocalHangryTokens.current
     val byKind = comparisons.associateBy { it.kind }
@@ -53,7 +62,14 @@ fun VitalsCard(
     }
 
     @Composable
-    fun compared(kind: BodySignals.Kind, label: String, unit: String, fallback: Double?): Vital? {
+    fun compared(
+        kind: BodySignals.Kind,
+        label: String,
+        unit: String,
+        fallback: Double?,
+        history: List<Double?> = emptyList(),
+        historyColor: Color? = null
+    ): Vital? {
         val c = byKind[kind]
         val today = c?.today ?: fallback ?: return null
         val isTemp = kind == BodySignals.Kind.SKIN_TEMP
@@ -68,12 +84,27 @@ fun VitalsCard(
             c.off -> VitalStatus.OFF
             else -> VitalStatus.NORMAL
         }
-        return Vital(label, value, note, status)
+        val validHistory = history.takeIf { it.filterNotNull().size >= 2 }
+        return Vital(label, value, note, status, validHistory, historyColor)
     }
 
     val vitals = listOfNotNull(
-        compared(BodySignals.Kind.RESTING_HR, stringResource(R.string.dashboard_vitals_rhr), stringResource(R.string.dashboard_vitals_bpm_suffix), summary?.restingHeartRate),
-        compared(BodySignals.Kind.HRV, stringResource(R.string.dashboard_vitals_hrv), stringResource(R.string.dashboard_vitals_ms_suffix), summary?.hrvRmssd?.takeIf { it > 0 }),
+        compared(
+            BodySignals.Kind.RESTING_HR,
+            stringResource(R.string.dashboard_vitals_rhr),
+            stringResource(R.string.dashboard_vitals_bpm_suffix),
+            summary?.restingHeartRate,
+            history = rhrHistory,
+            historyColor = tokens.chartColors.restingHeartRate
+        ),
+        compared(
+            BodySignals.Kind.HRV,
+            stringResource(R.string.dashboard_vitals_hrv),
+            stringResource(R.string.dashboard_vitals_ms_suffix),
+            summary?.hrvRmssd?.takeIf { it > 0 },
+            history = hrvHistory,
+            historyColor = tokens.chartColors.hrv
+        ),
         summary?.spo2Percentage?.let { spo2 ->
             Vital(
                 label = stringResource(R.string.dashboard_vitals_spo2),
@@ -180,6 +211,17 @@ private fun VitalTile(vital: Vital, modifier: Modifier = Modifier) {
             color = if (vital.status == VitalStatus.OFF) tokens.scoreColors.rebuild else tokens.textPrimary,
             maxLines = 1
         )
+        if (vital.sparklinePoints != null && vital.sparklineColor != null) {
+            Spacer(Modifier.height(4.dp))
+            HangrySparkline(
+                points = vital.sparklinePoints,
+                color = vital.sparklineColor,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(20.dp)
+            )
+            Spacer(Modifier.height(2.dp))
+        }
         vital.note?.let {
             Text(it, style = MaterialTheme.typography.labelSmall, color = tokens.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }

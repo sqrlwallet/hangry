@@ -42,7 +42,8 @@ private fun style(
     fontWeight = weight,
     fontSize = size,
     lineHeight = lineHeight,
-    letterSpacing = letterSpacing
+    letterSpacing = letterSpacing,
+    fontFeatureSettings = "tnum"
 )
 
 // Nunito has a smaller x-height than Roboto, so body and label sizes sit ~1sp above the Material

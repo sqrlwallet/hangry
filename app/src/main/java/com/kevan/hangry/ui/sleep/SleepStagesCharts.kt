@@ -1,11 +1,14 @@
 package com.kevan.hangry.ui.sleep
 
 import android.text.format.DateFormat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -213,15 +216,29 @@ private fun StageRangeBar(fraction: Float, range: IntRange, color: Color) {
     val tokens = LocalHangryTokens.current
     val track = tokens.cardBorder
     val hatch = tokens.textSecondary
+    val animFraction by animateFloatAsState(
+        targetValue = fraction,
+        animationSpec = tween(durationMillis = 700),
+        label = "stage_range_bar_fraction"
+    )
     Canvas(modifier = Modifier.fillMaxWidth().height(22.dp)) {
         val r = CornerRadius(size.height / 2f)
         drawRoundRect(track, size = size, cornerRadius = r)
         val inset = 3.dp.toPx()
         val innerH = size.height - inset * 2
         val innerW = size.width - inset * 2
-        val fillW = (innerW * fraction.coerceIn(0f, 1f)).coerceAtLeast(if (fraction > 0f) innerH else 0f)
+        val fillW = (innerW * animFraction.coerceIn(0f, 1f)).coerceAtLeast(if (animFraction > 0f) innerH else 0f)
         if (fillW > 0f) {
-            drawRoundRect(color, topLeft = Offset(inset, inset), size = Size(fillW, innerH), cornerRadius = CornerRadius(innerH / 2f))
+            drawRoundRect(
+                brush = Brush.horizontalGradient(
+                    listOf(color.copy(alpha = 0.85f), color),
+                    startX = inset,
+                    endX = inset + fillW
+                ),
+                topLeft = Offset(inset, inset),
+                size = Size(fillW, innerH),
+                cornerRadius = CornerRadius(innerH / 2f)
+            )
         }
         val from = inset + innerW * range.first / 100f
         val to = inset + innerW * range.last / 100f

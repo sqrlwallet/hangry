@@ -2,6 +2,8 @@ package com.kevan.hangry.ui.dashboard
 
 import com.kevan.hangry.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
@@ -17,10 +19,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -31,6 +36,7 @@ import com.kevan.hangry.domain.calculation.StreakType
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
 
 /** Consecutive days of the habits the user has data for, side by side in one row. */
 @Composable
@@ -70,6 +76,7 @@ fun StreaksCard(streaks: List<Streak>, modifier: Modifier = Modifier) {
 @Composable
 private fun StreakItem(streak: Streak, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     val (icon, color) = streak.type.look()
     val status = when {
         streak.doneToday -> stringResource(R.string.dashboard_streak_done_today)
@@ -77,23 +84,76 @@ private fun StreakItem(streak: Streak, modifier: Modifier = Modifier) {
         else -> stringResource(R.string.dashboard_streak_start_today)
     }
     val description = stringResource(R.string.dashboard_streak_description, streak.type.label, streak.current, status, streak.best)
+
+    val iconScale by animateFloatAsState(
+        targetValue = if (streak.doneToday) 1.08f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = 350f),
+        label = "streak_scale_${streak.type}"
+    )
+
+    val bgModifier: Modifier = if (streak.doneToday) {
+        Modifier.background(
+            Brush.verticalGradient(
+                listOf(
+                    color,
+                    color.copy(alpha = 0.82f)
+                )
+            )
+        )
+    } else {
+        Modifier.background(color.copy(alpha = if (isDark) 0.14f else 0.08f))
+    }
+
+    val borderModifier: Modifier = if (streak.doneToday) {
+        Modifier.border(
+            1.dp,
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = if (isDark) 0.45f else 0.70f),
+                    Color.White.copy(alpha = 0.10f)
+                )
+            ),
+            CircleShape
+        )
+    } else {
+        Modifier.border(
+            1.dp,
+            color.copy(alpha = if (isDark) 0.30f else 0.20f),
+            CircleShape
+        )
+    }
+
     Column(
         modifier = modifier.semantics(mergeDescendants = true) { contentDescription = description },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(38.dp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                }
                 .clip(CircleShape)
-                .background(if (streak.doneToday) color else color.copy(alpha = 0.12f))
-                .then(if (streak.doneToday) Modifier else Modifier.border(1.5.dp, color.copy(alpha = 0.45f), CircleShape)),
+                .then(bgModifier)
+                .then(borderModifier),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = if (streak.doneToday) Color.White else color, modifier = Modifier.size(18.dp))
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (streak.doneToday) Color.White else color,
+                modifier = Modifier.size(19.dp)
+            )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(5.dp))
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("${streak.current}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = tokens.textPrimary)
+            Text(
+                "${streak.current}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = tokens.textPrimary
+            )
             Text(
                 stringResource(R.string.dashboard_streak_days_short),
                 style = MaterialTheme.typography.labelSmall,

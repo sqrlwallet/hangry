@@ -1,6 +1,12 @@
 package com.kevan.hangry.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
@@ -141,13 +147,28 @@ fun DateNavigatorBar(
                         tint = if (!isToday) MaterialTheme.colorScheme.primary else tokens.textSecondary,
                         modifier = Modifier.size(16.dp)
                     )
-                    Text(
-                        text = formattedDateText,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = if (!isToday) FontWeight.SemiBold else FontWeight.Medium
-                        ),
-                        color = if (!isToday) MaterialTheme.colorScheme.primary else tokens.textPrimary
-                    )
+                    AnimatedContent(
+                        targetState = Pair(selectedDate, formattedDateText),
+                        transitionSpec = {
+                            if (targetState.first > initialState.first) {
+                                (slideInHorizontally(animationSpec = tween(220)) { width -> width / 2 } + fadeIn(tween(220)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(180)) { width -> -width / 2 } + fadeOut(tween(180)))
+                            } else {
+                                (slideInHorizontally(animationSpec = tween(220)) { width -> -width / 2 } + fadeIn(tween(220)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(180)) { width -> width / 2 } + fadeOut(tween(180)))
+                            }
+                        },
+                        label = "dateNavigatorText"
+                    ) { (_, text) ->
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (!isToday) FontWeight.SemiBold else FontWeight.Medium
+                            ),
+                            color = if (!isToday) MaterialTheme.colorScheme.primary else tokens.textPrimary,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
 
@@ -361,6 +382,9 @@ fun WeekStrip(
                 else -> tokens.textSecondary
             }
 
+            val animatedChipBg by animateColorAsState(targetValue = chipBg, animationSpec = tween(220), label = "weekChipBg")
+            val animatedTextColor by animateColorAsState(targetValue = textColor, animationSpec = tween(220), label = "weekTextColor")
+
             Surface(
                 onClick = {
                     if (!isFuture && !isSelected) {
@@ -370,7 +394,7 @@ fun WeekStrip(
                 },
                 enabled = !isFuture,
                 shape = RoundedCornerShape(10.dp),
-                color = chipBg,
+                color = animatedChipBg,
                 border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) else null,
                 modifier = Modifier
                     .weight(1f)
@@ -385,7 +409,7 @@ fun WeekStrip(
                         text = dayInitial,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
-                        color = textColor
+                        color = animatedTextColor
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -393,7 +417,7 @@ fun WeekStrip(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = if (isSelected) FontWeight.ExtraBold else if (isToday) FontWeight.Bold else FontWeight.Medium
                         ),
-                        color = textColor
+                        color = animatedTextColor
                     )
                     if (isToday && !isSelected) {
                         Box(

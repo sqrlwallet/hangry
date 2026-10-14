@@ -24,8 +24,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.ui.geometry.Size
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
+import kotlin.math.sqrt
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -90,6 +99,13 @@ fun HangryInteractiveTrendChart(
     val plotMin = remember(lineValues, minValue) { minOf(minValue, lineValues.filterNotNull().minOrNull() ?: minValue) }
     val plotMax = remember(lineValues, maxValue) { maxOf(maxValue, lineValues.filterNotNull().maxOrNull() ?: maxValue) }
     val avgValue = remember(validValues) { if (validValues.isNotEmpty()) validValues.average() else 0.0 }
+    val stdDev = remember(validValues, avgValue) {
+        if (validValues.size >= 2) {
+            val variance = validValues.map { (it - avgValue) * (it - avgValue) }.average()
+            sqrt(variance)
+        } else 0.0
+    }
+    val isDark = tokens.cardBackground == SurfaceDark
 
     // Add 10% vertical padding so chart lines don't clamp strictly at canvas edges
     val rawRange = plotMax - plotMin
@@ -100,6 +116,12 @@ fun HangryInteractiveTrendChart(
 
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     val activePoint = selectedIndex?.let { idx -> points.getOrNull(idx) }
+    val targetScrubberIdx = selectedIndex?.toFloat() ?: 0f
+    val animatedScrubberIdx by animateFloatAsState(
+        targetValue = targetScrubberIdx,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+        label = "scrubberIndexSpring"
+    )
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Scrubber Tooltip / Metric Overview Header
@@ -112,9 +134,10 @@ fun HangryInteractiveTrendChart(
             if (activePoint != null && activePoint.value != null) {
                 val deltaFromAvg = activePoint.value - avgValue
                 Surface(
-                    color = tokens.cardBorder.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.5f)),
+                    color = tokens.glassSurface,
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = if (isDark) 0.5f else 0.35f)),
+                    shadowElevation = 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -258,12 +281,25 @@ fun HangryInteractiveTrendChart(
                 // Draw dashed average baseline
                 val avgY = yFor(avgValue)
                 drawLine(
-                    color = tokens.textMuted.copy(alpha = 0.28f),
+                    color = tokens.textMuted.copy(alpha = if (isDark) 0.35f else 0.40f),
                     start = Offset(0f, avgY),
                     end = Offset(width, avgY),
                     strokeWidth = 1.dp.toPx(),
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
                 )
+
+                // Draw baseline normal-range corridor (mean ± 1.0 sigma)
+                if (stdDev > 0.0) {
+                    val topVal = minOf(plotMax, avgValue + stdDev)
+                    val bottomVal = maxOf(plotMin, avgValue - stdDev)
+                    val topY = yFor(topVal)
+                    val bottomY = yFor(bottomVal)
+                    drawRect(
+                        color = color.copy(alpha = if (isDark) 0.07f else 0.045f),
+                        topLeft = Offset(0f, topY),
+                        size = Size(width, (bottomY - topY).coerceAtLeast(1f))
+                    )
+                }
 
                 // Build line path & area path for gradient
                 val linePath = Path()
@@ -344,10 +380,10 @@ fun HangryInteractiveTrendChart(
                 val sIdx = selectedIndex
                 if (sIdx != null && sIdx in 0 until count) {
                     val sPoint = points[sIdx]
-                    val sx = sIdx * stepX
+                    val sx = animatedScrubberIdx * stepX
                     // Vertical guideline
                     drawLine(
-                        color = tokens.textMuted.copy(alpha = 0.55f),
+                        color = tokens.textMuted.copy(alpha = if (isDark) 0.55f else 0.40f),
                         start = Offset(sx, 0f),
                         end = Offset(sx, height),
                         strokeWidth = 1.5.dp.toPx(),
@@ -358,7 +394,7 @@ fun HangryInteractiveTrendChart(
                         val sy = yFor(sPoint.value)
                         // Glowing outer halo
                         drawCircle(
-                            color = color.copy(alpha = 0.30f),
+                            color = color.copy(alpha = if (isDark) 0.35f else 0.22f),
                             radius = 9.dp.toPx(),
                             center = Offset(sx, sy)
                         )

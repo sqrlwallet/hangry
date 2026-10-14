@@ -64,7 +64,7 @@ class BodyFatCalculatorViewModel(
                 pendingDeleteIds
             ) { profile, latestWeight, latestHeight, storedScans, hidden ->
                 val allScans = storedScans.filter { it.id !in hidden }
-                val hasKey = secureKeyStore.getApiKey() != null
+                val hasKey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { secureKeyStore.getApiKey() != null }
                 val isAiEnabled = profile?.aiFeaturesEnabled ?: false
                 val latestScan = allScans.firstOrNull()
 

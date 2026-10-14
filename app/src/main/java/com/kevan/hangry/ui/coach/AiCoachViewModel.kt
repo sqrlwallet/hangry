@@ -108,7 +108,7 @@ class AiCoachViewModel(
                 userProfileRepository.getProfile()
             ) { messages, conversations, activeId, journalEntries, profile ->
                 val aiEnabled = profile?.aiFeaturesEnabled ?: false
-                val hasKey = secureKeyStore.getApiKey() != null
+                val hasKey = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { secureKeyStore.getApiKey() != null }
                 _uiState.update { current ->
                     current.copy(
                         messages = messages,

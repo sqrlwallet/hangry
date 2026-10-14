@@ -72,13 +72,17 @@ data class OpenRouterMessage(
  */
 class OpenRouterClient {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json by lazy { Json { ignoreUnknownKeys = true } }
 
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .build()
+    // Built on the first request (off the main thread), not when the app starts: setting up
+    // OkHttp and TLS costs ~100 ms the first time, and most launches never call the AI.
+    private val httpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .build()
+    }
 
     /**
      * @param imagesBase64 raw base64 (no data-URI prefix) JPEG bytes, one entry per image.

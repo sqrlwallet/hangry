@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.sleep
 
+import com.kevan.hangry.ui.components.ProgressFill
 import com.kevan.hangry.ui.coach.DashMood
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -501,22 +502,7 @@ private fun SleepScorePart(label: String, value: Int?, weight: String) {
                 .clip(RoundedCornerShape(3.dp))
                 .background(tokens.chartColors.sleep.copy(alpha = if (isDark) 0.18f else 0.12f))
         ) {
-            if (animProgress > 0.001f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(fraction = animProgress.coerceIn(0f, 1f))
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    tokens.chartColors.sleep.copy(alpha = 0.85f),
-                                    tokens.chartColors.sleep
-                                )
-                            )
-                        )
-                )
-            }
+            ProgressFill(progress = { animProgress }, colors = listOf(tokens.chartColors.sleep.copy(alpha = 0.85f), tokens.chartColors.sleep), cornerRadius = 3.dp)
         }
     }
 }

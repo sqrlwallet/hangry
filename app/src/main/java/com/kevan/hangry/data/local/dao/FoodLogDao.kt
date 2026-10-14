@@ -33,6 +33,10 @@ interface FoodLogDao {
     @Query("SELECT * FROM food_log WHERE date >= :start AND date <= :end ORDER BY date DESC, timestamp DESC")
     suspend fun getBetweenList(start: LocalDate, end: LocalDate): List<FoodLogEntity>
 
+    /** Days with at least one meal logged. */
+    @Query("SELECT DISTINCT date FROM food_log WHERE date >= :start AND date <= :end")
+    suspend fun getLoggedDatesBetween(start: LocalDate, end: LocalDate): List<LocalDate>
+
     @Query("SELECT COALESCE(SUM(calories), 0) FROM food_log WHERE date = :date")
     fun getTotalCaloriesForDate(date: LocalDate): Flow<Int>
 

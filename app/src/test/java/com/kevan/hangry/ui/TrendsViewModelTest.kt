@@ -118,7 +118,8 @@ class TrendsViewModelTest {
             weightRepository = weightRepo,
             workoutRepository = workoutRepo,
             foodLogRepository = foodRepo,
-            dispatchers = dispatchers
+            dispatchers = dispatchers,
+            todayDates = kotlinx.coroutines.flow.flowOf(java.time.LocalDate.now())
         )
 
         val job = launch { viewModel.uiState.collect { } }
@@ -144,7 +145,8 @@ class TrendsViewModelTest {
             weightRepository = weightRepo,
             workoutRepository = workoutRepo,
             foodLogRepository = foodRepo,
-            dispatchers = dispatchers
+            dispatchers = dispatchers,
+            todayDates = kotlinx.coroutines.flow.flowOf(java.time.LocalDate.now())
         )
 
         val job = launch { viewModel.uiState.collect { } }
@@ -180,7 +182,8 @@ class TrendsViewModelTest {
             weightRepository = weightRepo,
             workoutRepository = workoutRepo,
             foodLogRepository = foodRepo,
-            dispatchers = dispatchers
+            dispatchers = dispatchers,
+            todayDates = kotlinx.coroutines.flow.flowOf(java.time.LocalDate.now())
         )
 
         advanceUntilIdle()

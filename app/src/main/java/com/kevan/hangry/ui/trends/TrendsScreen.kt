@@ -140,11 +140,9 @@ fun TrendsScreen(
 
     var showJumpDatePicker by remember { mutableStateOf(false) }
 
-    // Start date for queries
-    val queryStartDate = remember(selectedTimeframe) {
-        val days = selectedTimeframe.days
-        if (days != null) today.minusDays(days) else LocalDate.of(2020, 1, 1)
-    }
+    // Grouped by day in the ViewModel, off the main thread.
+    val derived = state.derived
+    val queryStartDate = derived.queryStartDate
 
     val scores = state.scores
     val summaries = state.summaries
@@ -155,7 +153,7 @@ fun TrendsScreen(
     val latestWeight = state.latestWeight
 
     // Weight tracking metrics: the smoothed trend and weekly rate (see WeightTrend)
-    val weightTrend = remember(allWeights, today) { WeightTrend.summarize(allWeights, today, zone) }
+    val weightTrend = derived.weightTrend
     val units = rememberBodyUnitFormatter()
     var loggingWeight by remember { mutableStateOf(false) }
 
@@ -165,27 +163,12 @@ fun TrendsScreen(
     val thisWeekSummaries = state.thisWeekSummaries
     val lastWeekSummaries = state.lastWeekSummaries
 
-    // Map workouts by date
-    val workoutsByDate = remember(allWorkouts) {
-        allWorkouts.groupBy { it.startTime.atZone(zone).toLocalDate() }
-    }
-    // Map food logs by date
-    val foodLogsByDate = remember(foodLogs) {
-        foodLogs.groupBy { it.date }
-    }
-    // Map weights by date (a day's weigh-ins averaged)
-    val weightsByDate = remember(allWeights) { WeightTrend.dailyWeights(allWeights, zone).toMap() }
-
-    // Chronological date list
-    val scoreByDate = remember(scores) { scores.associateBy { it.date } }
-    val summaryByDate = remember(summaries) { summaries.associateBy { it.date } }
-
-    val chronologicalDates = remember(scores, summaries, foodLogs, allWeights) {
-        (scores.map { it.date } + summaries.map { it.date } + foodLogs.map { it.date } + allWeights.map { it.timestamp.atZone(zone).toLocalDate() })
-            .filter { !it.isBefore(queryStartDate) && !it.isAfter(today) }
-            .distinct()
-            .sorted()
-    }
+    val workoutsByDate = derived.workoutsByDate
+    val foodLogsByDate = derived.foodLogsByDate
+    val weightsByDate = derived.weightsByDate
+    val scoreByDate = derived.scoreByDate
+    val summaryByDate = derived.summaryByDate
+    val chronologicalDates = derived.chronologicalDates
 
     // Generate trend points for currently selected metric
     val fahrenheit = UnitPrefs.fahrenheit(context)
@@ -248,12 +231,7 @@ fun TrendsScreen(
     }
 
     // Filtered history list
-    val allHistoryDates = remember(scores, summaries, foodLogs, allWorkouts) {
-        (scores.map { it.date } + summaries.map { it.date } + foodLogs.map { it.date } + allWorkouts.map { it.startTime.atZone(zone).toLocalDate() })
-            .filter { !it.isBefore(queryStartDate) && !it.isAfter(today) }
-            .distinct()
-            .sortedDescending()
-    }
+    val allHistoryDates = derived.historyDates
 
     val filteredHistoryDates = remember(allHistoryDates, historyFilter, scoreByDate, workoutsByDate, foodLogsByDate, summaryByDate) {
         when (historyFilter) {

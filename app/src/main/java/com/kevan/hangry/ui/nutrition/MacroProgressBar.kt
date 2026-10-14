@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.nutrition
 
+import com.kevan.hangry.ui.components.ProgressFill
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -115,22 +116,7 @@ fun MacroProgressBar(
                     .clip(RoundedCornerShape(4.dp))
                     .background(if (isDark) tokens.cardBorder.copy(alpha = 0.5f) else tokens.cardBorder.copy(alpha = 0.7f))
             ) {
-                if (animCalorieProgress > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = animCalorieProgress.coerceIn(0f, 1f))
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        tokens.chartColors.activeCalories,
-                                        tokens.brandAccent
-                                    )
-                                )
-                            )
-                    )
-                }
+                ProgressFill(progress = { animCalorieProgress }, colors = listOf(tokens.chartColors.activeCalories, tokens.brandAccent), cornerRadius = 4.dp)
             }
 
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s + 4.dp))
@@ -273,15 +259,7 @@ private fun MacroStat(
                 .clip(RoundedCornerShape(3.dp))
                 .background(color.copy(alpha = if (isDark) 0.18f else 0.14f))
         ) {
-            if (animProgress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction = animProgress.coerceIn(0f, 1f))
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(color)
-                )
-            }
+            ProgressFill(progress = { animProgress }, colors = listOf(color), cornerRadius = 3.dp)
         }
     }
 }

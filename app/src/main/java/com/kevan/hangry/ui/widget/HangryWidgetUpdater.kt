@@ -70,6 +70,11 @@ object HangryWidgetUpdater {
         val app = context.applicationContext as? HangryApplication ?: return
         val container = app.container
         val appWidgetManager = AppWidgetManager.getInstance(context) ?: return
+        // Most people have no Hangry widget on the home screen: skip the queries entirely then
+        // (this runs shortly after every launch, while Today is still loading).
+        val anyPinned = appWidgetManager.getInstalledProvidersForPackage(context.packageName, null)
+            .any { appWidgetManager.getAppWidgetIds(it.provider).isNotEmpty() }
+        if (!anyPinned) return
 
         val today = LocalDate.now(ZoneId.systemDefault())
         // Today only: an older day's score or steps would read as today's on the home screen.

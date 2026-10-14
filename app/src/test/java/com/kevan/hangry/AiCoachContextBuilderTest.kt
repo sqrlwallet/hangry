@@ -42,6 +42,8 @@ class AiCoachContextBuilderTest {
         override fun getSummariesBetween(start: LocalDate, end: LocalDate): Flow<List<DailyHealthSummaryEntity>> = flowOf(summaries)
         override fun getAllSummaries(): Flow<List<DailyHealthSummaryEntity>> = flowOf(summaries)
         override suspend fun getSummariesBetweenList(start: LocalDate, end: LocalDate): List<DailyHealthSummaryEntity> = summaries
+        override suspend fun getHabitDaysBetween(start: LocalDate, end: LocalDate) =
+            summaries.map { com.kevan.hangry.data.local.dao.HabitDay(it.date, it.steps, it.sleepDurationMinutes) }
         override fun getLatestSummary(): Flow<DailyHealthSummaryEntity?> = flowOf(null)
         override suspend fun getLatestSummarySync(): DailyHealthSummaryEntity? = null
         override suspend fun getOldestSummary(): DailyHealthSummaryEntity? = null
@@ -107,6 +109,7 @@ class AiCoachContextBuilderTest {
         override fun getForDate(date: LocalDate): Flow<List<FoodLogEntity>> = flowOf(foodLogs)
         override fun getBetween(start: LocalDate, end: LocalDate): Flow<List<FoodLogEntity>> = flowOf(foodLogs)
         override suspend fun getBetweenList(start: LocalDate, end: LocalDate): List<FoodLogEntity> = foodLogs
+        override suspend fun getLoggedDatesBetween(start: LocalDate, end: LocalDate): List<LocalDate> = foodLogs.map { it.date }.distinct()
         override fun getTotalCaloriesForDate(date: LocalDate): Flow<Int> = flowOf(0)
         override suspend fun markSyncedToHealthConnect(id: Long) {}
         override suspend fun getAllPhotoPaths(): List<String> = foodLogs.mapNotNull { it.photoPath }

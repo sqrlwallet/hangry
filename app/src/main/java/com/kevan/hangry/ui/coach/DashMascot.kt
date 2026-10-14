@@ -190,10 +190,13 @@ fun DashExpression(
 ) {
     // Animated values are read only inside graphicsLayer/draw blocks, so the idle motion
     // redraws the image each frame without recomposing the card around it.
+    // Only the motions this mood uses run - each infinite transition ticks every frame, and Dash
+    // appears on most screens. A tap only ever shows HAPPY, which uses the idle bob.
     val bob = rememberIdleBob(durationMillis = 1800)
-    val runBob = rememberRunBob(durationMillis = 420)
-    val waveSway = rememberWaveSway(durationMillis = 750)
-    val jitter = rememberConcernJitter(durationMillis = 160)
+    val still = remember { mutableFloatStateOf(0f) }
+    val runBob = if (mood == DashMood.WORKOUT) rememberRunBob(durationMillis = 420) else still
+    val waveSway = if (mood == DashMood.WAVE || mood == DashMood.BALANCE) rememberWaveSway(durationMillis = 750) else still
+    val jitter = if (mood == DashMood.CONCERNED || mood == DashMood.SYNC_ERROR) rememberConcernJitter(durationMillis = 160) else still
     val tap = rememberDashTap()
     val entrance = remember(mood) { Animatable(if (mood.popsIn) 0.55f else 1f) }
     LaunchedEffect(mood) {

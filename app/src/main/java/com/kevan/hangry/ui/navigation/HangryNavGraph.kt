@@ -27,6 +27,8 @@ import com.kevan.hangry.util.OnboardingFlag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
@@ -186,14 +188,21 @@ fun HangryNavGraph(
     )
 
     val postureContext = LocalContext.current
-    val postureViewModel: PostureViewModel = viewModel(
-        factory = PostureViewModel.provideFactory(
-            context = postureContext,
-            postureScanRepository = appContainer.postureScanRepository,
-            postureAnalyzer = appContainer.postureAnalyzer,
-            userProfileRepository = appContainer.userProfileRepository
+    // Posture and Ask Dash are created the first time their screen opens rather than at launch
+    // (they bring in the AI client, the key store and their own queries). They still belong to
+    // the activity, so a chat or scan in progress survives switching tabs.
+    val activityViewModels = checkNotNull(LocalViewModelStoreOwner.current)
+    val postureViewModel: @Composable () -> PostureViewModel = {
+        viewModel(
+            viewModelStoreOwner = activityViewModels,
+            factory = PostureViewModel.provideFactory(
+                context = postureContext,
+                postureScanRepository = appContainer.postureScanRepository,
+                postureAnalyzer = appContainer.postureAnalyzer,
+                userProfileRepository = appContainer.userProfileRepository
+            )
         )
-    )
+    }
 
     val nutritionViewModel: NutritionViewModel = viewModel(
         factory = NutritionViewModel.provideFactory(
@@ -208,7 +217,8 @@ fun HangryNavGraph(
         )
     )
 
-    val aiCoachViewModel: AiCoachViewModel = viewModel(
+    val aiCoachViewModel: @Composable () -> AiCoachViewModel = { viewModel(
+        viewModelStoreOwner = activityViewModels,
         factory = AiCoachViewModel.provideFactory(
             coachRepository = appContainer.coachRepository,
             userProfileRepository = appContainer.userProfileRepository,
@@ -221,7 +231,7 @@ fun HangryNavGraph(
                 )
             }
         )
-    )
+    ) }
 
     val appContext = LocalContext.current.applicationContext
 
@@ -435,7 +445,15 @@ fun HangryNavGraph(
             // Remembered: a new flow on every recomposition would restart each query.
             val breathingStats by remember { appContainer.breathingRepository.observeStats() }
                 .collectAsStateWithLifecycle(initialValue = BreathingStats())
-            val breathingSession by appContainer.breathingSessionController.state.collectAsStateWithLifecycle()
+            // The session ticks every 50 ms; Today's card only shows the phase and whole seconds
+            // left, so only those changes reach it - not 20 recompositions of Today a second.
+            val breathingSession by remember {
+                appContainer.breathingSessionController.state.distinctUntilChanged { a, b ->
+                    a is BreathingSessionState.Active && b is BreathingSessionState.Active &&
+                        a.pattern == b.pattern && a.isPaused == b.isPaused &&
+                        a.position.phase.type == b.position.phase.type && a.remainingSeconds == b.remainingSeconds
+                }
+            }.collectAsStateWithLifecycle(initialValue = appContainer.breathingSessionController.state.value)
             val healthRecords by remember { appContainer.healthRecordsRepository.observe() }
                 .collectAsStateWithLifecycle(initialValue = HealthRecordsSnapshot())
             val supplements by remember { appContainer.supplementRepository.observe() }
@@ -690,7 +708,7 @@ fun HangryNavGraph(
         // Posture correction (AI feature - opt-in, see Settings > AI Features)
         composable(Screen.Posture.route) {
             PostureScreen(
-                viewModel = postureViewModel,
+                viewModel = postureViewModel(),
                 onNavigateBack = { navController.popBackStack() },
                 onStartNewScan = { navController.navigate(Screen.PostureCapture.route) },
                 onOpenScan = { scanId -> navController.navigate(Screen.PostureScanDetail.createRoute(scanId)) },
@@ -701,7 +719,7 @@ fun HangryNavGraph(
 
         composable(Screen.PostureCapture.route) {
             PostureCaptureScreen(
-                viewModel = postureViewModel,
+                viewModel = postureViewModel(),
                 onNavigateBack = { navController.popBackStack() },
                 onDone = { navController.popBackStack() }
             )
@@ -722,7 +740,7 @@ fun HangryNavGraph(
         // AI Coach
         composable(Screen.AiCoach.route) {
             AiCoachScreen(
-                viewModel = aiCoachViewModel,
+                viewModel = aiCoachViewModel(),
                 onNavigateToAiSettings = { navController.openAiSettings() },
                 onOpenScreen = { screen, pattern ->
                     val route = when (screen) {

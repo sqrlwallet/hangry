@@ -21,6 +21,7 @@ import com.kevan.hangry.util.DefaultAppDispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.kevan.hangry.util.todayFlow
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -50,7 +51,8 @@ data class TrendsUiState(
     val thisWeekScores: List<RecoveryScoreEntity> = emptyList(),
     val lastWeekScores: List<RecoveryScoreEntity> = emptyList(),
     val thisWeekSummaries: List<DailyHealthSummaryEntity> = emptyList(),
-    val lastWeekSummaries: List<DailyHealthSummaryEntity> = emptyList()
+    val lastWeekSummaries: List<DailyHealthSummaryEntity> = emptyList(),
+    val derived: TrendsDerived = TrendsDerived.empty(LocalDate.now(), ZoneId.systemDefault())
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -61,7 +63,9 @@ class TrendsViewModel(
     private val foodLogRepository: FoodLogRepository,
     private val bodyFatRepository: BodyFatRepository? = null,
     private val dispatchers: AppDispatchers = DefaultAppDispatchers(),
-    private val zoneProvider: () -> ZoneId = { ZoneId.systemDefault() }
+    private val zoneProvider: () -> ZoneId = { ZoneId.systemDefault() },
+    /** Today's date, again after each midnight. */
+    private val todayDates: Flow<LocalDate> = todayFlow(zoneProvider())
 ) : ViewModel() {
 
     private val zone get() = zoneProvider()
@@ -81,9 +85,16 @@ class TrendsViewModel(
             dailySummaryRepository.getSummariesBetween(queryStartDate, today),
             foodLogRepository.getBetween(queryStartDate, today)
         ) { scores, summaries, foodLogs ->
-            Triple(scores, summaries, foodLogs)
+            TimeframeData(queryStartDate, scores, summaries, foodLogs)
         }
     }.flowOn(dispatchers.io)
+
+    private data class TimeframeData(
+        val queryStartDate: LocalDate,
+        val scores: List<RecoveryScoreEntity>,
+        val summaries: List<DailyHealthSummaryEntity>,
+        val foodLogs: List<FoodLogEntity>
+    )
 
     // Weekly comparison baseline
     private val weeklyRecapData = flow {
@@ -143,13 +154,21 @@ class TrendsViewModel(
         HistoricalMetrics(workouts, weights, scans, latestWeight)
     }
 
+    // Grouped by day here rather than in the screen; only re-run when the data or the day
+    // changes, not when a filter or the inspected day does.
+    private val derivedFlow = combine(timeframeData, historicalMetricsFlow, todayDates) { data, hist, today ->
+        TrendsDerived.derive(data.scores, data.summaries, data.foodLogs, hist.workouts, hist.weights, data.queryStartDate, today, zone)
+    }.flowOn(dispatchers.default)
+
     val uiState: StateFlow<TrendsUiState> = combine(
         filterSelectionFlow,
         timeframeData,
         weeklyRecapData,
-        historicalMetricsFlow
-    ) { sel, (scores, summaries, foodLogs), weekly, hist ->
+        historicalMetricsFlow,
+        derivedFlow
+    ) { sel, (_, scores, summaries, foodLogs), weekly, hist, derived ->
         TrendsUiState(
+            derived = derived,
             selectedTimeframe = sel.timeframe,
             selectedMetric = sel.metric,
             selectedDomain = sel.domain,

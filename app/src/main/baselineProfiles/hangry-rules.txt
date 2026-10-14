@@ -1,0 +1,25 @@
+# Hand-written baseline profile rules for Hangry's own code, so it's compiled ahead of time at
+# install instead of interpreted (then JIT-compiled) on every cold start and first tab switch.
+# The libraries (Compose, Room, Navigation...) ship their own rules; without these, none of the
+# app's code was covered. A profile generated on a device (see baselineprofile/README.md) is more
+# precise and is merged with this one.
+
+# Every method in the app: launch, Today, the tabs and their ViewModels, Room's generated DAOs.
+HSPLcom/kevan/hangry/**;->**(**)**
+
+# Classes loaded while Today opens, preloaded into the app image.
+Lcom/kevan/hangry/MainActivity;
+Lcom/kevan/hangry/HangryApplication;
+Lcom/kevan/hangry/di/**;
+Lcom/kevan/hangry/ui/navigation/**;
+Lcom/kevan/hangry/ui/theme/**;
+Lcom/kevan/hangry/ui/dashboard/**;
+Lcom/kevan/hangry/ui/components/**;
+Lcom/kevan/hangry/ui/coach/DashMascotKt**;
+Lcom/kevan/hangry/ui/coach/DashMood;
+Lcom/kevan/hangry/data/local/**;
+Lcom/kevan/hangry/data/repository/**;
+Lcom/kevan/hangry/data/prefs/**;
+Lcom/kevan/hangry/domain/model/**;
+Lcom/kevan/hangry/domain/calculation/**;
+Lcom/kevan/hangry/util/**;

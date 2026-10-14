@@ -31,6 +31,10 @@ interface DailyHealthSummaryDao {
     @Query("SELECT * FROM daily_health_summaries WHERE date >= :start AND date <= :end ORDER BY date DESC")
     suspend fun getSummariesBetweenList(start: LocalDate, end: LocalDate): List<DailyHealthSummaryEntity>
 
+    /** Just steps and sleep per day - what the habit streaks need, without the other ~30 columns. */
+    @Query("SELECT date, steps, sleepDurationMinutes FROM daily_health_summaries WHERE date >= :start AND date <= :end")
+    suspend fun getHabitDaysBetween(start: LocalDate, end: LocalDate): List<HabitDay>
+
     @Query("SELECT * FROM daily_health_summaries ORDER BY date DESC LIMIT 1")
     fun getLatestSummary(): Flow<DailyHealthSummaryEntity?>
 
@@ -49,3 +53,10 @@ interface DailyHealthSummaryDao {
     @Query("DELETE FROM daily_health_summaries")
     suspend fun deleteAll()
 }
+
+/** One day's steps and sleep, for the habit streaks. */
+data class HabitDay(
+    val date: LocalDate,
+    val steps: Long?,
+    val sleepDurationMinutes: Int?
+)

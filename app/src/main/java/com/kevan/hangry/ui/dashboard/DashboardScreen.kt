@@ -6,9 +6,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
@@ -95,12 +96,12 @@ fun DashboardScreen(
     val tokens = LocalHangryTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
     val dockInset = LocalDockInset.current
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
     val tabReselectionBus = com.kevan.hangry.ui.navigation.LocalTabReselectionBus.current
     LaunchedEffect(tabReselectionBus) {
         tabReselectionBus.events.collect { route ->
             if (route == com.kevan.hangry.ui.navigation.Screen.Dashboard.route) {
-                scrollState.animateScrollTo(0)
+                listState.animateScrollToItem(0)
             }
         }
     }
@@ -261,36 +262,60 @@ fun DashboardScreen(
                 )
             }
         ) {
-        Column(
+        // Lazy, so opening Today only composes and draws the cards on screen - the rest come in
+        // as you scroll, instead of every card being built (and its Dash animating) up front.
+        val showsCycle = remember(healthRecords, uiState.recentSkinTemps) {
+            cycleCardData(healthRecords, uiState.recentSkinTemps) != null
+        }
+        val activeWidgets = remember(uiState.widgets, uiState.stressResult == null, fasting.enabled, showsCycle) {
+            (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets())
+                .filter { it.isVisible && it.type !in FOLDED_WIDGETS }
+                // Cards with nothing to show are left out, so they don't leave empty gaps.
+                .filterNot {
+                    (it.type == WidgetType.STRESS_MONITOR && uiState.stressResult == null) ||
+                        (it.type == WidgetType.FASTING && !fasting.enabled) ||
+                        (it.type == WidgetType.CYCLE && !showsCycle)
+                }
+                .sortedWith(DashboardWidget.DISPLAY_ORDER)
+                .distinctBy { it.id } // list keys must be unique
+        }
+        val signals = remember(uiState.dailySummary?.bodySignals) { BodySignals.decode(uiState.dailySummary?.bodySignals) }
+        LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .statusBarsPadding()
-                .padding(horizontal = HangryTokens.Spacing.m)
-                .padding(top = HangryTokens.Spacing.s)
+                .statusBarsPadding(),
+            contentPadding = PaddingValues(
+                start = HangryTokens.Spacing.m,
+                end = HangryTokens.Spacing.m,
+                top = HangryTokens.Spacing.s,
                 // Room for the Log Meal button and the floating tab bar below the last card.
-                .padding(bottom = dockInset + 56.dp),
+                bottom = dockInset + 56.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
         ) {
-            // Date Navigator Bar: navigate between days, inspect past data, or pick a date
-            DateNavigatorBar(
-                selectedDate = uiState.selectedDate,
-                onDateSelected = { date -> viewModel.selectDate(date) }
-            )
-
-            // A failed sync stays visible (with a worried Dash) until you retry or dismiss it.
-            uiState.errorMessage?.let { error ->
-                DashAlertCard(
-                    mood = DashMood.SYNC_ERROR,
-                    title = stringResource(R.string.dashboard_sync_failed_title),
-                    message = stringResource(R.string.dashboard_sync_failed_message, error),
-                    onDismiss = { viewModel.clearError() }
+            item(key = "date", contentType = "date") {
+                // Date Navigator Bar: navigate between days, inspect past data, or pick a date
+                DateNavigatorBar(
+                    selectedDate = uiState.selectedDate,
+                    onDateSelected = { date -> viewModel.selectDate(date) }
                 )
             }
 
+            // A failed sync stays visible (with a worried Dash) until you retry or dismiss it.
+            uiState.errorMessage?.let { error ->
+                item(key = "sync_error", contentType = "alert") {
+                    DashAlertCard(
+                        mood = DashMood.SYNC_ERROR,
+                        title = stringResource(R.string.dashboard_sync_failed_title),
+                        message = stringResource(R.string.dashboard_sync_failed_message, error),
+                        onDismiss = { viewModel.clearError() }
+                    )
+                }
+            }
+
             // Several overnight readings off your normal together - an early sign of illness.
-            val signals = BodySignals.decode(uiState.dailySummary?.bodySignals)
-            if (signals.size >= BodySignals.MIN_SIGNALS) {
+            if (signals.size >= BodySignals.MIN_SIGNALS) item(key = "body_signals", contentType = "alert") {
                 val described = signals.map { s ->
                     when (s.kind) {
                         BodySignals.Kind.RESTING_HR -> stringResource(R.string.dashboard_signal_rhr, s.change)
@@ -306,12 +331,7 @@ fun DashboardScreen(
                 )
             }
 
-            // Modular Widget Engine: Render active widgets ordered by user preference
-            val activeWidgets = (if (uiState.widgets.isNotEmpty()) uiState.widgets else DashboardWidget.createDefaultWidgets())
-                .filter { it.isVisible }
-                .sortedWith(DashboardWidget.DISPLAY_ORDER)
-
-            activeWidgets.forEach { widget ->
+            items(activeWidgets, key = { it.id }, contentType = { it.type }) { widget ->
                 when (widget.type) {
                     WidgetType.RECOVERY_HERO -> {
                         // Recovery, sleep, strain and activity in one card.
@@ -356,8 +376,8 @@ fun DashboardScreen(
                         summary = uiState.dailySummary,
                         comparisons = uiState.bodyCheck,
                         onClick = onNavigateToHeartMetrics,
-                        rhrHistory = uiState.recentSummaries7d.map { it.restingHeartRate },
-                        hrvHistory = uiState.recentSummaries7d.map { it.hrvRmssd }
+                        rhrHistory = remember(uiState.recentSummaries7d) { uiState.recentSummaries7d.map { it.restingHeartRate } },
+                        hrvHistory = remember(uiState.recentSummaries7d) { uiState.recentSummaries7d.map { it.hrvRmssd } }
                     )
 
                     // Folded into the Vitals card.
@@ -416,29 +436,31 @@ fun DashboardScreen(
                 }
             }
 
-            // Sync status footer
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = HangryTokens.Spacing.s),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val syncTime = uiState.lastSyncFormatted
-                Text(
-                    text = when {
-                        uiState.isSyncing -> stringResource(R.string.dashboard_syncing)
-                        syncTime != null -> stringResource(R.string.sync_success, syncTime)
-                        else -> stringResource(R.string.dashboard_not_synced_yet)
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
-                Text(
-                    text = stringResource(R.string.data_source_label, "Health Connect"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.textMuted
-                )
+            item(key = "footer", contentType = "footer") {
+                // Sync status footer
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = HangryTokens.Spacing.s),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val syncTime = uiState.lastSyncFormatted
+                    Text(
+                        text = when {
+                            uiState.isSyncing -> stringResource(R.string.dashboard_syncing)
+                            syncTime != null -> stringResource(R.string.sync_success, syncTime)
+                            else -> stringResource(R.string.dashboard_not_synced_yet)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textMuted
+                    )
+                    Text(
+                        text = stringResource(R.string.data_source_label, "Health Connect"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textMuted
+                    )
+                }
             }
 
         }
@@ -669,3 +691,10 @@ private fun BodyStat(value: String, label: String, color: Color, modifier: Modif
         Text(label, style = MaterialTheme.typography.labelSmall, color = LocalHangryTokens.current.textMuted, maxLines = 1)
     }
 }
+
+/** Widget types folded into other cards on Today; they draw nothing of their own. */
+private val FOLDED_WIDGETS = setOf(
+    WidgetType.DAILY_ACTIVITY_RINGS, WidgetType.LOG_MEAL, WidgetType.SLEEP_STRAIN_RINGS,
+    WidgetType.SLEEP_SUMMARY, WidgetType.AI_SHORTCUTS,
+    WidgetType.HEART_METRICS, WidgetType.BODY_CHECK, WidgetType.OVERNIGHT_VITALS
+)

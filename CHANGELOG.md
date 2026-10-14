@@ -1,3 +1,24 @@
+## 🚀 What's New in Hangry v1.43.0 — Faster Everywhere
+
+Quicker launch, a lighter Today, and smoother scrolling and animations.
+
+### ⚡ Faster launch
+- **Hangry's own code is now compiled ahead of time** when the app is installed, not just the libraries it uses, so cold start and the first visit to each tab no longer wait on Android compiling it.
+- **AI features set up on first use** instead of at every launch: the network client and the secure key store only load when you use Dash, a scan or a photo estimate.
+- **Posture and Ask Dash load when you open them**, not at launch. An open chat still stays put when you switch tabs.
+- **Home screen widget refresh** is skipped when no Hangry widget is pinned.
+
+### 📅 Lighter Today
+- **Stepping through past days** now reads only that day's data: about a third of the queries and a twentieth of the rows it used to, and the numbers are worked out off the main thread.
+- **Habit streaks load once at launch** instead of 4-5 times, and read only the few columns they need.
+- **Only the cards on screen are built** when Today opens; the rest load as you scroll.
+- **A running breathing session** no longer redraws all of Today 20 times a second.
+
+### 🌊 Smoother scrolling and animations
+- **Trends groups your history in the background**, so opening it (even on "All") doesn't stall the first frame.
+- **Progress bars** (calories, macros, water, fasting, sleep score) and the **tab bar** animate without re-laying out every frame.
+- **Dash runs only the motion its mood needs**, instead of four animations at once.
+
 ## 🚀 What's New in Hangry v1.42.0 — Fluid Animations, Ambient Gauges & Luxury Materiality
 
 Visual polish, micro-sparklines, fluid spring transitions, and tailored light and dark luxury materiality across the entire app.

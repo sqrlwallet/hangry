@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.nutrition
 
+import com.kevan.hangry.ui.components.ProgressFill
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -169,22 +170,7 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
                 .clip(RoundedCornerShape(3.dp))
                 .background(color.copy(alpha = if (isDark) 0.18f else 0.12f))
         ) {
-            if (progress > 0.001f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(
-                            androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                colors = listOf(
-                                    color.copy(alpha = 0.85f),
-                                    color
-                                )
-                            )
-                        )
-                )
-            }
+            ProgressFill(progress = { progress }, colors = listOf(color.copy(alpha = 0.85f), color), cornerRadius = 3.dp)
         }
     }
 

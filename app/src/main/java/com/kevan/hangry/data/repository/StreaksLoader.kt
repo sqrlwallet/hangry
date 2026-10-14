@@ -23,7 +23,7 @@ class StreaksLoader(
 
     suspend fun load(today: LocalDate, stepGoal: Long, sleepGoalMinutes: Int, zone: ZoneId = ZoneId.systemDefault()): List<Streak> {
         val start = today.minusDays(HISTORY_DAYS)
-        val summaries = database.dailyHealthSummaryDao().getSummariesBetweenList(start, today)
+        val summaries = database.dailyHealthSummaryDao().getHabitDaysBetween(start, today)
         val streaks = mutableListOf<Streak>()
 
         if (summaries.any { it.steps != null }) {
@@ -31,9 +31,9 @@ class StreaksLoader(
             streaks += StreakCalculator.streak(StreakType.STEPS, days, today)
         }
 
-        val meals = database.foodLogDao().getBetweenList(start, today)
-        if (meals.isNotEmpty()) {
-            streaks += StreakCalculator.streak(StreakType.MEALS, meals.map { it.date }.toSet(), today)
+        val mealDays = database.foodLogDao().getLoggedDatesBetween(start, today)
+        if (mealDays.isNotEmpty()) {
+            streaks += StreakCalculator.streak(StreakType.MEALS, mealDays.toSet(), today)
         }
 
         if (summaries.any { it.sleepDurationMinutes != null }) {

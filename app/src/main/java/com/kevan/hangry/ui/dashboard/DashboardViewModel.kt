@@ -56,7 +56,8 @@ class DashboardViewModel(
     /** Source of the calorie estimate behind each day's target; null leaves the calorie goal blank. */
     private val bodyMetricsRepository: BodyMetricsRepository? = null,
     private val streaksLoader: StreaksLoader? = null,
-    private val bodyAgeLoader: BodyAgeLoader? = null
+    private val bodyAgeLoader: BodyAgeLoader? = null,
+    private val dispatchers: com.kevan.hangry.util.AppDispatchers = com.kevan.hangry.util.DefaultAppDispatchers()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -141,187 +142,49 @@ class DashboardViewModel(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun loadDashboardData() {
+        // Profile, weight, widgets, the latest scan and the calorie estimate don't depend on the
+        // day shown, so they're subscribed once - not re-queried on every swipe through history.
+        val energyFlow = bodyMetricsRepository?.observe()?.map { it.input.energy?.estimate } ?: flowOf(null)
+        val secondaryFlow = combine(
+            userProfileRepository.getProfile(),
+            weightRepository.getLatestWeight(),
+            dashboardWidgetRepository.getWidgets(),
+            bodyFatRepository.getLatestScan(),
+            energyFlow
+        ) { profile, latestWeight, widgets, latestBodyFatScan, energy ->
+            SecondarySources(profile, latestWeight, widgets, latestBodyFatScan, energy)
+        }
         viewModelScope.launch {
-            _selectedDate.flatMapLatest { date ->
+            val coreFlow = _selectedDate.flatMapLatest { date ->
                 val sleepHistoryStart = date.minusDays(31).atStartOfDay(zone).toInstant()
                 val sleepHistoryEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
 
-                val coreFlow = combine(
+                combine(
                     dailySummaryRepository.getSummaryForDate(date),
                     dailySummaryRepository.getRecoveryScoreForDate(date),
                     sleepRepository.getSessionsBetween(sleepHistoryStart, sleepHistoryEnd),
-                    workoutRepository.getAllSessions(),
+                    // Only the day and the week before it are used, not every workout ever.
+                    workoutRepository.getSessionsBetween(
+                        date.minusDays(7).atStartOfDay(zone).toInstant(),
+                        date.plusDays(1).atStartOfDay(zone).toInstant()
+                    ),
                     dailySummaryRepository.getSummariesBetween(date.minusDays(29), date.minusDays(1))
                 ) { summary, score, sleepSessions, allWorkouts, recentSummaries ->
                     DashboardSources(date, summary, score, sleepSessions, allWorkouts, recentSummaries)
                 }
-
-                val energyFlow = bodyMetricsRepository?.observe()?.map { it.input.energy?.estimate } ?: flowOf(null)
-                val secondaryFlow = combine(
-                    userProfileRepository.getProfile(),
-                    weightRepository.getLatestWeight(),
-                    dashboardWidgetRepository.getWidgets(),
-                    bodyFatRepository.getLatestScan(),
-                    energyFlow
-                ) { profile, latestWeight, widgets, latestBodyFatScan, energy ->
-                    SecondarySources(profile, latestWeight, widgets, latestBodyFatScan, energy)
-                }
-
-                combine(coreFlow, secondaryFlow) { core, secondary ->
-                    Pair(core, secondary)
-                }
-            }.collect { (core, secondary) ->
-                val (date, summary, score, sleepSessions, allWorkouts, recentSummaries) = core
-                val (profile, latestWeight, widgets, latestBodyFatScan, energy) = secondary
-
-                // Sorted newest-first: the most recent session is "current", the rest is real
-                // baseline history (fixes the previous bug of always passing an empty history).
-                // The selected day's night is the one that ended on it; only earlier nights are
-                // history. A day with no sleep of its own shows none, not an older night.
-                val sortedSleep = sleepSessions.sortedByDescending { it.startTime }
-                val latestSleep = sortedSleep.firstOrNull { it.endTime.atZone(zone).toLocalDate() == date }
-                val sleepBaselineHistory = sortedSleep.filter { it.endTime.atZone(zone).toLocalDate().isBefore(date) }
-                val sleepGoal = profile?.sleepGoalMinutes ?: 480
-
-                // Strain, recovery, and sleep score should only surface once today's sleep is in -
-                // before that (i.e. from midnight until a session is logged/synced) they read as
-                // "pending" rather than showing a zero or yesterday's stale value. For past days,
-                // sleep is never "pending".
-                val isToday = date == LocalDate.now(zone)
-                val sleepRecordedForDate = sortedSleep.any { session ->
-                    session.endTime.atZone(zone).toLocalDate() == date
-                }
-
-                val previousDaySummary = recentSummaries.firstOrNull { it.date == date.minusDays(1) }
-                // Same 7 days as the sync uses, so tonight's need matches the stored one.
-                val rollingAverageStrain = recentSummaries.filter { !it.date.isBefore(date.minusDays(7)) }
-                    .mapNotNull { it.dayStrain }
-                    .let { if (it.isNotEmpty()) it.average() else null }
-
-                val sleepAnalysis = sleepCalculator.analyzeSleep(
-                    currentSession = latestSleep,
-                    recentSessions = sleepBaselineHistory,
-                    targetDurationMinutes = sleepGoal,
-                    previousDayStrain = previousDaySummary?.dayStrain,
-                    rollingAverageStrain = rollingAverageStrain
-                )
-                val todaysWorkouts = allWorkouts.filter {
-                    it.startTime.atZone(zone).toLocalDate() == date
-                }
-                val trailingSevenDayWorkouts = allWorkouts.filter {
-                    val wDate = it.startTime.atZone(zone).toLocalDate()
-                    wDate >= date.minusDays(7) && wDate < date
-                }
-                val trainingAnalysis = trainingLoadCalculator.calculateDailyLoad(
-                    workoutsToday = todaysWorkouts,
-                    recentWorkoutsHistory = trailingSevenDayWorkouts
-                )
-
-                val recoveryState = try {
-                    RecoveryState.valueOf(score?.state ?: RecoveryState.BUILDING_BASELINE.name)
-                } catch (_: IllegalArgumentException) {
-                    RecoveryState.BUILDING_BASELINE
-                }
-                // The target is a band around your own recent strain; with no history yet there's
-                // nothing personal to base it on, so no target rather than a generic one.
-                // The week before, like the sync uses to judge yesterday's strain against its band.
-                val recentStrain = recentSummaries.filter { !it.date.isBefore(date.minusDays(7)) }.mapNotNull { it.dayStrain }
-                val strainRecommendation = recentStrain.takeIf { it.isNotEmpty() }?.let {
-                    strainCalculator.recommendStrainTarget(recoveryState = recoveryState, recentDailyStrain = it)
-                }
-
-                // Workouts count in full - every calorie burned during them, not just the extra.
-                // The stored summary adds every step on top (see ActiveActivityCalculator); before
-                // today's first sync lands, fall back to the workouts alone.
-                val exerciseCalories = todaysWorkouts.sumOf { ActiveActivityCalculator.workoutCalories(it, summary?.bmrCalories) ?: 0.0 }
-                val effectiveActiveCalories = summary?.activeCalories ?: if (exerciseCalories > 0.0) exerciseCalories else null
-                val activeMinutes = summary?.activeMinutes
-                    ?: max(summary?.exerciseDurationMinutes ?: 0, todaysWorkouts.sumOf { it.durationMinutes })
-                val activeCalories = effectiveActiveCalories ?: 0.0
-
-                val calorieBurn = calorieCalculator.calculateDailyBurn(
-                    bmr = summary?.bmrCalories,
-                    totalActiveCalories = effectiveActiveCalories,
-                    exerciseCalories = exerciseCalories,
-                    activeMinutes = activeMinutes
-                )
-                // That day's own target: its steps (or a usual day's, if more) and its workouts,
-                // so a workout raises today's target as soon as it syncs. Blank with too little data.
-                val calorieGoal = energy?.let { e ->
-                    val day = DailyCalorieTargetCalculator.calculate(e, date, summary?.steps, todaysWorkouts, calorieCalculator)
-                    CalorieGoalRecommendation(
-                        dailyCalorieTarget = day.targetKcal,
-                        weeklyPaceKg = day.goal?.weeklyPaceKg ?: 0.0,
-                        isPaceAdjustedForSafety = day.goal?.isPaceAdjustedForSafety ?: false,
-                        guidance = day.goal?.guidance
-                            ?: "Eat about this much to stay at your current weight: today's resting burn, steps and workouts."
-                    )
-                }
-
-                // Autonomic stress calculation based on rolling 7d baseline of HRV & RHR
-                val trailing7Summaries = recentSummaries.take(7)
-                val hrvVals = trailing7Summaries.mapNotNull { it.hrvRmssd }
-                val rhrVals = trailing7Summaries.mapNotNull { it.restingHeartRate }
-                val hrvBaseline7d = if (hrvVals.isNotEmpty()) hrvVals.average() else null
-                val rhrBaseline7d = if (rhrVals.isNotEmpty()) rhrVals.average() else null
-                val baselineDaysCount = trailing7Summaries.count { it.hrvRmssd != null || it.restingHeartRate != null }
-
-                val stressResult = stressCalculator.calculateStress(
-                    hrvToday = summary?.hrvRmssd,
-                    hrvBaseline7d = hrvBaseline7d,
-                    rhrToday = summary?.restingHeartRate,
-                    rhrBaseline7d = rhrBaseline7d,
-                    dayStrain = summary?.dayStrain,
-                    baselineDaysCount = baselineDaysCount
-                )
-
-                val stepGoal = profile?.dailyStepGoal ?: 6000L
-                val minutesGoal = profile?.dailyActivityMinutesGoal ?: 90
-                val caloriesGoal = profile?.dailyActiveCaloriesGoal ?: 500
-
-                val trailing7SummariesChronological = (recentSummaries.filter { !it.date.isBefore(date.minusDays(6)) && !it.date.isAfter(date) } + listOfNotNull(summary))
-                    .distinctBy { it.date }
-                    .sortedBy { it.date }
-
-                _uiState.update { current ->
-                    current.copy(
-                        isLoading = false,
-                        selectedDate = date,
-                        dailySummary = summary,
-                        recentSummaries7d = trailing7SummariesChronological,
-                        // Values from the comparison; which ones are "off" from the stored day,
-                        // which allowed for the cycle when it was calculated.
-                        bodyCheck = summary?.let { s ->
-                            val stored = BodySignals.decode(s.bodySignals).map { it.kind }.toSet()
-                            BodySignals.compare(s, recentSummaries).map { it.copy(off = it.kind in stored) }
-                        }.orEmpty(),
-                        recentSkinTemps = (recentSummaries + listOfNotNull(summary))
-                            .mapNotNull { s -> s.skinTempDeltaCelsius?.let { s.date to it } }.toMap(),
-                        recoveryScore = score,
-                        sleepAnalysis = sleepAnalysis,
-                        previousDayStrain = previousDaySummary?.dayStrain,
-                        heartRateZones = com.kevan.hangry.domain.calculation.HeartRateZones.forUser(
-                            profile?.age, profile?.maxHeartRate,
-                            recentSummaries.mapNotNull { it.restingHeartRate }.takeIf { it.isNotEmpty() }?.average()
-                        ),
-                        trainingAnalysis = trainingAnalysis,
-                        strainRecommendation = strainRecommendation,
-                        calorieBurn = calorieBurn,
-                        calorieGoal = calorieGoal,
-                        stressResult = stressResult,
-                        dailyStepGoal = stepGoal,
-                        dailyActivityMinutesGoal = minutesGoal,
-                        sleepGoalMinutes = sleepGoal,
-                        dailyActiveCaloriesGoal = caloriesGoal,
-                        todayActiveMinutes = activeMinutes,
-                        todayActiveCalories = activeCalories,
-                        widgets = widgets,
-                        latestWeightKg = latestWeight?.weightKg,
-                        latestBodyFatScan = latestBodyFatScan,
-                        aiFeaturesEnabled = profile?.aiFeaturesEnabled ?: false,
-                        isPendingSleepData = isToday && !sleepRecordedForDate
-                    )
-                }
+            }
+            combine(coreFlow, secondaryFlow) { core, secondary ->
+                Pair(core, secondary)
+            }
+                // The day's numbers are worked out off the main thread; a burst of writes during a
+                // sync only recomputes the latest state.
+                .map { (core, secondary) -> DashboardFrame(core, secondary, compute(core, secondary)) }
+                .flowOn(dispatchers.default)
+                .conflate()
+                .collect { frame ->
+                    val (date, summary) = frame.core.targetDate to frame.core.summary
+                    val (apply, isToday, sleepRecordedForDate) = frame.day
+                    _uiState.update(apply)
 
                 // A sleep session just landed but the persisted summary/recovery row for today
                 // predates it (still stuck at the last sync) - refresh just today so the newly
@@ -349,6 +212,171 @@ class DashboardViewModel(
         }
     }
 
+
+    private data class DashboardFrame(val core: DashboardSources, val secondary: SecondarySources, val day: DayResult)
+
+    private data class DayResult(
+        val apply: (DashboardUiState) -> DashboardUiState,
+        val isToday: Boolean,
+        val sleepRecordedForDate: Boolean
+    )
+
+    /** Everything Today shows for one day, worked out from its sources - pure, so it runs off the main thread. */
+    private fun compute(core: DashboardSources, secondary: SecondarySources): DayResult {
+        val (date, summary, score, sleepSessions, allWorkouts, recentSummaries) = core
+        val (profile, latestWeight, widgets, latestBodyFatScan, energy) = secondary
+
+        // Sorted newest-first: the most recent session is "current", the rest is real
+        // baseline history (fixes the previous bug of always passing an empty history).
+        // The selected day's night is the one that ended on it; only earlier nights are
+        // history. A day with no sleep of its own shows none, not an older night.
+        val sortedSleep = sleepSessions.sortedByDescending { it.startTime }
+        val latestSleep = sortedSleep.firstOrNull { it.endTime.atZone(zone).toLocalDate() == date }
+        val sleepBaselineHistory = sortedSleep.filter { it.endTime.atZone(zone).toLocalDate().isBefore(date) }
+        val sleepGoal = profile?.sleepGoalMinutes ?: 480
+
+        // Strain, recovery, and sleep score should only surface once today's sleep is in -
+        // before that (i.e. from midnight until a session is logged/synced) they read as
+        // "pending" rather than showing a zero or yesterday's stale value. For past days,
+        // sleep is never "pending".
+        val isToday = date == LocalDate.now(zone)
+        val sleepRecordedForDate = sortedSleep.any { session ->
+            session.endTime.atZone(zone).toLocalDate() == date
+        }
+
+        val previousDaySummary = recentSummaries.firstOrNull { it.date == date.minusDays(1) }
+        // Same 7 days as the sync uses, so tonight's need matches the stored one.
+        val rollingAverageStrain = recentSummaries.filter { !it.date.isBefore(date.minusDays(7)) }
+            .mapNotNull { it.dayStrain }
+            .let { if (it.isNotEmpty()) it.average() else null }
+
+        val sleepAnalysis = sleepCalculator.analyzeSleep(
+            currentSession = latestSleep,
+            recentSessions = sleepBaselineHistory,
+            targetDurationMinutes = sleepGoal,
+            previousDayStrain = previousDaySummary?.dayStrain,
+            rollingAverageStrain = rollingAverageStrain
+        )
+        val todaysWorkouts = allWorkouts.filter {
+            it.startTime.atZone(zone).toLocalDate() == date
+        }
+        val trailingSevenDayWorkouts = allWorkouts.filter {
+            val wDate = it.startTime.atZone(zone).toLocalDate()
+            wDate >= date.minusDays(7) && wDate < date
+        }
+        val trainingAnalysis = trainingLoadCalculator.calculateDailyLoad(
+            workoutsToday = todaysWorkouts,
+            recentWorkoutsHistory = trailingSevenDayWorkouts
+        )
+
+        val recoveryState = try {
+            RecoveryState.valueOf(score?.state ?: RecoveryState.BUILDING_BASELINE.name)
+        } catch (_: IllegalArgumentException) {
+            RecoveryState.BUILDING_BASELINE
+        }
+        // The target is a band around your own recent strain; with no history yet there's
+        // nothing personal to base it on, so no target rather than a generic one.
+        // The week before, like the sync uses to judge yesterday's strain against its band.
+        val recentStrain = recentSummaries.filter { !it.date.isBefore(date.minusDays(7)) }.mapNotNull { it.dayStrain }
+        val strainRecommendation = recentStrain.takeIf { it.isNotEmpty() }?.let {
+            strainCalculator.recommendStrainTarget(recoveryState = recoveryState, recentDailyStrain = it)
+        }
+
+        // Workouts count in full - every calorie burned during them, not just the extra.
+        // The stored summary adds every step on top (see ActiveActivityCalculator); before
+        // today's first sync lands, fall back to the workouts alone.
+        val exerciseCalories = todaysWorkouts.sumOf { ActiveActivityCalculator.workoutCalories(it, summary?.bmrCalories) ?: 0.0 }
+        val effectiveActiveCalories = summary?.activeCalories ?: if (exerciseCalories > 0.0) exerciseCalories else null
+        val activeMinutes = summary?.activeMinutes
+            ?: max(summary?.exerciseDurationMinutes ?: 0, todaysWorkouts.sumOf { it.durationMinutes })
+        val activeCalories = effectiveActiveCalories ?: 0.0
+
+        val calorieBurn = calorieCalculator.calculateDailyBurn(
+            bmr = summary?.bmrCalories,
+            totalActiveCalories = effectiveActiveCalories,
+            exerciseCalories = exerciseCalories,
+            activeMinutes = activeMinutes
+        )
+        // That day's own target: its steps (or a usual day's, if more) and its workouts,
+        // so a workout raises today's target as soon as it syncs. Blank with too little data.
+        val calorieGoal = energy?.let { e ->
+            val day = DailyCalorieTargetCalculator.calculate(e, date, summary?.steps, todaysWorkouts, calorieCalculator)
+            CalorieGoalRecommendation(
+                dailyCalorieTarget = day.targetKcal,
+                weeklyPaceKg = day.goal?.weeklyPaceKg ?: 0.0,
+                isPaceAdjustedForSafety = day.goal?.isPaceAdjustedForSafety ?: false,
+                guidance = day.goal?.guidance
+                    ?: "Eat about this much to stay at your current weight: today's resting burn, steps and workouts."
+            )
+        }
+
+        // Autonomic stress calculation based on rolling 7d baseline of HRV & RHR
+        val trailing7Summaries = recentSummaries.take(7)
+        val hrvVals = trailing7Summaries.mapNotNull { it.hrvRmssd }
+        val rhrVals = trailing7Summaries.mapNotNull { it.restingHeartRate }
+        val hrvBaseline7d = if (hrvVals.isNotEmpty()) hrvVals.average() else null
+        val rhrBaseline7d = if (rhrVals.isNotEmpty()) rhrVals.average() else null
+        val baselineDaysCount = trailing7Summaries.count { it.hrvRmssd != null || it.restingHeartRate != null }
+
+        val stressResult = stressCalculator.calculateStress(
+            hrvToday = summary?.hrvRmssd,
+            hrvBaseline7d = hrvBaseline7d,
+            rhrToday = summary?.restingHeartRate,
+            rhrBaseline7d = rhrBaseline7d,
+            dayStrain = summary?.dayStrain,
+            baselineDaysCount = baselineDaysCount
+        )
+
+        val stepGoal = profile?.dailyStepGoal ?: 6000L
+        val minutesGoal = profile?.dailyActivityMinutesGoal ?: 90
+        val caloriesGoal = profile?.dailyActiveCaloriesGoal ?: 500
+
+        val trailing7SummariesChronological = (recentSummaries.filter { !it.date.isBefore(date.minusDays(6)) && !it.date.isAfter(date) } + listOfNotNull(summary))
+            .distinctBy { it.date }
+            .sortedBy { it.date }
+
+        val apply: (DashboardUiState) -> DashboardUiState = { current ->
+            current.copy(
+                isLoading = false,
+                selectedDate = date,
+                dailySummary = summary,
+                recentSummaries7d = trailing7SummariesChronological,
+                // Values from the comparison; which ones are "off" from the stored day,
+                // which allowed for the cycle when it was calculated.
+                bodyCheck = summary?.let { s ->
+                    val stored = BodySignals.decode(s.bodySignals).map { it.kind }.toSet()
+                    BodySignals.compare(s, recentSummaries).map { it.copy(off = it.kind in stored) }
+                }.orEmpty(),
+                recentSkinTemps = (recentSummaries + listOfNotNull(summary))
+                    .mapNotNull { s -> s.skinTempDeltaCelsius?.let { s.date to it } }.toMap(),
+                recoveryScore = score,
+                sleepAnalysis = sleepAnalysis,
+                previousDayStrain = previousDaySummary?.dayStrain,
+                heartRateZones = com.kevan.hangry.domain.calculation.HeartRateZones.forUser(
+                    profile?.age, profile?.maxHeartRate,
+                    recentSummaries.mapNotNull { it.restingHeartRate }.takeIf { it.isNotEmpty() }?.average()
+                ),
+                trainingAnalysis = trainingAnalysis,
+                strainRecommendation = strainRecommendation,
+                calorieBurn = calorieBurn,
+                calorieGoal = calorieGoal,
+                stressResult = stressResult,
+                dailyStepGoal = stepGoal,
+                dailyActivityMinutesGoal = minutesGoal,
+                sleepGoalMinutes = sleepGoal,
+                dailyActiveCaloriesGoal = caloriesGoal,
+                todayActiveMinutes = activeMinutes,
+                todayActiveCalories = activeCalories,
+                widgets = widgets,
+                latestWeightKg = latestWeight?.weightKg,
+                latestBodyFatScan = latestBodyFatScan,
+                aiFeaturesEnabled = profile?.aiFeaturesEnabled ?: false,
+                isPendingSleepData = isToday && !sleepRecordedForDate
+            )
+        }
+        return DayResult(apply, isToday, sleepRecordedForDate)
+    }
+
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
     }
@@ -368,19 +396,28 @@ class DashboardViewModel(
         _selectedDate.value = LocalDate.now(zone)
     }
 
-    /** Recomputes the habit streaks (step goal, meals, sleep goal, supplements) and Body Age. */
+    private var habitsJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Recomputes the habit streaks (step goal, meals, sleep goal, supplements) and Body Age.
+     * Calls that arrive together (opening Today, resuming, the fasting state landing) share one
+     * load instead of each reading 400 days of history.
+     */
     fun refreshHabits() {
-        bodyAgeLoader?.let { loader ->
-            viewModelScope.launch {
-                val snapshot = runCatching { withContext(Dispatchers.IO) { loader.load(LocalDate.now(zone), zone) } }.getOrNull()
-                _uiState.update { it.copy(bodyAge = snapshot) }
+        if (bodyAgeLoader == null && streaksLoader == null) return
+        habitsJob?.cancel()
+        habitsJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(HABITS_DEBOUNCE_MS)
+            bodyAgeLoader?.let { loader ->
+                launch {
+                    val snapshot = runCatching { withContext(dispatchers.io) { loader.load(LocalDate.now(zone), zone) } }.getOrNull()
+                    _uiState.update { it.copy(bodyAge = snapshot) }
+                }
             }
-        }
-        val loader = streaksLoader ?: return
-        viewModelScope.launch {
+            val loader = streaksLoader ?: return@launch
             val profile = userProfileRepository.getProfileSync()
             val streaks = runCatching {
-                withContext(Dispatchers.IO) {
+                withContext(dispatchers.io) {
                     loader.load(LocalDate.now(zone), profile?.dailyStepGoal ?: 6000L, profile?.sleepGoalMinutes ?: 480, zone)
                 }
             }.getOrDefault(emptyList())
@@ -539,3 +576,6 @@ class DashboardViewModel(
 
 /** Coming back to the app after this long triggers a catch-up sync. */
 private val RESUME_SYNC_AFTER: java.time.Duration = java.time.Duration.ofMinutes(15)
+
+/** How long refreshHabits() waits for more calls before loading. */
+private const val HABITS_DEBOUNCE_MS = 300L

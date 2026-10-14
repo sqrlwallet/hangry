@@ -57,6 +57,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -253,7 +254,8 @@ private fun BoxScope.SlidingTabIndicator(selectedIndex: Int, itemWidth: Dp, item
     Box(
         modifier = Modifier
             .align(Alignment.CenterStart)
-            .offset(x = offset + itemWidth * 0.04f)
+            // Moved at layout time with the lambda overload, so the slide doesn't recompose the dock.
+            .offset { IntOffset((offset + itemWidth * 0.04f).roundToPx(), 0) }
             .width(itemWidth * 0.92f)
             .height(itemHeight * 0.86f)
             .clip(RoundedCornerShape(18.dp))
@@ -308,7 +310,10 @@ private fun RowScope.FloatingNavItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .graphicsLayer(scaleX = animatedScale, scaleY = animatedScale)
+                .graphicsLayer {
+                    scaleX = animatedScale
+                    scaleY = animatedScale
+                }
                 .padding(vertical = 2.dp)
         ) {
             Icon(

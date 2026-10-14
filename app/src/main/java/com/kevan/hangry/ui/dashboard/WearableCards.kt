@@ -20,6 +20,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -38,16 +39,26 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+/** What the cycle card shows, or null when it has nothing to show (Today leaves it out). */
+internal fun cycleCardData(
+    records: HealthRecordsSnapshot,
+    skinTemps: Map<LocalDate, Double>,
+    today: LocalDate = LocalDate.now()
+): Pair<com.kevan.hangry.domain.model.CycleStats, CycleTemperature.Insight>? {
+    if (!records.showsFemaleHealth || records.periods.isEmpty() || records.isPregnant) return null
+    val stats = HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, today)
+    val insight = CycleTemperature.insight(stats, skinTemps, today, records.periods.map { it.startDate }) ?: return null
+    return stats to insight
+}
+
 /**
  * Cycle phase and day, with the temperature-confirmed ovulation when the wearable shows it.
  * Only for women who log periods (or import them from Health Connect).
  */
 @Composable
 fun CycleCard(records: HealthRecordsSnapshot, skinTemps: Map<LocalDate, Double>, onClick: () -> Unit) {
-    if (!records.showsFemaleHealth || records.periods.isEmpty() || records.isPregnant) return
     val today = LocalDate.now()
-    val stats = HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, today)
-    val insight = CycleTemperature.insight(stats, skinTemps, today, records.periods.map { it.startDate }) ?: return
+    val (stats, insight) = remember(records, skinTemps, today) { cycleCardData(records, skinTemps, today) } ?: return
     val tokens = LocalHangryTokens.current
     val cycleLength = stats.averageCycleDays ?: 28.0
     val next = insight.predictedNextStart ?: stats.predictedNextStart

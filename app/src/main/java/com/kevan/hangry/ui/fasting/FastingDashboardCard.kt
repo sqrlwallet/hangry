@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.fasting
 
+import com.kevan.hangry.ui.components.ProgressFill
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -102,22 +103,7 @@ fun FastingDashboardCard(
                     .clip(RoundedCornerShape(3.dp))
                     .background(FastingColor.copy(alpha = if (isDark) 0.18f else 0.12f))
             ) {
-                if (animatedProgress > 0.001f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(fraction = animatedProgress.coerceIn(0f, 1f))
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(
-                                        FastingColor.copy(alpha = 0.82f),
-                                        FastingColor
-                                    )
-                                )
-                            )
-                    )
-                }
+                ProgressFill(progress = { animatedProgress }, colors = listOf(FastingColor.copy(alpha = 0.82f), FastingColor), cornerRadius = 3.dp)
             }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

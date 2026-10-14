@@ -20,11 +20,13 @@ import javax.crypto.spec.GCMParameterSpec
  * Never synced anywhere; only used to build the Authorization header on a request the user
  * explicitly triggered.
  */
-class SecureKeyStore(context: Context) {
+class SecureKeyStore(private val context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    // Opened on first use, not at construction: loading the Keystore is a call into a system
+    // service, and the screens that hold this are created at launch on the main thread.
+    private val prefs by lazy { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
 
-    private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
+    private val keyStore: KeyStore by lazy { KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) } }
 
     private val secretKey: SecretKey
         get() = (keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.secretKey
@@ -44,7 +46,17 @@ class SecureKeyStore(context: Context) {
         return keyGenerator.generateKey()
     }
 
+    // The decrypted key, kept after the first read: every screen that shows whether AI is set
+    // up asks on each update, and each decrypt is a round trip to the Keystore.
+    @Volatile private var cachedKey: CachedKey? = null
+    private class CachedKey(val value: String?)
+
     fun getApiKey(): String? {
+        cachedKey?.let { return it.value }
+        return decryptApiKey().also { cachedKey = CachedKey(it) }
+    }
+
+    private fun decryptApiKey(): String? {
         val ivB64 = prefs.getString(PREF_IV, null) ?: return null
         val ciphertextB64 = prefs.getString(PREF_CIPHERTEXT, null) ?: return null
         return runCatching {
@@ -64,10 +76,12 @@ class SecureKeyStore(context: Context) {
             .putString(PREF_IV, Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
             .putString(PREF_CIPHERTEXT, Base64.encodeToString(ciphertext, Base64.NO_WRAP))
             .apply()
+        cachedKey = null
     }
 
     fun clearApiKey() {
         prefs.edit().remove(PREF_IV).remove(PREF_CIPHERTEXT).apply()
+        cachedKey = null
     }
 
     companion object {

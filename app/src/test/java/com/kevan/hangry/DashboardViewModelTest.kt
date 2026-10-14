@@ -168,7 +168,12 @@ class DashboardViewModelTest {
             calorieCalculator = HangryCalorieCalculator(),
             stressCalculator = HangryStressCalculator(),
             dashboardWidgetRepository = widgetRepo,
-            bodyFatRepository = bodyFatRepo
+            bodyFatRepository = bodyFatRepo,
+            dispatchers = object : com.kevan.hangry.util.AppDispatchers {
+                override val main = testDispatcher
+                override val io = testDispatcher
+                override val default = testDispatcher
+            }
         )
 
         testScheduler.advanceUntilIdle()

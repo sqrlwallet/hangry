@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "hangry"
 include(":app")
+include(":baselineprofile")
  

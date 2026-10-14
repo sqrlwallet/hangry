@@ -5,6 +5,7 @@ local.properties
 .DS_Store
 /build
 app/build/
+baselineprofile/build/
 *.apk
 *.aab
 .externalNativeBuild

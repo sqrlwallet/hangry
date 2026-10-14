@@ -1,3 +1,12 @@
+## 🚀 What's New in Hangry v1.41.1 — No More White Flash
+
+Dark mode stays dark, everywhere.
+
+### 🌙 Dark mode fixes
+- **Switching tabs** no longer flashes white between screens.
+- **Opening the app** in dark mode starts on the dark background, including when Dark is picked in Hangry while your phone is set to light.
+- The keyboard area and sliding screen transitions stay dark too.
+
 ## 🚀 What's New in Hangry v1.41.0 — Tell Dash What It Missed
 
 Fix a meal estimate in words instead of numbers, and see your meal photos in full.

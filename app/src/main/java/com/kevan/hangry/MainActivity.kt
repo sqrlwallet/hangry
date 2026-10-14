@@ -7,9 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -29,6 +32,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Paint the in-app theme's canvas before the first frame: the XML theme follows the
+        // system setting, so Dark picked in the app over a light system would open on cream.
+        val startsDark = when (com.kevan.hangry.data.prefs.ThemePrefs.themeMode(this)) {
+            com.kevan.hangry.data.prefs.ThemeMode.SYSTEM ->
+                (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES
+            com.kevan.hangry.data.prefs.ThemeMode.DARK -> true
+            com.kevan.hangry.data.prefs.ThemeMode.LIGHT -> false
+        }
+        window.decorView.setBackgroundColor(
+            getColor(if (startsDark) R.color.brand_canvas_dark else R.color.brand_cream)
+        )
         val appContainer = (application as HangryApplication).container
 
         if (intent?.action == "com.kevan.hangry.ACTION_QUICK_LOG_MEAL" || intent?.getStringExtra("action") == "quick_log_meal") {
@@ -70,6 +85,11 @@ class MainActivity : ComponentActivity() {
 
             val currentStartDestination = startDestination
             HangryTheme(darkTheme = isDark) {
+                // The window and the root both paint the theme's background, so nothing light
+                // shows through while a tab fades out and the next fades in (or behind the
+                // keyboard, or before the first frame) when the app is dark.
+                val canvas = MaterialTheme.colorScheme.background
+                SideEffect { window.decorView.setBackgroundColor(canvas.toArgb()) }
                 if (currentStartDestination != null) {
                     val onboarded = currentStartDestination == Screen.Dashboard.route
                     // A widget/notification destination always opens on top of the start screen, so Back
@@ -98,7 +118,7 @@ class MainActivity : ComponentActivity() {
                         LocalDockInset provides rememberDockInset(currentRoute),
                         com.kevan.hangry.ui.navigation.LocalTabReselectionBus provides tabReselectionBus
                     ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.fillMaxSize().background(canvas)) {
                             HangryNavGraph(
                                 navController = navController,
                                 appContainer = appContainer,
@@ -115,7 +135,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 } else {
-                    Box(modifier = Modifier.fillMaxSize())
+                    Box(modifier = Modifier.fillMaxSize().background(canvas))
                 }
             }
         }

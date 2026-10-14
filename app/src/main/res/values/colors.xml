@@ -2,5 +2,6 @@
 <resources>
     <!-- Brand palette — keep in sync with ui/theme/Color.kt -->
     <color name="brand_cream">#FFF9F4F2</color>
+    <color name="brand_canvas_dark">#FF1C1A1F</color>
 
 </resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Dark system theme: the window opens on the dark canvas, so a cold start doesn't flash cream. -->
+    <style name="Theme.Hangry" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/brand_canvas_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

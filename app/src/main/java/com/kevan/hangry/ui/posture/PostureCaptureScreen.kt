@@ -36,6 +36,7 @@ import com.kevan.hangry.ui.components.PoseGuide
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +47,7 @@ fun PostureCaptureScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val photoLauncher = rememberMultiPhotoCaptureLauncher(

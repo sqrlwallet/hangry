@@ -56,6 +56,7 @@ import java.io.File
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 private fun supplementsInfoSections(): List<HangryInfoSection> = listOf(
@@ -75,9 +76,9 @@ fun SupplementsScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val snapshot by viewModel.snapshot.collectAsState()
-    val editor by viewModel.editor.collectAsState()
-    val aiEnabled by viewModel.aiEnabled.collectAsState()
+    val snapshot by viewModel.snapshot.collectAsStateWithLifecycle()
+    val editor by viewModel.editor.collectAsStateWithLifecycle()
+    val aiEnabled by viewModel.aiEnabled.collectAsStateWithLifecycle()
 
     val photoLauncher = rememberMultiPhotoCaptureLauncher(maxItems = SupplementsViewModel.MAX_PHOTOS) { uris ->
         viewModel.onPhotoCaptured(uris)

@@ -19,6 +19,7 @@ import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +29,7 @@ fun DataSourcesScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val syncStates by syncManager.getSyncStates().collectAsState(initial = emptyList())
+    val syncStates by remember(syncManager) { syncManager.getSyncStates() }.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Scaffold(
         topBar = {

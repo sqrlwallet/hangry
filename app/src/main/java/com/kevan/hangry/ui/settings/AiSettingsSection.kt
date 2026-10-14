@@ -25,7 +25,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +47,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
 import com.kevan.hangry.R
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * Settings > AI Features. Off by default - the toggle only flips on after the consent dialog
@@ -65,7 +65,7 @@ fun AiFeaturesSection(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val profile by userProfileRepository.getProfile().collectAsState(initial = null)
+    val profile by remember(userProfileRepository) { userProfileRepository.getProfile() }.collectAsStateWithLifecycle(initialValue = null)
     val aiEnabled = profile?.aiFeaturesEnabled ?: false
 
     var showConsentDialog by remember { mutableStateOf(false) }

@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +47,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** Scan dates as "Mar 4, 2026", matching body fat history. */
 internal val POSTURE_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
@@ -81,7 +81,7 @@ fun PostureScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     // Hidden at once; the scan and its photos are only removed when the undo snackbar closes.

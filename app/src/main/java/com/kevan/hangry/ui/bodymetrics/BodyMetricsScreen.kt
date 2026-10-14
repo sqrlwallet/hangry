@@ -52,6 +52,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** The top-bar dialog: general notes. Each group's own description sits on its card header. */
 @Composable
@@ -78,7 +79,7 @@ fun BodyMetricsScreen(
     onUpdateMeasurements: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val rawState by viewModel.uiState.collectAsState()
+    val rawState by viewModel.uiState.collectAsStateWithLifecycle()
     val units = rememberBodyUnitFormatter()
     // kg and cm metrics shown in the units chosen in Settings.
     val uiState = remember(rawState, units) {

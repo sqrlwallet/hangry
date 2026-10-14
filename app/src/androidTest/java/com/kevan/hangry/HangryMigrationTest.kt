@@ -36,7 +36,7 @@ class HangryMigrationTest {
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
             MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
             MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34
+            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35
         )
     }
 
@@ -118,6 +118,18 @@ class HangryMigrationTest {
         }
     }
 
+    @Test
+    fun migrate34To35_indexesHrvTimestamp_keepsFoodLog() {
+        helper.createDatabase(DB, 34).apply {
+            insertFood()
+            close()
+        }
+        helper.runMigrationsAndValidate(DB, 35, true, HangryDatabase.MIGRATION_34_35).use { db ->
+            assertEquals(1, db.count("food_log"))
+            assertEquals(1, db.count("sqlite_master WHERE type = 'index' AND name = 'index_hrv_measurements_timestamp'"))
+        }
+    }
+
     /** The full chain from the oldest exported schema opens with Room and keeps the user's data. */
     @Test
     fun migrate28ToLatest_opensWithRoom() {
@@ -130,7 +142,7 @@ class HangryMigrationTest {
             .build()
         try {
             val sqlite = db.openHelper.writableDatabase
-            assertEquals(34, sqlite.version)
+            assertEquals(35, sqlite.version)
             assertEquals(1, sqlite.count("food_log"))
         } finally {
             db.close()

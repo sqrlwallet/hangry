@@ -40,6 +40,7 @@ import com.kevan.hangry.domain.model.SleepStageCodec
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 private fun sleepCoachSections(): List<HangryInfoSection> = listOf(
@@ -94,7 +95,7 @@ fun SleepScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tokens = LocalHangryTokens.current
     val coroutineScope = rememberCoroutineScope()
     var showManualDialog by remember { mutableStateOf(false) }
@@ -109,7 +110,7 @@ fun SleepScreen(
             uiState.selectedDate.minusDays(7).atStartOfDay(zone).toInstant(),
             uiState.selectedDate.plusDays(1).atStartOfDay(zone).toInstant()
         )
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val selectedNight = remember(weekSessions) { primaryNightFor(uiState.selectedDate, weekSessions, zone) }
     val weekNights = remember(weekSessions) { weekOfNights(uiState.selectedDate, weekSessions, zone) }
 

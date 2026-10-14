@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +41,7 @@ import java.util.Locale
 import kotlin.math.abs
 import androidx.compose.ui.res.stringResource
 import com.kevan.hangry.R
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private fun years(value: Double) = String.format(Locale.US, "%.1f", abs(value))
 
@@ -129,7 +129,7 @@ fun BodyAgeScreen(
     onSaveBirthday: (LocalDate) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snapshot = state.bodyAge
     val result = snapshot?.current
     var pickingBirthday by remember { mutableStateOf(false) }

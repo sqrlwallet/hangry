@@ -9,7 +9,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.kevan.hangry.domain.repository.HealthSyncManager
-import com.kevan.hangry.ui.components.millisUntilNextMidnight
+import com.kevan.hangry.util.millisUntilNextMidnight
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.nutrition.NutritionViewModel
 import com.kevan.hangry.ui.widget.HangryWidgetUpdater

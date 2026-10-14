@@ -3,6 +3,7 @@ package com.kevan.hangry.ui.navigation
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -35,7 +36,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -192,34 +195,71 @@ fun HangryBottomNavBar(
                     .fillMaxWidth()
                     .height(DOCK_HEIGHT)
             ) {
-                Row(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 ) {
-                    val reselectionBus = LocalTabReselectionBus.current
-                    BottomNavDestination.entries.forEach { destination ->
-                        val selected = currentRoute == destination.route
+                    val tabs = BottomNavDestination.entries
+                    SlidingTabIndicator(
+                        selectedIndex = tabs.indexOfFirst { it.route == currentRoute },
+                        itemWidth = maxWidth / tabs.size,
+                        itemHeight = maxHeight
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val reselectionBus = LocalTabReselectionBus.current
+                        tabs.forEach { destination ->
+                            val selected = currentRoute == destination.route
 
-                        FloatingNavItem(
-                            destination = destination,
-                            selected = selected,
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                if (!selected) {
-                                    navController.navigateToTab(destination.route)
-                                } else {
-                                    reselectionBus.notifyReselect(destination.route)
+                            FloatingNavItem(
+                                destination = destination,
+                                selected = selected,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    if (!selected) {
+                                        navController.navigateToTab(destination.route)
+                                    } else {
+                                        reselectionBus.notifyReselect(destination.route)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * The soft brand-blue capsule behind the selected tab. One capsule that slides between tabs,
+ * rather than one per tab fading in and out, so a switch reads as movement rather than a blink.
+ */
+@Composable
+private fun BoxScope.SlidingTabIndicator(selectedIndex: Int, itemWidth: Dp, itemHeight: Dp) {
+    // Stay on the last tab while the dock slides away for a non-tab screen.
+    var shownIndex by remember { mutableIntStateOf(selectedIndex.coerceAtLeast(0)) }
+    if (selectedIndex >= 0) shownIndex = selectedIndex
+    val offset by animateDpAsState(
+        targetValue = itemWidth * shownIndex,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 520f),
+        label = "nav_indicator_offset"
+    )
+    val primary = MaterialTheme.colorScheme.primary
+    Box(
+        modifier = Modifier
+            .align(Alignment.CenterStart)
+            .offset(x = offset + itemWidth * 0.04f)
+            .width(itemWidth * 0.92f)
+            .height(itemHeight * 0.86f)
+            .clip(RoundedCornerShape(18.dp))
+            .background(brush = Brush.verticalGradient(listOf(primary.copy(alpha = 0.14f), primary.copy(alpha = 0.06f))))
+            .border(width = 1.dp, color = primary.copy(alpha = 0.24f), shape = RoundedCornerShape(18.dp))
+    )
 }
 
 @Composable
@@ -233,12 +273,6 @@ private fun RowScope.FloatingNavItem(
         targetValue = if (selected) 1.06f else 1.0f,
         animationSpec = spring(dampingRatio = 0.72f, stiffness = 400f),
         label = "nav_scale_${destination.route}"
-    )
-
-    val animatedPillAlpha by animateFloatAsState(
-        targetValue = if (selected) 1.0f else 0.0f,
-        animationSpec = tween(durationMillis = 200),
-        label = "nav_pill_alpha_${destination.route}"
     )
 
     val iconTint by animateColorAsState(
@@ -270,29 +304,6 @@ private fun RowScope.FloatingNavItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        // Active indicator: soft brand-blue capsule
-        if (animatedPillAlpha > 0.01f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .fillMaxHeight(0.86f)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f * animatedPillAlpha),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.06f * animatedPillAlpha)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f * animatedPillAlpha),
-                        shape = RoundedCornerShape(18.dp)
-                    )
-            )
-        }
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

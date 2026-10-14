@@ -6,7 +6,10 @@ import com.kevan.hangry.data.local.entity.BreathingSessionEntity
 import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.domain.model.BreathingStats
 import com.kevan.hangry.domain.repository.BreathingRepository
+import com.kevan.hangry.util.todayFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
@@ -15,9 +18,9 @@ class DefaultBreathingRepository(
     private val healthConnectDataSource: HealthConnectDataSource
 ) : BreathingRepository {
 
-    override fun observeStats(): Flow<BreathingStats> {
-        val today = LocalDate.now()
-        return breathingSessionDao.getSessionsBetween(today.minusDays(6), today).map { sessions ->
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeStats(): Flow<BreathingStats> = todayFlow().flatMapLatest { today ->
+        breathingSessionDao.getSessionsBetween(today.minusDays(6), today).map { sessions ->
             val todaySessions = sessions.filter { it.date == today }
             BreathingStats(
                 minutesToday = todaySessions.sumOf { it.durationSeconds } / 60,

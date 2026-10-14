@@ -17,9 +17,12 @@ import com.kevan.hangry.domain.repository.HealthRecordsRepository
 import com.kevan.hangry.domain.repository.SupplementDraft
 import com.kevan.hangry.domain.repository.SupplementRepository
 import com.kevan.hangry.ui.widget.HangryWidgetUpdater
+import com.kevan.hangry.util.todayFlow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -39,9 +42,9 @@ class DefaultSupplementRepository(
     private val json = Json { ignoreUnknownKeys = true }
     private val ingredientsSerializer = ListSerializer(SupplementIngredient.serializer())
 
-    override fun observe(): Flow<SupplementsSnapshot> {
-        val today = LocalDate.now()
-        return combine(dao.observeAll(), dao.observeIntakesBetween(today.minusDays(7), today)) { supplements, intakes ->
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observe(): Flow<SupplementsSnapshot> = todayFlow().flatMapLatest { today ->
+        combine(dao.observeAll(), dao.observeIntakesBetween(today.minusDays(7), today)) { supplements, intakes ->
             snapshot(supplements, intakes, today)
         }
     }

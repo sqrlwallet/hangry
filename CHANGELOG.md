@@ -1,3 +1,20 @@
+## 🚀 What's New in Hangry v1.40.0 — Smoother and Lighter
+
+Smoother tab switching, less battery use in the background, and a faster, more robust sync.
+
+### ✨ Smoother
+- **Tab switching**: the old tab fades out before the new one fades in, drifting gently from the side of the tab you picked. No more ghosted double image mid-switch.
+- **The dock's highlight slides** to the tab you tap instead of blinking from one to the next.
+- **No more flicker on Today**: the breathing, supplements and fasting cards no longer reload every time the screen redraws.
+
+### 🔋 Lighter
+- Screens stop following live data while the app is in the background.
+- Sync reads each day's data in a handful of queries instead of a dozen, and overnight HRV has an index, so full recalculations are much faster.
+
+### 🛠️ Fixes
+- Left open past midnight, breathing, supplements, Body Metrics, Trends and Heart now move to the new day.
+- A cancelled sync now stops cleanly instead of carrying on with missing data.
+
 ## 🚀 What's New in Hangry v1.39.0 — A Calorie Target That Follows Your Day
 
 Your calorie target is now worked out fresh every day from what that day actually burns.

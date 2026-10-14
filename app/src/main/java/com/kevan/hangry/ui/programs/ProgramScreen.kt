@@ -39,6 +39,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val DAY_FORMAT = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
 
@@ -73,8 +74,8 @@ fun ProgramScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val programs by viewModel.programs.collectAsState()
-    val checkedAll by viewModel.checked.collectAsState()
+    val programs by viewModel.programs.collectAsStateWithLifecycle()
+    val checkedAll by viewModel.checked.collectAsStateWithLifecycle()
     val s = programs?.firstOrNull { it.program.id == programId }
     Scaffold(
         topBar = {

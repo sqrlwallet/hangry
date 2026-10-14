@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.SportsGymnastics
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +36,7 @@ import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** Dash doing each program's kind of exercise. */
 internal fun programMood(id: String): DashMood = when (id) {
@@ -70,7 +70,7 @@ fun ProgramsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val programs by viewModel.programs.collectAsState()
+    val programs by viewModel.programs.collectAsStateWithLifecycle()
     Scaffold(
         topBar = {
             TopAppBar(

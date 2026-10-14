@@ -60,6 +60,7 @@ import androidx.health.connect.client.PermissionController
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.time.Instant
 import java.time.ZoneId
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private enum class MealBucket(@StringRes val titleRes: Int) {
     BREAKFAST(R.string.nutrition_meal_breakfast),
@@ -148,8 +149,8 @@ fun NutritionScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
-    val uiState by viewModel.uiState.collectAsState()
-    val dashboardState by dashboardViewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dashboardState by dashboardViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 

@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.kevan.hangry.ui.navigation.BottomNavDestination
 import com.kevan.hangry.ui.navigation.HangryBottomNavBar
 import com.kevan.hangry.ui.navigation.HangryNavGraph
 import com.kevan.hangry.ui.navigation.LocalDockInset

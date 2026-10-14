@@ -28,9 +28,6 @@ interface HeartRateDao {
     @Query("SELECT MAX(bpm) FROM heart_rate_samples WHERE timestamp >= :start AND timestamp <= :end")
     suspend fun getMaxBpmBetween(start: Instant, end: Instant): Double?
 
-    @Query("SELECT AVG(bpm) FROM (SELECT bpm FROM heart_rate_samples WHERE timestamp >= :start AND timestamp <= :end AND bpm >= 35 ORDER BY bpm ASC LIMIT 30)")
-    suspend fun getRestingBpmEstimateBetween(start: Instant, end: Instant): Double?
-
     @Query("""
         SELECT
             COUNT(CASE WHEN bpm >= :z1 AND bpm < :z2 THEN 1 END) as zone1Count,

@@ -57,6 +57,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.time.LocalDate
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,8 +90,8 @@ fun DashboardScreen(
     onLogWeight: ((kg: Double, takenAt: java.time.Instant) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val nutritionUiState = nutritionViewModel?.uiState?.collectAsState()?.value
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val nutritionUiState = nutritionViewModel?.uiState?.collectAsStateWithLifecycle()?.value
     val tokens = LocalHangryTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
     val dockInset = LocalDockInset.current

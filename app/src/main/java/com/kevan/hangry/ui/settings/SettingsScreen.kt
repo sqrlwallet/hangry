@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -110,7 +111,7 @@ fun SettingsScreen(
         }
     }
 
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isBusy = state.isBusy
     val isOptimizingDb = state.isOptimizingDb
     val isCleaningOrphans = state.isCleaningOrphans

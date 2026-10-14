@@ -39,6 +39,8 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
+import com.kevan.hangry.ui.components.rememberToday
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 private fun heartInfoSections(): List<HangryInfoSection> = listOf(
@@ -73,12 +75,12 @@ fun HeartMetricsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tokens = LocalHangryTokens.current
-    val today = LocalDate.now()
+    val today = rememberToday()
 
-    val rhrList by heartRateRepository.getRestingHeartRates(today.minusDays(28), today).collectAsState(initial = emptyList())
-    val hrvList by hrvRepository.getHrvBetween(today.minusDays(28), today).collectAsState(initial = emptyList())
+    val rhrList by remember(today) { heartRateRepository.getRestingHeartRates(today.minusDays(28), today) }.collectAsStateWithLifecycle(initialValue = emptyList())
+    val hrvList by remember(today) { hrvRepository.getHrvBetween(today.minusDays(28), today) }.collectAsStateWithLifecycle(initialValue = emptyList())
     val hrvByDate = remember(hrvList) { hrvList.associateBy { it.recordDate } }
 
     val currentRhr = uiState.dailySummary?.restingHeartRate

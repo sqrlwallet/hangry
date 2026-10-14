@@ -1,6 +1,6 @@
 package com.kevan.hangry.data.ai
 
-import kotlinx.coroutines.CancellationException
+import com.kevan.hangry.util.resultOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -270,14 +270,6 @@ class OpenRouterClient {
         }
     }
 
-    /** Like runCatching, but cancellation propagates instead of turning into a failed Result. */
-    private inline fun <T> resultOf(block: () -> T): Result<T> = try {
-        Result.success(block())
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        Result.failure(e)
-    }
 }
 
 // Small DSL helpers kept local to this file - kotlinx.serialization's JsonObjectBuilder doesn't

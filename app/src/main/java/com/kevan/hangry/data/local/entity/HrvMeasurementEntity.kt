@@ -11,6 +11,7 @@ import java.time.LocalDate
     indices = [
         Index(value = ["recordFingerprint"], unique = true),
         Index(value = ["recordDate"]),
+        Index(value = ["timestamp"]),
         Index(value = ["sourceRecordId"]),
         Index(value = ["sourcePackageName"])
     ]

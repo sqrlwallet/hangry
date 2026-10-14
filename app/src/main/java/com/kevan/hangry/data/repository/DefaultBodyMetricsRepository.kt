@@ -21,8 +21,11 @@ import com.kevan.hangry.domain.repository.WeightRepository
 import com.kevan.hangry.domain.repository.BodyFatRepository
 import com.kevan.hangry.domain.repository.BodyMetricsRepository
 import com.kevan.hangry.domain.repository.UserProfileRepository
+import com.kevan.hangry.util.todayFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
 import java.time.Instant
 import java.time.LocalDate
@@ -51,8 +54,10 @@ class DefaultBodyMetricsRepository(
         val adaptiveStart: LocalDate = today.minusDays(EnergyBalanceCalculator.ADAPTIVE_WINDOW_DAYS.toLong())
     }
 
-    override fun observe(): Flow<BodyMetricsSnapshot> {
-        val w = Window(LocalDate.now(zone))
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observe(): Flow<BodyMetricsSnapshot> = todayFlow(zone).flatMapLatest { today -> observe(Window(today)) }
+
+    private fun observe(w: Window): Flow<BodyMetricsSnapshot> {
         val measurements = combine(
             userProfileRepository.getProfile(),
             weightRepository.getLatestWeight(),

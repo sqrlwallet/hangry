@@ -7,22 +7,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import java.time.Duration
+import com.kevan.hangry.util.millisUntilNextMidnight
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 import androidx.compose.ui.res.stringResource
 import com.kevan.hangry.R
-
-/** Milliseconds until the next local midnight (plus a second, so the date has definitely changed). */
-fun millisUntilNextMidnight(zone: ZoneId = ZoneId.systemDefault()): Long {
-    val now = ZonedDateTime.now(zone)
-    val midnight = now.toLocalDate().plusDays(1).atStartOfDay(zone)
-    return Duration.between(now, midnight).toMillis() + 1_000
-}
 
 /**
  * Today's date that updates itself at midnight, for labels like "Today" that must not go stale

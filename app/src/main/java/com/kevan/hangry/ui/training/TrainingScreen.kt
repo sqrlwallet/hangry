@@ -48,6 +48,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 // 5-zone cardio palette, from the theme so it adapts to light and dark mode.
 private val Zone1Color: Color @Composable get() = LocalHangryTokens.current.chartColors.zones[0] // Active recovery
@@ -84,7 +85,7 @@ fun TrainingScreen(
     heartRateRepository: HeartRateRepository,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tokens = LocalHangryTokens.current
 
     val zone = ZoneId.systemDefault()
@@ -94,17 +95,17 @@ fun TrainingScreen(
     val dayEnd = activeDate.plusDays(1).atStartOfDay(zone).toInstant()
 
     // Scoped to active date - reports workouts and heart rate distribution for the inspected date
-    val workouts by workoutRepository.getSessionsBetween(dayStart, dayEnd).collectAsState(initial = emptyList())
+    val workouts by remember(dayStart, dayEnd) { workoutRepository.getSessionsBetween(dayStart, dayEnd) }.collectAsStateWithLifecycle(initialValue = emptyList())
 
     // Collect active date's zone distribution, falling back to 7-day trailing if active date has no samples
     val zones = uiState.heartRateZones
     val zoneLabels = remember(zones) { zones.labels() }
     val todayZoneDistribution by remember(dayStart, zones) { heartRateRepository.getZoneDistribution(dayStart, dayEnd, zones) }
-        .collectAsState(initial = HeartRateZoneDistribution())
+        .collectAsStateWithLifecycle(initialValue = HeartRateZoneDistribution())
 
     val trailing7dStart = dayStart.minus(7, ChronoUnit.DAYS)
     val weekZoneDistribution by remember(dayStart, zones) { heartRateRepository.getZoneDistribution(trailing7dStart, dayEnd, zones) }
-        .collectAsState(initial = HeartRateZoneDistribution())
+        .collectAsStateWithLifecycle(initialValue = HeartRateZoneDistribution())
 
     val effectiveDistribution = if (todayZoneDistribution.totalCount > 0) {
         todayZoneDistribution

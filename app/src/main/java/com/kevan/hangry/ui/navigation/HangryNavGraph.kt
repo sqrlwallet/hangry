@@ -7,8 +7,13 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.kevan.hangry.data.repository.BodyAgeLoader
 import com.kevan.hangry.data.repository.StreaksLoader
 import com.kevan.hangry.ui.bodyage.BodyAgeScreen
-import com.kevan.hangry.ui.components.millisUntilNextMidnight
+import com.kevan.hangry.util.millisUntilNextMidnight
 import com.kevan.hangry.ui.theme.HangryTheme
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -81,6 +87,7 @@ import com.kevan.hangry.ui.background.BackgroundAccessPrompt
 import com.kevan.hangry.ui.onboarding.BackgroundSetupScreen
 import com.kevan.hangry.ui.onboarding.ProfileExtrasScreen
 import java.time.Instant
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 sealed class Screen(val route: String) {
     data object Welcome : Screen("welcome")
@@ -229,45 +236,27 @@ fun HangryNavGraph(
         navController = navController,
         startDestination = finalStart,
         modifier = modifier,
+        // Between tabs: a fade-through with a slight drift towards the tab picked. Everything
+        // else slides in from the side.
         enterTransition = {
-            val initial = initialState.destination.route
-            val target = targetState.destination.route
-            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
-                fadeIn(animationSpec = tween(180))
-            } else {
-                slideInHorizontally(initialOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeIn(animationSpec = tween(240))
-            }
+            tabDirection(initialState, targetState)?.let { tabEnter(it) }
+                ?: (slideInHorizontally(initialOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeIn(animationSpec = tween(240)))
         },
         exitTransition = {
-            val initial = initialState.destination.route
-            val target = targetState.destination.route
-            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
-                fadeOut(animationSpec = tween(180))
-            } else {
-                slideOutHorizontally(targetOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeOut(animationSpec = tween(240))
-            }
+            tabDirection(initialState, targetState)?.let { tabExit(it) }
+                ?: (slideOutHorizontally(targetOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeOut(animationSpec = tween(240)))
         },
         popEnterTransition = {
-            val initial = initialState.destination.route
-            val target = targetState.destination.route
-            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
-                fadeIn(animationSpec = tween(180))
-            } else {
-                slideInHorizontally(initialOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeIn(animationSpec = tween(240))
-            }
+            tabDirection(initialState, targetState)?.let { tabEnter(it) }
+                ?: (slideInHorizontally(initialOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeIn(animationSpec = tween(240)))
         },
         popExitTransition = {
-            val initial = initialState.destination.route
-            val target = targetState.destination.route
-            if (initial in BottomNavDestination.routeSet && target in BottomNavDestination.routeSet) {
-                fadeOut(animationSpec = tween(180))
-            } else {
-                slideOutHorizontally(targetOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeOut(animationSpec = tween(240))
-            }
+            tabDirection(initialState, targetState)?.let { tabExit(it) }
+                ?: (slideOutHorizontally(targetOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
+                    fadeOut(animationSpec = tween(240)))
         }
     ) {
         // Onboarding Flow
@@ -443,15 +432,16 @@ fun HangryNavGraph(
 
         // Main Dashboard
         composable(Screen.Dashboard.route) {
-            val breathingStats by appContainer.breathingRepository.observeStats()
-                .collectAsState(initial = BreathingStats())
-            val breathingSession by appContainer.breathingSessionController.state.collectAsState()
-            val healthRecords by appContainer.healthRecordsRepository.observe()
-                .collectAsState(initial = HealthRecordsSnapshot())
-            val supplements by appContainer.supplementRepository.observe()
-                .collectAsState(initial = SupplementsSnapshot())
-            val fasting by appContainer.fastingRepository.observe()
-                .collectAsState(initial = com.kevan.hangry.domain.model.FastingSnapshot())
+            // Remembered: a new flow on every recomposition would restart each query.
+            val breathingStats by remember { appContainer.breathingRepository.observeStats() }
+                .collectAsStateWithLifecycle(initialValue = BreathingStats())
+            val breathingSession by appContainer.breathingSessionController.state.collectAsStateWithLifecycle()
+            val healthRecords by remember { appContainer.healthRecordsRepository.observe() }
+                .collectAsStateWithLifecycle(initialValue = HealthRecordsSnapshot())
+            val supplements by remember { appContainer.supplementRepository.observe() }
+                .collectAsStateWithLifecycle(initialValue = SupplementsSnapshot())
+            val fasting by remember { appContainer.fastingRepository.observe() }
+                .collectAsStateWithLifecycle(initialValue = com.kevan.hangry.domain.model.FastingSnapshot())
             // Starting, ending or turning off fasting can change the streaks on Today.
             LaunchedEffect(fasting.enabled, fasting.active?.id, fasting.history.size, fasting.streak) {
                 dashboardViewModel.refreshHabits()
@@ -942,6 +932,29 @@ private fun NavHostController.openAiSettings() {
  * Opens a tab the way the bottom bar does - switching to it and keeping its state - rather than
  * stacking a second copy of the tab on top of the current screen.
  */
+/** +1 moving to a tab further right, -1 further left; null unless both ends are tabs. */
+private fun tabDirection(from: NavBackStackEntry, to: NavBackStackEntry): Int? {
+    val tabs = BottomNavDestination.entries
+    val fromIndex = tabs.indexOfFirst { it.route == from.destination.route }
+    val toIndex = tabs.indexOfFirst { it.route == to.destination.route }
+    if (fromIndex < 0 || toIndex < 0) return null
+    return if (toIndex >= fromIndex) 1 else -1
+}
+
+// Fade-through: the old tab is gone in 90 ms, then the new one fades in over it - the two are
+// never both half-visible, which read as a ghosted double image.
+private const val TAB_OUT_MS = 90
+private const val TAB_IN_MS = 220
+private const val TAB_DRIFT = 0.06f
+
+private fun tabEnter(direction: Int): EnterTransition =
+    fadeIn(tween(TAB_IN_MS, delayMillis = TAB_OUT_MS, easing = LinearOutSlowInEasing)) +
+        slideInHorizontally(tween(TAB_OUT_MS + TAB_IN_MS, easing = FastOutSlowInEasing)) { (direction * it * TAB_DRIFT).toInt() }
+
+private fun tabExit(direction: Int): ExitTransition =
+    fadeOut(tween(TAB_OUT_MS, easing = FastOutLinearInEasing)) +
+        slideOutHorizontally(tween(TAB_OUT_MS + TAB_IN_MS, easing = FastOutSlowInEasing)) { -(direction * it * TAB_DRIFT).toInt() }
+
 internal fun NavHostController.navigateToTab(route: String) {
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { saveState = true }

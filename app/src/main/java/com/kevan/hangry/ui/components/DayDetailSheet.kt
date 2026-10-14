@@ -12,7 +12,6 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -41,6 +40,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.ui.res.stringResource
 import com.kevan.hangry.R
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * Full Day Inspection Sheet.
@@ -67,7 +67,7 @@ fun DayDetailSheet(
     val observedWaterMl by remember(date, loggedWaterMl) {
         if (loggedWaterMl != null) flowOf(loggedWaterMl)
         else (appContext as? HangryApplication)?.container?.waterLogRepository?.observeLoggedMl(date) ?: flowOf(0)
-    }.collectAsState(initial = loggedWaterMl ?: 0)
+    }.collectAsStateWithLifecycle(initialValue = loggedWaterMl ?: 0)
     // Other apps' drinks (from Health Connect) plus what was logged here.
     val waterMl = WaterIntake.totalMl(summary?.hydrationLiters, observedWaterMl).takeIf { it > 0 }
 

@@ -61,6 +61,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val BREATHING_INFO_SECTIONS = listOf(
     R.string.coach_breathing_info_cues_title to R.string.coach_breathing_info_cues_body,
@@ -77,10 +78,10 @@ fun BreathingScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val setup by viewModel.setup.collectAsState()
+    val setup by viewModel.setup.collectAsStateWithLifecycle()
     // The session ticks every 50 ms. Only the active-session area reads it directly; the rest of
     // the screen follows just which kind of session it is, so it isn't recomposed on every tick.
-    val sessionState = viewModel.session.collectAsState()
+    val sessionState = viewModel.session.collectAsStateWithLifecycle()
     val sessionKind by remember {
         derivedStateOf {
             when (sessionState.value) {
@@ -90,8 +91,8 @@ fun BreathingScreen(
             }
         }
     }
-    val stats by viewModel.stats.collectAsState()
-    val recent by viewModel.recentSessions.collectAsState()
+    val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val recent by viewModel.recentSessions.collectAsStateWithLifecycle()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = PermissionController.createRequestPermissionResultContract()

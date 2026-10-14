@@ -47,6 +47,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +60,7 @@ fun BodyFatCalculatorScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val units = rememberBodyUnitFormatter()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     // Hidden at once; only removed from storage when the undo snackbar closes.

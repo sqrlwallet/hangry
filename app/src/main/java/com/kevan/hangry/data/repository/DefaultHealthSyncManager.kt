@@ -40,6 +40,7 @@ import com.kevan.hangry.domain.model.StrainSource
 import com.kevan.hangry.domain.model.SyncProgress
 import com.kevan.hangry.domain.model.SyncStatus
 import com.kevan.hangry.domain.repository.HealthSyncManager
+import com.kevan.hangry.util.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -55,6 +56,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
 
 class DefaultHealthSyncManager(
     private val database: HangryDatabase,
@@ -84,11 +86,7 @@ class DefaultHealthSyncManager(
         val zone = zoneProvider()
         val today = LocalDate.now(zone)
         val startDate = if (days <= 0) {
-            val earliestInHc = try {
-                dataSource.findEarliestDataDate()
-            } catch (_: Exception) {
-                null
-            }
+            val earliestInHc = resultOf { dataSource.findEarliestDataDate() }.getOrNull()
             earliestInHc ?: today.minusDays(730)
         } else {
             today.minusDays(days.toLong())
@@ -109,7 +107,7 @@ class DefaultHealthSyncManager(
         var totalSkipped = 0
         // Without full-history access Health Connect hides older data, so "not returned" only
         // means "deleted" for the last 30 days - older local history is left alone.
-        val granted = runCatching { dataSource.grantedPermissions() }.getOrDefault(emptySet())
+        val granted = resultOf { dataSource.grantedPermissions() }.getOrDefault(emptySet())
         val canSeeAllHistory = RealHealthConnectDataSource.PERMISSION_READ_HEALTH_DATA_HISTORY in granted
         // Each type is read only with its own permission. A type that isn't granted is skipped -
         // nothing read, nothing stored removed - instead of failing the whole sync.
@@ -283,6 +281,8 @@ class DefaultHealthSyncManager(
                     recordsSkipped = totalSkipped
                 )
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val isPermissionRevoked = e is SecurityException
             database.syncStateDao().insertOrReplace(
@@ -419,7 +419,7 @@ class DefaultHealthSyncManager(
         while (from.isBefore(now)) {
             val to = minOf(from.plus(30, ChronoUnit.DAYS), now)
             // No access right now (permission, Health Connect missing): try again next launch.
-            val sessions = runCatching { dataSource.fetchExerciseSessions(from, to) }.getOrElse { return false }
+            val sessions = resultOf { dataSource.fetchExerciseSessions(from, to) }.getOrElse { return false }
             database.withTransaction {
                 sessions.forEach { dao.updateDetails(it) }
                 sessions.forEach { applyWorkoutHeartRate(it) }
@@ -461,9 +461,9 @@ class DefaultHealthSyncManager(
     }
 
     override suspend fun recalculateIfScoringChanged() {
-        if (runCatching { reimportForDedupIfNeeded() }.getOrDefault(false)) return
+        if (resultOf { reimportForDedupIfNeeded() }.getOrDefault(false)) return
         // Workout types feed training load and strain, so refreshed workouts mean a recalculation.
-        val workoutsRefreshed = runCatching { refreshWorkoutDetailsIfNeeded() }.getOrDefault(false)
+        val workoutsRefreshed = resultOf { refreshWorkoutDetailsIfNeeded() }.getOrDefault(false)
         val scoringChanged = database.recoveryScoreDao().getLatestScoreSync()
             ?.let { it.algorithmVersion < RecoveryConfig().algorithmVersion } == true
         val summariesChanged = database.dailyHealthSummaryDao().getLatestSummarySync()
@@ -500,7 +500,7 @@ class DefaultHealthSyncManager(
             }
             computeDailySummaries(today, today, zone)
             true
-        } catch (e: kotlinx.coroutines.CancellationException) {
+        } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
             false
@@ -652,41 +652,17 @@ class DefaultHealthSyncManager(
             null
         }
 
-        val vo2MaxMap = try {
-            dataSource.fetchVo2Max(effectiveStart.minusDays(30), end)
-        } catch (_: Exception) {
-            emptyMap()
-        }
+        val vo2MaxMap = resultOf { dataSource.fetchVo2Max(effectiveStart.minusDays(30), end) }.getOrDefault(emptyMap())
         // Raw readings, each placed in its night's sleep - read a month at a time.
         val spo2Readings = ReadingsByMonth(zone, dataSource::fetchOxygenSaturationReadings)
         val respReadings = ReadingsByMonth(zone, dataSource::fetchRespiratoryRateReadings)
-        val skinTempMap = try {
-            dataSource.fetchSkinTemperatureDeltas(effectiveStart, end)
-        } catch (_: Exception) {
-            emptyMap()
-        }
-        val bpMap = try {
-            dataSource.fetchBloodPressure(effectiveStart, end)
-        } catch (_: Exception) {
-            emptyMap()
-        }
-        val bmrMap = try {
-            dataSource.fetchBasalMetabolicRates(effectiveStart, end)
-        } catch (_: Exception) {
-            emptyMap()
-        }
-        val hydrationMap = try {
-            dataSource.fetchHydration(effectiveStart, end)
-        } catch (_: Exception) {
-            emptyMap()
-        }
-        val bodyFatMap = try {
-            val startInstant = effectiveStart.atStartOfDay(zone).toInstant()
-            val endInstant = end.plusDays(1).atStartOfDay(zone).toInstant()
-            dataSource.fetchBodyFat(startInstant, endInstant)
-        } catch (_: Exception) {
-            emptyMap()
-        }
+        val skinTempMap = resultOf { dataSource.fetchSkinTemperatureDeltas(effectiveStart, end) }.getOrDefault(emptyMap())
+        val bpMap = resultOf { dataSource.fetchBloodPressure(effectiveStart, end) }.getOrDefault(emptyMap())
+        val bmrMap = resultOf { dataSource.fetchBasalMetabolicRates(effectiveStart, end) }.getOrDefault(emptyMap())
+        val hydrationMap = resultOf { dataSource.fetchHydration(effectiveStart, end) }.getOrDefault(emptyMap())
+        val bodyFatMap = resultOf {
+            dataSource.fetchBodyFat(effectiveStart.atStartOfDay(zone).toInstant(), end.plusDays(1).atStartOfDay(zone).toInstant())
+        }.getOrDefault(emptyMap())
 
         // Skin temperature runs warmer after ovulation - known for women tracking their cycle, so
         // it isn't taken for illness. Periods start dates plus the average cycle length.
@@ -711,16 +687,34 @@ class DefaultHealthSyncManager(
             .getScoresBetweenList(effectiveStart.minusDays(1), end)
             .associate { it.date to it.state }
 
+        // The range's sleep, workouts, resting HR, steps and HRV in one read each, sliced per day
+        // below. Heart-rate samples stay per day - a full recompute would hold all of history.
+        val rangeStart = effectiveStart.atStartOfDay(zone).toInstant()
+        val rangeEnd = end.plusDays(1).atStartOfDay(zone).toInstant()
+        // From the oldest night's 30-day history to sleep ending up to 16 hours after the range.
+        val rangeSleep = database.sleepSessionDao()
+            .getSessionsEndingBetween(rangeStart.minus(30, ChronoUnit.DAYS), rangeEnd.plus(17, ChronoUnit.HOURS))
+        val rangeWorkouts = database.exerciseSessionDao().getSessionsBetweenList(rangeStart, rangeEnd)
+        val rhrByDate = database.restingHeartRateDao().getBetweenList(effectiveStart, end)
+            .groupBy { it.recordDate }.mapValues { (_, rows) -> rows.maxBy { it.importTimestamp } }
+        val stepsByDate = database.stepsDao().getBetweenList(effectiveStart, end)
+            .groupBy { it.recordDate }.mapValues { (_, rows) -> rows.maxBy { it.importTimestamp } }
+        val hrvByDate = database.hrvDao().getBetweenList(effectiveStart, end).groupBy { it.recordDate }
+        val earliestNightStart = rangeSleep.filter { !it.endTime.isBefore(rangeStart) }.minOfOrNull { it.startTime }
+        val rangeHrv = earliestNightStart?.let {
+            database.hrvDao().getBetweenTimestamps(minOf(it, rangeStart).minus(1, ChronoUnit.HOURS), rangeEnd.plus(17, ChronoUnit.HOURS))
+        }.orEmpty()
+
         for (i in 0..daysBetween) {
             val date = effectiveStart.plusDays(i.toLong())
             val dayStart = date.atStartOfDay(zone).toInstant()
             val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
 
             // A sleep belongs to the day it ends on - each session to exactly one day.
-            val sleepSessions = database.sleepSessionDao().getSessionsEndingBetween(dayStart, dayEnd)
+            val sleepSessions = rangeSleep.filter { !it.endTime.isBefore(dayStart) && it.endTime.isBefore(dayEnd) }
             val primarySleep = HealthSyncPlan.primarySleep(date, sleepSessions, zone)
 
-            val workouts = database.exerciseSessionDao().getSessionsBetweenList(dayStart, dayEnd)
+            val workouts = rangeWorkouts.filter { !it.startTime.isBefore(dayStart) && it.startTime.isBefore(dayEnd) }
             val trainingLoad = workouts.sumOf { trainingLoadCalculator.estimateSessionLoad(it) }
 
             val heartRateSamplesToday = database.heartRateDao().getSamplesBetweenList(dayStart, dayEnd)
@@ -729,17 +723,17 @@ class DefaultHealthSyncManager(
                 .takeIf { it.isNotEmpty() }?.average()
             val zones = HeartRateZones.forUser(profile?.age, profile?.maxHeartRate, usualRestingHr)
             // Sleep that overlaps the day - its heart rate isn't activity.
-            val sleepOverlappingDay = database.sleepSessionDao()
-                .getSessionsBetweenList(dayStart.minus(16, ChronoUnit.HOURS), dayEnd.plus(16, ChronoUnit.HOURS))
+            val sleepOverlappingDay = rangeSleep
+                .filter {
+                    !it.startTime.isBefore(dayStart.minus(16, ChronoUnit.HOURS)) && !it.endTime.isAfter(dayEnd.plus(16, ChronoUnit.HOURS))
+                }
                 .filter { it.endTime.isAfter(dayStart) && it.startTime.isBefore(dayEnd) }
             val strainResult = strainCalculator.calculateDayStrain(heartRateSamplesToday, workouts, zones, sleepOverlappingDay)
 
             // Real sleep history (fixes the previous behavior of always analyzing sleep with
             // an empty history) so sleep need/performance/consistency are personal-baseline driven.
-            val sleepHistoryForCalc = database.sleepSessionDao().getSessionsEndingBetween(
-                dayStart.minus(30, ChronoUnit.DAYS),
-                dayStart
-            )
+            val sleepHistoryStart = dayStart.minus(30, ChronoUnit.DAYS)
+            val sleepHistoryForCalc = rangeSleep.filter { !it.endTime.isBefore(sleepHistoryStart) && it.endTime.isBefore(dayStart) }
             val previousDate = date.minusDays(1)
             val prevDaySummary = summaryFor(previousDate)
             val currentExistingSummary = storedSummariesByDate[date]
@@ -774,23 +768,27 @@ class DefaultHealthSyncManager(
                 rollingAverageStrain = rollingAvgStrain
             )
 
-            val rhr = database.restingHeartRateDao().getForDate(date)
-            val steps = database.stepsDao().getForDate(date)
+            val rhr = rhrByDate[date]
+            val steps = stepsByDate[date]
 
             // Overnight HRV: readings taken during last night's sleep, else the day's first one.
             val hrvRmssd = NightlyVitals.nightlyHrv(
-                readings = (primarySleep?.let {
-                    database.hrvDao().getBetweenTimestamps(it.startTime.minus(1, ChronoUnit.HOURS), it.endTime.plus(1, ChronoUnit.HOURS))
-                }.orEmpty() + database.hrvDao().getBetweenList(date, date)).distinctBy { it.id },
+                readings = (primarySleep?.let { night ->
+                    val from = night.startTime.minus(1, ChronoUnit.HOURS)
+                    val to = night.endTime.plus(1, ChronoUnit.HOURS)
+                    rangeHrv.filter { !it.timestamp.isBefore(from) && !it.timestamp.isAfter(to) }
+                }.orEmpty() + hrvByDate[date].orEmpty()).distinctBy { it.id },
                 sleepStart = primarySleep?.startTime,
                 sleepEnd = primarySleep?.endTime
             )
+
+            val nightSamples = primarySleep?.let { database.heartRateDao().getSamplesBetweenList(it.startTime, it.endTime) }
 
             // Resting heart rate is measured overnight, like recovery wearables do: the lowest
             // 5-minute average during last night's sleep. It's final once the night is over.
             val sleepingRhr = primarySleep?.let { night ->
                 NightlyVitals.lowestSustainedBpm(
-                    database.heartRateDao().getSamplesBetweenList(night.startTime, night.endTime),
+                    nightSamples.orEmpty(),
                     night.startTime, night.endTime
                 )
             }
@@ -802,16 +800,20 @@ class DefaultHealthSyncManager(
                 ?: run {
                     val rhrWindowEnd = if (date == LocalDate.now(zone)) Instant.now() else dayEnd
                     val rhrWindowStart = rhrWindowEnd.minus(24, ChronoUnit.HOURS)
-                    val awakeSamples = database.heartRateDao().getSamplesBetweenList(rhrWindowStart, rhrWindowEnd)
+                    // A past day's window is the day itself, except across a clock change.
+                    val windowSamples = if (rhrWindowStart == dayStart && rhrWindowEnd == dayEnd) heartRateSamplesToday
+                        else database.heartRateDao().getSamplesBetweenList(rhrWindowStart, rhrWindowEnd)
+                    val awakeSamples = windowSamples
                         .filter { s -> sleepOverlappingDay.none { !s.timestamp.isBefore(it.startTime) && s.timestamp.isBefore(it.endTime) } }
                     NightlyVitals.lowestSustainedBpm(awakeSamples, rhrWindowStart, rhrWindowEnd, minSamples = 3)
                 }
-                ?: database.heartRateDao().getRestingBpmEstimateBetween(dayStart, dayEnd)
+                // Last resort: the average of the day's 30 lowest readings.
+                ?: heartRateSamplesToday.map { it.bpm }.filter { it >= 35 }.sorted().take(30).takeIf { it.isNotEmpty() }?.average()
 
-            val avgHeartRate = database.heartRateDao().getAverageBpmBetween(dayStart, dayEnd)
+            val avgHeartRate = heartRateSamplesToday.takeIf { it.isNotEmpty() }?.map { it.bpm }?.average()
             val sleepingHr = primarySleep?.let { night ->
                 NightlyVitals.averageSleepingBpm(
-                    database.heartRateDao().getSamplesBetweenList(night.startTime, night.endTime),
+                    nightSamples.orEmpty(),
                     night.startTime, night.endTime
                 )
             } ?: currentExistingSummary?.sleepingHeartRate

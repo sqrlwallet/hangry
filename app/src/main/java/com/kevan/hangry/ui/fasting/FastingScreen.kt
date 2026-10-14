@@ -53,6 +53,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** The fasting ring and accents; reads on both light and dark backgrounds. */
 internal val FastingColor = Color(0xFF9C7CE0)
@@ -76,8 +77,8 @@ fun FastingScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val snapshot by viewModel.snapshot.collectAsState()
-    val isPregnant by viewModel.isPregnant.collectAsState()
+    val snapshot by viewModel.snapshot.collectAsStateWithLifecycle()
+    val isPregnant by viewModel.isPregnant.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // The goal reminder needs notification permission on Android 13+; fasting works either way.

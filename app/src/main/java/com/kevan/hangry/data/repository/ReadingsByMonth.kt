@@ -1,6 +1,7 @@
 package com.kevan.hangry.data.repository
 
 import com.kevan.hangry.domain.calculation.NightlyVitals
+import com.kevan.hangry.util.resultOf
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -22,7 +23,7 @@ internal class ReadingsByMonth(
         if (first != month) {
             month = first
             cached = emptyList() // let the previous month go before reading the next
-            cached = runCatching {
+            cached = resultOf {
                 fetch(
                     first.minusDays(1).atStartOfDay(zone).toInstant(),
                     first.plusMonths(1).plusDays(1).atStartOfDay(zone).toInstant()

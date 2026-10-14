@@ -23,12 +23,14 @@ import com.kevan.hangry.domain.calculation.WaterIntake
 import com.kevan.hangry.domain.model.SleepStage
 import com.kevan.hangry.domain.model.SleepStageCodec
 import com.kevan.hangry.domain.model.SleepStageSegment
+import com.kevan.hangry.util.resultOf
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
 import java.time.ZoneId
 import kotlin.reflect.KClass
+import kotlinx.coroutines.CancellationException
 
 class RealHealthConnectDataSource(
     private val context: Context
@@ -212,6 +214,8 @@ class RealHealthConnectDataSource(
             } while (!pageToken.isNullOrEmpty())
         } catch (e: SecurityException) {
             throw e
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading ${recordType.simpleName}: ${e.message}")
             throw e
@@ -300,24 +304,12 @@ class RealHealthConnectDataSource(
             it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_GUIDED_BREATHING &&
                 it.metadata.dataOrigin.packageName == context.packageName
         }
-        val activeCalRecords = try {
-            readAllRecords(ActiveCaloriesBurnedRecord::class, filter)
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val totalCalRecords = try {
-            readAllRecords(TotalCaloriesBurnedRecord::class, filter)
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val stepRecords = try {
-            readAllRecords(StepsRecord::class, filter)
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val distanceRecords = runCatching { readAllRecords(DistanceRecord::class, filter) }.getOrDefault(emptyList())
-        val elevationRecords = runCatching { readAllRecords(ElevationGainedRecord::class, filter) }.getOrDefault(emptyList())
-        val powerRecords = runCatching { readAllRecords(PowerRecord::class, filter) }.getOrDefault(emptyList())
+        val activeCalRecords = resultOf { readAllRecords(ActiveCaloriesBurnedRecord::class, filter) }.getOrDefault(emptyList())
+        val totalCalRecords = resultOf { readAllRecords(TotalCaloriesBurnedRecord::class, filter) }.getOrDefault(emptyList())
+        val stepRecords = resultOf { readAllRecords(StepsRecord::class, filter) }.getOrDefault(emptyList())
+        val distanceRecords = resultOf { readAllRecords(DistanceRecord::class, filter) }.getOrDefault(emptyList())
+        val elevationRecords = resultOf { readAllRecords(ElevationGainedRecord::class, filter) }.getOrDefault(emptyList())
+        val powerRecords = resultOf { readAllRecords(PowerRecord::class, filter) }.getOrDefault(emptyList())
 
         val sessions = records.map { record ->
             val durationMinutes = java.time.Duration.between(record.startTime, record.endTime).toMinutes().toInt()
@@ -521,6 +513,8 @@ class RealHealthConnectDataSource(
                 val value = group.result[metric] ?: return@mapNotNull null
                 group.startTime.toLocalDate() to (value to group.result.dataOrigins.map { it.packageName }.toSet())
             }.toMap()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed aggregating daily totals: ${e.message}")
             if (required) throw e else emptyMap()
@@ -603,6 +597,8 @@ class RealHealthConnectDataSource(
         readAllRecords(RespiratoryRateRecord::class, TimeRangeFilter.between(start, end))
             .map { NightlyVitals.Reading(it.time, it.rate, it.metadata.dataOrigin.packageName) }
             .filter { it.value in 4.0..60.0 }
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Log.w("HangryHealthConnect", "Failed reading respiratory rates: ${e.message}")
         emptyList()
@@ -613,6 +609,8 @@ class RealHealthConnectDataSource(
         val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
         val records = try {
             readAllRecords(BloodPressureRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading blood pressure: ${e.message}")
             emptyList<BloodPressureRecord>()
@@ -630,6 +628,8 @@ class RealHealthConnectDataSource(
         val endInstant = end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
         val records = try {
             readAllRecords(BasalMetabolicRateRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading BMR records: ${e.message}")
             emptyList<BasalMetabolicRateRecord>()
@@ -647,6 +647,8 @@ class RealHealthConnectDataSource(
         val endInstant = end.plusDays(1).atStartOfDay(zone).toInstant()
         val records = try {
             readAllRecords(SkinTemperatureRecord::class, TimeRangeFilter.between(startInstant, endInstant))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading skin temperature: ${e.message}")
             emptyList<SkinTemperatureRecord>()
@@ -671,6 +673,8 @@ class RealHealthConnectDataSource(
         val zone = ZoneId.systemDefault()
         val records = try {
             readAllRecords(HydrationRecord::class, TimeRangeFilter.between(start.atStartOfDay(), end.plusDays(1).atStartOfDay()))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading hydration: ${e.message}")
             return emptyMap()
@@ -710,6 +714,8 @@ class RealHealthConnectDataSource(
                 )
             )
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed writing hydration record: ${e.message}")
             false
@@ -721,6 +727,8 @@ class RealHealthConnectDataSource(
         return try {
             activeClient.deleteRecords(HydrationRecord::class, recordIdsList = emptyList(), clientRecordIdsList = listOf(WaterIntake.clientId(entry.id)))
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed deleting hydration record: ${e.message}")
             false
@@ -730,6 +738,8 @@ class RealHealthConnectDataSource(
     override suspend fun fetchBodyFat(start: Instant, end: Instant): Map<LocalDate, Double> {
         val records = try {
             readAllRecords(BodyFatRecord::class, TimeRangeFilter.between(start, end))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading body fat records: ${e.message}")
             emptyList<BodyFatRecord>()
@@ -743,6 +753,8 @@ class RealHealthConnectDataSource(
     override suspend fun fetchNutritionRecords(start: Instant, end: Instant): List<FoodLogEntity> {
         val records = try {
             readAllRecords(NutritionRecord::class, TimeRangeFilter.between(start, end))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading external nutrition records: ${e.message}")
             emptyList<NutritionRecord>()
@@ -815,6 +827,8 @@ class RealHealthConnectDataSource(
                         earliestDate = recordDate
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.d("HangryHealthConnect", "Earliest date probe notice for ${recordClass.simpleName}: ${e.message}")
             }
@@ -853,6 +867,8 @@ class RealHealthConnectDataSource(
                 )
             )
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed writing nutrition record: ${e.message}")
             false
@@ -865,7 +881,7 @@ class RealHealthConnectDataSource(
             // Entries logged before client ids were added are found by their exact time and name.
             // Best effort: without read access the lookup fails, and the client-id delete must still run.
             val end = entry.timestamp
-            val legacyIds = runCatching {
+            val legacyIds = resultOf {
                 readAllRecords(NutritionRecord::class, TimeRangeFilter.between(end.minusSeconds(60), end))
                     .filter {
                         it.metadata.dataOrigin.packageName == context.packageName &&
@@ -877,6 +893,8 @@ class RealHealthConnectDataSource(
             }.getOrElse { emptyList() }
             activeClient.deleteRecords(NutritionRecord::class, recordIdsList = legacyIds, clientRecordIdsList = listOf(foodClientId(entry)))
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed deleting nutrition record: ${e.message}")
             false
@@ -942,13 +960,15 @@ class RealHealthConnectDataSource(
             }
             activeClient.insertRecords(listOf(record))
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed writing breathing session: ${e.message}")
             false
         }
     }
 
-    override suspend fun grantedPermissions(): Set<String> = runCatching { getGrantedPermissions() }.getOrDefault(emptySet())
+    override suspend fun grantedPermissions(): Set<String> = resultOf { getGrantedPermissions() }.getOrDefault(emptySet())
 
     override suspend fun supportsMedicalRecords(): Boolean {
         val activeClient = client ?: return false
@@ -1012,6 +1032,8 @@ class RealHealthConnectDataSource(
         return try {
             activeClient.insertRecords(listOf(record))
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed writing ${marker.type}: ${e.message}")
             false
@@ -1028,6 +1050,8 @@ class RealHealthConnectDataSource(
         return try {
             activeClient.deleteRecords(type, recordIdsList = emptyList(), clientRecordIdsList = listOf(markerClientId(marker)))
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed deleting ${marker.type}: ${e.message}")
             false
@@ -1045,7 +1069,7 @@ class RealHealthConnectDataSource(
         val pregnancy = mutableListOf<FhirHealthRecordParser.PregnancyInfo>()
 
         if (PERMISSION_READ_BLOOD_PRESSURE in granted) {
-            runCatching { readAllRecords(BloodPressureRecord::class, filter) }.getOrDefault(emptyList())
+            resultOf { readAllRecords(BloodPressureRecord::class, filter) }.getOrDefault(emptyList())
                 .filterNot { it.metadata.dataOrigin.packageName == context.packageName } // our own writes
                 .forEach { r ->
                 markers += HealthMarkerEntity(
@@ -1060,7 +1084,7 @@ class RealHealthConnectDataSource(
             }
         }
         if (PERMISSION_READ_BLOOD_GLUCOSE in granted) {
-            runCatching { readAllRecords(BloodGlucoseRecord::class, filter) }.getOrDefault(emptyList())
+            resultOf { readAllRecords(BloodGlucoseRecord::class, filter) }.getOrDefault(emptyList())
                 .filterNot { it.metadata.dataOrigin.packageName == context.packageName } // our own writes
                 .forEach { r ->
                 val context = when (r.relationToMeal) {
@@ -1081,7 +1105,7 @@ class RealHealthConnectDataSource(
             }
         }
         if (includeCycle && PERMISSION_READ_MENSTRUATION in granted) {
-            runCatching { readAllRecords(MenstruationPeriodRecord::class, filter) }.getOrDefault(emptyList()).forEach { r ->
+            resultOf { readAllRecords(MenstruationPeriodRecord::class, filter) }.getOrDefault(emptyList()).forEach { r ->
                 periods += MenstrualPeriodEntity(
                     startDate = r.startTime.atZone(zone).toLocalDate(),
                     // HC end is exclusive; the last period day is the day before.
@@ -1137,6 +1161,8 @@ class RealHealthConnectDataSource(
                 )
                 all += response.medicalResources
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading medical records ($type): ${e.message}")
         }
@@ -1156,7 +1182,7 @@ class RealHealthConnectDataSource(
 
     override suspend fun fetchDataSources(since: Instant): List<DataSourceInfo> {
         val activeClient = client ?: return emptyList()
-        val granted = runCatching { getGrantedPermissions() }.getOrDefault(emptySet())
+        val granted = resultOf { getGrantedPermissions() }.getOrDefault(emptySet())
         val types: List<Pair<DataSourceInfo.DataType, KClass<out Record>>> = listOf(
             DataSourceInfo.DataType.SLEEP to SleepSessionRecord::class,
             DataSourceInfo.DataType.STEPS to StepsRecord::class,
@@ -1174,7 +1200,7 @@ class RealHealthConnectDataSource(
         )
         return types.mapNotNull { (type, recordClass) ->
             if (HealthPermission.getReadPermission(recordClass) !in granted) return@mapNotNull null
-            runCatching {
+            resultOf {
                 // Newest page only - enough to name the apps without reading a month of heart rate.
                 val records = activeClient.readRecords(
                     ReadRecordsRequest(recordClass, TimeRangeFilter.after(since), ascendingOrder = false, pageSize = 500)
@@ -1195,6 +1221,8 @@ class RealHealthConnectDataSource(
                 is ExerciseRouteResult.ConsentRequired -> RouteResult.ConsentRequired
                 else -> RouteResult.None
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed reading exercise route: ${e.message}")
             RouteResult.None

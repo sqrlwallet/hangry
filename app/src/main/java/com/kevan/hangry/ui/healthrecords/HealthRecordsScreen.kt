@@ -52,6 +52,7 @@ import com.kevan.hangry.util.rememberMultiPhotoCaptureLauncher
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 private fun healthRecordsInfo(): List<HangryInfoSection> = listOf(
@@ -90,7 +91,7 @@ fun HealthRecordsScreen(
     onNavigateToAiSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val records by viewModel.records.collectAsState()
+    val records by viewModel.records.collectAsStateWithLifecycle()
 
     // A marker goal gets one confetti moment when a reading first reaches it.
     val context = LocalContext.current
@@ -111,10 +112,10 @@ fun HealthRecordsScreen(
     celebration?.let { message ->
         DashCelebration(title = stringResource(R.string.body_records_goal_reached_title), message = message, onDismiss = { celebration = null })
     }
-    val import by viewModel.import.collectAsState()
-    val scan by viewModel.scan.collectAsState()
-    val aiEnabled by viewModel.aiEnabled.collectAsState()
-    val scanSaved by viewModel.scanSaved.collectAsState()
+    val import by viewModel.import.collectAsStateWithLifecycle()
+    val scan by viewModel.scan.collectAsStateWithLifecycle()
+    val aiEnabled by viewModel.aiEnabled.collectAsStateWithLifecycle()
+    val scanSaved by viewModel.scanSaved.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scanLauncher = rememberMultiPhotoCaptureLauncher(maxItems = HealthRecordsViewModel.MAX_SCAN_PAGES) { viewModel.onScanPages(it) }
 
@@ -577,7 +578,7 @@ private fun CycleTab(records: HealthRecordsSnapshot, viewModel: HealthRecordsVie
     var logging by rememberSaveable { mutableStateOf(false) }
     var editingPeriodId by rememberSaveable { mutableStateOf<Long?>(null) }
     val stats = HealthMarkerCalculator.cycleStats(records.periods.map { it.startDate to it.endDate }, LocalDate.now())
-    val skinTemps by viewModel.skinTempByDate.collectAsState()
+    val skinTemps by viewModel.skinTempByDate.collectAsStateWithLifecycle()
     val insight = CycleTemperature.insight(stats, skinTemps, LocalDate.now(), records.periods.map { it.startDate })
     // Once temperature confirms ovulation, the next period follows your own luteal length.
     val nextStart = insight?.predictedNextStart ?: stats.predictedNextStart

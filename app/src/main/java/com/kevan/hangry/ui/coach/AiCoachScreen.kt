@@ -94,6 +94,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val QUICK_STARTERS = listOf(
     R.string.coach_starter_ready_to_train,
@@ -118,7 +119,7 @@ fun AiCoachScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }

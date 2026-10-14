@@ -68,6 +68,8 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
+import com.kevan.hangry.ui.components.rememberToday
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 enum class TrendTimeframe(val label: String, val days: Long?) {
     DAYS_7("7D", 7),
@@ -127,9 +129,9 @@ fun TrendsScreen(
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val zone = remember { ZoneId.systemDefault() }
-    val today = remember { LocalDate.now(zone) }
+    val today = rememberToday(zone)
 
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTimeframe = state.selectedTimeframe
     val selectedMetric = state.selectedMetric
     val selectedDomain = state.selectedDomain

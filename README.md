@@ -38,7 +38,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - **Customizable dashboard** - reorder, hide or add metric cards, plus home-screen widgets (activity, sleep, recovery, overview, heart, weight, goals, calories, nutrition, fasting, breathing, quick meal log, supplements and more).
 
 ### Nutrition
-- **Snap to log** - Log Meal opens the camera; AI (Gemini 3.8 Flash by default) weighs each part of the plate, estimates calories, macros and fiber and logs it straight away, with an Edit shortcut. Manual entry is still there in the menu.
+- **Snap to log** - Log Meal opens the camera; AI (Gemini 3.8 Flash by default) weighs each part of the plate, estimates calories, macros and fiber and logs it straight away, with an Edit shortcut. Something off? Tell Dash in a comment ("half portion, cooked in butter") and it re-estimates from the photo. Tap the photo to see it full screen, zoom in or save it to your phone. Manual entry is still there in the menu.
 - **Fiber tracking** - a daily fiber target (about 14g per 1,000 kcal) with practical ways to close the gap.
 - **Weekly review** - your last 7 days of eating against your targets, with recommendations on what to add and how; with AI on, Dash reviews the meals you actually logged.
 - **Saved meals & quick add** - every food you log is saved for one-tap logging again, in ½×, 1× or 2× portions, plus 56 common foods ready from day one.

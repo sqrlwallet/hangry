@@ -101,6 +101,17 @@ ALLERGEN CHECK:
 The user has these allergies: ${allergies.joinToString(", ")}.
 Add "allergenWarnings": a list of short warnings, one per allergy this food likely or possibly contains, naming the allergen and where it's likely hiding (e.g. "Peanuts - satay sauce usually contains peanuts", "Shellfish - possible shrimp in the fried rice"). Include hidden and cross-contamination risks common for the dish. Use an empty list if none apply. Never list allergies that aren't in the user's list."""
 
+/** What Dash is asked when the user corrects a logged meal with a comment. */
+internal fun refinePrompt(hasPhoto: Boolean, previous: String, comment: String): String {
+    val subject = if (hasPhoto) "the food in this photo" else "this meal"
+    val keep = if (hasPhoto) "the photo and the earlier estimate" else "the earlier estimate"
+    return "This meal was logged as: $previous\n\n" +
+        "The user says this about it: \"${comment.trim()}\"\n\n" +
+        "Re-estimate the nutrition of exactly $subject, weighing each component again. The user's comment is " +
+        "authoritative: apply what it says (a different food, portion, ingredient, cooking method or amount eaten). " +
+        "Keep anything it doesn't change consistent with $keep."
+}
+
 /** Reads the model's answer, tolerating fences, chatter around the JSON and loosely typed values. */
 internal fun parseFoodAnalysis(raw: String): FoodAnalysisJson =
     AiJson.decodeFromString(FoodAnalysisJson.serializer(), extractJsonPayload(raw))
@@ -121,6 +132,9 @@ class OpenRouterFoodAnalyzer(
     override suspend fun analyzeDescription(text: String, allergies: List<String>): Result<FoodAnalysisResult> {
         return runAnalysis("Estimate the nutrition of this food: $text", allergies)
     }
+
+    override suspend fun refine(imageBase64: String?, previous: String, comment: String, allergies: List<String>): Result<FoodAnalysisResult> =
+        runAnalysis(refinePrompt(hasPhoto = imageBase64 != null, previous, comment), allergies, imagesBase64 = listOfNotNull(imageBase64))
 
     private suspend fun runAnalysis(userText: String, allergies: List<String>, imagesBase64: List<String> = emptyList()): Result<FoodAnalysisResult> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())

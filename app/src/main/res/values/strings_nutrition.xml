@@ -340,4 +340,15 @@
     <string name="nutrition_water_tip_body_default">A general %1$s a day for adults, because there\'s no weight on file yet. Add your weight to get a target of 30–35 ml per kg. Counts water you log here plus drinks other apps share through Health Connect.</string>
     <string name="nutrition_water_widget_add">+%1$s</string>
     <string name="nutrition_water_widget_logged">Logged %1$s of water</string>
+    <string name="nutrition_refine_label">Something off? Tell Dash</string>
+    <string name="nutrition_refine_placeholder">e.g. It was half a portion, cooked in butter, no rice</string>
+    <string name="nutrition_refine_button">Re-estimate with Dash</string>
+    <string name="nutrition_refine_working">Dash is re-estimating…</string>
+    <string name="nutrition_photo_view_full">View full photo</string>
+    <string name="nutrition_photo_cd">Photo of %1$s</string>
+    <string name="nutrition_photo_close">Close</string>
+    <string name="nutrition_photo_save">Save to phone</string>
+    <string name="nutrition_photo_saved_gallery">Saved to Pictures/Hangry</string>
+    <string name="nutrition_photo_saved_file">Photo saved</string>
+    <string name="nutrition_photo_save_failed">Couldn\'t save the photo</string>
 </resources>

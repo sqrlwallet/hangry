@@ -20,6 +20,10 @@ data class NutritionUiState(
     val lastSavedEntry: FoodLogEntity? = null,
     /** Set to open the edit dialog, either from the snackbar's Edit action or tapping a log row. */
     val editingEntry: FoodLogEntity? = null,
+    /** The entry Dash is re-estimating from the user's comment, while it works. */
+    val refiningEntryId: Long? = null,
+    /** Why the last re-estimate failed, shown in the edit dialog. */
+    val refineError: String? = null,
     val errorMessage: String? = null,
     /**
      * A meal photo the AI couldn't handle (AI off, no key, or the request failed). Opens the

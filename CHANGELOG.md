@@ -1,3 +1,17 @@
+## 🚀 What's New in Hangry v1.41.0 — Tell Dash What It Missed
+
+Fix a meal estimate in words instead of numbers, and see your meal photos in full.
+
+### 💬 Correct a meal with a comment
+- **Tell Dash what's off**: open a logged meal and write what it missed, like "half portion, cooked in butter, no rice". Dash looks at the photo again with your comment and re-estimates the whole meal.
+- **Updates the meal in place**: the name, calories and macros change on the same entry, at the same time and day, and Health Connect is updated too.
+- Works for meals logged by description as well. Your allergy check runs again on the new estimate.
+
+### 🖼️ Full meal photos
+- **Tap the photo** on a logged meal to see all of it, full screen.
+- **Pinch or double-tap to zoom**, and drag to look around.
+- **Save to your phone**: on Android 10 and later it goes to Pictures/Hangry. On Android 9 you choose where to save it.
+
 ## 🚀 What's New in Hangry v1.40.0 — Smoother and Lighter
 
 Smoother tab switching, less battery use in the background, and a faster, more robust sync.

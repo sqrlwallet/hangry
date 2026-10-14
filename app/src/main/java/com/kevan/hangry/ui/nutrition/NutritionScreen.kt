@@ -3,6 +3,8 @@ package com.kevan.hangry.ui.nutrition
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -502,9 +504,17 @@ fun NutritionScreen(
         )
     }
 
+    var viewingPhotoOf by remember { mutableStateOf<FoodLogEntity?>(null) }
+
     uiState.editingEntry?.let { entry ->
         EditFoodEntryDialog(
             entry = entry,
+            // Dash can only re-estimate meals Hangry logged, not another app's.
+            canRefine = uiState.aiFeaturesEnabled && entry.source != FoodLogSource.HEALTH_CONNECT,
+            isRefining = uiState.refiningEntryId == entry.id,
+            refineError = uiState.refineError,
+            onRefine = { comment -> viewModel.refineEntry(entry, comment) },
+            onViewPhoto = { viewingPhotoOf = entry },
             onDismiss = viewModel::cancelEdit,
             onSave = viewModel::saveEdit,
             onDelete = {
@@ -512,6 +522,12 @@ fun NutritionScreen(
                 deleteEntry(entry)
             }
         )
+    }
+
+    viewingPhotoOf?.let { entry ->
+        entry.photoPath?.let { path ->
+            FoodPhotoViewer(photoPath = path, foodName = entry.foodName, date = entry.date, onDismiss = { viewingPhotoOf = null })
+        }
     }
 
     if (showQuickLogSheet || uiState.manualReviewPhoto != null) {
@@ -800,38 +816,96 @@ private fun DescribeFoodDialog(onDismiss: () -> Unit, onAnalyze: (String) -> Uni
 @Composable
 private fun EditFoodEntryDialog(
     entry: FoodLogEntity,
+    canRefine: Boolean,
+    isRefining: Boolean,
+    refineError: String?,
+    onRefine: (comment: String) -> Unit,
+    onViewPhoto: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (FoodLogEntity) -> Unit,
     onDelete: () -> Unit
 ) {
     var photoMissing by remember(entry.photoPath) { mutableStateOf(false) }
-    var foodName by rememberSaveable(entry.id) { mutableStateOf(entry.foodName) }
-    var calories by rememberSaveable(entry.id) { mutableStateOf(entry.calories.toString()) }
+    // Keyed on the whole entry, so the fields show Dash's new estimate when it comes back.
+    var foodName by rememberSaveable(entry) { mutableStateOf(entry.foodName) }
+    var calories by rememberSaveable(entry) { mutableStateOf(entry.calories.toString()) }
+    var comment by rememberSaveable(entry) { mutableStateOf("") }
     val shownProtein = entry.proteinG.toInt().toString()
     val shownCarbs = entry.carbsG.toInt().toString()
     val shownFat = entry.fatG.toInt().toString()
     val shownFiber = entry.fiberG.toInt().toString()
-    var protein by rememberSaveable(entry.id) { mutableStateOf(shownProtein) }
-    var carbs by rememberSaveable(entry.id) { mutableStateOf(shownCarbs) }
-    var fat by rememberSaveable(entry.id) { mutableStateOf(shownFat) }
-    var fiber by rememberSaveable(entry.id) { mutableStateOf(shownFiber) }
+    var protein by rememberSaveable(entry) { mutableStateOf(shownProtein) }
+    var carbs by rememberSaveable(entry) { mutableStateOf(shownCarbs) }
+    var fat by rememberSaveable(entry) { mutableStateOf(shownFat) }
+    var fiber by rememberSaveable(entry) { mutableStateOf(shownFiber) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.nutrition_edit_entry_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 if (entry.photoPath != null && !photoMissing) {
-                    AsyncImage(
-                        model = entry.photoPath,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        onError = { photoMissing = true },
+                    // A preview: tap it for the whole photo, zoom and save.
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
+                            .height(160.dp)
                             .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClickLabel = stringResource(R.string.nutrition_photo_view_full), onClick = onViewPhoto)
+                    ) {
+                        AsyncImage(
+                            model = entry.photoPath,
+                            contentDescription = stringResource(R.string.nutrition_photo_cd, entry.foodName),
+                            contentScale = ContentScale.Crop,
+                            onError = { photoMissing = true },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Icon(
+                            Icons.Default.OpenInFull,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(6.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.Black.copy(alpha = 0.45f))
+                                .padding(4.dp)
+                                .size(18.dp)
+                        )
+                    }
+                }
+                if (canRefine) {
+                    // Fix it in words instead of numbers: Dash re-estimates from the photo and the comment.
+                    OutlinedTextField(
+                        value = comment,
+                        onValueChange = { comment = it },
+                        label = { Text(stringResource(R.string.nutrition_refine_label)) },
+                        placeholder = { Text(stringResource(R.string.nutrition_refine_placeholder)) },
+                        enabled = !isRefining,
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    FilledTonalButton(
+                        onClick = { onRefine(comment) },
+                        enabled = comment.isNotBlank() && !isRefining,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isRefining) {
+                            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.nutrition_refine_working))
+                        } else {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.nutrition_refine_button))
+                        }
+                    }
+                    refineError?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
                 }
                 if (entry.source == FoodLogSource.HEALTH_CONNECT) {
                     // Health Connect only lets the app that wrote a record change it.
@@ -853,6 +927,7 @@ private fun EditFoodEntryDialog(
         },
         confirmButton = {
             TextButton(
+                enabled = !isRefining,
                 onClick = {
                     onSave(
                         entry.copy(

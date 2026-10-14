@@ -52,6 +52,7 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToInt
 
 /**
  * Photo/description in, logged entry out - no confirmation tap in between. The AI's estimate is
@@ -340,27 +341,74 @@ class NutritionViewModel(
     }
 
     fun startEdit(entry: FoodLogEntity) {
-        _uiState.update { it.copy(editingEntry = entry, lastSavedEntry = null) }
+        _uiState.update { it.copy(editingEntry = entry, lastSavedEntry = null, refineError = null) }
     }
 
     fun cancelEdit() {
-        _uiState.update { it.copy(editingEntry = null) }
+        _uiState.update { it.copy(editingEntry = null, refineError = null) }
     }
 
     fun saveEdit(updated: FoodLogEntity) {
         val previous = _uiState.value.editingEntry?.takeIf { it.id == updated.id } ?: updated
-        _uiState.update { it.copy(editingEntry = null) }
-        viewModelScope.launch {
-            foodLogRepository.update(updated)
-            // Another app's meal can only be changed by that app, so the edit stays in Hangry.
-            if (updated.source == FoodLogSource.HEALTH_CONNECT) return@launch
-            // Remove the old record first so an entry written before client ids existed isn't left behind.
-            // The write runs either way: it replaces the record by client id even if the delete failed.
-            healthConnectDataSource.deleteNutritionRecord(previous)
-            val synced = healthConnectDataSource.writeNutritionRecord(updated)
-            foodLogRepository.update(updated.copy(healthConnectSynced = synced))
-            if (!synced) _uiState.update { it.copy(errorMessage = context.getString(R.string.nutrition_error_hc_sync_edit)) }
+        _uiState.update { it.copy(editingEntry = null, refineError = null) }
+        viewModelScope.launch { persistEdit(previous, updated) }
+    }
+
+    /**
+     * Sends the entry's photo (if it has one) and the user's [comment] back to Dash, and replaces
+     * the entry's name and nutrition with the new estimate. The edit dialog stays open on the
+     * updated values, so the user can check them or add another comment.
+     */
+    fun refineEntry(entry: FoodLogEntity, comment: String) {
+        if (comment.isBlank() || _uiState.value.refiningEntryId != null) return
+        if (!aiEnabled) {
+            _uiState.update { it.copy(refineError = context.getString(R.string.nutrition_estimate_ai_off)) }
+            return
         }
+        _uiState.update { it.copy(refiningEntryId = entry.id, refineError = null) }
+        viewModelScope.launch {
+            val photo = entry.photoPath?.let { File(it) }?.takeIf { it.exists() }?.let { readPhoto(Uri.fromFile(it)) }
+            val previous = "${entry.foodName}: ${entry.calories} kcal, ${entry.proteinG.roundToInt()} g protein, " +
+                "${entry.carbsG.roundToInt()} g carbs, ${entry.fatG.roundToInt()} g fat, ${entry.fiberG.roundToInt()} g fiber"
+            foodAnalyzer.refine(photo, previous, comment, allergies()).fold(
+                onSuccess = { result ->
+                    val updated = entry.copy(
+                        foodName = result.foodName.ifBlank { entry.foodName },
+                        calories = result.calories,
+                        proteinG = result.proteinG,
+                        carbsG = result.carbsG,
+                        fatG = result.fatG,
+                        fiberG = result.fiberG,
+                        sugarG = result.sugarG,
+                        sodiumMg = result.sodiumMg
+                    )
+                    _uiState.update {
+                        it.copy(
+                            refiningEntryId = null,
+                            // Still open on this entry: show the new numbers.
+                            editingEntry = if (it.editingEntry?.id == entry.id) updated else it.editingEntry,
+                            allergenAlert = result.allergenWarnings.takeIf { w -> w.isNotEmpty() }?.let { w -> AllergenAlert(updated, w) }
+                        )
+                    }
+                    persistEdit(entry, updated)
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(refiningEntryId = null, refineError = e.messageOrDefault()) }
+                }
+            )
+        }
+    }
+
+    private suspend fun persistEdit(previous: FoodLogEntity, updated: FoodLogEntity) {
+        foodLogRepository.update(updated)
+        // Another app's meal can only be changed by that app, so the edit stays in Hangry.
+        if (updated.source == FoodLogSource.HEALTH_CONNECT) return
+        // Remove the old record first so an entry written before client ids existed isn't left behind.
+        // The write runs either way: it replaces the record by client id even if the delete failed.
+        healthConnectDataSource.deleteNutritionRecord(previous)
+        val synced = healthConnectDataSource.writeNutritionRecord(updated)
+        foodLogRepository.update(updated.copy(healthConnectSynced = synced))
+        if (!synced) _uiState.update { it.copy(errorMessage = context.getString(R.string.nutrition_error_hc_sync_edit)) }
     }
 
     fun logFromMealPlan(plan: MealPlanEntity, portion: Double = 1.0) {

@@ -45,6 +45,7 @@ import com.kevan.hangry.ui.components.HangryRingGauge
 import com.kevan.hangry.ui.components.UndoDeleteEffect
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,6 +81,7 @@ fun PostureScreen(
     onNavigateToAiCoach: (() -> Unit)? = null
 ) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     val haptic = LocalHapticFeedback.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -176,8 +178,9 @@ fun PostureScreen(
                         }
                         if (score != null) {
                             Surface(
-                                color = scoreColor.copy(alpha = 0.14f),
-                                shape = RoundedCornerShape(12.dp)
+                                color = scoreColor.copy(alpha = if (isDark) 0.18f else 0.12f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, scoreColor.copy(alpha = if (isDark) 0.35f else 0.25f))
                             ) {
                                 Text(
                                     text = when {
@@ -371,7 +374,8 @@ fun PostureScreen(
                         onDelete = {
                             viewModel.hideScan(scan)
                             pendingDelete = scan
-                        }
+                        },
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -427,9 +431,15 @@ private fun PostureDrillItem(
 }
 
 @Composable
-private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelete: () -> Unit) {
+private fun PostureScanRow(
+    scan: PostureScanEntity,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val tokens = LocalHangryTokens.current
     val haptic = LocalHapticFeedback.current
+    val isDark = tokens.cardBackground == SurfaceDark
     val score = scan.score
     val scoreColor = when {
         score >= 80 -> tokens.scoreColors.primed
@@ -438,7 +448,7 @@ private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelet
     }
 
     HangryCard(
-        modifier = Modifier.clickable {
+        modifier = modifier.clickable {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             onClick()
         }
@@ -450,8 +460,9 @@ private fun PostureScanRow(scan: PostureScanEntity, onClick: () -> Unit, onDelet
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    color = scoreColor.copy(alpha = 0.14f),
-                    shape = RoundedCornerShape(10.dp)
+                    color = scoreColor.copy(alpha = if (isDark) 0.18f else 0.12f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, scoreColor.copy(alpha = if (isDark) 0.35f else 0.25f))
                 ) {
                     Text(
                         text = "$score",

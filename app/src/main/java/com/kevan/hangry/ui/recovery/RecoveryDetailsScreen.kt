@@ -4,8 +4,12 @@ import com.kevan.hangry.domain.model.RecoveryState
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.coach.dashMood
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -205,6 +212,7 @@ private fun HrvFeelingRow(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit) 
                 color = tokens.textPrimary
             )
         }
+        val haptic = LocalHapticFeedback.current
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -212,7 +220,10 @@ private fun HrvFeelingRow(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit) 
             HrvFeeling.entries.forEach { feeling ->
                 FilterChip(
                     selected = feeling == selected,
-                    onClick = { onSelect(feeling) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSelect(feeling)
+                    },
                     label = { Text(feeling.label) }
                 )
             }
@@ -228,21 +239,45 @@ private fun RecoveryComponentRow(
     missingLabel: String = stringResource(R.string.metrics_components_calibrating)
 ) {
     val tokens = LocalHangryTokens.current
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = valueColor
-        )
-        Text(
-            text = score?.let { stringResource(R.string.metrics_components_percent_value, it.toInt()) } ?: missingLabel,
-            style = if (score != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium,
-            color = if (score != null) tokens.textPrimary else tokens.textSecondary
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = tokens.textPrimary
+            )
+            Text(
+                text = score?.let { stringResource(R.string.metrics_components_percent_value, it.toInt()) } ?: missingLabel,
+                style = if (score != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelMedium,
+                fontWeight = if (score != null) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (score != null) valueColor else tokens.textSecondary
+            )
+        }
+        if (score != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            val animatedScore by animateFloatAsState(
+                targetValue = (score / 100.0).toFloat().coerceIn(0f, 1f),
+                animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                label = "componentProgress"
+            )
+            LinearProgressIndicator(
+                progress = { animatedScore },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = valueColor,
+                trackColor = tokens.cardBorder.copy(alpha = 0.5f)
+            )
+        }
     }
 }
 

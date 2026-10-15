@@ -1,5 +1,7 @@
 package com.kevan.hangry.ui.dashboard
 
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,6 +55,7 @@ fun TodayOverviewCard(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
     val isPending = uiState.isPendingSleepData
     val state = uiState.recoveryState
     val score = uiState.recoveryScore?.score
@@ -73,7 +78,10 @@ fun TodayOverviewCard(
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable(onClickLabel = stringResource(R.string.dashboard_open_recovery_details)) { onOpenRecovery() },
+                    .clickable(onClickLabel = stringResource(R.string.dashboard_open_recovery_details)) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onOpenRecovery()
+                    },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 HangryRingGauge(
@@ -168,7 +176,13 @@ fun TodayOverviewCard(
                 color = tokens.textMuted,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = { showGoalDialog = true }, modifier = Modifier.size(32.dp)) {
+            IconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    showGoalDialog = true
+                },
+                modifier = Modifier.size(32.dp)
+            ) {
                 Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.dashboard_edit_activity_goals), tint = tokens.textMuted, modifier = Modifier.size(16.dp))
             }
         }
@@ -214,11 +228,15 @@ fun TodayOverviewCard(
 @Composable
 private fun OverviewStat(label: String, value: String, detail: String?, color: Color, onClick: () -> Unit) {
     val tokens = LocalHangryTokens.current
+    val haptic = LocalHapticFeedback.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClickLabel = stringResource(R.string.dashboard_open_label, label)) { onClick() }
+            .clickable(onClickLabel = stringResource(R.string.dashboard_open_label, label)) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
             .padding(vertical = 2.dp)
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = tokens.textMuted)
@@ -231,11 +249,17 @@ private fun OverviewStat(label: String, value: String, detail: String?, color: C
 private fun ActivityMini(label: String, value: Int, goal: Int, color: Color, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     val progress = (value.toFloat() / goal.coerceAtLeast(1)).coerceIn(0f, 1f)
+    val animatedPct by animateIntAsState(
+        targetValue = (progress * 100).roundToInt(),
+        animationSpec = tween(650),
+        label = "miniRingPct"
+    )
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         HangryRingGauge(progress = progress, color = color, modifier = Modifier.size(44.dp), strokeWidth = 5.dp) {
             Text(
-                text = "${(progress * 100).roundToInt()}%",
+                text = "$animatedPct%",
                 style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
                 color = color
             )
         }

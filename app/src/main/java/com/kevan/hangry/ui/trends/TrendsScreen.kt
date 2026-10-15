@@ -8,10 +8,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -61,6 +65,7 @@ import com.kevan.hangry.ui.components.rememberBodyUnitFormatter
 import com.kevan.hangry.domain.calculation.WeightTrend
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -126,6 +131,7 @@ fun TrendsScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val zone = remember { ZoneId.systemDefault() }
@@ -296,15 +302,31 @@ fun TrendsScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .background(tokens.cardBackground)
+                        .border(BorderStroke(1.dp, tokens.cardBorder), RoundedCornerShape(14.dp))
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     TrendTimeframe.values().forEach { timeframe ->
                         val isSelected = timeframe == selectedTimeframe
+                        val animBg by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.22f else 0.14f) else Color.Transparent,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "timeframeBg"
+                        )
+                        val animBorder by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.65f else 0.45f) else Color.Transparent,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "timeframeBorder"
+                        )
+                        val animTextColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else tokens.textSecondary,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "timeframeText"
+                        )
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
-                            border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                            color = animBg,
+                            border = BorderStroke(1.dp, animBorder),
                             modifier = Modifier
                                 .weight(1f)
                                 .heightIn(min = 40.dp)
@@ -322,7 +344,7 @@ fun TrendsScreen(
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                     ),
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else tokens.textSecondary
+                                    color = animTextColor
                                 )
                             }
                         }
@@ -377,10 +399,25 @@ fun TrendsScreen(
                     ) {
                         TrendDomain.values().forEach { domain ->
                             val isDomainSelected = domain == selectedDomain
+                            val domainBg by animateColorAsState(
+                                targetValue = if (isDomainSelected) MaterialTheme.colorScheme.primaryContainer else tokens.cardBorder.copy(alpha = 0.35f),
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                label = "domainBg"
+                            )
+                            val domainBorder by animateColorAsState(
+                                targetValue = if (isDomainSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f) else Color.Transparent,
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                label = "domainBorder"
+                            )
+                            val domainTextColor by animateColorAsState(
+                                targetValue = if (isDomainSelected) MaterialTheme.colorScheme.onPrimaryContainer else tokens.textSecondary,
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                label = "domainText"
+                            )
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isDomainSelected) MaterialTheme.colorScheme.primaryContainer else tokens.cardBorder.copy(alpha = 0.35f),
-                                border = if (isDomainSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)) else null,
+                                color = domainBg,
+                                border = BorderStroke(1.dp, domainBorder),
                                 modifier = Modifier
                                     .height(30.dp)
                                     .clickable {
@@ -400,7 +437,7 @@ fun TrendsScreen(
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = if (isDomainSelected) FontWeight.Bold else FontWeight.Medium
                                         ),
-                                        color = if (isDomainSelected) MaterialTheme.colorScheme.onPrimaryContainer else tokens.textSecondary
+                                        color = domainTextColor
                                     )
                                 }
                             }
@@ -418,10 +455,25 @@ fun TrendsScreen(
                     ) {
                         selectedDomain.metrics.forEach { metric ->
                             val isChosen = metric == selectedMetric
+                            val metricBg by animateColorAsState(
+                                targetValue = if (isChosen) MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.22f else 0.14f) else tokens.cardBorder.copy(alpha = 0.4f),
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                label = "metricBg"
+                            )
+                            val metricBorder by animateColorAsState(
+                                targetValue = if (isChosen) MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.65f else 0.45f) else Color.Transparent,
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                label = "metricBorder"
+                            )
+                            val metricTint by animateColorAsState(
+                                targetValue = if (isChosen) MaterialTheme.colorScheme.primary else tokens.textSecondary,
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                label = "metricTint"
+                            )
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
-                                color = if (isChosen) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else tokens.cardBorder.copy(alpha = 0.4f),
-                                border = if (isChosen) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                                color = metricBg,
+                                border = BorderStroke(1.dp, metricBorder),
                                 modifier = Modifier
                                     .height(34.dp)
                                     .clickable {
@@ -437,7 +489,7 @@ fun TrendsScreen(
                                     Icon(
                                         imageVector = metric.icon,
                                         contentDescription = null,
-                                        tint = if (isChosen) MaterialTheme.colorScheme.primary else tokens.textSecondary,
+                                        tint = metricTint,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
@@ -445,7 +497,7 @@ fun TrendsScreen(
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = if (isChosen) FontWeight.Bold else FontWeight.Medium
                                         ),
-                                        color = if (isChosen) MaterialTheme.colorScheme.primary else tokens.textSecondary
+                                        color = metricTint
                                     )
                                 }
                             }
@@ -897,10 +949,25 @@ fun TrendsScreen(
                 ) {
                     HistoryFilter.values().forEach { filter ->
                         val isSelected = filter == historyFilter
+                        val filterBg by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.22f else 0.14f) else tokens.cardBorder.copy(alpha = 0.4f),
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "filterBg"
+                        )
+                        val filterBorder by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.65f else 0.45f) else Color.Transparent,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "filterBorder"
+                        )
+                        val filterTextColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else tokens.textSecondary,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "filterText"
+                        )
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else tokens.cardBorder.copy(alpha = 0.4f),
-                            border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                            color = filterBg,
+                            border = BorderStroke(1.dp, filterBorder),
                             modifier = Modifier
                                 .height(30.dp)
                                 .clickable {
@@ -917,7 +984,7 @@ fun TrendsScreen(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     ),
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else tokens.textSecondary
+                                    color = filterTextColor
                                 )
                             }
                         }
@@ -953,6 +1020,7 @@ fun TrendsScreen(
                         ),
                         // Pull each row up over the list's item gap so the rows read as one card.
                         modifier = Modifier
+                            .animateItem()
                             .fillMaxWidth()
                             .layout { measurable, constraints ->
                                 val gap = if (isFirst) 0 else HangryTokens.Spacing.section.roundToPx()

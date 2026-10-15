@@ -5,8 +5,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,10 +28,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,6 +54,7 @@ import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
@@ -266,29 +275,71 @@ private fun TimerCard(
     onEditStart: (LocalTime) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
+    val haptic = LocalHapticFeedback.current
     val now = rememberNow()
     val active = snapshot.active
     var picker by remember { mutableStateOf<TimePick?>(null) }
     var confirmEnd by remember { mutableStateOf(false) }
 
+    val rawProgress = active?.progress(now) ?: 0f
+    val animProgress by animateFloatAsState(
+        targetValue = rawProgress,
+        animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+        label = "fastingRingProgress"
+    )
+
     HangryCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(160.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(168.dp), contentAlignment = Alignment.Center) {
                 val track = tokens.cardBorder
-                val progress = active?.progress(now) ?: 0f
                 Canvas(Modifier.fillMaxSize()) {
                     val stroke = 12.dp.toPx()
                     val arc = Size(size.width - stroke, size.height - stroke)
                     val topLeft = Offset(stroke / 2, stroke / 2)
+                    // Ambient radial glow behind gauge
+                    if (animProgress > 0f) {
+                        val glowRadius = size.minDimension / 2f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    FastingColor.copy(alpha = if (isDark) 0.20f else 0.12f),
+                                    Color.Transparent
+                                ),
+                                center = center,
+                                radius = glowRadius
+                            ),
+                            radius = glowRadius
+                        )
+                    }
                     drawArc(track, 0f, 360f, false, topLeft, arc, style = Stroke(stroke, cap = StrokeCap.Round))
-                    if (progress > 0f) {
-                        drawArc(FastingColor, -90f, 360f * progress, false, topLeft, arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                    if (animProgress > 0f) {
+                        drawArc(
+                            brush = Brush.sweepGradient(
+                                colors = listOf(
+                                    FastingColor.copy(alpha = 0.85f),
+                                    FastingColor,
+                                    Color(0xFFB39DDB)
+                                )
+                            ),
+                            startAngle = -90f,
+                            sweepAngle = 360f * animProgress,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arc,
+                            style = Stroke(stroke, cap = StrokeCap.Round)
+                        )
                     }
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (active != null) {
                         val reached = active.reachedGoal(now)
-                        Text(if (reached) stringResource(R.string.nutrition_fasting_goal_reached) else stringResource(R.string.nutrition_fasting_title), style = MaterialTheme.typography.labelLarge, color = if (reached) tokens.scoreColors.primed else tokens.textSecondary)
+                        Text(
+                            text = if (reached) stringResource(R.string.nutrition_fasting_goal_reached) else stringResource(R.string.nutrition_fasting_title),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (reached) tokens.scoreColors.primed else tokens.textSecondary
+                        )
                         Text(formatClock(active.elapsed(now)), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = tokens.textPrimary)
                         Text(
                             if (reached) stringResource(R.string.nutrition_fasting_past_goal, FastingMath.formatDuration(Duration.between(active.goalAt(), now)), active.targetMinutes / 60)
@@ -313,7 +364,7 @@ private fun TimerCard(
                     }
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             if (active != null) {
                 val zone = ZoneId.systemDefault()
@@ -326,15 +377,30 @@ private fun TimerCard(
                 StageRow(FastingStage.at(active.elapsed(now)))
                 Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick = { if (active.reachedGoal(now)) onEnd() else confirmEnd = true },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        if (active.reachedGoal(now)) onEnd() else confirmEnd = true
+                    },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) { Text(stringResource(R.string.nutrition_fasting_end_fast)) }
-                TextButton(onClick = { picker = TimePick.EDIT_START }) { Text(stringResource(R.string.nutrition_fasting_edit_start)) }
+                TextButton(onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    picker = TimePick.EDIT_START
+                }) { Text(stringResource(R.string.nutrition_fasting_edit_start)) }
             } else {
-                Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                Button(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onStart()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                ) {
                     Text(stringResource(R.string.nutrition_fasting_start_hours_fast, snapshot.targetHours))
                 }
-                TextButton(onClick = { picker = TimePick.STARTED_EARLIER }) { Text(stringResource(R.string.nutrition_fasting_started_earlier)) }
+                TextButton(onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    picker = TimePick.STARTED_EARLIER
+                }) { Text(stringResource(R.string.nutrition_fasting_started_earlier)) }
             }
         }
     }
@@ -372,15 +438,17 @@ private enum class TimePick { STARTED_EARLIER, EDIT_START }
 @Composable
 private fun StageRow(stage: FastingStage) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(FastingColor.copy(alpha = 0.12f))
-            .padding(start = 12.dp, end = 4.dp),
+            .background(FastingColor.copy(alpha = if (isDark) 0.14f else 0.08f))
+            .border(BorderStroke(1.dp, FastingColor.copy(alpha = if (isDark) 0.35f else 0.22f)), RoundedCornerShape(12.dp))
+            .padding(start = 12.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(stage.title, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
+        Text(stage.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
         HangryInfoTip(title = stage.title, body = stage.detail)
         Spacer(Modifier.weight(1f))
         Text(stringResource(R.string.nutrition_fasting_stage_from, stage.fromHours), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted, modifier = Modifier.padding(end = 8.dp))
@@ -433,10 +501,12 @@ private fun StatsCard(snapshot: FastingSnapshot) {
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier = Modifier, caption: String? = null) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     Column(
         modifier
             .clip(RoundedCornerShape(HangryTokens.CornerRadii.small))
-            .background(FastingColor.copy(alpha = 0.10f))
+            .background(FastingColor.copy(alpha = if (isDark) 0.12f else 0.08f))
+            .border(BorderStroke(1.dp, FastingColor.copy(alpha = if (isDark) 0.30f else 0.18f)), RoundedCornerShape(HangryTokens.CornerRadii.small))
             .padding(10.dp)
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = tokens.textSecondary)

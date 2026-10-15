@@ -9,8 +9,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -20,6 +23,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.kevan.hangry.ui.theme.SurfaceDark
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -203,6 +210,8 @@ private fun SessionSetup(
 ) {
     val tokens = LocalHangryTokens.current
 
+    val haptic = LocalHapticFeedback.current
+
     Text(
         stringResource(R.string.coach_breathing_minutes_summary, minutesToday, minutesThisWeek),
         style = MaterialTheme.typography.labelLarge,
@@ -219,7 +228,10 @@ private fun SessionSetup(
                 PatternOption(
                     pattern = pattern,
                     selected = pattern == setup.pattern,
-                    onClick = { onSelectPattern(pattern) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSelectPattern(pattern)
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -234,7 +246,10 @@ private fun SessionSetup(
         BreathingPattern.DURATION_OPTIONS_MINUTES.forEach { minutes ->
             FilterChip(
                 selected = setup.minutes == minutes,
-                onClick = { onSelectMinutes(minutes) },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelectMinutes(minutes)
+                },
                 label = {
                     Text(
                         text = "$minutes",
@@ -312,14 +327,36 @@ private fun PatternOption(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     val accent = tokens.chartColors.sleep
+
+    val targetBg = if (selected) accent.copy(alpha = if (isDark) 0.16f else 0.12f) else tokens.cardBackground
+    val targetBorder = if (selected) accent else tokens.cardBorder.copy(alpha = if (isDark) 0.6f else 0.7f)
+    val targetTitle = if (selected) accent else tokens.textPrimary
+
+    val animatedBg by animateColorAsState(
+        targetValue = targetBg,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "patternBg"
+    )
+    val animatedBorder by animateColorAsState(
+        targetValue = targetBorder,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "patternBorder"
+    )
+    val animatedTitle by animateColorAsState(
+        targetValue = targetTitle,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "patternTitle"
+    )
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(HangryTokens.CornerRadii.medium),
-        color = if (selected) accent.copy(alpha = 0.12f) else tokens.cardBackground,
+        color = animatedBg,
         border = BorderStroke(
             width = if (selected) 1.5.dp else 1.dp,
-            color = if (selected) accent else tokens.cardBorder.copy(alpha = 0.6f)
+            color = animatedBorder
         ),
         modifier = modifier
     ) {
@@ -327,7 +364,7 @@ private fun PatternOption(
             Text(
                 text = pattern.shortLabel,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = if (selected) accent else tokens.textPrimary
+                color = animatedTitle
             )
             Text(
                 text = pattern.title,
@@ -441,6 +478,8 @@ private fun ActiveSession(
     onToggleSound: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
+    val haptic = LocalHapticFeedback.current
     val accent = tokens.chartColors.sleep
     val position = state.position
     val phaseType = position.phase.type
@@ -488,6 +527,21 @@ private fun ActiveSession(
                 style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
         }
+        // Ambient breathing aura glow that expands and contracts with breath fill
+        Box(
+            modifier = Modifier
+                .fillMaxSize(0.96f)
+                .scale(0.35f + 0.65f * easedFill)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            accent.copy(alpha = if (isDark) 0.28f * easedFill else 0.18f * easedFill),
+                            Color.Transparent
+                        )
+                    ),
+                    shape = CircleShape
+                )
+        )
         Box(
             modifier = Modifier
                 .fillMaxSize(0.88f)
@@ -546,7 +600,8 @@ private fun ActiveSession(
             progress = { state.progress },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp),
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp)),
             color = accent,
             trackColor = accent.copy(alpha = 0.15f),
             strokeCap = StrokeCap.Round,
@@ -559,14 +614,23 @@ private fun ActiveSession(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        FilledTonalIconButton(onClick = onToggleSound, modifier = Modifier.size(52.dp)) {
+        FilledTonalIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onToggleSound()
+            },
+            modifier = Modifier.size(52.dp)
+        ) {
             Icon(
                 imageVector = if (state.soundEnabled) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
                 contentDescription = if (state.soundEnabled) stringResource(R.string.coach_breathing_mute_cues) else stringResource(R.string.coach_breathing_unmute_cues)
             )
         }
         FilledIconButton(
-            onClick = if (state.isPaused) onResume else onPause,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (state.isPaused) onResume() else onPause()
+            },
             modifier = Modifier.size(72.dp),
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = accent)
         ) {
@@ -576,7 +640,13 @@ private fun ActiveSession(
                 modifier = Modifier.size(32.dp)
             )
         }
-        FilledTonalIconButton(onClick = onStop, modifier = Modifier.size(52.dp)) {
+        FilledTonalIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onStop()
+            },
+            modifier = Modifier.size(52.dp)
+        ) {
             Icon(imageVector = Icons.Default.Stop, contentDescription = stringResource(R.string.coach_breathing_end_session))
         }
     }

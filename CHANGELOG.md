@@ -1,3 +1,31 @@
+## 🚀 What's New in Hangry v1.44.0 — Deep UI/UX Polish, Ambient Telemetry & Tactile Feedback
+
+Specular hairline borders, fluid spring transitions, micro-sparkline telemetry, ambient breathing aura, and tactile feedback across both Light (Warm Cream) and Dark (Charcoal Obsidian) modes.
+
+### 🫀 Heart Metrics & Micro-Telemetry
+- **14-day trailing sparklines**: Resting Heart Rate and HRV hero cards embed micro-sparklines with gradient fills and live current-reading markers.
+- **Animated physiological band needle**: Smooth spring reveal for your HRV optimal baseline with pill-styled indicator needle and theme-aware specular borders.
+
+### 🧘 Breathing Guide & Ambient Biofeedback
+- **Ambient breathing aura**: Luminous radial aura behind the guide circle expands and contracts smoothly with your breath fill.
+- **Tactile feedback**: Subtle haptic taps when selecting patterns, adjusting session durations, and controlling playback.
+- **Spring-animated pattern cards**: Dynamic color transitions on background, borders, and typography.
+
+### ⏱️ Fasting & Recovery
+- **Luminous fasting ring**: Multi-stop sweep gradient progress arc and ambient radial glow for the active fasting timer.
+- **Recovery component meters**: Color-coded animated progress bars for HRV, RHR, Sleep, and Strain Balance.
+- **Specular stat tiles**: Refined hairline borders for fasting stages and metrics in both Warm Cream and Charcoal Obsidian.
+
+### 🏃 Training & Activity
+- **5-Zone Cardio Intensity bar**: Animated cardio breakdown tracks time across Warm-up through Maximum with specular progress bars.
+- **Workout hero badge**: Luxury 44dp category icon badge with pill-styled active calorie tag.
+- **Animated workout list**: Smooth list transitions using Compose item animations.
+
+### 🥗 Nutrition & Overnight Vitals
+- **Luxury overnight vital tiles**: Elevated mini containers with specular borders and crisp typographic hierarchy.
+- **Haptic assists**: Instant physical feedback for quick meal logging, calorie bumps (+100, +250, +500 kcal), and weight logging.
+- **Posture history transitions**: Fluid list animations when recording or removing posture checks.
+
 ## 🚀 What's New in Hangry v1.43.0 — Faster Everywhere
 
 Quicker launch, a lighter Today, and smoother scrolling and animations.

@@ -4,7 +4,15 @@ import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.coach.DashNote
 import com.kevan.hangry.ui.components.DashEmptyState
 import com.kevan.hangry.ui.components.DashEmptyScene
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,10 +37,12 @@ import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
+import com.kevan.hangry.ui.components.HangrySparkline
 import com.kevan.hangry.ui.components.PastDayNote
 import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
@@ -103,6 +113,10 @@ fun HeartMetricsScreen(
     val hasRhrBaseline = rhrValues.size >= 3
     val rhrMean = if (hasRhrBaseline) rhrValues.average() else (currentRhr ?: 60.0)
 
+    val isDark = tokens.cardBackground == SurfaceDark
+    val rhrSparkline = remember(rhrList) { rhrList.takeLast(14).map { it.restingBpm } }
+    val hrvSparkline = remember(hrvList) { hrvList.takeLast(14).map { it.rmssd } }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -170,6 +184,16 @@ fun HeartMetricsScreen(
                             style = MaterialTheme.typography.headlineLarge,
                             color = tokens.chartColors.restingHeartRate
                         )
+                        if (rhrSparkline.size >= 2) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HangrySparkline(
+                                points = rhrSparkline,
+                                color = tokens.chartColors.restingHeartRate,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(28.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         // Today against the 28-day average, or just the average without a reading.
                         val rhrDelta = currentRhr?.let { it - rhrMean }
@@ -207,6 +231,16 @@ fun HeartMetricsScreen(
                             style = MaterialTheme.typography.headlineLarge,
                             color = tokens.chartColors.hrv
                         )
+                        if (hrvSparkline.size >= 2) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HangrySparkline(
+                                points = hrvSparkline,
+                                color = tokens.chartColors.hrv,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(28.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = if (hasHrvBaseline) stringResource(R.string.metrics_heart_28_day_avg_ms, hrvMean.toInt()) else stringResource(R.string.metrics_heart_rmssd_metric),
@@ -272,14 +306,22 @@ fun HeartMetricsScreen(
                             statusBadgeColor = tokens.scoreColors.primed
                         }
 
+                        val animatedBadgeColor by animateColorAsState(
+                            targetValue = statusBadgeColor,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "hrvStatusBadgeColor"
+                        )
+
                         Surface(
-                            color = statusBadgeColor.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp)
+                            color = animatedBadgeColor.copy(alpha = if (isDark) 0.18f else 0.12f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, animatedBadgeColor.copy(alpha = if (isDark) 0.35f else 0.25f))
                         ) {
                             Text(
                                 text = statusBadgeText,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = statusBadgeColor,
+                                fontWeight = FontWeight.SemiBold,
+                                color = animatedBadgeColor,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -311,14 +353,20 @@ fun HeartMetricsScreen(
 
                     val bandStartFraction = ((hrvLowerBand - displayMin) / totalSpan).toFloat().coerceIn(0f, 1f)
                     val bandEndFraction = ((hrvUpperBand - displayMin) / totalSpan).toFloat().coerceIn(0f, 1f)
-                    val currentFraction = currentHrv?.let { ((it - displayMin) / totalSpan).toFloat().coerceIn(0f, 1f) }
+                    val rawFraction = currentHrv?.let { ((it - displayMin) / totalSpan).toFloat().coerceIn(0f, 1f) }
+                    val animatedNeedleFraction by animateFloatAsState(
+                        targetValue = rawFraction ?: 0f,
+                        animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                        label = "hrvNeedleAnimation"
+                    )
 
                     BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(24.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(tokens.cardBorder)
+                            .height(26.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(tokens.cardBorder.copy(alpha = if (isDark) 0.45f else 0.65f))
+                            .border(1.dp, tokens.cardBorder.copy(alpha = if (isDark) 0.65f else 0.85f), RoundedCornerShape(8.dp))
                     ) {
                         // Optimal Band Highlight, placed against the bar's measured width
                         Box(
@@ -326,17 +374,18 @@ fun HeartMetricsScreen(
                                 .fillMaxHeight()
                                 .offset(x = maxWidth * bandStartFraction)
                                 .width(maxWidth * (bandEndFraction - bandStartFraction))
-                                .background(tokens.scoreColors.primed.copy(alpha = 0.35f))
+                                .background(tokens.scoreColors.primed.copy(alpha = if (isDark) 0.35f else 0.25f))
                         )
 
                         // Current reading indicator needle, centred on the reading
-                        if (currentFraction != null) {
-                            val needleWidth = 4.dp
+                        if (rawFraction != null) {
+                            val needleWidth = 5.dp
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
                                     .width(needleWidth)
-                                    .offset(x = (maxWidth * currentFraction - needleWidth / 2).coerceIn(0.dp, maxWidth - needleWidth))
+                                    .offset(x = (maxWidth * animatedNeedleFraction - needleWidth / 2).coerceIn(0.dp, maxWidth - needleWidth))
+                                    .clip(RoundedCornerShape(3.dp))
                                     .background(tokens.chartColors.hrv)
                             )
                         }

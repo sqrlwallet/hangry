@@ -1,6 +1,11 @@
 package com.kevan.hangry.ui.training
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,6 +49,7 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.theme.SurfaceDark
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -215,7 +221,10 @@ fun TrainingScreen(
                     )
                 }
                 items(workouts, key = { it.id }) { workout ->
-                    WorkoutItemCard(workout = workout)
+                    WorkoutItemCard(
+                        workout = workout,
+                        modifier = Modifier.animateItem()
+                    )
                 }
             }
 
@@ -296,49 +305,56 @@ fun TrainingScreen(
 
                     // Stacked 5-Zone Visual Bar
                     if (effectiveDistribution.totalCount > 0) {
+                        val animZ1 by animateFloatAsState(targetValue = effectiveDistribution.zone1Pct, animationSpec = tween(600, easing = FastOutSlowInEasing), label = "z1")
+                        val animZ2 by animateFloatAsState(targetValue = effectiveDistribution.zone2Pct, animationSpec = tween(600, easing = FastOutSlowInEasing), label = "z2")
+                        val animZ3 by animateFloatAsState(targetValue = effectiveDistribution.zone3Pct, animationSpec = tween(600, easing = FastOutSlowInEasing), label = "z3")
+                        val animZ4 by animateFloatAsState(targetValue = effectiveDistribution.zone4Pct, animationSpec = tween(600, easing = FastOutSlowInEasing), label = "z4")
+                        val animZ5 by animateFloatAsState(targetValue = effectiveDistribution.zone5Pct, animationSpec = tween(600, easing = FastOutSlowInEasing), label = "z5")
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(16.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(tokens.cardBorder)
+                                .border(BorderStroke(1.dp, tokens.cardBorder.copy(alpha = 0.6f)), RoundedCornerShape(8.dp))
                         ) {
-                            if (effectiveDistribution.zone1Pct > 0f) {
+                            if (animZ1 > 0.005f) {
                                 Box(
                                     modifier = Modifier
-                                        .weight(effectiveDistribution.zone1Pct.coerceAtLeast(0.01f))
+                                        .weight(animZ1.coerceAtLeast(0.01f))
                                         .fillMaxHeight()
                                         .background(Zone1Color)
                                 )
                             }
-                            if (effectiveDistribution.zone2Pct > 0f) {
+                            if (animZ2 > 0.005f) {
                                 Box(
                                     modifier = Modifier
-                                        .weight(effectiveDistribution.zone2Pct.coerceAtLeast(0.01f))
+                                        .weight(animZ2.coerceAtLeast(0.01f))
                                         .fillMaxHeight()
                                         .background(Zone2Color)
                                 )
                             }
-                            if (effectiveDistribution.zone3Pct > 0f) {
+                            if (animZ3 > 0.005f) {
                                 Box(
                                     modifier = Modifier
-                                        .weight(effectiveDistribution.zone3Pct.coerceAtLeast(0.01f))
+                                        .weight(animZ3.coerceAtLeast(0.01f))
                                         .fillMaxHeight()
                                         .background(Zone3Color)
                                 )
                             }
-                            if (effectiveDistribution.zone4Pct > 0f) {
+                            if (animZ4 > 0.005f) {
                                 Box(
                                     modifier = Modifier
-                                        .weight(effectiveDistribution.zone4Pct.coerceAtLeast(0.01f))
+                                        .weight(animZ4.coerceAtLeast(0.01f))
                                         .fillMaxHeight()
                                         .background(Zone4Color)
                                 )
                             }
-                            if (effectiveDistribution.zone5Pct > 0f) {
+                            if (animZ5 > 0.005f) {
                                 Box(
                                     modifier = Modifier
-                                        .weight(effectiveDistribution.zone5Pct.coerceAtLeast(0.01f))
+                                        .weight(animZ5.coerceAtLeast(0.01f))
                                         .fillMaxHeight()
                                         .background(Zone5Color)
                                 )
@@ -402,65 +418,102 @@ private fun ZoneDetailRow(
     percentage: Int
 ) {
     val tokens = LocalHangryTokens.current
-    Row(
+    val animPct by animateFloatAsState(
+        targetValue = (percentage / 100f).coerceIn(0f, 1f),
+        animationSpec = tween(600, easing = FastOutSlowInEasing),
+        label = "zonePctBar"
+    )
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 4.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(color)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(color)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = tokens.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = range,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tokens.textMuted
+                )
+            }
+
             Text(
-                text = name,
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = range,
-                style = MaterialTheme.typography.labelSmall,
-                color = tokens.textMuted
+                text = stringResource(R.string.metrics_components_percent_value, percentage),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = tokens.textPrimary
             )
         }
-
-        Text(
-            text = stringResource(R.string.metrics_components_percent_value, percentage),
-            style = MaterialTheme.typography.titleSmall,
-            color = tokens.textPrimary
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = { animPct },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .clip(RoundedCornerShape(1.5.dp)),
+            color = color,
+            trackColor = tokens.cardBorder.copy(alpha = 0.5f)
         )
     }
 }
 
 @Composable
-private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
+private fun WorkoutItemCard(
+    workout: ExerciseSessionEntity,
+    modifier: Modifier = Modifier
+) {
     val tokens = LocalHangryTokens.current
+    val isDark = tokens.cardBackground == SurfaceDark
     val details = WorkoutText.details(workout)
-    HangryCard {
+    val loadColor = tokens.chartColors.trainingLoad
+
+    HangryCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = WorkoutFormat.icon(workout),
-                contentDescription = null,
-                tint = tokens.chartColors.trainingLoad,
-                modifier = Modifier.size(24.dp)
-            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = loadColor.copy(alpha = if (isDark) 0.16f else 0.10f),
+                border = BorderStroke(1.dp, loadColor.copy(alpha = if (isDark) 0.35f else 0.22f)),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = WorkoutFormat.icon(workout),
+                        contentDescription = null,
+                        tint = loadColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = WorkoutText.name(workout),
                     style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = tokens.textPrimary
                 )
                 Text(
@@ -471,20 +524,28 @@ private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
             }
             // Everything burned during the workout, not just what was above resting.
             ActiveActivityCalculator.workoutCalories(workout, bmr = null)?.let { kcal ->
-                Text(
-                    text = stringResource(R.string.metrics_components_kcal_value, kcal.toInt()),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = tokens.chartColors.trainingLoad
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = loadColor.copy(alpha = if (isDark) 0.14f else 0.08f),
+                    border = BorderStroke(1.dp, loadColor.copy(alpha = if (isDark) 0.28f else 0.18f))
+                ) {
+                    Text(
+                        text = stringResource(R.string.metrics_components_kcal_value, kcal.toInt()),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = loadColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
         if (details.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = details.joinToString("  ·  "),
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textPrimary,
-                modifier = Modifier.padding(start = 36.dp)
+                modifier = Modifier.padding(start = 56.dp)
             )
         }
         workout.segmentSummary?.let {
@@ -492,7 +553,7 @@ private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
                 text = it,
                 style = MaterialTheme.typography.bodySmall,
                 color = tokens.textSecondary,
-                modifier = Modifier.padding(start = 36.dp, top = 2.dp)
+                modifier = Modifier.padding(start = 56.dp, top = 2.dp)
             )
         }
         workout.notes?.let {
@@ -502,7 +563,7 @@ private fun WorkoutItemCard(workout: ExerciseSessionEntity) {
                 color = tokens.textMuted,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = 36.dp, top = 2.dp)
+                modifier = Modifier.padding(start = 56.dp, top = 2.dp)
             )
         }
         WorkoutRouteSection(workout)

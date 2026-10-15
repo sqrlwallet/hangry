@@ -16,8 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.domain.model.DashboardWidget
@@ -28,6 +26,7 @@ import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.UUID
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +40,7 @@ fun CustomizeDashboardSheet(
     onDismiss: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
 
     ModalBottomSheet(
@@ -137,7 +136,7 @@ fun CustomizeDashboardSheet(
                                 IconButton(
                                     onClick = {
                                         if (index > 0) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            haptic.tick()
                                             val mutable = widgets.map { it.id }.toMutableList()
                                             val currentId = mutable.removeAt(index)
                                             mutable.add(index - 1, currentId)
@@ -154,7 +153,7 @@ fun CustomizeDashboardSheet(
                                 IconButton(
                                     onClick = {
                                         if (index < widgets.size - 1) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            haptic.tick()
                                             val mutable = widgets.map { it.id }.toMutableList()
                                             val currentId = mutable.removeAt(index)
                                             mutable.add(index + 1, currentId)

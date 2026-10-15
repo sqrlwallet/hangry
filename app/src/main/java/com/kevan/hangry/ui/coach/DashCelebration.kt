@@ -14,19 +14,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 /** A goal-reached moment: Dash bursts in with confetti. */
 @Composable
 fun DashCelebration(title: String, message: String, onDismiss: () -> Unit, mood: DashMood = DashMood.CELEBRATE) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
-    LaunchedEffect(Unit) { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
+    val haptic = rememberHangryHaptics()
+    LaunchedEffect(Unit) { haptic.confirm() }
     AlertDialog(
         onDismissRequest = onDismiss,
         text = {

@@ -36,8 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.kevan.hangry.ui.theme.SurfaceDark
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +48,7 @@ import com.kevan.hangry.R
 import com.kevan.hangry.domain.calculation.WaterIntake
 import com.kevan.hangry.ui.components.HangryInfoTip
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 /** A day's water against its target, for the daily target card. */
 data class WaterProgress(
@@ -74,7 +73,7 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
     val target = waterText(WaterFormat.amount(water.targetMl))
 
     val isDark = tokens.cardBackground == SurfaceDark
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -101,7 +100,7 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
             // Quick log pill (+1 glass / 250ml)
             Surface(
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic.confirm()
                     onAdd(WaterIntake.GLASS_ML)
                 },
                 shape = RoundedCornerShape(12.dp),
@@ -143,7 +142,7 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
                         text = { Text(stringResource(R.string.nutrition_water_glass, waterText(WaterFormat.amount(WaterIntake.GLASS_ML)))) },
                         onClick = {
                             menuOpen = false
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.confirm()
                             onAdd(WaterIntake.GLASS_ML)
                         }
                     )
@@ -151,7 +150,7 @@ internal fun WaterRow(water: WaterProgress, onAdd: (Int) -> Unit, modifier: Modi
                         text = { Text(stringResource(R.string.nutrition_water_bottle, waterText(WaterFormat.amount(WaterIntake.BOTTLE_ML)))) },
                         onClick = {
                             menuOpen = false
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.confirm()
                             onAdd(WaterIntake.BOTTLE_ML)
                         }
                     )

@@ -29,8 +29,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
@@ -46,7 +44,7 @@ fun EditActivityGoalsDialog(
     onDismiss: () -> Unit,
     onSave: (stepGoal: Long, caloriesGoal: Int, activeMinutesGoal: Int) -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     var stepText by remember { mutableStateOf(initialStepGoal.toString()) }
     var caloriesText by remember { mutableStateOf(initialCaloriesGoal.toString()) }
     var minutesText by remember { mutableStateOf(initialActiveMinutesGoal.toString()) }
@@ -97,7 +95,7 @@ fun EditActivityGoalsDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic.confirm()
                     val s = (stepText.toLongOrNull() ?: 6000L).coerceAtLeast(100L)
                     val c = (caloriesText.toIntOrNull() ?: 500).coerceAtLeast(50)
                     val m = (minutesText.toIntOrNull() ?: 90).coerceIn(5, 600)

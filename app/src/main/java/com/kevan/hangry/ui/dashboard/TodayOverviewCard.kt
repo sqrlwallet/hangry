@@ -1,7 +1,5 @@
 package com.kevan.hangry.ui.dashboard
 
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,8 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +24,7 @@ import com.kevan.hangry.domain.model.RecoveryState
 import com.kevan.hangry.ui.coach.DashExpression
 import com.kevan.hangry.ui.coach.DashMood
 import com.kevan.hangry.ui.coach.dashMood
+import com.kevan.hangry.ui.components.AnimatedMetricText
 import com.kevan.hangry.ui.components.EditActivityGoalsDialog
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryRingGauge
@@ -36,6 +33,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.util.Locale
 import kotlin.math.roundToInt
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 private val DashboardUiState.recoveryState: RecoveryState
     get() = recoveryScore?.state?.let { runCatching { RecoveryState.valueOf(it) }.getOrNull() }
@@ -55,7 +53,7 @@ fun TodayOverviewCard(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val isPending = uiState.isPendingSleepData
     val state = uiState.recoveryState
     val score = uiState.recoveryScore?.score
@@ -79,7 +77,7 @@ fun TodayOverviewCard(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
                     .clickable(onClickLabel = stringResource(R.string.dashboard_open_recovery_details)) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onOpenRecovery()
                     },
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -88,11 +86,15 @@ fun TodayOverviewCard(
                     progress = if (isPending) 0f else (score ?: 0) / 100f,
                     color = scoreColor,
                     modifier = Modifier.size(96.dp),
-                    strokeWidth = 9.dp
+                    strokeWidth = 9.dp,
+                    contentDescription = if (isPending) null else score?.let {
+                        stringResource(R.string.metrics_components_a11y_recovery_score, it.toString())
+                    }
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = if (isPending || score == null) "--" else "$score",
+                        AnimatedMetricText(
+                            value = if (isPending) null else score,
+                            placeholder = "--",
                             style = MaterialTheme.typography.headlineLarge,
                             color = scoreColor
                         )
@@ -178,7 +180,7 @@ fun TodayOverviewCard(
             )
             IconButton(
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.tick()
                     showGoalDialog = true
                 },
                 modifier = Modifier.size(32.dp)
@@ -228,13 +230,13 @@ fun TodayOverviewCard(
 @Composable
 private fun OverviewStat(label: String, value: String, detail: String?, color: Color, onClick: () -> Unit) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClickLabel = stringResource(R.string.dashboard_open_label, label)) {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                haptic.tick()
                 onClick()
             }
             .padding(vertical = 2.dp)
@@ -249,15 +251,11 @@ private fun OverviewStat(label: String, value: String, detail: String?, color: C
 private fun ActivityMini(label: String, value: Int, goal: Int, color: Color, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     val progress = (value.toFloat() / goal.coerceAtLeast(1)).coerceIn(0f, 1f)
-    val animatedPct by animateIntAsState(
-        targetValue = (progress * 100).roundToInt(),
-        animationSpec = tween(650),
-        label = "miniRingPct"
-    )
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         HangryRingGauge(progress = progress, color = color, modifier = Modifier.size(44.dp), strokeWidth = 5.dp) {
-            Text(
-                text = "$animatedPct%",
+            AnimatedMetricText(
+                value = (progress * 100).roundToInt(),
+                format = { "$it%" },
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = color

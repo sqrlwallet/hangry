@@ -45,7 +45,9 @@ fun HangryScoreHero(
         ScoreConfidence.LOW
     }
 
-    val scoreDisplay = scoreEntity?.score?.toString() ?: "—"
+    val ringDescription = scoreEntity?.score?.let {
+        stringResource(R.string.metrics_components_a11y_recovery_score, it.toString())
+    }
 
     val positiveDrivers = scoreEntity?.positiveContributors?.split("|")?.filter { it.isNotBlank() } ?: emptyList()
     val negativeDrivers = scoreEntity?.negativeContributors?.split("|")?.filter { it.isNotBlank() } ?: emptyList()
@@ -67,11 +69,12 @@ fun HangryScoreHero(
                 progress = (scoreEntity?.score ?: 0) / 100f,
                 color = scoreColor,
                 modifier = Modifier.size(88.dp),
-                strokeWidth = 8.dp
+                strokeWidth = 8.dp,
+                contentDescription = ringDescription
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = scoreDisplay,
+                    AnimatedMetricText(
+                        value = scoreEntity?.score,
                         style = MaterialTheme.typography.headlineMedium,
                         color = scoreColor
                     )

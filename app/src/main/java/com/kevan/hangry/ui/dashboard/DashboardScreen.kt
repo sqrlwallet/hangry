@@ -20,9 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +57,7 @@ import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.time.LocalDate
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -186,10 +185,10 @@ fun DashboardScreen(
         snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = dockInset)) },
         floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
-            val haptic = LocalHapticFeedback.current
+            val haptic = rememberHangryHaptics()
             Surface(
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.tick()
                     photoLauncher.takePhoto()
                 },
                 enabled = !isAnalyzingMeal,
@@ -518,7 +517,7 @@ private fun CalorieBurnCard(
     val tokens = LocalHangryTokens.current
     val burn = uiState.calorieBurn
 
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable { onNavigateToSettings() }) {
+    HangryCard(modifier = Modifier.fillMaxWidth(), onClick = { onNavigateToSettings() }) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

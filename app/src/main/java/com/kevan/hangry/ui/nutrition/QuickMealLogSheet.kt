@@ -20,10 +20,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,6 +37,7 @@ import com.kevan.hangry.ui.components.rememberDiscardGuardSheetState
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +53,7 @@ fun QuickMealLogSheet(
     onLogMealPlan: ((MealPlanEntity) -> Unit)? = null
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -205,7 +204,7 @@ fun QuickMealLogSheet(
                     FilterChip(
                         selected = foodName.startsWith(type),
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             foodName = if (foodName.isBlank() || quickMealTypes.any { foodName == it }) {
                                 type
                             } else {
@@ -243,7 +242,7 @@ fun QuickMealLogSheet(
                         savedChips.forEach { plan ->
                             SuggestionChip(
                                 onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.tick()
                                     if (chipsFill) {
                                         applyPick(FoodPick(plan.name, plan.calories, plan.proteinG, plan.carbsG, plan.fatG, plan.fiberG))
                                     } else {
@@ -283,7 +282,7 @@ fun QuickMealLogSheet(
                     listOf(100, 250, 500).forEach { bump ->
                         AssistChip(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.tick()
                                 val current = caloriesText.toIntOrNull() ?: 0
                                 caloriesText = (current + bump).toString()
                             },
@@ -413,7 +412,7 @@ fun QuickMealLogSheet(
             // Primary Log Button
             Button(
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic.confirm()
                     val finalName = foodName.ifBlank { defaultMealName }
                     val finalCalories = caloriesText.toIntOrNull() ?: 0
                     val protein = proteinText.toDoubleOrNull() ?: 0.0

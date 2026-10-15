@@ -24,8 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.kevan.hangry.ui.theme.SurfaceDark
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -69,6 +67,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 private val BREATHING_INFO_SECTIONS = listOf(
     R.string.coach_breathing_info_cues_title to R.string.coach_breathing_info_cues_body,
@@ -210,7 +209,7 @@ private fun SessionSetup(
 ) {
     val tokens = LocalHangryTokens.current
 
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
 
     Text(
         stringResource(R.string.coach_breathing_minutes_summary, minutesToday, minutesThisWeek),
@@ -229,7 +228,7 @@ private fun SessionSetup(
                     pattern = pattern,
                     selected = pattern == setup.pattern,
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onSelectPattern(pattern)
                     },
                     modifier = Modifier.weight(1f)
@@ -247,7 +246,7 @@ private fun SessionSetup(
             FilterChip(
                 selected = setup.minutes == minutes,
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.tick()
                     onSelectMinutes(minutes)
                 },
                 label = {
@@ -479,7 +478,7 @@ private fun ActiveSession(
 ) {
     val tokens = LocalHangryTokens.current
     val isDark = tokens.cardBackground == SurfaceDark
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val accent = tokens.chartColors.sleep
     val position = state.position
     val phaseType = position.phase.type
@@ -616,7 +615,7 @@ private fun ActiveSession(
     ) {
         FilledTonalIconButton(
             onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                haptic.tick()
                 onToggleSound()
             },
             modifier = Modifier.size(52.dp)
@@ -628,7 +627,7 @@ private fun ActiveSession(
         }
         FilledIconButton(
             onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                haptic.confirm()
                 if (state.isPaused) onResume() else onPause()
             },
             modifier = Modifier.size(72.dp),
@@ -642,7 +641,7 @@ private fun ActiveSession(
         }
         FilledTonalIconButton(
             onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                haptic.confirm()
                 onStop()
             },
             modifier = Modifier.size(52.dp)

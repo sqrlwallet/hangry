@@ -15,9 +15,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +33,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 /**
  * Every food the user has logged before, one tap from being logged again.
@@ -47,7 +46,7 @@ fun SavedMealsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -173,8 +172,9 @@ fun SavedMealsScreen(
                         SavedMealRow(
                             meal = meal,
                             portion = portion,
+                            modifier = Modifier.animateItem(),
                             onLog = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.tick()
                                 viewModel.logFromMealPlan(meal, portion)
                             },
                             onEdit = { editing = meal },
@@ -264,12 +264,14 @@ private fun PortionPicker(portion: Double, onPortionChange: (Double) -> Unit) {
 }
 
 @Composable
-private fun SavedMealRow(meal: MealPlanEntity, portion: Double, onLog: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun SavedMealRow(meal: MealPlanEntity, portion: Double, modifier: Modifier = Modifier, onLog: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     val tokens = LocalHangryTokens.current
     var menuOpen by remember { mutableStateOf(false) }
     HangryCard(
-        modifier = Modifier.clickable(onClickLabel = stringResource(R.string.nutrition_log_item_label, portionedName(meal.name, portion)), onClick = onLog),
-        contentPadding = HangryTokens.Spacing.s
+        modifier = modifier,
+        contentPadding = HangryTokens.Spacing.s,
+        onClickLabel = stringResource(R.string.nutrition_log_item_label, portionedName(meal.name, portion)),
+        onClick = onLog
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Icon(

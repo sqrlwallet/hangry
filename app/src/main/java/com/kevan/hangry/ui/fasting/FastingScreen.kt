@@ -32,9 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,6 +61,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 /** The fasting ring and accents; reads on both light and dark backgrounds. */
 internal val FastingColor = Color(0xFF9C7CE0)
@@ -276,7 +275,7 @@ private fun TimerCard(
 ) {
     val tokens = LocalHangryTokens.current
     val isDark = tokens.cardBackground == SurfaceDark
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val now = rememberNow()
     val active = snapshot.active
     var picker by remember { mutableStateOf<TimePick?>(null) }
@@ -378,19 +377,19 @@ private fun TimerCard(
                 Spacer(Modifier.height(12.dp))
                 Button(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         if (active.reachedGoal(now)) onEnd() else confirmEnd = true
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) { Text(stringResource(R.string.nutrition_fasting_end_fast)) }
                 TextButton(onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.tick()
                     picker = TimePick.EDIT_START
                 }) { Text(stringResource(R.string.nutrition_fasting_edit_start)) }
             } else {
                 Button(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onStart()
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
@@ -398,7 +397,7 @@ private fun TimerCard(
                     Text(stringResource(R.string.nutrition_fasting_start_hours_fast, snapshot.targetHours))
                 }
                 TextButton(onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.tick()
                     picker = TimePick.STARTED_EARLIER
                 }) { Text(stringResource(R.string.nutrition_fasting_started_earlier)) }
             }

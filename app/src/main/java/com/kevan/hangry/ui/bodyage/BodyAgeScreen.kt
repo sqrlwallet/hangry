@@ -80,8 +80,10 @@ fun BodyAgeCard(snapshot: BodyAgeSnapshot?, onClick: () -> Unit, modifier: Modif
     val tokens = LocalHangryTokens.current
     val result = snapshot?.current
     HangryCard(
-        modifier = modifier.fillMaxWidth().clickable(onClickLabel = stringResource(R.string.metrics_bodyage_open)) { onClick() },
-        contentPadding = HangryTokens.Spacing.s + 4.dp
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = HangryTokens.Spacing.s + 4.dp,
+        onClickLabel = stringResource(R.string.metrics_bodyage_open),
+        onClick = { onClick() }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DashExpression(mood = result?.mood() ?: DashMood.THINKING, size = 48.dp, contentDescription = null, interactive = false)

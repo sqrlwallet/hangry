@@ -37,8 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.local.dao.WeightDao
@@ -75,6 +73,7 @@ import java.util.Locale
 import kotlin.math.abs
 import com.kevan.hangry.ui.components.rememberToday
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 enum class TrendTimeframe(val label: String, val days: Long?) {
     DAYS_7("7D", 7),
@@ -132,7 +131,7 @@ fun TrendsScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val isDark = tokens.cardBackground == SurfaceDark
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val context = LocalContext.current
     val zone = remember { ZoneId.systemDefault() }
     val today = rememberToday(zone)
@@ -331,7 +330,7 @@ fun TrendsScreen(
                                 .weight(1f)
                                 .heightIn(min = 40.dp)
                                 .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.tick()
                                     viewModel.setTimeframe(timeframe)
                                 }
                         ) {
@@ -421,7 +420,7 @@ fun TrendsScreen(
                                 modifier = Modifier
                                     .height(30.dp)
                                     .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        haptic.tick()
                                         viewModel.setDomain(domain)
                                         if (selectedMetric !in domain.metrics) {
                                             viewModel.setMetric(domain.metrics.first())
@@ -477,7 +476,7 @@ fun TrendsScreen(
                                 modifier = Modifier
                                     .height(34.dp)
                                     .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        haptic.tick()
                                         viewModel.setMetric(metric)
                                     }
                             ) {
@@ -971,7 +970,7 @@ fun TrendsScreen(
                             modifier = Modifier
                                 .height(30.dp)
                                 .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.tick()
                                     viewModel.setHistoryFilter(filter)
                                 }
                         ) {
@@ -1040,7 +1039,7 @@ fun TrendsScreen(
                                 workoutCount = workoutsByDate[dateItem]?.size ?: 0,
                                 caloriesIn = foodLogsByDate[dateItem]?.takeIf { it.isNotEmpty() }?.sumOf { it.calories },
                                 onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.tick()
                                     viewModel.setInspectingDate(dateItem)
                                 }
                             )

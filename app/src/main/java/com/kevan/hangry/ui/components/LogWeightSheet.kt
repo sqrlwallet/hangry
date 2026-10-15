@@ -26,8 +26,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -54,7 +52,7 @@ fun LogWeightSheet(
     onSave: (kg: Double, takenAt: Instant) -> Unit
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val formatter = rememberBodyUnitFormatter()
     var kgText by rememberSaveable { mutableStateOf("") }
     var date by rememberSaveable { mutableStateOf(LocalDate.now()) }
@@ -96,7 +94,7 @@ fun LogWeightSheet(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         pickingDate = true
                     },
                     modifier = Modifier.weight(1f).height(48.dp)
@@ -107,7 +105,7 @@ fun LogWeightSheet(
                 }
                 Button(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        haptic.confirm()
                         val takenAt = if (date == LocalDate.now()) Instant.now()
                         else date.atTime(LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant()
                         onSave(kg!!, takenAt)

@@ -335,4 +335,11 @@
     <string name="metrics_bodyage_factor_younger">−%1$s yrs</string>
     <string name="metrics_bodyage_factor_older">+%1$s yrs</string>
     <string name="metrics_bodyage_your_dob">Your date of birth</string>
+
+    <!-- Accessibility: descriptions for custom-drawn gauges, charts and sparklines read by screen readers -->
+    <string name="metrics_components_a11y_recovery_score">Recovery score %1$s out of 100</string>
+    <string name="metrics_components_a11y_stress_score">Stress score %1$d out of 100, %2$s</string>
+    <string name="metrics_components_a11y_sleep_score">Sleep score %1$d out of 100</string>
+    <string name="metrics_components_a11y_chart">Trend chart, %1$d points, average %2$s, high %3$s, low %4$s</string>
+    <string name="metrics_components_a11y_sparkline">%1$s recent trend</string>
 </resources>

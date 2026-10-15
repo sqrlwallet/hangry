@@ -28,9 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,6 +47,7 @@ import com.kevan.hangry.ui.theme.SurfaceDark
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 /** Scan dates as "Mar 4, 2026", matching body fat history. */
 internal val POSTURE_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
@@ -82,7 +81,7 @@ fun PostureScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val isDark = tokens.cardBackground == SurfaceDark
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -125,7 +124,7 @@ fun PostureScreen(
                 verticalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.section)
             ) {
                 HangryPendingNotice(message = stringResource(R.string.body_posture_enable_ai))
-                HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {
+                HangryCard(onClick = { onNavigateToAiSettings() }) {
                     Text(stringResource(R.string.body_posture_go_to_ai_settings), style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)
                 }
             }
@@ -245,7 +244,7 @@ fun PostureScreen(
                             body = stringResource(R.string.body_posture_no_scans_body),
                             actionLabel = stringResource(R.string.body_posture_start_first),
                             onAction = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.tick()
                                 onStartNewScan()
                             }
                         )
@@ -256,7 +255,7 @@ fun PostureScreen(
 
                         Button(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.tick()
                                 onStartNewScan()
                             },
                             modifier = Modifier.fillMaxWidth()
@@ -315,7 +314,7 @@ fun PostureScreen(
                         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
                         Surface(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.tick()
                                 onNavigateToAiCoach()
                             },
                             shape = RoundedCornerShape(14.dp),
@@ -438,7 +437,7 @@ private fun PostureScanRow(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val isDark = tokens.cardBackground == SurfaceDark
     val score = scan.score
     val scoreColor = when {
@@ -448,8 +447,9 @@ private fun PostureScanRow(
     }
 
     HangryCard(
-        modifier = modifier.clickable {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        modifier = modifier,
+        onClick = {
+            haptic.tick()
             onClick()
         }
     ) {
@@ -488,7 +488,7 @@ private fun PostureScanRow(
                 }
             }
             IconButton(onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                haptic.confirm()
                 onDelete()
             }) {
                 Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.body_posture_delete), tint = tokens.textMuted)

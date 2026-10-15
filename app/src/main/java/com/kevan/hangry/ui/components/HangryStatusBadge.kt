@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.RecoveryState
 import com.kevan.hangry.domain.model.ScoreConfidence
+import com.kevan.hangry.ui.theme.HangryMotion
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.ui.theme.SurfaceDark
@@ -54,8 +55,8 @@ fun HangryStatusBadge(
         )
     }
 
-    val animBgColor by animateColorAsState(targetValue = targetBgColor, animationSpec = tween(400), label = "statusBadgeBg")
-    val animTextColor by animateColorAsState(targetValue = targetTextColor, animationSpec = tween(400), label = "statusBadgeText")
+    val animBgColor by animateColorAsState(targetValue = targetBgColor, animationSpec = tween(HangryMotion.slow), label = "statusBadgeBg")
+    val animTextColor by animateColorAsState(targetValue = targetTextColor, animationSpec = tween(HangryMotion.slow), label = "statusBadgeText")
     val borderColor = animTextColor.copy(alpha = if (isDark) 0.32f else 0.22f)
     val pillShape = RoundedCornerShape(HangryTokens.CornerRadii.pill)
 
@@ -87,7 +88,7 @@ fun HangryConfidenceBadge(
         ScoreConfidence.LOW -> Pair(tokens.scoreColors.buildingBaseline, stringResource(R.string.metrics_components_calibrating))
     }
 
-    val animColor by animateColorAsState(targetValue = targetColor, animationSpec = tween(400), label = "confidenceBadgeColor")
+    val animColor by animateColorAsState(targetValue = targetColor, animationSpec = tween(HangryMotion.slow), label = "confidenceBadgeColor")
     val pillShape = RoundedCornerShape(HangryTokens.CornerRadii.pill)
     val bgTint = animColor.copy(alpha = if (isDark) 0.14f else 0.08f)
     val borderTint = animColor.copy(alpha = if (isDark) 0.30f else 0.20f)

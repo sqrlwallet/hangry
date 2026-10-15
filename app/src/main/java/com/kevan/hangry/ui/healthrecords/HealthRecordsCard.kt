@@ -27,7 +27,7 @@ import com.kevan.hangry.ui.theme.LocalHangryTokens
 fun HealthRecordsCard(records: HealthRecordsSnapshot, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val tokens = LocalHangryTokens.current
     val recent = records.readings.map { it.type }.distinct().take(3)
-    HangryCard(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    HangryCard(modifier = modifier.fillMaxWidth(), onClick = onClick) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Science, contentDescription = null, tint = tokens.chartColors.restingHeartRate, modifier = Modifier.size(18.dp))

@@ -20,8 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,6 +36,7 @@ import com.kevan.hangry.ui.dashboard.DashboardViewModel
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 @Composable
 private fun recoveryInfoSections(): List<HangryInfoSection> = listOf(
@@ -212,7 +211,7 @@ private fun HrvFeelingRow(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit) 
                 color = tokens.textPrimary
             )
         }
-        val haptic = LocalHapticFeedback.current
+        val haptic = rememberHangryHaptics()
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -221,7 +220,7 @@ private fun HrvFeelingRow(selected: HrvFeeling, onSelect: (HrvFeeling) -> Unit) 
                 FilterChip(
                     selected = feeling == selected,
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onSelect(feeling)
                     },
                     label = { Text(feeling.label) }

@@ -22,8 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
@@ -35,6 +33,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.ui.theme.SurfaceDark
 import java.time.Duration
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 /** Today card for the fasting timer. Shows nothing unless the user has turned fasting on. */
 @Composable
@@ -48,7 +47,7 @@ fun FastingDashboardCard(
     if (!snapshot.enabled) return
     val tokens = LocalHangryTokens.current
     val isDark = tokens.cardBackground == SurfaceDark
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val now = rememberNow(periodMs = 30_000)
     val active = snapshot.active
 
@@ -59,7 +58,7 @@ fun FastingDashboardCard(
         label = "fasting_dashboard_progress"
     )
 
-    HangryCard(modifier = modifier.fillMaxWidth().clickable(onClick = onOpen)) {
+    HangryCard(modifier = modifier.fillMaxWidth(), onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Timer, contentDescription = null, tint = FastingColor, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(HangryTokens.Spacing.xs))
@@ -112,7 +111,7 @@ fun FastingDashboardCard(
                 if (reached) {
                     Button(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.confirm()
                             onEnd()
                         }
                     ) {
@@ -132,7 +131,7 @@ fun FastingDashboardCard(
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onStart()
                     }
                 ) {

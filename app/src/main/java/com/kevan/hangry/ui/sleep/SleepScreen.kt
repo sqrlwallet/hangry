@@ -1,5 +1,6 @@
 package com.kevan.hangry.ui.sleep
 
+import com.kevan.hangry.ui.components.AnimatedMetricText
 import com.kevan.hangry.ui.components.ProgressFill
 import com.kevan.hangry.ui.coach.DashMood
 import androidx.compose.animation.core.animateFloatAsState
@@ -200,10 +201,13 @@ fun SleepScreen(
                             progress = (score ?: 0) / 100f,
                             color = scoreColor,
                             modifier = Modifier.size(88.dp),
-                            strokeWidth = 8.dp
+                            strokeWidth = 8.dp,
+                            contentDescription = score?.let {
+                                stringResource(R.string.metrics_components_a11y_sleep_score, it)
+                            }
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(score?.toString() ?: "—", style = MaterialTheme.typography.headlineMedium, color = scoreColor)
+                                AnimatedMetricText(value = score, style = MaterialTheme.typography.headlineMedium, color = scoreColor)
                                 Text(stringResource(R.string.metrics_sleep_of_100), style = MaterialTheme.typography.labelSmall, color = tokens.textMuted)
                             }
                         }

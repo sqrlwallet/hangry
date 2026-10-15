@@ -137,9 +137,9 @@ fun VitalsCard(
     val title = stringResource(R.string.dashboard_vitals_title)
 
     HangryCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClickLabel = stringResource(R.string.dashboard_vitals_open), onClick = onClick)
+        modifier = modifier.fillMaxWidth(),
+        onClickLabel = stringResource(R.string.dashboard_vitals_open),
+        onClick = onClick
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.MonitorHeart, contentDescription = null, tint = tokens.chartColors.restingHeartRate, modifier = Modifier.size(18.dp))
@@ -218,7 +218,8 @@ private fun VitalTile(vital: Vital, modifier: Modifier = Modifier) {
                 color = vital.sparklineColor,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(20.dp)
+                    .height(20.dp),
+                contentDescription = stringResource(R.string.metrics_components_a11y_sparkline, vital.label)
             )
             Spacer(Modifier.height(2.dp))
         }

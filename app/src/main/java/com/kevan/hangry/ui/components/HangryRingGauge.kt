@@ -15,11 +15,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.graphics.Brush
+import com.kevan.hangry.ui.theme.HangryMotion
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.ui.theme.SurfaceDark
 
@@ -36,6 +38,8 @@ fun HangryRingGauge(
     trackColor: Color = LocalHangryTokens.current.cardBorder,
     strokeWidth: Dp = 10.dp,
     showAmbientGlow: Boolean = true,
+    /** When set, replaces the slot's individual text with one coherent screen-reader label. */
+    contentDescription: String? = null,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
     val tokens = LocalHangryTokens.current
@@ -43,17 +47,22 @@ fun HangryRingGauge(
 
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = HangryMotion.reveal, easing = HangryMotion.decelerate),
         label = "ringGaugeProgress"
     )
 
     val animatedColor by animateColorAsState(
         targetValue = color,
-        animationSpec = tween(durationMillis = 400),
+        animationSpec = tween(durationMillis = HangryMotion.slow),
         label = "ringGaugeColor"
     )
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    val semantics = if (contentDescription != null) {
+        Modifier.clearAndSetSemantics { this.contentDescription = contentDescription }
+    } else {
+        Modifier
+    }
+    Box(modifier = modifier.then(semantics), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokePx = strokeWidth.toPx()
             val startAngle = 135f

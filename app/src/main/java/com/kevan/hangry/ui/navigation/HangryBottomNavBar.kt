@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -46,9 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -62,7 +59,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.kevan.hangry.R
+import com.kevan.hangry.ui.theme.HangryMotion
 import com.kevan.hangry.ui.theme.LocalHangryTokens
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 sealed class BottomNavDestination(
     val route: String,
@@ -154,7 +153,7 @@ fun HangryBottomNavBar(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val isVisible = currentRoute in BottomNavDestination.routeSet && !isImeVisible
@@ -164,12 +163,12 @@ fun HangryBottomNavBar(
         modifier = modifier,
         enter = slideInVertically(
             initialOffsetY = { it },
-            animationSpec = spring(dampingRatio = 0.85f, stiffness = 380f)
-        ) + fadeIn(tween(220)),
+            animationSpec = HangryMotion.standardSpring()
+        ) + fadeIn(tween(HangryMotion.medium)),
         exit = slideOutVertically(
             targetOffsetY = { it },
-            animationSpec = tween(180)
-        ) + fadeOut(tween(180))
+            animationSpec = tween(HangryMotion.fast)
+        ) + fadeOut(tween(HangryMotion.fast))
     ) {
         Box(
             modifier = Modifier
@@ -220,7 +219,7 @@ fun HangryBottomNavBar(
                                 destination = destination,
                                 selected = selected,
                                 onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.tick()
                                     if (!selected) {
                                         navController.navigateToTab(destination.route)
                                     } else {
@@ -247,7 +246,7 @@ private fun BoxScope.SlidingTabIndicator(selectedIndex: Int, itemWidth: Dp, item
     if (selectedIndex >= 0) shownIndex = selectedIndex
     val offset by animateDpAsState(
         targetValue = itemWidth * shownIndex,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 520f),
+        animationSpec = HangryMotion.snappy(),
         label = "nav_indicator_offset"
     )
     val primary = MaterialTheme.colorScheme.primary
@@ -273,19 +272,19 @@ private fun RowScope.FloatingNavItem(
     val label = stringResource(destination.labelRes)
     val animatedScale by animateFloatAsState(
         targetValue = if (selected) 1.06f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.72f, stiffness = 400f),
+        animationSpec = HangryMotion.bouncy(),
         label = "nav_scale_${destination.route}"
     )
 
     val iconTint by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary else LocalHangryTokens.current.textMuted,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = HangryMotion.fast),
         label = "nav_icon_tint_${destination.route}"
     )
 
     val textColor by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary else LocalHangryTokens.current.textMuted,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = HangryMotion.fast),
         label = "nav_text_tint_${destination.route}"
     )
 

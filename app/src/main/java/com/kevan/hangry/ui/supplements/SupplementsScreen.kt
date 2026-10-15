@@ -230,7 +230,7 @@ internal fun TodayChecklist(
 @Composable
 private fun SupplementCard(supplement: Supplement, adherence: Pair<Int, Int>?, onClick: () -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    HangryCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             supplement.photoPath?.let { path ->
                 AsyncImage(

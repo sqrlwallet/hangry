@@ -94,7 +94,8 @@ fun StressCard(
                     progress = (score / 100f).coerceIn(0f, 1f),
                     color = badgeColor,
                     modifier = Modifier.size(72.dp),
-                    strokeWidth = 7.dp
+                    strokeWidth = 7.dp,
+                    contentDescription = stringResource(R.string.metrics_components_a11y_stress_score, score, badgeLabel)
                 ) {
                     Text(
                         text = "$score",

@@ -19,18 +19,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.ui.geometry.Size
+import com.kevan.hangry.ui.theme.HangryMotion
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.ui.theme.SurfaceDark
@@ -68,10 +67,12 @@ fun HangryInteractiveTrendChart(
     modifier: Modifier = Modifier,
     formatValue: (Double) -> String = { String.format(Locale.US, "%.1f", it) },
     onPointClicked: ((LocalDate) -> Unit)? = null,
-    trend: List<Double?>? = null
+    trend: List<Double?>? = null,
+    /** Overrides the automatic screen-reader summary of the series. */
+    contentDescription: String? = null
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
 
     val validPoints = remember(points) { points.filter { it.value != null } }
     if (points.size < 2 || validPoints.isEmpty()) {
@@ -107,6 +108,15 @@ fun HangryInteractiveTrendChart(
     }
     val isDark = tokens.cardBackground == SurfaceDark
 
+    // One summary for the drawn series, since the canvas itself carries no readable text.
+    val a11yDescription = contentDescription ?: stringResource(
+        R.string.metrics_components_a11y_chart,
+        points.size,
+        "${formatValue(avgValue)} $unit".trim(),
+        "${formatValue(maxValue)} $unit".trim(),
+        "${formatValue(minValue)} $unit".trim()
+    )
+
     // Add 10% vertical padding so chart lines don't clamp strictly at canvas edges
     val rawRange = plotMax - plotMin
     val padding = if (rawRange <= 0.0) 1.0 else rawRange * 0.12
@@ -119,7 +129,7 @@ fun HangryInteractiveTrendChart(
     val targetScrubberIdx = selectedIndex?.toFloat() ?: 0f
     val animatedScrubberIdx by animateFloatAsState(
         targetValue = targetScrubberIdx,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+        animationSpec = HangryMotion.gentle(),
         label = "scrubberIndexSpring"
     )
 
@@ -230,13 +240,14 @@ fun HangryInteractiveTrendChart(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(130.dp)
+                .clearAndSetSemantics { this.contentDescription = a11yDescription }
                 .pointerInput(points) {
                     detectTapGestures(
                         onPress = { offset ->
                             val stepX = size.width / (points.size - 1).coerceAtLeast(1)
                             val idx = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                             selectedIndex = idx
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             tryAwaitRelease()
                             // If tapped and released, notify onPointClicked
                             onPointClicked?.invoke(points[idx].date)
@@ -249,7 +260,7 @@ fun HangryInteractiveTrendChart(
                             val stepX = size.width / (points.size - 1).coerceAtLeast(1)
                             val idx = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                             selectedIndex = idx
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.scrub()
                         },
                         onDragEnd = {
                             // keep last selected point briefly or let user tap elsewhere
@@ -263,7 +274,7 @@ fun HangryInteractiveTrendChart(
                             val idx = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                             if (idx != selectedIndex) {
                                 selectedIndex = idx
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.scrub()
                             }
                         }
                     )

@@ -8,6 +8,7 @@ import com.kevan.hangry.data.repository.BodyAgeLoader
 import com.kevan.hangry.data.repository.StreaksLoader
 import com.kevan.hangry.ui.bodyage.BodyAgeScreen
 import com.kevan.hangry.util.millisUntilNextMidnight
+import com.kevan.hangry.ui.theme.HangryMotion
 import com.kevan.hangry.ui.theme.HangryTheme
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -250,23 +251,23 @@ fun HangryNavGraph(
         // else slides in from the side.
         enterTransition = {
             tabDirection(initialState, targetState)?.let { tabEnter(it) }
-                ?: (slideInHorizontally(initialOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeIn(animationSpec = tween(240)))
+                ?: (slideInHorizontally(initialOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(HangryMotion.medium)) +
+                    fadeIn(animationSpec = tween(HangryMotion.medium)))
         },
         exitTransition = {
             tabDirection(initialState, targetState)?.let { tabExit(it) }
-                ?: (slideOutHorizontally(targetOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeOut(animationSpec = tween(240)))
+                ?: (slideOutHorizontally(targetOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(HangryMotion.medium)) +
+                    fadeOut(animationSpec = tween(HangryMotion.medium)))
         },
         popEnterTransition = {
             tabDirection(initialState, targetState)?.let { tabEnter(it) }
-                ?: (slideInHorizontally(initialOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeIn(animationSpec = tween(240)))
+                ?: (slideInHorizontally(initialOffsetX = { -(it * 0.28f).toInt() }, animationSpec = tween(HangryMotion.medium)) +
+                    fadeIn(animationSpec = tween(HangryMotion.medium)))
         },
         popExitTransition = {
             tabDirection(initialState, targetState)?.let { tabExit(it) }
-                ?: (slideOutHorizontally(targetOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(240)) +
-                    fadeOut(animationSpec = tween(240)))
+                ?: (slideOutHorizontally(targetOffsetX = { (it * 0.28f).toInt() }, animationSpec = tween(HangryMotion.medium)) +
+                    fadeOut(animationSpec = tween(HangryMotion.medium)))
         }
     ) {
         // Onboarding Flow

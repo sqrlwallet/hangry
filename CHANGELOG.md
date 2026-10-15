@@ -1,3 +1,23 @@
+## 🚀 What's New in Hangry v1.45.0 — Readable Screens, Real Haptics & Living Motion
+
+Higher-contrast text, screen-reader descriptions for the custom gauges and charts, genuine device haptics, and app-wide motion polish that makes the whole app feel alive.
+
+### 👁️ Easier to Read & Hear
+- **Higher-contrast muted text**: secondary labels now clear WCAG AA on both Warm Cream and Charcoal Obsidian.
+- **Self-describing visuals**: the custom-drawn gauges, sparklines and trend charts announce their score, range, trend and stats to TalkBack.
+- **Predictive back**: the system previews the previous screen before you commit to going back.
+
+### 🫳 Real Tactile Feedback
+- **Proper device haptics**: a new haptics layer uses genuine platform feedback instead of the keyboard-cursor buzz.
+- **Distinct feelings**: light ticks for selection, a firmer confirm for committed actions, and a soft scrub for sliders.
+
+### 🌊 Living Motion
+- **One motion language**: shared durations, easings and springs so every animation moves as a family.
+- **Counting-up hero scores** on Today, Recovery and Sleep.
+- **Cards press in** with a quick spring on touch, across the whole app.
+- **Fluid list reordering** for saved meals and chat history.
+- **Softer, consistent** tab and screen transitions.
+
 ## 🚀 What's New in Hangry v1.44.0 — Deep UI/UX Polish, Ambient Telemetry & Tactile Feedback
 
 Specular hairline borders, fluid spring transitions, micro-sparkline telemetry, ambient breathing aura, and tactile feedback across both Light (Warm Cream) and Dark (Charcoal Obsidian) modes.

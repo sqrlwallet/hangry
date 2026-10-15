@@ -22,8 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,6 +32,7 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.ui.theme.SurfaceDark
 import java.time.LocalTime
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 /**
  * Home-page checklist: today's doses of tracked supplements with one-tap ticks. Untracked ones are
@@ -48,9 +47,9 @@ fun SupplementsDashboardCard(
 ) {
     val tokens = LocalHangryTokens.current
     val isDark = tokens.cardBackground == SurfaceDark
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
 
-    HangryCard(modifier = modifier.fillMaxWidth().clickable(onClick = onOpen)) {
+    HangryCard(modifier = modifier.fillMaxWidth(), onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Medication, contentDescription = null, tint = tokens.brandAccent, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(HangryTokens.Spacing.xs))
@@ -120,7 +119,7 @@ fun SupplementsDashboardCard(
                     .alpha(rowAlpha)
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onToggle(dose.supplement.id, dose.time, !dose.taken)
                     },
                 verticalAlignment = Alignment.CenterVertically
@@ -129,7 +128,7 @@ fun SupplementsDashboardCard(
                     Checkbox(
                         checked = dose.taken,
                         onCheckedChange = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             onToggle(dose.supplement.id, dose.time, it)
                         }
                     )

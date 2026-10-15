@@ -55,10 +55,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -79,6 +77,7 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 const val MASCOT_NAME = "Dash"
 
@@ -415,7 +414,7 @@ private class DashTapState(
 
 @Composable
 private fun rememberDashTap(): DashTapState {
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val scope = rememberCoroutineScope()
     val hop = remember { Animatable(0f) }
     val spin = remember { Animatable(0f) }
@@ -435,14 +434,14 @@ private fun rememberDashTap(): DashTapState {
         lastTapTime = now
 
         if (isDoubleTap) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            haptic.confirm()
             scope.launch {
                 spin.snapTo(0f)
                 spin.animateTo(1f, tween(durationMillis = 520, easing = FastOutSlowInEasing))
                 spin.snapTo(0f)
             }
         } else {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptic.tick()
             scope.launch {
                 hop.animateTo(1f, tween(durationMillis = 140, easing = FastOutSlowInEasing))
                 hop.animateTo(0f, spring(dampingRatio = 0.4f, stiffness = 420f))

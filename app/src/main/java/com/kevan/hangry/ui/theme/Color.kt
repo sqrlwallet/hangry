@@ -30,7 +30,7 @@ val SurfaceVariantLight = Color(0xFFF2ECE8)
 val OutlineLight = Color(0xFFE7DFDA)
 val TextPrimaryLight = ShipGray
 val TextSecondaryLight = Color(0xFF6E6873)
-val TextMutedLight = Color(0xFF7D7681)
+val TextMutedLight = Color(0xFF726C76)
 
 // ── Dark theme: warm charcoal derived from Ship Gray (no cold blue-blacks) ──
 val BackgroundDark = Color(0xFF1C1A1F)

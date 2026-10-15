@@ -27,9 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,7 +58,7 @@ fun DateNavigatorBar(
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     // Rolls over at midnight, so "Today" never ends up labelling yesterday.
     val today = rememberToday()
     val isToday = selectedDate == today
@@ -84,10 +82,10 @@ fun DateNavigatorBar(
                     onDragEnd = {
                         val threshold = 50f
                         if (dragAccumulator > threshold) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             onDateSelected(selectedDate.minusDays(1))
                         } else if (dragAccumulator < -threshold && canGoForward) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             onDateSelected(selectedDate.plusDays(1))
                         }
                         dragAccumulator = 0f
@@ -112,7 +110,7 @@ fun DateNavigatorBar(
             // Previous day button
             IconButton(
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.tick()
                     onDateSelected(selectedDate.minusDays(1))
                 },
                 modifier = Modifier.size(36.dp)
@@ -128,7 +126,7 @@ fun DateNavigatorBar(
             // Date picker trigger button
             Surface(
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.tick()
                     showDatePicker = true
                 },
                 shape = RoundedCornerShape(12.dp),
@@ -181,7 +179,7 @@ fun DateNavigatorBar(
                 ) {
                     Surface(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             onDateSelected(today)
                         },
                         shape = RoundedCornerShape(10.dp),
@@ -214,7 +212,7 @@ fun DateNavigatorBar(
                 IconButton(
                     onClick = {
                         if (canGoForward) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             onDateSelected(selectedDate.plusDays(1))
                         }
                     },
@@ -259,7 +257,7 @@ fun DateNavigatorBar(
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = tokens.scoreColors.balanced,
                         modifier = Modifier.clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                             onDateSelected(today)
                         }
                     )
@@ -344,7 +342,7 @@ fun WeekStrip(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val startOfWeek = remember(selectedDate, today) {
         if (!selectedDate.isBefore(today.minusDays(6)) && !selectedDate.isAfter(today)) {
             today.minusDays(6)
@@ -388,7 +386,7 @@ fun WeekStrip(
             Surface(
                 onClick = {
                     if (!isFuture && !isSelected) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onDateSelected(date)
                     }
                 },

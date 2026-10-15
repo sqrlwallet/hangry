@@ -1,6 +1,5 @@
 package com.kevan.hangry.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -19,8 +18,11 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.kevan.hangry.ui.theme.HangryMotion
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import com.kevan.hangry.ui.theme.SurfaceDark
 
@@ -36,20 +38,28 @@ fun HangrySparkline(
     color: Color,
     modifier: Modifier = Modifier,
     strokeWidth: Dp = 2.dp,
-    showDot: Boolean = true
+    showDot: Boolean = true,
+    /** Optional screen-reader label; sparklines sit next to their value, so this is decorative by default. */
+    contentDescription: String? = null
 ) {
     val tokens = LocalHangryTokens.current
     val isDark = tokens.cardBackground == SurfaceDark
 
     val animatedProgress by animateFloatAsState(
         targetValue = 1f,
-        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = HangryMotion.reveal, easing = HangryMotion.decelerate),
         label = "sparklineProgress"
     )
 
     val validPoints = remember(points) { points.mapIndexedNotNull { idx, v -> v?.let { idx to it } } }
 
-    Canvas(modifier = modifier) {
+    val semantics = if (contentDescription != null) {
+        Modifier.clearAndSetSemantics { this.contentDescription = contentDescription }
+    } else {
+        Modifier
+    }
+
+    Canvas(modifier = modifier.then(semantics)) {
         val width = size.width
         val height = size.height
 

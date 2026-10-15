@@ -62,7 +62,7 @@ fun CycleCard(records: HealthRecordsSnapshot, skinTemps: Map<LocalDate, Double>,
     val tokens = LocalHangryTokens.current
     val cycleLength = stats.averageCycleDays ?: 28.0
     val next = insight.predictedNextStart ?: stats.predictedNextStart
-    HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
+    HangryCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.WaterDrop, contentDescription = null, tint = tokens.scoreColors.rebuild, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(HangryTokens.Spacing.xs))

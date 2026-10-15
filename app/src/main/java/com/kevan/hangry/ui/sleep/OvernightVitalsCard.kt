@@ -43,7 +43,7 @@ fun OvernightVitalsCard(summary: DailyHealthSummaryEntity, onClick: (() -> Unit)
         summary.skinTempDeltaCelsius?.let { stringResource(R.string.metrics_components_skin_temp) to skinTempText(it) }
     )
     if (items.isEmpty()) return
-    HangryCard(modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier) {
+    HangryCard(onClick = onClick) {
         Text(
             text = stringResource(R.string.metrics_sleep_overnight_vitals),
             style = MaterialTheme.typography.titleMedium,

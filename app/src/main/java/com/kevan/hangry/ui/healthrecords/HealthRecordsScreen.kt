@@ -376,7 +376,7 @@ private fun MarkerCard(records: HealthRecordsSnapshot, type: MarkerType, onClick
     val latest = records.latest(type)
     val metric = HealthMarkerCalculator.describe(type, latest, records.sex)
     val goal = records.goal(type)
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    HangryCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(type.label, style = MaterialTheme.typography.titleSmall, color = tokens.textPrimary)

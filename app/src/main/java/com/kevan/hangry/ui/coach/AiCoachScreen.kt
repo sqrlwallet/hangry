@@ -54,12 +54,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onLongClick
@@ -96,6 +94,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 private val QUICK_STARTERS = listOf(
     R.string.coach_starter_ready_to_train,
@@ -119,7 +118,7 @@ fun AiCoachScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -161,14 +160,14 @@ fun AiCoachScreen(
 
     val sendInput = {
         if (canSend) {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptic.tick()
             val textToSend = inputText
             inputText = ""
             viewModel.sendMessage(textToSend)
         }
     }
     val sendStarter: (String) -> Unit = { starter ->
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        haptic.tick()
         viewModel.sendMessage(starter)
     }
 
@@ -285,7 +284,7 @@ fun AiCoachScreen(
                                         onDismissAction = { index -> viewModel.dismissAction(message.id, index) },
                                         onCopy = { text ->
                                             clipboardManager.setText(AnnotatedString(text))
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            haptic.confirm()
                                             coroutineScope.launch {
                                                 snackbarHostState.showSnackbar(message = copiedMessage, duration = SnackbarDuration.Short)
                                             }
@@ -520,7 +519,7 @@ private fun ChatInputBar(
     onSend: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     var showAttachMenu by remember { mutableStateOf(false) }
     val messageInputDescription = stringResource(R.string.coach_message_input_description, MASCOT_NAME)
 
@@ -629,7 +628,7 @@ private fun ChatInputBar(
                     IconButton(
                         onClick = {
                             onTextChange("")
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.tick()
                         },
                         modifier = Modifier.size(40.dp)
                     ) {
@@ -643,7 +642,7 @@ private fun ChatInputBar(
 
                 IconButton(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         onSend()
                     },
                     enabled = canSend,

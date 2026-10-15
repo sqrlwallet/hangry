@@ -137,7 +137,7 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun ProgramRow(s: ProgramSnapshot, onOpen: (String) -> Unit) {
     val tokens = LocalHangryTokens.current
-    HangryCard(modifier = Modifier.fillMaxWidth().clickable { onOpen(s.program.id) }) {
+    HangryCard(modifier = Modifier.fillMaxWidth(), onClick = { onOpen(s.program.id) }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DashExpression(mood = programMood(s.program.id), size = 52.dp, contentDescription = null, interactive = false)
             Spacer(Modifier.width(12.dp))

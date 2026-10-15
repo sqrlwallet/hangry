@@ -157,6 +157,7 @@ fun ChatHistorySheet(
                                 ChatRow(
                                     chat = chat,
                                     active = chat.id == activeId,
+                                    modifier = Modifier.animateItem(),
                                     onOpen = { onOpen(chat.id) },
                                     onRename = { renaming = chat },
                                     onDelete = { deleting = chat }
@@ -221,6 +222,7 @@ fun ChatHistorySheet(
 private fun ChatRow(
     chat: CoachConversationSummary,
     active: Boolean,
+    modifier: Modifier = Modifier,
     onOpen: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit
@@ -228,7 +230,7 @@ private fun ChatRow(
     val tokens = LocalHangryTokens.current
     var menu by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(if (active) tokens.cardBorder.copy(alpha = 0.5f) else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(12.dp))
             .clickable(onClick = onOpen)

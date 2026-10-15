@@ -53,9 +53,7 @@ import com.kevan.hangry.ui.navigation.LocalDockInset
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.annotation.StringRes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.health.connect.client.PermissionController
@@ -63,6 +61,7 @@ import com.kevan.hangry.util.rememberPhotoCaptureLauncher
 import java.time.Instant
 import java.time.ZoneId
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kevan.hangry.ui.components.rememberHangryHaptics
 
 private enum class MealBucket(@StringRes val titleRes: Int) {
     BREAKFAST(R.string.nutrition_meal_breakfast),
@@ -150,7 +149,7 @@ fun NutritionScreen(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dashboardState by dashboardViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -285,7 +284,7 @@ fun NutritionScreen(
 
             if (!uiState.aiFeaturesEnabled) {
                 item {
-                    HangryCard(modifier = Modifier.clickable { onNavigateToAiSettings() }) {
+                    HangryCard(onClick = { onNavigateToAiSettings() }) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -382,11 +381,11 @@ fun NutritionScreen(
                 QuickAddRow(
                     savedMeals = uiState.mealPlans,
                     onLogSaved = { meal, portion ->
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         viewModel.logFromMealPlan(meal, portion)
                     },
                     onLogStaple = { staple ->
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.tick()
                         viewModel.quickLogMeal(
                             foodName = staple.name,
                             calories = staple.calories,
@@ -443,11 +442,11 @@ fun NutritionScreen(
                             entry = entry,
                             modifier = Modifier.animateItem(),
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.tick()
                                 viewModel.startEdit(entry)
                             },
                             onDelete = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.confirm()
                                 deleteEntry(entry)
                             }
                         )
@@ -650,7 +649,7 @@ private const val QUICK_ADD_COUNT = 10
 @Composable
 private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -> Unit) {
     val tokens = LocalHangryTokens.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHangryHaptics()
     var menuOpen by remember { mutableStateOf(false) }
     Box {
         Surface(
@@ -665,7 +664,7 @@ private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -
                     onLongClickLabel = stringResource(R.string.nutrition_choose_portion),
                     onClick = { onLog(1.0) },
                     onLongClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        haptic.confirm()
                         menuOpen = true
                     }
                 )
@@ -765,7 +764,7 @@ private fun FoodLogRow(
             }
         }
     ) {
-        HangryCard(modifier = Modifier.clickable(onClick = onClick)) {
+        HangryCard(onClick = onClick) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (entry.photoPath != null && !photoMissing) {
                     AsyncImage(

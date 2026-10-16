@@ -21,6 +21,12 @@ class DefaultWeightRepository(
     override fun getAllWeights(): Flow<List<WeightMeasurementEntity>> =
         weightDao.getAllWeights()
 
+    override fun getWeightsBetween(start: Instant, end: Instant): Flow<List<WeightMeasurementEntity>> =
+        weightDao.getWeightsBetween(start, end)
+
+    override suspend fun getWeightsBetweenList(start: Instant, end: Instant): List<WeightMeasurementEntity> =
+        weightDao.getWeightsBetweenList(start, end)
+
     override fun getRollingAverageWeight(): Flow<Double?> =
         weightDao.getRollingAverageWeight()
 

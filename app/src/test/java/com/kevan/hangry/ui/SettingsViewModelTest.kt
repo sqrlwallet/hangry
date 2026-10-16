@@ -66,6 +66,10 @@ class SettingsViewModelTest {
         private val _flow = MutableStateFlow<List<WeightMeasurementEntity>>(emptyList())
 
         override fun getAllWeights(): Flow<List<WeightMeasurementEntity>> = _flow.asStateFlow()
+        override fun getWeightsBetween(start: Instant, end: Instant): Flow<List<WeightMeasurementEntity>> =
+            flowOf(list.filter { it.timestamp >= start && it.timestamp < end })
+        override suspend fun getWeightsBetweenList(start: Instant, end: Instant): List<WeightMeasurementEntity> =
+            list.filter { it.timestamp >= start && it.timestamp < end }
         override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = flowOf(list.lastOrNull())
         override suspend fun getLatestWeightSync(): WeightMeasurementEntity? = list.lastOrNull()
         override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)

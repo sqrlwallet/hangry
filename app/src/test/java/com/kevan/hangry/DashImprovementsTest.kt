@@ -204,6 +204,10 @@ class DashImprovementsTest {
         override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = flowOf(inserted.lastOrNull())
         override suspend fun getLatestWeightSync(): WeightMeasurementEntity? = inserted.lastOrNull()
         override fun getAllWeights(): Flow<List<WeightMeasurementEntity>> = flowOf(inserted)
+        override fun getWeightsBetween(start: java.time.Instant, end: java.time.Instant): Flow<List<WeightMeasurementEntity>> =
+            flowOf(inserted.filter { it.timestamp >= start && it.timestamp < end })
+        override suspend fun getWeightsBetweenList(start: java.time.Instant, end: java.time.Instant): List<WeightMeasurementEntity> =
+            inserted.filter { it.timestamp >= start && it.timestamp < end }
         override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)
         override suspend fun getCount(): Int = inserted.size
         override suspend fun deleteAll() { inserted.clear() }

@@ -22,6 +22,12 @@ interface WeightDao {
     @Query("SELECT * FROM weight_measurements ORDER BY timestamp DESC")
     fun getAllWeights(): Flow<List<WeightMeasurementEntity>>
 
+    @Query("SELECT * FROM weight_measurements WHERE timestamp >= :start AND timestamp < :end ORDER BY timestamp DESC")
+    fun getWeightsBetween(start: Instant, end: Instant): Flow<List<WeightMeasurementEntity>>
+
+    @Query("SELECT * FROM weight_measurements WHERE timestamp >= :start AND timestamp < :end ORDER BY timestamp DESC")
+    suspend fun getWeightsBetweenList(start: Instant, end: Instant): List<WeightMeasurementEntity>
+
     @Query("SELECT AVG(weightKg) FROM (SELECT weightKg FROM weight_measurements ORDER BY timestamp DESC LIMIT 7)")
     fun getRollingAverageWeight(): Flow<Double?>
 

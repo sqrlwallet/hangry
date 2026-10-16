@@ -3,6 +3,7 @@ package com.kevan.hangry.ui.training
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import kotlinx.coroutines.flow.flowOf
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -110,8 +111,13 @@ fun TrainingScreen(
         .collectAsStateWithLifecycle(initialValue = HeartRateZoneDistribution())
 
     val trailing7dStart = dayStart.minus(7, ChronoUnit.DAYS)
-    val weekZoneDistribution by remember(dayStart, zones) { heartRateRepository.getZoneDistribution(trailing7dStart, dayEnd, zones) }
-        .collectAsStateWithLifecycle(initialValue = HeartRateZoneDistribution())
+    val weekZoneDistribution by remember(dayStart, zones, todayZoneDistribution.totalCount) {
+        if (todayZoneDistribution.totalCount == 0) {
+            heartRateRepository.getZoneDistribution(trailing7dStart, dayEnd, zones)
+        } else {
+            flowOf(HeartRateZoneDistribution())
+        }
+    }.collectAsStateWithLifecycle(initialValue = HeartRateZoneDistribution())
 
     val effectiveDistribution = if (todayZoneDistribution.totalCount > 0) {
         todayZoneDistribution

@@ -117,10 +117,19 @@ internal fun parseFoodAnalysis(raw: String): FoodAnalysisJson =
     AiJson.decodeFromString(FoodAnalysisJson.serializer(), extractJsonPayload(raw))
 
 class OpenRouterFoodAnalyzer(
-    private val client: OpenRouterClient,
-    private val keyStore: SecureKeyStore,
+    private val clientProvider: () -> OpenRouterClient,
+    private val keyStoreProvider: () -> SecureKeyStore,
     private val userProfileRepository: UserProfileRepository
 ) : FoodAnalyzer {
+
+    constructor(
+        client: OpenRouterClient,
+        keyStore: SecureKeyStore,
+        userProfileRepository: UserProfileRepository
+    ) : this({ client }, { keyStore }, userProfileRepository)
+
+    private val client by lazy { clientProvider() }
+    private val keyStore by lazy { keyStoreProvider() }
 
     override suspend fun analyzePhoto(imageBase64: String, note: String?, allergies: List<String>): Result<FoodAnalysisResult> {
         val userText = note?.takeIf { it.isNotBlank() }

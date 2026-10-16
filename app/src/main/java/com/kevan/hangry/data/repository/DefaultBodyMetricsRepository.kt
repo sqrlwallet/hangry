@@ -64,12 +64,14 @@ class DefaultBodyMetricsRepository(
             heightRepository.getLatestHeight(),
             bodyFatRepository.getLatestScan()
         ) { profile, weight, height, scan -> Measurements(profile, weight?.weightKg, height?.heightCm, scan) }
+        val weightsStart = w.adaptiveStart.atStartOfDay(zone).toInstant()
+        val weightsEnd = w.today.plusDays(1).atStartOfDay(zone).toInstant()
         return combine(
             measurements,
             dailyHealthSummaryDao.getSummariesBetween(w.summariesStart, w.today),
             exerciseSessionDao.getSessionsBetween(w.workoutsStart.atStartOfDay(zone).toInstant(), w.workoutsEnd.atStartOfDay(zone).toInstant()),
             foodLogDao.getBetween(w.adaptiveStart, w.end),
-            weightRepository.getAllWeights()
+            weightRepository.getWeightsBetween(weightsStart, weightsEnd)
         ) { m, summaries, workouts, foodLogs, weights -> build(w.today, m, summaries, workouts, foodLogs, weights) }
     }
 
@@ -81,6 +83,8 @@ class DefaultBodyMetricsRepository(
             latestHeightCm = heightRepository.getLatestHeightSync()?.heightCm,
             scan = bodyFatRepository.getLatestScanSync()
         )
+        val weightsStart = w.adaptiveStart.atStartOfDay(zone).toInstant()
+        val weightsEnd = w.today.plusDays(1).atStartOfDay(zone).toInstant()
         return build(
             today = w.today,
             m = m,
@@ -89,7 +93,7 @@ class DefaultBodyMetricsRepository(
                 w.workoutsStart.atStartOfDay(zone).toInstant(), w.workoutsEnd.atStartOfDay(zone).toInstant()
             ),
             foodLogs = foodLogDao.getBetweenList(w.adaptiveStart, w.end),
-            weights = weightRepository.getAllWeights().first()
+            weights = weightRepository.getWeightsBetweenList(weightsStart, weightsEnd)
         )
     }
 

@@ -55,10 +55,19 @@ internal data class NutritionReviewJson(
 }
 
 class OpenRouterNutritionReviewer(
-    private val client: OpenRouterClient,
-    private val keyStore: SecureKeyStore,
+    private val clientProvider: () -> OpenRouterClient,
+    private val keyStoreProvider: () -> SecureKeyStore,
     private val userProfileRepository: UserProfileRepository
 ) : NutritionReviewer {
+
+    constructor(
+        client: OpenRouterClient,
+        keyStore: SecureKeyStore,
+        userProfileRepository: UserProfileRepository
+    ) : this({ client }, { keyStore }, userProfileRepository)
+
+    private val client by lazy { clientProvider() }
+    private val keyStore by lazy { keyStoreProvider() }
 
     override suspend fun review(weekText: String): Result<NutritionReview> {
         val apiKey = keyStore.getApiKey() ?: return Result.failure(OpenRouterException.InvalidApiKey())

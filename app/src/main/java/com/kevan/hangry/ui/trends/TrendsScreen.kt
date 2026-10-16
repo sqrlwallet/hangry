@@ -34,6 +34,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -74,6 +75,8 @@ import kotlin.math.abs
 import com.kevan.hangry.ui.components.rememberToday
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kevan.hangry.ui.components.rememberHangryHaptics
+
+private val HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("EEE d")
 
 enum class TrendTimeframe(val label: String, val days: Long?) {
     DAYS_7("7D", 7),
@@ -152,8 +155,6 @@ fun TrendsScreen(
     val scores = state.scores
     val summaries = state.summaries
     val foodLogs = state.foodLogs
-    val allWorkouts = state.allWorkouts
-    val allWeights = state.allWeights
     val allBodyFatScans = state.allBodyFatScans
     val latestWeight = state.latestWeight
 
@@ -282,6 +283,7 @@ fun TrendsScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
+        val sectionGapPx = with(LocalDensity.current) { HangryTokens.Spacing.section.roundToPx() }
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
@@ -1019,10 +1021,9 @@ fun TrendsScreen(
                         ),
                         // Pull each row up over the list's item gap so the rows read as one card.
                         modifier = Modifier
-                            .animateItem()
                             .fillMaxWidth()
                             .layout { measurable, constraints ->
-                                val gap = if (isFirst) 0 else HangryTokens.Spacing.section.roundToPx()
+                                val gap = if (isFirst) 0 else sectionGapPx
                                 val placeable = measurable.measure(constraints)
                                 layout(placeable.width, (placeable.height - gap).coerceAtLeast(0)) {
                                     placeable.place(0, -gap)
@@ -1284,7 +1285,7 @@ private fun HistoryDayRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = date.format(DateTimeFormatter.ofPattern("EEE d")),
+                    text = date.format(HISTORY_DATE_FORMATTER),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = tokens.textPrimary

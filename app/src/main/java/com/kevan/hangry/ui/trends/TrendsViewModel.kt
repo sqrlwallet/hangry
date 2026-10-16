@@ -80,12 +80,15 @@ class TrendsViewModel(
     // Windowed data based on selected timeframe
     private val timeframeData = _selectedTimeframe.flatMapLatest { timeframe ->
         val queryStartDate = timeframe.days?.let { today.minusDays(it) } ?: LocalDate.of(2020, 1, 1)
+        val startInstant = queryStartDate.atStartOfDay(zone).toInstant()
+        val endInstant = today.plusDays(1).atStartOfDay(zone).toInstant()
         combine(
             dailySummaryRepository.getScoresBetween(queryStartDate, today),
             dailySummaryRepository.getSummariesBetween(queryStartDate, today),
-            foodLogRepository.getBetween(queryStartDate, today)
-        ) { scores, summaries, foodLogs ->
-            TimeframeData(queryStartDate, scores, summaries, foodLogs)
+            foodLogRepository.getBetween(queryStartDate, today),
+            workoutRepository.getSessionsBetween(startInstant, endInstant)
+        ) { scores, summaries, foodLogs, workouts ->
+            TimeframeData(queryStartDate, scores, summaries, foodLogs, workouts)
         }
     }.flowOn(dispatchers.io)
 
@@ -93,20 +96,22 @@ class TrendsViewModel(
         val queryStartDate: LocalDate,
         val scores: List<RecoveryScoreEntity>,
         val summaries: List<DailyHealthSummaryEntity>,
-        val foodLogs: List<FoodLogEntity>
+        val foodLogs: List<FoodLogEntity>,
+        val workouts: List<ExerciseSessionEntity>
     )
 
     // Weekly comparison baseline
     private val weeklyRecapData = flow {
         val t = today
-        val thisWkScores = dailySummaryRepository.getScoresBetween(t.minusDays(6), t)
-        val lastWkScores = dailySummaryRepository.getScoresBetween(t.minusDays(13), t.minusDays(7))
-        val thisWkSummaries = dailySummaryRepository.getSummariesBetween(t.minusDays(6), t)
-        val lastWkSummaries = dailySummaryRepository.getSummariesBetween(t.minusDays(13), t.minusDays(7))
+        val splitDate = t.minusDays(6)
+        val allScores = dailySummaryRepository.getScoresBetween(t.minusDays(13), t)
+        val allSummaries = dailySummaryRepository.getSummariesBetween(t.minusDays(13), t)
 
         emitAll(
-            combine(thisWkScores, lastWkScores, thisWkSummaries, lastWkSummaries) { tws, lws, twsum, lwsum ->
-                WeeklyRecapData(tws, lws, twsum, lwsum)
+            combine(allScores, allSummaries) { scores, summaries ->
+                val (thisWkScores, lastWkScores) = scores.partition { !it.date.isBefore(splitDate) }
+                val (thisWkSummaries, lastWkSummaries) = summaries.partition { !it.date.isBefore(splitDate) }
+                WeeklyRecapData(thisWkScores, lastWkScores, thisWkSummaries, lastWkSummaries)
             }
         )
     }.flowOn(dispatchers.io)
@@ -129,7 +134,6 @@ class TrendsViewModel(
     )
 
     private data class HistoricalMetrics(
-        val workouts: List<ExerciseSessionEntity>,
         val weights: List<WeightMeasurementEntity>,
         val scans: List<BodyFatScanEntity>,
         val latestWeight: WeightMeasurementEntity?
@@ -146,18 +150,17 @@ class TrendsViewModel(
     }
 
     private val historicalMetricsFlow = combine(
-        workoutRepository.getAllSessions(),
         weightRepository.getAllWeights(),
         allScansFlow,
         weightRepository.getLatestWeight()
-    ) { workouts, weights, scans, latestWeight ->
-        HistoricalMetrics(workouts, weights, scans, latestWeight)
+    ) { weights, scans, latestWeight ->
+        HistoricalMetrics(weights, scans, latestWeight)
     }
 
     // Grouped by day here rather than in the screen; only re-run when the data or the day
     // changes, not when a filter or the inspected day does.
     private val derivedFlow = combine(timeframeData, historicalMetricsFlow, todayDates) { data, hist, today ->
-        TrendsDerived.derive(data.scores, data.summaries, data.foodLogs, hist.workouts, hist.weights, data.queryStartDate, today, zone)
+        TrendsDerived.derive(data.scores, data.summaries, data.foodLogs, data.workouts, hist.weights, data.queryStartDate, today, zone)
     }.flowOn(dispatchers.default)
 
     val uiState: StateFlow<TrendsUiState> = combine(
@@ -166,7 +169,7 @@ class TrendsViewModel(
         weeklyRecapData,
         historicalMetricsFlow,
         derivedFlow
-    ) { sel, (_, scores, summaries, foodLogs), weekly, hist, derived ->
+    ) { sel, (_, scores, summaries, foodLogs, workouts), weekly, hist, derived ->
         TrendsUiState(
             derived = derived,
             selectedTimeframe = sel.timeframe,
@@ -177,7 +180,7 @@ class TrendsViewModel(
             scores = scores,
             summaries = summaries,
             foodLogs = foodLogs,
-            allWorkouts = hist.workouts,
+            allWorkouts = workouts,
             allWeights = hist.weights,
             allBodyFatScans = hist.scans,
             latestWeight = hist.latestWeight,

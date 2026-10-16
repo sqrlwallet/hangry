@@ -15,18 +15,16 @@ class HangryApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
-        // Hourly background sync (skipped until Health Connect grants background reads - see
-        // BackgroundAccess); idempotent, so safe on every process start, even before onboarding.
-        HealthSyncWorker.schedule(this)
-        // Morning readiness brief + bedtime reminder (both can be switched off in Settings).
-        DailyNudgeWorker.schedule(this)
-        BedtimeReminder.reschedule(this)
-        com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(this)
-        // Alarms are cleared by app updates and force-stops; re-arm supplement and fasting reminders.
+        // Offload WorkManager DB access and periodic work scheduling to IO dispatcher so
+        // cold startup on the main thread is not blocked by SQLite disk operations.
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching { HealthSyncWorker.schedule(this@HangryApplication) }
+            runCatching { DailyNudgeWorker.schedule(this@HangryApplication) }
             runCatching { container.supplementRepository.rescheduleReminders() }
             runCatching { container.fastingRepository.rescheduleReminder() }
             runCatching { container.userProfileRepository.refreshAgeFromBirthday() }
         }
+        BedtimeReminder.reschedule(this)
+        com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(this)
     }
 }

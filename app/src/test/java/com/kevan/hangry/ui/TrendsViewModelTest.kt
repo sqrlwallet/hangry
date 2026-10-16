@@ -68,8 +68,10 @@ class TrendsViewModelTest {
     private class FakeWorkoutRepository : WorkoutRepository {
         val workouts = mutableListOf<ExerciseSessionEntity>()
         override fun getAllSessions(): Flow<List<ExerciseSessionEntity>> = flowOf(workouts)
-        override fun getSessionsBetween(start: Instant, end: Instant): Flow<List<ExerciseSessionEntity>> = flowOf(emptyList())
-        override suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<ExerciseSessionEntity> = emptyList()
+        override fun getSessionsBetween(start: Instant, end: Instant): Flow<List<ExerciseSessionEntity>> =
+            flowOf(workouts.filter { it.startTime >= start && it.startTime <= end })
+        override suspend fun getSessionsBetweenList(start: Instant, end: Instant): List<ExerciseSessionEntity> =
+            workouts.filter { it.startTime >= start && it.startTime <= end }
         override suspend fun insertSessions(sessions: List<ExerciseSessionEntity>): List<Long> {
             workouts += sessions
             return sessions.map { 1L }
@@ -82,6 +84,10 @@ class TrendsViewModelTest {
         private val _flow = MutableStateFlow<List<WeightMeasurementEntity>>(emptyList())
 
         override fun getAllWeights(): Flow<List<WeightMeasurementEntity>> = _flow.asStateFlow()
+        override fun getWeightsBetween(start: Instant, end: Instant): Flow<List<WeightMeasurementEntity>> =
+            flowOf(list.filter { it.timestamp >= start && it.timestamp < end })
+        override suspend fun getWeightsBetweenList(start: Instant, end: Instant): List<WeightMeasurementEntity> =
+            list.filter { it.timestamp >= start && it.timestamp < end }
         override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = flowOf(list.lastOrNull())
         override suspend fun getLatestWeightSync(): WeightMeasurementEntity? = list.lastOrNull()
         override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)

@@ -75,8 +75,8 @@ object WeightTrend {
         return if (den == 0.0) 0.0 else num / den
     }
 
-    fun summarize(weights: List<WeightMeasurementEntity>, today: LocalDate, zone: ZoneId): Summary {
-        val daily = dailyWeights(weights, zone).filter { !it.first.isAfter(today) }
+    fun summarize(dailyWeights: List<Pair<LocalDate, Double>>, today: LocalDate): Summary {
+        val daily = dailyWeights.filter { !it.first.isAfter(today) }
         val points = ewma(daily)
         val start = today.minusDays(RATE_WINDOW_DAYS.toLong())
         val recent = daily.filter { it.first in start..today }
@@ -86,4 +86,7 @@ object WeightTrend {
         } else null
         return Summary(points = points, trendKg = points.lastOrNull()?.trendKg, weeklyChangeKg = weekly)
     }
+
+    fun summarize(weights: List<WeightMeasurementEntity>, today: LocalDate, zone: ZoneId): Summary =
+        summarize(dailyWeights(weights, zone), today)
 }

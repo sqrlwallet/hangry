@@ -119,18 +119,22 @@ class NutritionViewModel(
 
     init {
         viewModelScope.launch {
-            _selectedDate.flatMapLatest { date ->
+            val dateEntriesFlow = _selectedDate.flatMapLatest { date ->
                 combine(
                     foodLogRepository.getForDate(date),
-                    foodLogRepository.getTotalCaloriesForDate(date),
-                    mealPlanRepository.getAll(),
-                    userProfileRepository.getProfile(),
-                    pendingDeletes
-                ) { entries, total, plans, profile, hidden ->
-                    val visible = entries.filter { it.id !in hidden }
-                    val hiddenCalories = entries.filter { it.id in hidden }.sumOf { it.calories }
-                    NutritionSources(date, visible, (total - hiddenCalories).coerceAtLeast(0), plans, profile)
-                }
+                    foodLogRepository.getTotalCaloriesForDate(date)
+                ) { entries, total -> Pair(date, Pair(entries, total)) }
+            }
+            combine(
+                dateEntriesFlow,
+                mealPlanRepository.getAll(),
+                userProfileRepository.getProfile(),
+                pendingDeletes
+            ) { (date, entriesAndTotal), plans, profile, hidden ->
+                val (entries, total) = entriesAndTotal
+                val visible = entries.filter { it.id !in hidden }
+                val hiddenCalories = entries.filter { it.id in hidden }.sumOf { it.calories }
+                NutritionSources(date, visible, (total - hiddenCalories).coerceAtLeast(0), plans, profile)
             }.collect { sources ->
                 _uiState.update {
                     it.copy(
@@ -150,19 +154,22 @@ class NutritionViewModel(
         val water = waterLogRepository
         if (water != null) {
             viewModelScope.launch {
-                _selectedDate.flatMapLatest { date ->
+                val dateWaterFlow = _selectedDate.flatMapLatest { date ->
                     combine(
                         water.observeLoggedMl(date),
-                        dailySummaryRepository?.getSummaryForDate(date) ?: flowOf(null),
-                        userProfileRepository.getProfile()
-                    ) { logged, summary, profile ->
-                        val weight = profile?.currentWeightKg?.takeIf { it > 0 }
-                        WaterProgress(
-                            intakeMl = WaterIntake.totalMl(summary?.hydrationLiters, logged),
-                            targetMl = WaterIntake.targetMl(weight),
-                            targetFromWeight = weight != null
-                        )
-                    }
+                        dailySummaryRepository?.getSummaryForDate(date) ?: flowOf(null)
+                    ) { logged, summary -> Pair(logged, summary) }
+                }
+                combine(
+                    dateWaterFlow,
+                    userProfileRepository.getProfile()
+                ) { (logged, summary), profile ->
+                    val weight = profile?.currentWeightKg?.takeIf { it > 0 }
+                    WaterProgress(
+                        intakeMl = WaterIntake.totalMl(summary?.hydrationLiters, logged),
+                        targetMl = WaterIntake.targetMl(weight),
+                        targetFromWeight = weight != null
+                    )
                 }.collect { progress -> _uiState.update { it.copy(water = progress) } }
             }
         }

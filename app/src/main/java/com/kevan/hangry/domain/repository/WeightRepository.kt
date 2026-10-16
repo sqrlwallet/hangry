@@ -12,6 +12,8 @@ interface WeightRepository {
     fun getLatestWeight(): Flow<WeightMeasurementEntity?>
     suspend fun getLatestWeightSync(): WeightMeasurementEntity?
     fun getAllWeights(): Flow<List<WeightMeasurementEntity>>
+    fun getWeightsBetween(start: Instant, end: Instant): Flow<List<WeightMeasurementEntity>>
+    suspend fun getWeightsBetweenList(start: Instant, end: Instant): List<WeightMeasurementEntity>
     fun getRollingAverageWeight(): Flow<Double?>
     suspend fun getCount(): Int
     suspend fun getImportedFingerprintsBetween(start: Instant, end: Instant): List<String>

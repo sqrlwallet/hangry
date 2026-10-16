@@ -43,25 +43,44 @@ data class TrendsDerived(
         ): TrendsDerived {
             fun inRange(date: LocalDate) = !date.isBefore(queryStartDate) && !date.isAfter(today)
             val workoutsByDate = workouts.groupBy { it.startTime.atZone(zone).toLocalDate() }
-            val weightDates = weights.map { it.timestamp.atZone(zone).toLocalDate() }
+            val dailyWeights = WeightTrend.dailyWeights(weights, zone)
             val chronological = HashSet<LocalDate>()
             val history = HashSet<LocalDate>()
-            for (s in scores) { chronological += s.date; history += s.date }
-            for (s in summaries) { chronological += s.date; history += s.date }
-            for (f in foodLogs) { chronological += f.date; history += f.date }
-            chronological += weightDates
-            history += workoutsByDate.keys
+            for (s in scores) {
+                if (inRange(s.date)) {
+                    chronological += s.date
+                    history += s.date
+                }
+            }
+            for (s in summaries) {
+                if (inRange(s.date)) {
+                    chronological += s.date
+                    history += s.date
+                }
+            }
+            for (f in foodLogs) {
+                if (inRange(f.date)) {
+                    chronological += f.date
+                    history += f.date
+                }
+            }
+            for ((d, _) in dailyWeights) {
+                if (inRange(d)) chronological += d
+            }
+            for (wDate in workoutsByDate.keys) {
+                if (inRange(wDate)) history += wDate
+            }
             return TrendsDerived(
                 queryStartDate = queryStartDate,
                 today = today,
-                weightTrend = WeightTrend.summarize(weights, today, zone),
+                weightTrend = WeightTrend.summarize(dailyWeights, today),
                 workoutsByDate = workoutsByDate,
                 foodLogsByDate = foodLogs.groupBy { it.date },
-                weightsByDate = WeightTrend.dailyWeights(weights, zone).toMap(),
+                weightsByDate = dailyWeights.toMap(),
                 scoreByDate = scores.associateBy { it.date },
                 summaryByDate = summaries.associateBy { it.date },
-                chronologicalDates = chronological.filter(::inRange).sorted(),
-                historyDates = history.filter(::inRange).sortedDescending()
+                chronologicalDates = chronological.sorted(),
+                historyDates = history.sortedDescending()
             )
         }
     }

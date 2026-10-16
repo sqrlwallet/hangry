@@ -280,11 +280,11 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val foodAnalyzer: FoodAnalyzer by lazy {
-        OpenRouterFoodAnalyzer(openRouterClient, secureKeyStore, userProfileRepository)
+        OpenRouterFoodAnalyzer({ openRouterClient }, { secureKeyStore }, userProfileRepository)
     }
 
     override val nutritionReviewer: com.kevan.hangry.domain.ai.NutritionReviewer by lazy {
-        com.kevan.hangry.data.ai.OpenRouterNutritionReviewer(openRouterClient, secureKeyStore, userProfileRepository)
+        com.kevan.hangry.data.ai.OpenRouterNutritionReviewer({ openRouterClient }, { secureKeyStore }, userProfileRepository)
     }
 
     override val postureAnalyzer: PostureAnalyzer by lazy {

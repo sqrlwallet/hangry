@@ -118,6 +118,8 @@ class DashboardViewModelTest {
             override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = flowOf(null)
             override suspend fun getLatestWeightSync(): WeightMeasurementEntity? = null
             override fun getAllWeights(): Flow<List<WeightMeasurementEntity>> = flowOf(emptyList())
+            override fun getWeightsBetween(start: java.time.Instant, end: java.time.Instant): Flow<List<WeightMeasurementEntity>> = flowOf(emptyList())
+            override suspend fun getWeightsBetweenList(start: java.time.Instant, end: java.time.Instant): List<WeightMeasurementEntity> = emptyList()
             override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)
             override suspend fun getCount(): Int = 0
             override suspend fun deleteAll() {}

@@ -175,6 +175,8 @@ class DashboardDateChangeBenchmark {
             override fun getLatestWeight(): Flow<WeightMeasurementEntity?> = room { null }
             override suspend fun getLatestWeightSync(): WeightMeasurementEntity? = null
             override fun getAllWeights(): Flow<List<WeightMeasurementEntity>> = room { emptyList() }
+            override fun getWeightsBetween(start: Instant, end: Instant): Flow<List<WeightMeasurementEntity>> = room { emptyList() }
+            override suspend fun getWeightsBetweenList(start: Instant, end: Instant): List<WeightMeasurementEntity> = emptyList()
             override fun getRollingAverageWeight(): Flow<Double?> = flowOf(null)
             override suspend fun getCount(): Int = 0
             override suspend fun deleteAll() {}
@@ -199,11 +201,11 @@ class DashboardDateChangeBenchmark {
             override suspend fun deleteScan(id: Long) {}
         }
         // The real one combines 9 queries (profile, latest weight/height/scan, 14 days of
-        // summaries, 7 days of workouts, 28 days of meals, every weigh-in); count them as such.
+        // summaries, 7 days of workouts, 28 days of meals, 28 days of weigh-ins); count them as such.
         val bodyMetricsRepo = object : BodyMetricsRepository {
             override fun observe(): Flow<BodyMetricsSnapshot> = room {
                 queries.addAndGet(8)
-                rowsRead.addAndGet(4 + 14 + 4 + 28 * 4 + days.toInt())
+                rowsRead.addAndGet(4 + 14 + 4 + 28 * 4 + 28)
                 BodyMetricsSnapshot(BodyMetricsInput(), null, emptyList())
             }
             override suspend fun current(): BodyMetricsSnapshot = BodyMetricsSnapshot(BodyMetricsInput(), null, emptyList())

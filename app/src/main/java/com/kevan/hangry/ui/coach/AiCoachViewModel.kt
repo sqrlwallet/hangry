@@ -35,6 +35,13 @@ class AiCoachViewModel(
     private var observeJob: Job? = null
     private var searchJob: Job? = null
 
+    /** The in-flight send or regenerate, so Stop can cancel it. */
+    private var sendJob: Job? = null
+
+    /** The last thing sent, so Stop can hand a never-answered message back to the input. */
+    private var lastSentText: String = ""
+    private var lastSentImages: List<android.net.Uri> = emptyList()
+
     /** The open chat; null is a new, empty chat (created when its first message is sent). */
     private val activeConversation = MutableStateFlow<Long?>(null)
     private var resumed = false
@@ -129,8 +136,10 @@ class AiCoachViewModel(
         val images = _uiState.value.pendingImages
         if ((trimmed.isBlank() && images.isEmpty()) || _uiState.value.isLoading) return
 
+        lastSentText = trimmed
+        lastSentImages = images
         _uiState.update { it.copy(isLoading = true, errorMessage = null, pendingImages = emptyList()) }
-        viewModelScope.launch {
+        sendJob = viewModelScope.launch {
             var startedHere = false
             val result = try {
                 // A new chat is created by its first message.
@@ -162,6 +171,58 @@ class AiCoachViewModel(
                     _uiState.update {
                         it.copy(isLoading = false, errorMessage = errorMsg, draftToRestore = trimmed, pendingImages = images)
                     }
+                }
+            )
+        }
+    }
+
+    /**
+     * Stops the reply in progress. What Dash already wrote is kept (the repository saves it);
+     * a message that never got a word back is returned to the input so it isn't lost.
+     */
+    fun stopStreaming() {
+        if (!_uiState.value.isLoading) return
+        val hadPartial = !_uiState.value.streamingReply.isNullOrBlank()
+        sendJob?.cancel()
+        sendJob = null
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                streamingReply = null,
+                errorMessage = null,
+                draftToRestore = if (hadPartial) null else lastSentText.takeIf { text -> text.isNotBlank() },
+                pendingImages = if (hadPartial) emptyList() else lastSentImages
+            )
+        }
+    }
+
+    /** Asks Dash to write its last reply again, replacing it. */
+    fun regenerateLastReply() {
+        val conversationId = activeConversation.value ?: return
+        if (!_uiState.value.canRegenerate) return
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        sendJob = viewModelScope.launch {
+            val result = try {
+                coachRepository.regenerateLastReply(conversationId) { partial ->
+                    if (activeConversation.value == conversationId) _uiState.update { it.copy(streamingReply = partial) }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+            _uiState.update { it.copy(streamingReply = null) }
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    refreshSuggestions()
+                },
+                onFailure = { e ->
+                    val errorMsg = when (e) {
+                        is OpenRouterException -> e.message ?: "Couldn't reach Dash. Try again."
+                        else -> e.localizedMessage ?: "Something went wrong. Please try again."
+                    }
+                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
                 }
             )
         }

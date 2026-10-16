@@ -23,6 +23,10 @@
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
+        <!-- Reading Dash's replies aloud uses the device's text-to-speech engine. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
     </queries>
 
     <!-- Required only for the opt-in AI features (Settings > AI Features): calling OpenRouter

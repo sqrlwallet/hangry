@@ -8,6 +8,13 @@ object AiDefaults {
     const val DEFAULT_MODEL = "google/gemini-3.8-flash"
     const val COACH_MODEL = "openai/gpt-5.6-luna"
 
+    /**
+     * Lean enough to stay grounded in the user's numbers, warm enough to sound like a person.
+     * [COACH_MAX_TOKENS] caps runaway replies (and cost) well above a normal coaching answer.
+     */
+    const val COACH_TEMPERATURE = 0.7
+    const val COACH_MAX_TOKENS = 1600
+
     /** Earlier defaults: a profile still holding one of these moves up to [DEFAULT_MODEL]. */
     private val RETIRED_DEFAULT_MODELS = setOf("google/gemini-2.5-flash")
 

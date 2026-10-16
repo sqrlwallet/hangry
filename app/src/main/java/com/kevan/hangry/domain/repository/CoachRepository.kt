@@ -52,6 +52,13 @@ interface CoachRepository {
         onPartialReply: (String) -> Unit
     ): Result<CoachResponse> = askCoach(userMessage, imageUris)
 
+    /**
+     * Re-runs Dash's last reply in [conversationId] without re-sending the user's message,
+     * streaming it through [onPartialReply]. Used by the Regenerate button.
+     */
+    suspend fun regenerateLastReply(conversationId: Long, onPartialReply: (String) -> Unit): Result<CoachResponse> =
+        Result.failure(UnsupportedOperationException("Regenerate isn't supported here."))
+
     /** Runs action [index] of assistant message [messageId] after the user taps it. */
     suspend fun executeAction(messageId: Long, index: Int): Result<String> =
         Result.failure(UnsupportedOperationException("Actions aren't supported here."))

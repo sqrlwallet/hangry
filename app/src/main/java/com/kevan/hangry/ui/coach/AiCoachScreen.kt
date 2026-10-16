@@ -44,7 +44,11 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -119,6 +124,7 @@ fun AiCoachScreen(
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = rememberHangryHaptics()
+    val speaker = rememberDashSpeaker()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -133,6 +139,7 @@ fun AiCoachScreen(
     val canSend = (inputText.isNotBlank() || uiState.pendingImages.isNotEmpty()) && !uiState.isLoading
     val defaultStarters = QUICK_STARTERS.map { stringResource(it) }
     val starters = uiState.suggestions.ifEmpty { defaultStarters }
+    val lastAssistantId = uiState.messages.lastOrNull()?.takeIf { it.role == "assistant" }?.id
     val context = LocalContext.current
     val tabReselectionBus = com.kevan.hangry.ui.navigation.LocalTabReselectionBus.current
     LaunchedEffect(tabReselectionBus, uiState.messages.size) {
@@ -288,7 +295,11 @@ fun AiCoachScreen(
                                             coroutineScope.launch {
                                                 snackbarHostState.showSnackbar(message = copiedMessage, duration = SnackbarDuration.Short)
                                             }
-                                        }
+                                        },
+                                        canRegenerate = message.id == lastAssistantId && !uiState.isLoading,
+                                        onRegenerate = { haptic.tick(); viewModel.regenerateLastReply() },
+                                        speaking = speaker.speakingKey == message.id.toString(),
+                                        onToggleSpeak = { spoken -> haptic.tick(); speaker.toggle(message.id.toString(), spoken) }
                                     )
                                 }
 
@@ -327,7 +338,8 @@ fun AiCoachScreen(
                         onDictate = { runCatching { speechLauncher.launch(speechIntent) } },
                         isLoading = uiState.isLoading,
                         canSend = canSend,
-                        onSend = sendInput
+                        onSend = sendInput,
+                        onStop = { haptic.tick(); viewModel.stopStreaming() }
                     )
                 }
             }
@@ -516,7 +528,8 @@ private fun ChatInputBar(
     onDictate: () -> Unit,
     isLoading: Boolean,
     canSend: Boolean,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onStop: () -> Unit
 ) {
     val tokens = LocalHangryTokens.current
     val haptic = rememberHangryHaptics()
@@ -640,24 +653,42 @@ private fun ChatInputBar(
                     }
                 }
 
-                IconButton(
-                    onClick = {
-                        haptic.tick()
-                        onSend()
-                    },
-                    enabled = canSend,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .padding(2.dp)
-                        .clip(CircleShape)
-                        .background(if (canSend) MaterialTheme.colorScheme.primary else Color.Transparent)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = if (isLoading) stringResource(R.string.coach_is_thinking, MASCOT_NAME) else stringResource(R.string.coach_send_message),
-                        tint = if (canSend) MaterialTheme.colorScheme.onPrimary else tokens.textMuted,
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (isLoading) {
+                    IconButton(
+                        onClick = onStop,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(2.dp)
+                            .clip(CircleShape)
+                            .background(tokens.cardBackground)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Stop,
+                            contentDescription = stringResource(R.string.coach_stop_reply, MASCOT_NAME),
+                            tint = tokens.textPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            haptic.tick()
+                            onSend()
+                        },
+                        enabled = canSend,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(2.dp)
+                            .clip(CircleShape)
+                            .background(if (canSend) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(R.string.coach_send_message),
+                            tint = if (canSend) MaterialTheme.colorScheme.onPrimary else tokens.textMuted,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
@@ -989,6 +1020,10 @@ private fun CoachMessageItem(
     onExecuteAction: (Int) -> Unit,
     onDismissAction: (Int) -> Unit,
     onCopy: (String) -> Unit,
+    canRegenerate: Boolean = false,
+    onRegenerate: () -> Unit = {},
+    speaking: Boolean = false,
+    onToggleSpeak: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == "user"
@@ -1026,9 +1061,45 @@ private fun CoachMessageItem(
         }
 
         message.journalEntrySummary?.let { summary -> JournalSavedChip(summary) }
+
+        // Read Dash's answer out loud, and (for the newest reply) write it again.
+        if (!isUser && message.content.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MessageActionButton(
+                    icon = if (speaking) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                    label = stringResource(if (speaking) R.string.coach_stop_reading else R.string.coach_read_aloud),
+                    active = speaking,
+                    onClick = { onToggleSpeak(message.content.replace("*", "")) }
+                )
+                if (canRegenerate) {
+                    MessageActionButton(
+                        icon = Icons.Default.Refresh,
+                        label = stringResource(R.string.coach_regenerate),
+                        onClick = onRegenerate
+                    )
+                }
+            }
+        }
     }
 
     if (isUser) UserSide(modifier = modifier, content = body) else DashSide(modifier = modifier, content = body)
+}
+
+/** A small text+icon button under an assistant message (read aloud, regenerate). */
+@Composable
+private fun MessageActionButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    active: Boolean = false
+) {
+    val tokens = LocalHangryTokens.current
+    val tint = if (active) MaterialTheme.colorScheme.primary else tokens.textSecondary
+    TextButton(onClick = onClick, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(5.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = tint)
+    }
 }
 
 /** Shown under a message when Dash saved something from it to the journal. */

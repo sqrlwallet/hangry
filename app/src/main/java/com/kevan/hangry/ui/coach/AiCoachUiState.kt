@@ -38,6 +38,9 @@ data class AiCoachUiState(
     /** The open chat's title, for the top bar; null for a new chat. */
     val activeTitle: String? get() = conversations.firstOrNull { it.id == activeConversationId }?.title
 
+    /** True when the last thing in the chat is Dash's reply, so it can be regenerated. */
+    val canRegenerate: Boolean get() = !isLoading && messages.lastOrNull()?.role == "assistant"
+
     /** Chats the history sheet shows: all, or those whose title or messages match the search. */
     val visibleConversations: List<CoachConversationSummary>
         get() {

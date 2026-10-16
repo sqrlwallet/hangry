@@ -162,11 +162,19 @@ $DASH_ACTION_GUIDE
         messagesList.add(OpenRouterMessage(role = "user", content = userMessage, imagesBase64 = imagesBase64))
 
         val completion = if (onPartialReply == null) {
-            client.chatCompletionMessages(apiKey, model, messagesList)
+            client.chatCompletionMessages(
+                apiKey, model, messagesList,
+                temperature = AiDefaults.COACH_TEMPERATURE,
+                maxTokens = AiDefaults.COACH_MAX_TOKENS
+            )
         } else {
             val soFar = StringBuilder()
             var shown = ""
-            client.streamChatCompletionMessages(apiKey, model, messagesList) { delta ->
+            client.streamChatCompletionMessages(
+                apiKey, model, messagesList,
+                temperature = AiDefaults.COACH_TEMPERATURE,
+                maxTokens = AiDefaults.COACH_MAX_TOKENS
+            ) { delta ->
                 soFar.append(delta)
                 val visible = StreamingReply.visibleText(soFar.toString())
                 if (visible != shown) {

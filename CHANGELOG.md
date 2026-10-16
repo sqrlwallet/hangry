@@ -1,3 +1,21 @@
+## 🚀 What's New in Hangry v1.46.0 — A Dash You Can Steer
+
+Ask Dash gets a stop button, read-aloud replies, regenerate, automatic retries, and leaner, better-tuned answers.
+
+### ⏹️ You're in Control
+- **Stop button**: while Dash is replying, the send button becomes Stop. What's already written is kept, so a half-finished answer is never thrown away.
+- **Regenerate**: didn't love the answer? Tap Regenerate under Dash's latest reply to have it written again, without repeating your message.
+- **Read aloud**: tap the speaker under any of Dash's replies to hear it spoken; tap again to stop.
+
+### 🧠 Smarter Replies
+- **Grounded but warm**: Dash now asks the model with tuned creativity and a reply-length cap, so answers stay personal, focused and affordable.
+- **Leaner context**: the 7-day data Dash reads is capped so a long history can't slow it down.
+
+### 🛡️ More Resilient
+- **Automatic retries**: a dropped connection, a rate limit or a server hiccup is retried with backoff before anything fails.
+- **No lost answers**: if the connection drops mid-reply, Dash keeps what it already wrote instead of showing an error.
+- **Quick model picks**: the Ask Dash model setting now offers one-tap presets.
+
 ## 🚀 What's New in Hangry v1.45.1 — Sleep That Keeps Up
 
 Sleep now stays current all day, and naps count. A night that Health Connect extends or adds stages to no longer stays stuck, and the sleep screen updates while the app is open.

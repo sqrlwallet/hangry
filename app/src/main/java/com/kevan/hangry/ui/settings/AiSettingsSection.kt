@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -176,6 +178,7 @@ fun AiFeaturesSection(
             title = stringResource(R.string.settings_ai_model),
             description = stringResource(R.string.settings_ai_model_description),
             currentModel = AiDefaults.analysisModel(profile?.preferredAiModel),
+            presets = analysisModelPresets(),
             onDismiss = { showModelDialog = false },
             onSave = { newModel ->
                 coroutineScope.launch {
@@ -192,6 +195,7 @@ fun AiFeaturesSection(
             title = stringResource(R.string.settings_ai_dash_model),
             description = stringResource(R.string.settings_ai_dash_model_description),
             currentModel = profile?.preferredCoachModel?.takeIf { it.isNotBlank() } ?: AiDefaults.COACH_MODEL,
+            presets = coachModelPresets(),
             onDismiss = { showCoachModelDialog = false },
             onSave = { newModel ->
                 coroutineScope.launch {
@@ -203,6 +207,21 @@ fun AiFeaturesSection(
         )
     }
 }
+
+/** A one-tap model choice shown as a chip in [ModelDialog]. */
+private data class ModelPreset(val label: String, val model: String)
+
+@Composable
+private fun analysisModelPresets(): List<ModelPreset> = listOf(
+    ModelPreset(stringResource(R.string.settings_ai_model_preset_recommended), AiDefaults.DEFAULT_MODEL),
+    ModelPreset(stringResource(R.string.settings_ai_model_preset_fast), "google/gemini-2.5-flash")
+)
+
+@Composable
+private fun coachModelPresets(): List<ModelPreset> = listOf(
+    ModelPreset(stringResource(R.string.settings_ai_model_preset_recommended), AiDefaults.COACH_MODEL),
+    ModelPreset(stringResource(R.string.settings_ai_model_preset_fast), "google/gemini-2.5-flash")
+)
 
 @Composable
 private fun AiConsentDialog(onDismiss: () -> Unit, onAccept: () -> Unit) {
@@ -309,7 +328,8 @@ private fun ModelDialog(
     description: String,
     currentModel: String,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit
+    onSave: (String) -> Unit,
+    presets: List<ModelPreset> = emptyList()
 ) {
     val tokens = LocalHangryTokens.current
     var modelInput by remember { mutableStateOf(currentModel) }
@@ -327,6 +347,25 @@ private fun ModelDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = tokens.textSecondary
                 )
+                if (presets.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.settings_ai_model_presets),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textSecondary
+                    )
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presets.forEach { preset ->
+                            FilterChip(
+                                selected = modelInput == preset.model,
+                                onClick = { modelInput = preset.model },
+                                label = { Text(preset.label, style = MaterialTheme.typography.labelSmall) }
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = modelInput,
                     onValueChange = { modelInput = it },

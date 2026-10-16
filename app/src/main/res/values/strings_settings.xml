@@ -59,6 +59,9 @@
     <string name="settings_ai_testing_connection">Testing connection</string>
     <string name="settings_ai_test_connection">Test Connection</string>
     <string name="settings_ai_model_label">Model</string>
+    <string name="settings_ai_model_presets">Quick picks</string>
+    <string name="settings_ai_model_preset_recommended">Recommended</string>
+    <string name="settings_ai_model_preset_fast">Fast &amp; light</string>
     <!-- Settings screen -->
     <string name="settings_ok">OK</string>
     <string name="settings_title">Settings &amp; Privacy</string>

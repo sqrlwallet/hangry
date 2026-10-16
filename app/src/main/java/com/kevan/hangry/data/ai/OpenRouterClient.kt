@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,7 +27,7 @@ sealed class OpenRouterException(message: String, cause: Throwable? = null) : Ex
     class InvalidApiKey : OpenRouterException("This OpenRouter API key was rejected. Check it in Settings.")
     class RateLimited : OpenRouterException("OpenRouter rate limit or credit limit reached. Try again shortly.")
     class NoNetwork(cause: Throwable) : OpenRouterException("Couldn't reach OpenRouter - check your connection.", cause)
-    class ServerError(code: Int) : OpenRouterException("OpenRouter returned an error (HTTP $code). Try again.")
+    class ServerError(val code: Int) : OpenRouterException("OpenRouter returned an error (HTTP $code). Try again.")
     class EmptyResponse : OpenRouterException("The model returned an empty response. Try again.")
     class MalformedResponse(cause: Throwable) : OpenRouterException("Couldn't read the model's response.", cause)
 }
@@ -127,34 +128,55 @@ class OpenRouterClient {
 
     /**
      * Multi-turn chat completion for conversational features (e.g. AI Coach).
+     * [temperature] (0..2) and [maxTokens] tune the reply; null leaves OpenRouter's defaults.
      */
     suspend fun chatCompletionMessages(
         apiKey: String,
         model: String,
-        messages: List<OpenRouterMessage>
+        messages: List<OpenRouterMessage>,
+        temperature: Double? = null,
+        maxTokens: Int? = null
     ): Result<String> = withContext(Dispatchers.IO) {
-        executeRequest(apiKey, messagesBody(model, messages, stream = false).toString())
+        executeRequest(apiKey, messagesBody(model, messages, stream = false, temperature = temperature, maxTokens = maxTokens).toString())
     }
 
     /**
      * Same as [chatCompletionMessages] but streamed: [onDelta] receives each text fragment as
      * the model writes it (on the IO thread). Returns the full text once the stream ends.
      * Cancelling the caller cancels the HTTP call and stops [onDelta] immediately.
+     *
+     * A transient failure before the first fragment is retried with backoff; once text has
+     * started arriving a retry would repeat it, so the partial result is returned instead.
      */
     suspend fun streamChatCompletionMessages(
         apiKey: String,
         model: String,
         messages: List<OpenRouterMessage>,
+        temperature: Double? = null,
+        maxTokens: Int? = null,
         onDelta: (String) -> Unit
-    ): Result<String> = withContext(Dispatchers.IO) { streamMessages(apiKey, model, messages, onDelta) }
+    ): Result<String> = withContext(Dispatchers.IO) {
+        var emitted = false
+        val trackDelta = { text: String -> emitted = true; onDelta(text) }
+        var last = Result.failure<String>(IllegalStateException("No attempt made"))
+        for (attempt in 0 until MAX_ATTEMPTS) {
+            last = streamMessages(apiKey, model, messages, temperature, maxTokens, trackDelta)
+            val error = last.exceptionOrNull()
+            if (last.isSuccess || error == null || emitted || !isRetryable(error) || attempt == MAX_ATTEMPTS - 1) break
+            delay(retryDelayMillis(attempt))
+        }
+        last
+    }
 
     private suspend fun streamMessages(
         apiKey: String,
         model: String,
         messages: List<OpenRouterMessage>,
+        temperature: Double?,
+        maxTokens: Int?,
         onDelta: (String) -> Unit
     ): Result<String> = resultOf {
-        execute(buildRequest(apiKey, messagesBody(model, messages, stream = true).toString())) { response ->
+        execute(buildRequest(apiKey, messagesBody(model, messages, stream = true, temperature = temperature, maxTokens = maxTokens).toString())) { response ->
             throwForStatus(response.code, response.isSuccessful)
             val source = response.body?.source() ?: throw OpenRouterException.EmptyResponse()
             val full = StringBuilder()
@@ -183,9 +205,17 @@ class OpenRouterClient {
         }
     }
 
-    private fun messagesBody(model: String, messages: List<OpenRouterMessage>, stream: Boolean) = buildJsonObject {
+    private fun messagesBody(
+        model: String,
+        messages: List<OpenRouterMessage>,
+        stream: Boolean,
+        temperature: Double? = null,
+        maxTokens: Int? = null
+    ) = buildJsonObject {
         put("model", model)
         if (stream) put("stream", true)
+        temperature?.let { put("temperature", it) }
+        maxTokens?.let { put("max_tokens", it) }
         putJsonArray("messages") {
             messages.forEach { msg ->
                 addJsonObject {
@@ -228,23 +258,32 @@ class OpenRouterClient {
         }
     }
 
-    private suspend fun executeRequest(apiKey: String, requestBodyJson: String): Result<String> = resultOf {
-        execute(buildRequest(apiKey, requestBodyJson)) { response ->
-            val bodyText = try {
-                response.body?.string().orEmpty()
-            } catch (e: IOException) {
-                ensureActive()
-                throw OpenRouterException.NoNetwork(e)
+    private suspend fun executeRequest(apiKey: String, requestBodyJson: String): Result<String> {
+        var last = Result.failure<String>(IllegalStateException("No attempt made"))
+        for (attempt in 0 until MAX_ATTEMPTS) {
+            last = resultOf {
+                execute(buildRequest(apiKey, requestBodyJson)) { response ->
+                    val bodyText = try {
+                        response.body?.string().orEmpty()
+                    } catch (e: IOException) {
+                        ensureActive()
+                        throw OpenRouterException.NoNetwork(e)
+                    }
+                    throwForStatus(response.code, response.isSuccessful)
+                    val parsed = try {
+                        json.decodeFromString(ChatCompletionResponse.serializer(), bodyText)
+                    } catch (e: Exception) {
+                        throw OpenRouterException.MalformedResponse(e)
+                    }
+                    parsed.choices.firstOrNull()?.message?.content?.takeIf { text -> text.isNotBlank() }
+                        ?: throw OpenRouterException.EmptyResponse()
+                }
             }
-            throwForStatus(response.code, response.isSuccessful)
-            val parsed = try {
-                json.decodeFromString(ChatCompletionResponse.serializer(), bodyText)
-            } catch (e: Exception) {
-                throw OpenRouterException.MalformedResponse(e)
-            }
-            parsed.choices.firstOrNull()?.message?.content?.takeIf { text -> text.isNotBlank() }
-                ?: throw OpenRouterException.EmptyResponse()
+            val error = last.exceptionOrNull()
+            if (last.isSuccess || error == null || !isRetryable(error) || attempt == MAX_ATTEMPTS - 1) return last
+            delay(retryDelayMillis(attempt))
         }
+        return last
     }
 
     /**
@@ -275,6 +314,26 @@ class OpenRouterClient {
     }
 
 }
+
+/** How many times a transient request is attempted (first try plus retries). */
+private const val MAX_ATTEMPTS = 3
+
+/** Backoff before the first retry; doubles for each further attempt. */
+private const val RETRY_BASE_DELAY_MS = 600L
+
+/**
+ * A dropped connection, a rate limit or a server-side (5xx) error is worth another try after a
+ * short wait. A rejected key, an empty or unreadable answer is not - retrying only delays the
+ * message the user needs to see.
+ */
+internal fun isRetryable(error: Throwable): Boolean = when (error) {
+    is OpenRouterException.RateLimited, is OpenRouterException.NoNetwork -> true
+    is OpenRouterException.ServerError -> error.code in 500..599
+    else -> false
+}
+
+/** Exponential backoff: 600 ms, 1200 ms, ... */
+private fun retryDelayMillis(attempt: Int): Long = RETRY_BASE_DELAY_MS * (1L shl attempt)
 
 // Small DSL helpers kept local to this file - kotlinx.serialization's JsonObjectBuilder doesn't
 // ship nested-array/object convenience functions out of the box.

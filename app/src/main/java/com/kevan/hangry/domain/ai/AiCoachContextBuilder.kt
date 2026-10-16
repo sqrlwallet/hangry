@@ -251,7 +251,12 @@ class AiCoachContextBuilder(
             sb.appendLine()
         }
 
-        return sb.toString().trim()
+        val built = sb.toString().trim()
+        if (built.length <= MAX_CONTEXT_CHARS) return built
+        // Safety net: a very long history mustn't crowd out the model's own reasoning. Cut on a
+        // line boundary so nothing is half-stated, and say so rather than pretend it's complete.
+        val trimmed = built.take(MAX_CONTEXT_CHARS).substringBeforeLast('\n').ifBlank { built.take(MAX_CONTEXT_CHARS) }
+        return trimmed + "\n\n[... older detail trimmed to keep replies fast; the sections above are complete ...]"
     }
 
     private fun appendEnergyBalance(sb: StringBuilder, energy: EnergyBalanceResult?) {
@@ -533,6 +538,9 @@ class AiCoachContextBuilder(
 
     private fun f(value: Double) = "%,.0f".format(Locale.US, value)
 }
+
+/** Upper bound on the assembled context. A safety net, well above a typical week's worth. */
+private const val MAX_CONTEXT_CHARS = 20000
 
 private val LOCAL_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, h:mm a", Locale.US)
 private val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")

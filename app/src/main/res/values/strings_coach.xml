@@ -38,8 +38,11 @@
     <string name="coach_clear_input">Clear input</string>
     <string name="coach_speak_to">Speak to %1$s</string>
     <string name="coach_message_input_description">Message input for %1$s</string>
-    <string name="coach_is_thinking">%1$s is thinking</string>
     <string name="coach_send_message">Send message</string>
+    <string name="coach_stop_reply">Stop %1$s</string>
+    <string name="coach_read_aloud">Read aloud</string>
+    <string name="coach_stop_reading">Stop reading</string>
+    <string name="coach_regenerate">Regenerate</string>
     <string name="coach_clear_history_body">Messages will be deleted. Journal &amp; memories are kept.</string>
     <string name="coach_new_chat">New chat</string>
     <string name="coach_chat_history">Chat history</string>

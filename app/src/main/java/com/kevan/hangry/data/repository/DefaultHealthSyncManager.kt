@@ -30,6 +30,7 @@ import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
 import com.kevan.hangry.domain.calculation.RecoveryCalculator
 import com.kevan.hangry.domain.calculation.RecoveryConfig
 import com.kevan.hangry.domain.calculation.SleepCalculator
+import com.kevan.hangry.domain.calculation.SleepSessions
 import com.kevan.hangry.domain.calculation.StrainCalculator
 import com.kevan.hangry.domain.calculation.TrainingLoadCalculator
 import com.kevan.hangry.domain.model.BiologicalSex
@@ -199,10 +200,9 @@ class DefaultHealthSyncManager(
                     }
                     val sleepInserted = database.sleepSessionDao().insertOrIgnore(sleepSessions.orEmpty())
                     chunkInserted += sleepInserted.count { it != -1L }
-                    // Nights saved before stage timelines were kept get theirs now.
-                    sleepSessions.orEmpty().forEach { session ->
-                        session.stageSegments?.let { database.sleepSessionDao().fillStageSegments(session.recordFingerprint, it) }
-                    }
+                    // Already-saved nights are refreshed too: a session Health Connect extends or
+                    // adds stages to after the first import lands in place instead of staying stale.
+                    sleepSessions.orEmpty().forEach { database.sleepSessionDao().updateDetails(it) }
 
                     val workoutInserted = database.exerciseSessionDao().insertOrIgnore(workouts.orEmpty())
                     chunkInserted += workoutInserted.count { it != -1L }
@@ -483,10 +483,15 @@ class DefaultHealthSyncManager(
             val to = Instant.now()
             // Like a full sync, only what's granted is read.
             val readable = HealthSyncPlan.readableTypes(dataSource.grantedPermissions())
+            // Sleep too, so a nap or a night that Health Connect finalises lands while the app is
+            // open instead of waiting for the next full sync.
+            val sleepSessions = if (SyncedType.SLEEP in readable) dataSource.fetchSleepSessions(from, to) else emptyList()
             val heartRate = if (SyncedType.HEART_RATE in readable) dataSource.fetchHeartRateSamples(from, to) else emptyList()
             val workouts = if (SyncedType.WORKOUTS in readable) dataSource.fetchExerciseSessions(from, to) else emptyList()
             val steps = if (SyncedType.STEPS in readable) dataSource.fetchStepsSummaries(today, today) else emptyList()
             database.withTransaction {
+                database.sleepSessionDao().insertOrIgnore(sleepSessions)
+                sleepSessions.forEach { database.sleepSessionDao().updateDetails(it) }
                 database.heartRateDao().insertOrIgnore(heartRate)
                 database.exerciseSessionDao().insertOrIgnore(workouts)
                 workouts.forEach {
@@ -712,7 +717,10 @@ class DefaultHealthSyncManager(
 
             // A sleep belongs to the day it ends on - each session to exactly one day.
             val sleepSessions = rangeSleep.filter { !it.endTime.isBefore(dayStart) && it.endTime.isBefore(dayEnd) }
-            val primarySleep = HealthSyncPlan.primarySleep(date, sleepSessions, zone)
+            // Vitals (overnight SpO2, breathing rate, heart rate and HRV) belong to the main night.
+            val mainSleep = HealthSyncPlan.primarySleep(date, sleepSessions, zone)
+            // Durations, stages, need and score add every session of the day up, naps included.
+            val combinedSleep = SleepSessions.combine(sleepSessions)
 
             val workouts = rangeWorkouts.filter { !it.startTime.isBefore(dayStart) && it.startTime.isBefore(dayEnd) }
             val trainingLoad = workouts.sumOf { trainingLoadCalculator.estimateSessionLoad(it) }
@@ -746,9 +754,9 @@ class DefaultHealthSyncManager(
                 ?: currentExistingSummary?.vo2Max
                 ?: prevDaySummary?.vo2Max
 
-            val effectiveSpo2 = NightlyVitals.overnightAverage(spo2Readings.around(date), primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
+            val effectiveSpo2 = NightlyVitals.overnightAverage(spo2Readings.around(date), mainSleep?.startTime, mainSleep?.endTime, dayStart, dayEnd)
                 ?: currentExistingSummary?.spo2Percentage
-            val effectiveRespRate = NightlyVitals.overnightAverage(respReadings.around(date), primarySleep?.startTime, primarySleep?.endTime, dayStart, dayEnd)
+            val effectiveRespRate = NightlyVitals.overnightAverage(respReadings.around(date), mainSleep?.startTime, mainSleep?.endTime, dayStart, dayEnd)
                 ?: currentExistingSummary?.respiratoryRate
             val effectiveSkinTemp = skinTempMap[date] ?: currentExistingSummary?.skinTempDeltaCelsius
             val bpReading = bpMap[date]
@@ -761,7 +769,7 @@ class DefaultHealthSyncManager(
                 .let { if (it.isNotEmpty()) it.average() else null }
 
             val sleepAnalysis = sleepCalculator.analyzeSleep(
-                currentSession = primarySleep,
+                currentSession = combinedSleep,
                 recentSessions = sleepHistoryForCalc.sortedByDescending { it.startTime },
                 targetDurationMinutes = sleepGoal,
                 previousDayStrain = prevDaySummary?.dayStrain,
@@ -773,20 +781,20 @@ class DefaultHealthSyncManager(
 
             // Overnight HRV: readings taken during last night's sleep, else the day's first one.
             val hrvRmssd = NightlyVitals.nightlyHrv(
-                readings = (primarySleep?.let { night ->
+                readings = (mainSleep?.let { night ->
                     val from = night.startTime.minus(1, ChronoUnit.HOURS)
                     val to = night.endTime.plus(1, ChronoUnit.HOURS)
                     rangeHrv.filter { !it.timestamp.isBefore(from) && !it.timestamp.isAfter(to) }
                 }.orEmpty() + hrvByDate[date].orEmpty()).distinctBy { it.id },
-                sleepStart = primarySleep?.startTime,
-                sleepEnd = primarySleep?.endTime
+                sleepStart = mainSleep?.startTime,
+                sleepEnd = mainSleep?.endTime
             )
 
-            val nightSamples = primarySleep?.let { database.heartRateDao().getSamplesBetweenList(it.startTime, it.endTime) }
+            val nightSamples = mainSleep?.let { database.heartRateDao().getSamplesBetweenList(it.startTime, it.endTime) }
 
             // Resting heart rate is measured overnight, like recovery wearables do: the lowest
             // 5-minute average during last night's sleep. It's final once the night is over.
-            val sleepingRhr = primarySleep?.let { night ->
+            val sleepingRhr = mainSleep?.let { night ->
                 NightlyVitals.lowestSustainedBpm(
                     nightSamples.orEmpty(),
                     night.startTime, night.endTime
@@ -811,7 +819,7 @@ class DefaultHealthSyncManager(
                 ?: heartRateSamplesToday.map { it.bpm }.filter { it >= 35 }.sorted().take(30).takeIf { it.isNotEmpty() }?.average()
 
             val avgHeartRate = heartRateSamplesToday.takeIf { it.isNotEmpty() }?.map { it.bpm }?.average()
-            val sleepingHr = primarySleep?.let { night ->
+            val sleepingHr = mainSleep?.let { night ->
                 NightlyVitals.averageSleepingBpm(
                     nightSamples.orEmpty(),
                     night.startTime, night.endTime
@@ -819,7 +827,7 @@ class DefaultHealthSyncManager(
             } ?: currentExistingSummary?.sleepingHeartRate
 
             var completeness = 0.0
-            if (primarySleep != null) completeness += 0.25
+            if (combinedSleep != null) completeness += 0.25
             if (effectiveRhr != null) completeness += 0.25
             if (hrvRmssd != null) completeness += 0.25
             if (steps != null) completeness += 0.25
@@ -846,11 +854,13 @@ class DefaultHealthSyncManager(
 
             val computedSummary = DailyHealthSummaryEntity(
                 date = date,
-                sleepDurationMinutes = primarySleep?.durationMinutes,
-                sleepStartTime = primarySleep?.startTime,
-                sleepEndTime = primarySleep?.endTime,
+                // The day's total, every session added up (naps included); the bed/wake times stay
+                // the main night's so the window shown is the night, not the night plus a nap.
+                sleepDurationMinutes = combinedSleep?.durationMinutes,
+                sleepStartTime = mainSleep?.startTime,
+                sleepEndTime = mainSleep?.endTime,
                 sleepConsistencyScore = sleepAnalysis.consistencyPercentage?.toDouble(),
-                sleepNeedMinutes = primarySleep?.let { sleepAnalysis.sleepNeedMinutes },
+                sleepNeedMinutes = combinedSleep?.let { sleepAnalysis.sleepNeedMinutes },
                 sleepScore = sleepAnalysis.sleepScore,
                 sleepQualityScore = sleepAnalysis.sleepQualityScore,
                 steps = steps?.stepCount,

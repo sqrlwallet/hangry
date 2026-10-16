@@ -254,7 +254,8 @@ object HangryWidgetUpdater {
         val ids = manager.getAppWidgetIds(component)
         if (ids.isEmpty()) return
 
-        val durationMinutes = latestSleep?.durationMinutes ?: summary?.sleepDurationMinutes
+        // The stored day total (naps included) when it's there; a raw session is the fallback.
+        val durationMinutes = summary?.sleepDurationMinutes ?: latestSleep?.durationMinutes
         val durationStr = if (durationMinutes != null && durationMinutes > 0) {
             val hours = durationMinutes / 60
             val mins = durationMinutes % 60
@@ -269,6 +270,8 @@ object HangryWidgetUpdater {
         val zone = ZoneId.systemDefault()
         val subtitleStr = when {
             !hasSleep -> context.getString(R.string.dashboard_widget_sleep_none)
+            summary?.sleepStartTime != null && summary.sleepEndTime != null ->
+                "${summary.sleepStartTime.atZone(zone).format(timeFormat)} – ${summary.sleepEndTime.atZone(zone).format(timeFormat)}"
             latestSleep != null ->
                 "${latestSleep.startTime.atZone(zone).format(timeFormat)} – ${latestSleep.endTime.atZone(zone).format(timeFormat)}"
             else -> context.getString(R.string.dashboard_widget_sleep_last_night)
@@ -371,7 +374,7 @@ object HangryWidgetUpdater {
         val stepsStr = context.getString(R.string.dashboard_widget_steps_value, summary?.steps?.let { String.format("%,d", it) } ?: "—")
         val caloriesStr = context.getString(R.string.dashboard_widget_kcal_value, summary?.activeCalories?.let { "${it.roundToInt()}" } ?: "—")
 
-        val durationMinutes = latestSleep?.durationMinutes ?: summary?.sleepDurationMinutes
+        val durationMinutes = summary?.sleepDurationMinutes ?: latestSleep?.durationMinutes
         val sleepStr = if (durationMinutes != null && durationMinutes > 0) {
             val h = durationMinutes / 60
             val m = durationMinutes % 60

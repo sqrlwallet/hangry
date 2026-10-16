@@ -1,3 +1,13 @@
+## 🚀 What's New in Hangry v1.45.1 — Sleep That Keeps Up
+
+Sleep now stays current all day, and naps count. A night that Health Connect extends or adds stages to no longer stays stuck, and the sleep screen updates while the app is open.
+
+### 😴 Sleep That Stays Current
+- **Nights refresh in place**: a sleep Health Connect later extends or adds stages to now updates the saved night instead of keeping the first version forever.
+- **Naps and split sleep count**: each day's sessions are added together for duration, stages, sleep need and the Sleep Score, so an afternoon nap shows up.
+- **Live updates**: sleep is re-read while the app is open and when you return to it, not just on the hourly sync.
+- **Main night stays the anchor**: your bed/wake times, consistency and overnight vitals (SpO2, breathing rate, overnight heart rate and HRV) still use the main night, so a nap never distorts them.
+
 ## 🚀 What's New in Hangry v1.45.0 — Readable Screens, Real Haptics & Living Motion
 
 Higher-contrast text, screen-reader descriptions for the custom gauges and charts, genuine device haptics, and app-wide motion polish that makes the whole app feel alive.

@@ -62,5 +62,7 @@ data class DailyHealthSummaryEntity(
  * 5: overnight readings from one app per night; body signals judged against personal spread.
  * 6: each night's sleep belongs to the day it ends (naps and early-evening sleep no longer missed
  *    or counted twice); time zone read per calculation.
+ * 7: a day's sleep is every session that ends on it added together, so naps count toward duration,
+ *    stage minutes, need and score, while bed/wake times stay the main night's.
  */
-const val SUMMARY_CALCULATION_VERSION = 6
+const val SUMMARY_CALCULATION_VERSION = 7

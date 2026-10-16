@@ -18,6 +18,7 @@ import com.kevan.hangry.data.repository.StreaksLoader
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.SleepCalculator
+import com.kevan.hangry.domain.calculation.SleepSessions
 import com.kevan.hangry.domain.calculation.StrainCalculator
 import com.kevan.hangry.domain.calculation.StressCalculator
 import com.kevan.hangry.domain.calculation.TrainingLoadCalculator
@@ -228,10 +229,12 @@ class DashboardViewModel(
 
         // Sorted newest-first: the most recent session is "current", the rest is real
         // baseline history (fixes the previous bug of always passing an empty history).
-        // The selected day's night is the one that ended on it; only earlier nights are
-        // history. A day with no sleep of its own shows none, not an older night.
+        // The selected day's sessions are the ones that ended on it; only earlier nights are
+        // history. A day with no sleep of its own shows none, not an older night. The day's
+        // sessions are added together, naps included, so the score reflects all of its sleep.
         val sortedSleep = sleepSessions.sortedByDescending { it.startTime }
-        val latestSleep = sortedSleep.firstOrNull { it.endTime.atZone(zone).toLocalDate() == date }
+        val daySleep = sortedSleep.filter { it.endTime.atZone(zone).toLocalDate() == date }
+        val currentSleep = SleepSessions.combine(daySleep)
         val sleepBaselineHistory = sortedSleep.filter { it.endTime.atZone(zone).toLocalDate().isBefore(date) }
         val sleepGoal = profile?.sleepGoalMinutes ?: 480
 
@@ -240,9 +243,7 @@ class DashboardViewModel(
         // "pending" rather than showing a zero or yesterday's stale value. For past days,
         // sleep is never "pending".
         val isToday = date == LocalDate.now(zone)
-        val sleepRecordedForDate = sortedSleep.any { session ->
-            session.endTime.atZone(zone).toLocalDate() == date
-        }
+        val sleepRecordedForDate = daySleep.isNotEmpty()
 
         val previousDaySummary = recentSummaries.firstOrNull { it.date == date.minusDays(1) }
         // Same 7 days as the sync uses, so tonight's need matches the stored one.
@@ -251,7 +252,7 @@ class DashboardViewModel(
             .let { if (it.isNotEmpty()) it.average() else null }
 
         val sleepAnalysis = sleepCalculator.analyzeSleep(
-            currentSession = latestSleep,
+            currentSession = currentSleep,
             recentSessions = sleepBaselineHistory,
             targetDurationMinutes = sleepGoal,
             previousDayStrain = previousDaySummary?.dayStrain,

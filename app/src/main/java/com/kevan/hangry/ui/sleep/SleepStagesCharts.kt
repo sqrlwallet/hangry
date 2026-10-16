@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
+import com.kevan.hangry.domain.calculation.SleepSessions
 import com.kevan.hangry.domain.model.SleepStage
 import com.kevan.hangry.domain.model.SleepStageSegment
 import com.kevan.hangry.ui.theme.LocalHangryTokens
@@ -47,6 +48,10 @@ internal fun primaryNightFor(date: LocalDate, sessions: List<SleepSessionEntity>
     return sessions.filter { !it.startTime.isBefore(from) && !it.endTime.isAfter(dayEnd) }
         .maxByOrNull { it.durationMinutes }
 }
+
+/** The whole day's sleep - the main night plus any naps - combined the way daily summaries count it. */
+internal fun sleepNightFor(date: LocalDate, sessions: List<SleepSessionEntity>, zone: ZoneId): SleepSessionEntity? =
+    SleepSessions.combine(sessions.filter { it.endTime.atZone(zone).toLocalDate() == date })
 
 /** Awake at the top, deep at the bottom - as sleep apps draw it. Unstaged sleep sits with light. */
 private fun SleepStage.lane(): Int = when (this) {
@@ -274,7 +279,8 @@ data class NightStages(
 
 internal fun weekOfNights(endDate: LocalDate, sessions: List<SleepSessionEntity>, zone: ZoneId): List<NightStages> =
     (6 downTo 0).map { endDate.minusDays(it.toLong()) }.map { date ->
-        val night = primaryNightFor(date, sessions, zone)
+        // The day's sessions added together, naps included, matching the stored daily summary.
+        val night = sleepNightFor(date, sessions, zone)
         NightStages(
             date = date,
             asleepMinutes = night?.durationMinutes ?: 0,

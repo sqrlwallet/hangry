@@ -34,8 +34,8 @@ class HangrySleepCalculator(
         rollingAverageStrain: Double?
     ): SleepAnalysis {
         val zone = zoneProvider()
-        // One entry per night (the main sleep of each wake-up day), so naps and split sessions
-        // don't count as extra nights in averages, debt or consistency.
+        // One entry per wake-up day, each day's sessions added together, so naps and split sleeps
+        // count toward the averages, debt and score without becoming extra nights of their own.
         val nights = mainSleeps(recentSessions, zone)
         val sevenDayAvg = nights.take(7).takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
         val thirtyDayAvg = nights.take(30).takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
@@ -138,12 +138,12 @@ class HangrySleepCalculator(
         )
     }
 
-    /** The longest session per wake-up day, newest first. */
+    /** One entry per wake-up day, newest first: that day's sessions added together, naps included. */
     fun mainSleeps(sessions: List<SleepSessionEntity>, zone: ZoneId = zoneProvider()): List<SleepSessionEntity> =
         sessions.groupBy { it.endTime.atZone(zone).toLocalDate() }
             .toSortedMap(compareByDescending { it })
             .values
-            .map { night -> night.maxBy { it.durationMinutes } }
+            .mapNotNull { day -> SleepSessions.combine(day) }
 
     /**
      * Sleep debt is paid back gradually - over up to two weeks, not in one night. The debt is the

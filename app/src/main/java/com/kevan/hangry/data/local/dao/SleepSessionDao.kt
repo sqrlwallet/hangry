@@ -13,9 +13,31 @@ interface SleepSessionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertOrIgnore(sessions: List<SleepSessionEntity>): List<Long>
 
-    /** Adds the stage timeline to a night saved before timelines were kept. */
-    @Query("UPDATE sleep_sessions SET stageSegments = :stageSegments WHERE recordFingerprint = :fingerprint AND stageSegments IS NULL")
-    suspend fun fillStageSegments(fingerprint: String, stageSegments: String)
+    /**
+     * Brings an already-saved night up to date with everything the current import reads, so a
+     * session Health Connect later extends or adds stages to lands in place (insertOrIgnore skips
+     * it otherwise). Manual entries are never touched.
+     */
+    @Query(
+        """UPDATE sleep_sessions SET endTime = :endTime, durationMinutes = :durationMinutes,
+        timeInBedMinutes = :timeInBedMinutes, deepSleepMinutes = :deepSleepMinutes,
+        remSleepMinutes = :remSleepMinutes, lightSleepMinutes = :lightSleepMinutes,
+        awakeMinutes = :awakeMinutes, stageSegments = :stageSegments, timeZoneOffset = :timeZoneOffset,
+        dataQualityState = :dataQualityState, importTimestamp = :importTimestamp
+        WHERE recordFingerprint = :fingerprint AND isManualEntry = 0"""
+    )
+    suspend fun updateDetails(
+        fingerprint: String, endTime: Instant, durationMinutes: Int,
+        timeInBedMinutes: Int?, deepSleepMinutes: Int?, remSleepMinutes: Int?,
+        lightSleepMinutes: Int?, awakeMinutes: Int?, stageSegments: String?,
+        timeZoneOffset: String?, dataQualityState: String, importTimestamp: Instant
+    )
+
+    suspend fun updateDetails(s: SleepSessionEntity) = updateDetails(
+        s.recordFingerprint, s.endTime, s.durationMinutes, s.timeInBedMinutes, s.deepSleepMinutes,
+        s.remSleepMinutes, s.lightSleepMinutes, s.awakeMinutes, s.stageSegments, s.timeZoneOffset,
+        s.dataQualityState, s.importTimestamp
+    )
 
     @Query("SELECT * FROM sleep_sessions WHERE startTime >= :start AND endTime <= :end ORDER BY startTime DESC")
     fun getSessionsBetween(start: Instant, end: Instant): Flow<List<SleepSessionEntity>>

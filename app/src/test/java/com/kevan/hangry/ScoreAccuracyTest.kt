@@ -168,11 +168,12 @@ class ScoreAccuracyTest {
     }
 
     @Test
-    fun `naps don't count as extra nights`() {
+    fun `naps add to each day's total, not as extra nights`() {
         val nights = (18..24).map { night(it, "23:00", "07:00", asleep = 480) }
         val naps = (18..24).map { night(it, "14:00", "14:30", asleep = 30, id = "nap$it") }
         val a = sleep.analyzeSleep(null, (nights + naps).sortedByDescending { it.startTime }, targetDurationMinutes = 480)
-        assertEquals(480, a.sevenDayAverageMinutes)
+        // Seven nights of 8h, each with a 30-minute nap folded in - still seven nights, now 8.5h each.
+        assertEquals(510, a.sevenDayAverageMinutes)
     }
 
     @Test

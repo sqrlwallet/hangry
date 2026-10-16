@@ -199,8 +199,11 @@ class SyncIntegrityTest {
         // UTC: different wake-up days, two nights.
         assertEquals(2, calculator.mainSleeps(listOf(a, b)).size)
         zone = ZoneId.of("Asia/Tokyo")
-        // Tokyo: both end on Oct 11, one night.
-        assertEquals(listOf(a), calculator.mainSleeps(listOf(a, b)))
+        // Tokyo: both end on Oct 11, one night with the two sessions added together.
+        val tokyoNight = calculator.mainSleeps(listOf(a, b)).single()
+        assertEquals(560, tokyoNight.durationMinutes)
+        assertEquals(a.startTime, tokyoNight.startTime)
+        assertEquals(a.endTime, tokyoNight.endTime)
 
         // Bedtime advice is in local clock time too.
         val nights = (1..7).map { i ->

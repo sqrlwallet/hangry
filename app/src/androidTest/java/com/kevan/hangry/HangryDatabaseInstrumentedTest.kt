@@ -56,6 +56,54 @@ class HangryDatabaseInstrumentedTest {
     }
 
     @Test
+    fun testSleepSession_updateDetails_refreshesAnAlreadySavedNight() = runBlocking {
+        val now = Instant.now()
+        val original = SleepSessionEntity(
+            recordFingerprint = "fingerprint-refresh",
+            sourceRecordId = "rec-2",
+            sourcePackageName = "com.google.android.apps.fitness",
+            startTime = now.minusSeconds(28800),
+            endTime = now,
+            durationMinutes = 420
+        )
+        db.sleepSessionDao().insertOrIgnore(listOf(original))
+
+        // Health Connect later extends the same record and adds stages.
+        val extended = original.copy(
+            endTime = now.plusSeconds(3600),
+            durationMinutes = 480,
+            deepSleepMinutes = 80,
+            stageSegments = "D0,4800"
+        )
+        db.sleepSessionDao().updateDetails(extended)
+
+        val stored = db.sleepSessionDao().getSessionsBetweenList(now.minusSeconds(40000), now.plusSeconds(40000)).single()
+        assertEquals(480, stored.durationMinutes)
+        assertEquals(extended.endTime, stored.endTime)
+        assertEquals(80, stored.deepSleepMinutes)
+        assertEquals("D0,4800", stored.stageSegments)
+        assertEquals(1, db.sleepSessionDao().getCount())
+    }
+
+    @Test
+    fun testSleepSession_updateDetails_leavesManualEntriesAlone() = runBlocking {
+        val now = Instant.now()
+        val manual = SleepSessionEntity(
+            recordFingerprint = "manual-abc",
+            startTime = now.minusSeconds(28800),
+            endTime = now,
+            durationMinutes = 420,
+            isManualEntry = true
+        )
+        db.sleepSessionDao().insertOrIgnore(listOf(manual))
+
+        db.sleepSessionDao().updateDetails(manual.copy(durationMinutes = 10))
+
+        val stored = db.sleepSessionDao().getSessionsBetweenList(now.minusSeconds(40000), now.plusSeconds(40000)).single()
+        assertEquals(420, stored.durationMinutes)
+    }
+
+    @Test
     fun testDailySummary_insertAndWipeAll() = runBlocking {
         val today = LocalDate.now()
         val summary = DailyHealthSummaryEntity(

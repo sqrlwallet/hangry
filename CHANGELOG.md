@@ -1,3 +1,28 @@
+## 🚀 What's New in Hangry v1.47.0 — Scores That Follow the Research
+
+Stress, recovery, sleep need and your calorie target now work the way published research and the major wearables do. The app also opens and scrolls faster.
+
+### 🧘 Stress Read Like Recovery
+- **Your own 30-day normal**: stress compares today's HRV and resting heart rate with your last 30 days, not just the last week, so a stressful week doesn't quietly become your new normal.
+- **Fair to everyone**: readings are scored by how unusual they are *for you*. If your HRV naturally swings a lot, an ordinary dip no longer looks like stress.
+
+### ❤️ Smarter Resting Heart Rate
+- **Scaled to your spread**: a rise counts for more if your resting heart rate is usually steady, and for less if it usually wanders.
+- **Both directions**: an unusually low reading (well over 8 bpm below your normal) now costs a few recovery points, since it can follow very hard training or be a sensor glitch. A modest dip still counts as good news.
+
+### 😴 Naps and Sleep Rhythm
+- **Naps lower tonight's need**: a nap after you wake takes its minutes off tonight's sleep need, up to 90 minutes, the way WHOOP and Garmin count it.
+- **Two-week consistency**: bed and wake regularity is judged over 14 nights instead of 7, so one odd night moves it less.
+
+### 🍽️ A More Accurate Calorie Target
+- **Digestion follows what you eat**: digesting costs about 10% of the food you eat. Hangry now counts it on your food rather than your burn, so a 0.5 kg/week loss target is about 30–40 kcal lower, and maintenance about 1% higher.
+
+### ⚡ Faster Everywhere
+- **Quicker cold start**: background scheduling and AI setup no longer block launch.
+- **Lighter screens**: Body Metrics, Trends, Training and Nutrition read only the data they show, and long lists scroll more smoothly.
+
+Your past days are recalculated automatically the first time you open the app.
+
 ## 🚀 What's New in Hangry v1.46.0 — A Dash You Can Steer
 
 Ask Dash gets a stop button, read-aloud replies, regenerate, automatic retries, and leaner, better-tuned answers.

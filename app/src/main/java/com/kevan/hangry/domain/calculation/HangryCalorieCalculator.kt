@@ -97,13 +97,15 @@ class HangryCalorieCalculator : CalorieCalculator {
         var dailyAdjustment = requestedDailyAdjustment.coerceIn(-maxLoss, maxGain)
         if (dailyAdjustment != requestedDailyAdjustment) safetyAdjusted = true
 
-        var target = (tdee + dailyAdjustment).roundToInt()
+        // The adjustment is energy; eating it costs less to digest too, so the food changes by
+        // a little more (550 kcal less energy is ~611 kcal less food).
+        var target = (tdee + dailyAdjustment / (1 - EnergyBalanceCalculator.TEF_FRACTION)).roundToInt()
         // Never eat below resting burn or the usual minimum for your sex - unless maintenance
         // itself is lower, in which case maintenance is the floor.
         val floor = minOf(maxOf(minimumCalories(sex), bmr ?: 0.0), tdee).roundToInt()
         if (weightChangeKg < 0 && target < floor) {
             target = floor
-            dailyAdjustment = target - tdee
+            dailyAdjustment = (target - tdee) * (1 - EnergyBalanceCalculator.TEF_FRACTION)
             safetyAdjusted = true
         }
 

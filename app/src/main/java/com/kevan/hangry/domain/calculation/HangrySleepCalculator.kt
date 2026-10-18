@@ -2,6 +2,7 @@ package com.kevan.hangry.domain.calculation
 
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.domain.model.SleepAnalysis
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import kotlin.math.PI
@@ -31,26 +32,36 @@ class HangrySleepCalculator(
         recentSessions: List<SleepSessionEntity>,
         targetDurationMinutes: Int,
         previousDayStrain: Double?,
-        rollingAverageStrain: Double?
+        rollingAverageStrain: Double?,
+        currentDaySessions: List<SleepSessionEntity>?,
+        date: LocalDate?
     ): SleepAnalysis {
         val zone = zoneProvider()
         // One entry per wake-up day, each day's sessions added together, so naps and split sleeps
-        // count toward the averages, debt and score without becoming extra nights of their own.
+        // count toward the averages and score without becoming extra nights of their own.
         val nights = mainSleeps(recentSessions, zone)
         val sevenDayAvg = nights.take(7).takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
         val thirtyDayAvg = nights.take(30).takeIf { it.isNotEmpty() }?.map { it.durationMinutes }?.average()?.roundToInt()
 
         val target = targetDurationMinutes.coerceIn(MIN_TARGET_MINUTES, MAX_TARGET_MINUTES)
         val strainAdjustment = strainAdjustment(previousDayStrain, rollingAverageStrain)
-        // Need for the night being analysed: goal + debt from the nights before it + a hard day.
-        val sleepNeed = (target + debtCarryover(nights.map { it.durationMinutes }, target) + strainAdjustment)
-            .coerceIn(target, target + MAX_EXTRA_NEED_MINUTES)
-        // Tonight's need also carries whatever last night fell short by.
+        val day = date ?: currentSession?.endTime?.atZone(zone)?.toLocalDate()
+        val todaysSessions = currentDaySessions ?: listOfNotNull(currentSession)
+        // For debt, each day counts its sleep up to and including the main night. A nap after
+        // waking lowers the *next* night's need instead, minute for minute (as WHOOP and Garmin
+        // do - a nap relieves sleep pressure), so each nap counts once.
+        val historyDays = recentSessions.groupBy { it.endTime.atZone(zone).toLocalDate() }
+            .toSortedMap(compareByDescending { it })
+        val debtNights = historyDays.values.map(::nightMinutes)
+        val napsBeforeThisNight = day?.let { historyDays[it.minusDays(1)] }?.let(::napMinutesAfterWaking) ?: 0
+        // Need for the night being analysed: goal + debt from the nights before it + a hard day,
+        // less any nap the afternoon before.
+        val sleepNeed = need(target, debtCarryover(debtNights, target) + strainAdjustment, napsBeforeThisNight)
+        // Tonight's need also carries whatever last night fell short by, less today's naps.
         val tonightsNeed = if (currentSession == null) sleepNeed else
-            (target + debtCarryover(listOf(currentSession.durationMinutes) + nights.map { it.durationMinutes }, target))
-                .coerceIn(target, target + MAX_EXTRA_NEED_MINUTES)
+            need(target, debtCarryover(listOf(nightMinutes(todaysSessions)) + debtNights, target), napMinutesAfterWaking(todaysSessions))
 
-        val timingNights = listOfNotNull(currentSession) + nights.take(if (currentSession == null) 7 else 6)
+        val timingNights = listOfNotNull(currentSession) + nights.take(CONSISTENCY_NIGHTS - if (currentSession == null) 0 else 1)
         val consistency = timingConsistency(timingNights, zone)
         val recommendedBedtime = recommendedBedtime(listOfNotNull(currentSession) + nights, tonightsNeed, zone)
 
@@ -160,6 +171,22 @@ class HangrySleepCalculator(
         return (debt / DEBT_WINDOW_NIGHTS).roundToInt().coerceIn(0, MAX_DEBT_CARRYOVER_MINUTES)
     }
 
+    /** Goal plus extra (capped at 90 minutes), less up to 90 minutes of nap. */
+    private fun need(target: Int, extraMinutes: Int, napMinutes: Int): Int =
+        (target + extraMinutes).coerceIn(target, target + MAX_EXTRA_NEED_MINUTES) -
+            napMinutes.coerceIn(0, MAX_NAP_CREDIT_MINUTES)
+
+    /** A wake-up day's sleep up to and including its main (longest) session. */
+    private fun nightMinutes(daySessions: List<SleepSessionEntity>): Int =
+        daySessions.sumOf { it.durationMinutes } - napMinutesAfterWaking(daySessions)
+
+    /** Sleep that started after the day's main session ended - naps after getting up. */
+    private fun napMinutesAfterWaking(daySessions: List<SleepSessionEntity>): Int {
+        if (daySessions.size < 2) return 0
+        val main = daySessions.maxBy { it.durationMinutes }
+        return daySessions.filter { it !== main && !it.startTime.isBefore(main.endTime) }.sumOf { it.durationMinutes }
+    }
+
     /** Extra sleep after a day harder than usual, up to 30 minutes. */
     private fun strainAdjustment(previousDayStrain: Double?, rollingAverageStrain: Double?): Int {
         if (previousDayStrain == null || rollingAverageStrain == null || rollingAverageStrain <= 0.0) return 0
@@ -168,7 +195,7 @@ class HangrySleepCalculator(
     }
 
     /**
-     * How regular bed and wake times are over the last week (including this night), from the
+     * How regular bed and wake times are over the last two weeks (including this night), from the
      * circular spread of each - so 23:50 and 00:10 count as 20 minutes apart. A 30-minute spread
      * scores 85, an hour 70, two hours 40. Needs 3 nights.
      */
@@ -214,6 +241,10 @@ class HangrySleepCalculator(
         private const val MIN_TARGET_MINUTES = 240
         private const val MAX_TARGET_MINUTES = 720
         private const val MAX_EXTRA_NEED_MINUTES = 90
+        /** A nap lowers the next night's need by its length, up to this much. */
+        private const val MAX_NAP_CREDIT_MINUTES = 90
+        /** Bed/wake regularity is judged over this many nights (Apple uses 13; a week is noisy). */
+        private const val CONSISTENCY_NIGHTS = 14
 
         /** Sleep debt is repaid over this many nights. */
         private const val DEBT_WINDOW_NIGHTS = 14

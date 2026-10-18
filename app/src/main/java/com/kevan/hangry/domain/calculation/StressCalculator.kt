@@ -3,12 +3,15 @@ package com.kevan.hangry.domain.calculation
 import com.kevan.hangry.domain.model.StressResult
 
 interface StressCalculator {
+    /**
+     * @param hrvHistory the nightly HRV (RMSSD, ms) of the days before today, up to 30.
+     * @param rhrHistory the resting heart rate (bpm) of the same days.
+     */
     fun calculateStress(
         hrvToday: Double?,
-        hrvBaseline7d: Double?,
+        hrvHistory: List<Double>,
         rhrToday: Double?,
-        rhrBaseline7d: Double?,
-        dayStrain: Double? = null,
-        baselineDaysCount: Int = 7
+        rhrHistory: List<Double>,
+        dayStrain: Double? = null
     ): StressResult?
 }

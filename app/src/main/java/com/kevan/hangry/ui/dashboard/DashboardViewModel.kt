@@ -169,7 +169,8 @@ class DashboardViewModel(
                         date.minusDays(7).atStartOfDay(zone).toInstant(),
                         date.plusDays(1).atStartOfDay(zone).toInstant()
                     ),
-                    dailySummaryRepository.getSummariesBetween(date.minusDays(29), date.minusDays(1))
+                    // The 30 days before: the stress normal, and the week strain and sleep need use.
+                    dailySummaryRepository.getSummariesBetween(date.minusDays(30), date.minusDays(1))
                 ) { summary, score, sleepSessions, allWorkouts, recentSummaries ->
                     DashboardSources(date, summary, score, sleepSessions, allWorkouts, recentSummaries)
                 }
@@ -256,7 +257,9 @@ class DashboardViewModel(
             recentSessions = sleepBaselineHistory,
             targetDurationMinutes = sleepGoal,
             previousDayStrain = previousDaySummary?.dayStrain,
-            rollingAverageStrain = rollingAverageStrain
+            rollingAverageStrain = rollingAverageStrain,
+            currentDaySessions = daySleep,
+            date = date
         )
         val todaysWorkouts = allWorkouts.filter {
             it.startTime.atZone(zone).toLocalDate() == date
@@ -311,21 +314,13 @@ class DashboardViewModel(
             )
         }
 
-        // Autonomic stress calculation based on rolling 7d baseline of HRV & RHR
-        val trailing7Summaries = recentSummaries.take(7)
-        val hrvVals = trailing7Summaries.mapNotNull { it.hrvRmssd }
-        val rhrVals = trailing7Summaries.mapNotNull { it.restingHeartRate }
-        val hrvBaseline7d = if (hrvVals.isNotEmpty()) hrvVals.average() else null
-        val rhrBaseline7d = if (rhrVals.isNotEmpty()) rhrVals.average() else null
-        val baselineDaysCount = trailing7Summaries.count { it.hrvRmssd != null || it.restingHeartRate != null }
-
+        // Autonomic stress: today's HRV and resting heart rate against your own last 30 days.
         val stressResult = stressCalculator.calculateStress(
             hrvToday = summary?.hrvRmssd,
-            hrvBaseline7d = hrvBaseline7d,
+            hrvHistory = recentSummaries.mapNotNull { it.hrvRmssd },
             rhrToday = summary?.restingHeartRate,
-            rhrBaseline7d = rhrBaseline7d,
-            dayStrain = summary?.dayStrain,
-            baselineDaysCount = baselineDaysCount
+            rhrHistory = recentSummaries.mapNotNull { it.restingHeartRate },
+            dayStrain = summary?.dayStrain
         )
 
         val stepGoal = profile?.dailyStepGoal ?: 6000L

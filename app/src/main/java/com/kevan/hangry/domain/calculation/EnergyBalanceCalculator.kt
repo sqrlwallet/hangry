@@ -16,15 +16,15 @@ import kotlin.math.roundToLong
  * Estimates maintenance calories from real behaviour over the 7 full days before today,
  * counting activity exactly as Daily Activity does (see [ActiveActivityCalculator]):
  *
- *   maintenance = (resting burn + step calories + workout calories) × 1.10
+ *   maintenance = (resting burn + step calories + workout calories) ÷ 0.9
  *
  * - Resting burn is BMR for the minutes you weren't active; active minutes already include
  *   their own resting burn inside the step and workout calories, so it isn't counted twice.
  * - BMR uses Katch-McArdle (from lean mass) when there's a measured body-fat scan, since it's
  *   more accurate for lean or muscular people; otherwise Mifflin-St Jeor.
  * - Every step outside a workout counts in full, and every workout counts in full.
- * - The extra 10% is the thermic effect of food - energy spent digesting - which neither BMR
- *   formula includes.
+ * - The ÷ 0.9 is the thermic effect of food - digesting costs ~10% of what you eat, which
+ *   neither BMR formula includes. At maintenance you eat what you burn, so food = burn ÷ 0.9.
  * - Averages are over days that actually have step data; days with no data are skipped rather
  *   than treated as zero-activity days.
  *
@@ -110,8 +110,9 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         val stepKcal = stepKcalSum / days
         val avgWorkoutKcal = workoutKcalSum / days
         val beforeFood = restingKcal + stepKcal + avgWorkoutKcal
-        val tefKcal = beforeFood * TEF_FRACTION
-        val formulaMaintenance = beforeFood + tefKcal
+        // Digestion costs ~10% of what you eat, and at maintenance you eat what you burn.
+        val formulaMaintenance = withDigestion(beforeFood)
+        val tefKcal = formulaMaintenance - beforeFood
         val (adaptive, adaptiveMissing) = adaptive(foodLogs, weights, formulaMaintenance, today, zone)
         val maintenance = adaptive?.let { formulaMaintenance * (1 - it.weight) + it.maintenanceKcal * it.weight } ?: formulaMaintenance
 
@@ -232,8 +233,15 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         private const val ADAPTIVE_MIN_WEIGHT = 0.5
         private const val ADAPTIVE_MAX_WEIGHT = 0.85
         const val MIN_DAYS_WITH_DATA = 5
-        /** Thermic effect of food - ~10% of daily energy goes to digesting what you eat. */
+        /** Thermic effect of food - digesting what you eat costs ~10% of it. */
         const val TEF_FRACTION = 0.10
+
+        /**
+         * What you'd eat to stay level when everything but digestion burns [beforeFoodKcal]:
+         * intake = burn + 10% of intake, so intake = burn / 0.9. Digestion follows what you
+         * eat, not what you burn, so a deficit also saves the digestion of the food left out.
+         */
+        fun withDigestion(beforeFoodKcal: Double): Double = beforeFoodKcal / (1 - TEF_FRACTION)
         private const val MINUTES_PER_DAY = 1440.0
 
         /**

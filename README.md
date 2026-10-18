@@ -32,7 +32,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 ## 🌟 Features
 
 ### Today
-- **Hangry Recovery (0–100)** from HRV, resting heart rate and sleep against your own 7-day baseline. No HRV from your device? It counts as excellent by default, and you can set how you actually feel.
+- **Hangry Recovery (0–100)** from HRV, resting heart rate and sleep against your own 30-day baseline. No HRV from your device? It counts as excellent by default, and you can set how you actually feel.
 - **Sleep & Strain** - sleep score, debt and consistency, plus a 0–21 day strain and training load.
 - **Daily Activity rings** for steps and active calories with editable goals.
 - **Customizable dashboard** - reorder, hide or add metric cards, plus home-screen widgets (activity, sleep, recovery, overview, heart, weight, goals, calories, nutrition, fasting, breathing, quick meal log, supplements and more).
@@ -44,7 +44,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - **Saved meals & quick add** - every food you log is saved for one-tap logging again, in ½×, 1× or 2× portions, plus 56 common foods ready from day one.
 - **Intermittent fasting** - fasting timer, schedules, reminders and streaks.
 - **Allergy alerts** - if you've added allergies, meal photos are checked against them.
-- **Calorie target worked out daily** - today's BMR + NEAT (today's steps, or your usual day's until today's pass it) + today's workouts + 10% for digesting food, corrected by what your logs and weigh-ins show. A goal weight sets a safe deficit or surplus (0.5 kg/week to lose by default, or your own pace with a target date).
+- **Calorie target worked out daily** - today's BMR + NEAT (today's steps, or your usual day's until today's pass it) + today's workouts + digesting food (10% of what you eat), corrected by what your logs and weigh-ins show. A goal weight sets a safe deficit or surplus (0.5 kg/week to lose by default, or your own pace with a target date).
 - Entries sync to Health Connect, and edits update the Health Connect record.
 
 ### Training

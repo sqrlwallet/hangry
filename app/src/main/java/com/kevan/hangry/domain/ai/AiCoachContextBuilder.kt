@@ -273,7 +273,7 @@ class AiCoachContextBuilder(
         sb.appendLine("• Steps: avg ${f(e.avgTotalSteps)} steps/day, ${f(e.avgCountedSteps)} outside workouts × ${"%.3f".format(Locale.US, e.kcalPerStep)} kcal/step (walking + resting burn while walking) = ${f(e.stepKcal)} kcal")
         sb.appendLine("• Workouts (counted in full): ${e.workoutsCounted} sessions, avg ${f(e.avgWorkoutKcal)} kcal/day" +
             if (e.workoutsWithoutCalories > 0) " (${e.workoutsWithoutCalories} had no calorie data)" else "")
-        sb.appendLine("• Thermic effect of food (10%): ${f(e.tefKcal)} kcal")
+        sb.appendLine("• Thermic effect of food (10% of intake): ${f(e.tefKcal)} kcal")
         sb.appendLine("• Activity estimate: ${f(e.formulaMaintenanceKcal)} kcal/day")
         val adaptive = e.adaptive
         if (adaptive != null) {

@@ -78,7 +78,7 @@ class EnergyBalanceCalculatorTest {
         assertEquals(0.02988 + 1780.0 / 1440 / 150, e.kcalPerStep, 0.0001)
         assertEquals(10_000 * e.kcalPerStep, e.stepKcal, 0.01)
         // Plus 10% thermic effect of food.
-        assertEquals((e.restingKcal + e.stepKcal) * 1.10, e.maintenanceKcal, 0.01)
+        assertEquals((e.restingKcal + e.stepKcal) / 0.9, e.maintenanceKcal, 0.01)
         assertEquals("Mifflin-St Jeor", e.bmrMethod)
     }
 
@@ -96,7 +96,7 @@ class EnergyBalanceCalculatorTest {
         assertEquals((350.0 + 1780.0 * 30 / 1440) / 7, e.avgWorkoutKcal, 0.01)
         // That day only 5,100 steps are counted as steps.
         assertEquals((6 * 10_000 + 5_100) / 7.0, e.avgCountedSteps, 0.5)
-        assertEquals((e.restingKcal + e.stepKcal + e.avgWorkoutKcal) * 1.10, e.maintenanceKcal, 0.01)
+        assertEquals((e.restingKcal + e.stepKcal + e.avgWorkoutKcal) / 0.9, e.maintenanceKcal, 0.01)
     }
 
     @Test
@@ -130,9 +130,9 @@ class EnergyBalanceCalculatorTest {
     @Test
     fun `goal date gives a daily deficit`() {
         val e = estimate(week, goalWeight = 78.0, goalDate = today.plusDays(56)).estimate!!
-        // 2 kg x 7700 / 56 days = 275 kcal/day
+        // 2 kg x 7700 / 56 days = 275 kcal/day of energy; eating it saves its digestion too.
         assertNotNull(e.goal?.dailyCalorieTarget)
-        assertEquals(-275.0, e.dailyAdjustmentKcal!!, 1.0)
+        assertEquals(-275.0 / 0.9, e.dailyAdjustmentKcal!!, 1.0)
     }
 
     @Test
@@ -209,8 +209,8 @@ class EnergyBalanceCalculatorTest {
         assertEquals(1, trained.workoutsCounted)
         // 600 active kcal + resting burn during the hour.
         assertEquals(600.0 + 1780.0 * 60 / 1440, trained.workoutKcal, 0.5)
-        // The hour isn't counted as resting too; digestion adds 10% on top.
-        val expected = (trained.workoutKcal - 1780.0 * 60 / 1440) * 1.10
+        // The hour isn't counted as resting too; eating it back costs 10% of the food to digest.
+        val expected = (trained.workoutKcal - 1780.0 * 60 / 1440) / 0.9
         assertEquals(expected, trained.burnKcal - rest.burnKcal, 1.0)
     }
 
@@ -224,16 +224,16 @@ class EnergyBalanceCalculatorTest {
     fun `a goal weight alone sets a default pace deficit on today's burn`() {
         // An active day, so the deficit isn't stopped by the resting-burn floor.
         val t = estimate(week + day(0, 20_000), goalWeight = 75.0).estimate!!.today!!
-        // 0.5 kg/week × 7,700 / 7 = 550 kcal/day.
-        assertEquals(-550.0, t.adjustmentKcal, 1.0)
+        // 0.5 kg/week × 7,700 / 7 = 550 kcal/day of energy = 611 kcal less food.
+        assertEquals(-550.0 / 0.9, t.adjustmentKcal, 1.0)
         assertEquals(-0.5, t.goal!!.weeklyPaceKg, 0.01)
     }
 
     @Test
     fun `a target date still sets the pace`() {
-        // 2 kg in 70 days = 220 kcal/day.
+        // 2 kg in 70 days = 220 kcal/day of energy = 244 kcal less food.
         val t = estimate(week + day(0, 20_000), goalWeight = 78.0, goalDate = today.plusDays(70)).estimate!!.today!!
-        assertEquals(-220.0, t.adjustmentKcal, 1.0)
+        assertEquals(-220.0 / 0.9, t.adjustmentKcal, 1.0)
     }
 
     @Test

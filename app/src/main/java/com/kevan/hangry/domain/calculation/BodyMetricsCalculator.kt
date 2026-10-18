@@ -617,13 +617,13 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
                 whatItIs = "How many calories you can eat per day to stay at your current weight, based on how you actually lived recently - and, once you've logged enough meals and weigh-ins, on what your weight actually did.",
                 howCalculated = how,
                 whyItMatters = "It's the anchor for every nutrition goal: eat at it to maintain, below it to lose fat, above it to gain. Because it uses your own steps and workouts, it moves with you - a more active week raises it.",
-                source = "BMR (Katch–McArdle with a recent body-fat scan, else Mifflin–St Jeor) for the time you weren't active, plus every step (~0.5 kcal per kg per km walked, plus resting burn while walking) and every workout in full, plus 10% for digesting food (thermic effect of food). With 14+ fully-logged days and a weight trend over the last 28 days, it's blended with average intake − weight change × 7,700 kcal/kg."
+                source = "BMR (Katch–McArdle with a recent body-fat scan, else Mifflin–St Jeor) for the time you weren't active, plus every step (~0.5 kcal per kg per km walked, plus resting burn while walking) and every workout in full, plus digesting food (the thermic effect of food, about 10% of what you eat). With 14+ fully-logged days and a weight trend over the last 28 days, it's blended with average intake − weight change × 7,700 kcal/kg."
             )
         }
         val result = c.input.energy
         val e = result?.estimate ?: return unavailable(
             "maintenance", "Maintenance calories", "kcal/day",
-            info("Resting burn + every step + every workout, plus 10% for digesting food, over the last 7 full days."),
+            info("Resting burn + every step + every workout, plus digesting food (10% of what you eat), over the last 7 full days."),
             result?.missing ?: listOf("Weight", "Height", "Age", "Sex", "Step data")
         )
         val notes = if (e.workoutsWithoutCalories > 0) {
@@ -633,7 +633,7 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
             "• Resting (${e.bmrMethod} BMR ${f(e.bmrKcal, 0)} kcal, for the ${f(1440 - e.avgActiveMinutes, 0)} inactive minutes): ${f(e.restingKcal, 0)} kcal\n" +
             "• Steps: ${f(e.avgCountedSteps, 0)} steps outside workouts × ${f(e.kcalPerStep, 3)} kcal = ${f(e.stepKcal, 0)} kcal\n" +
             "• Workouts: ${e.workoutsCounted} session(s), averaging ${f(e.avgWorkoutKcal, 0)} kcal per day, counted in full\n" +
-            "• Digesting food (thermic effect, 10%): ${f(e.tefKcal, 0)} kcal\n" +
+            "• Digesting food (thermic effect, 10% of what you eat): ${f(e.tefKcal, 0)} kcal\n" +
             "= ${f(e.formulaMaintenanceKcal, 0)} kcal/day from activity.\n" + adaptiveHow(e) +
             if (notes.isNotEmpty()) "\n$notes" else ""
         return BodyMetric(
@@ -661,14 +661,14 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
                 whatItIs = "How much to eat today. It's worked out fresh each day from what today actually burns, then moved toward your goal weight.",
                 howCalculated = how,
                 whyItMatters = "A day with a long walk or a workout burns more than a rest day, so it gets more food; a quiet day gets less. Losing is capped at about 1% of your weight a week (at most 750 kcal/day) and never below your resting burn or 1,500 kcal (men) / 1,200 kcal (women); gaining is capped at about 0.5% a week, so you lose fat and gain muscle rather than the other way round.",
-                source = "BMR for the minutes you weren't active, plus NEAT (today's steps, or your 7-day average until today's pass it), plus today's workouts in full, plus 10% for digesting food - scaled by what your food logs and weigh-ins have shown. Then ~7,700 kcal per kg toward your goal: by your target date if you set one, otherwise about 0.5 kg a week to lose or 0.25 kg a week to gain."
+                source = "BMR for the minutes you weren't active, plus NEAT (today's steps, or your 7-day average until today's pass it), plus today's workouts in full, plus digesting food (10% of what you eat) - scaled by what your food logs and weigh-ins have shown. Then ~7,700 kcal per kg toward your goal: by your target date if you set one, otherwise about 0.5 kg a week to lose or 0.25 kg a week to gain."
             )
         }
         val result = c.input.energy
         val e = result?.estimate
         val day = e?.today ?: return unavailable(
             "goal_calories", "Today's calorie target", "kcal",
-            info("Resting burn + NEAT + today's workouts + 10% for digesting food, ± the deficit or surplus for your goal weight."),
+            info("Resting burn + NEAT + today's workouts + digesting food (10% of what you eat), ± the deficit or surplus for your goal weight."),
             result?.missing ?: listOf("Weight", "Height", "Age", "Sex", "Step data")
         )
         val neatHow = if (day.neatFromDay) {
@@ -694,7 +694,7 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
         val how = "• Resting (${e.bmrMethod} BMR ${f(day.bmrKcal, 0)} kcal, for the time you weren't active): ${f(day.restingKcal, 0)} kcal\n" +
             "• NEAT, $neatHow: ${f(day.neatKcal, 0)} kcal\n" +
             "• Workouts, $workoutHow: ${f(day.workoutKcal, 0)} kcal\n" +
-            "• Digesting food (10%): ${f(day.tefKcal, 0)} kcal\n" +
+            "• Digesting food (10% of what you eat): ${f(day.tefKcal, 0)} kcal\n" +
             learnt +
             "= ${f(day.burnKcal, 0)} kcal burnt today.\n" +
             "$goalHow\n= ${day.targetKcal} kcal today."

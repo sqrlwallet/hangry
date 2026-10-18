@@ -42,7 +42,7 @@ object DailyCalorieTargetCalculator {
         val restingKcal = bmr * (MINUTES_PER_DAY - activeMinutes).coerceIn(0.0, MINUTES_PER_DAY) / MINUTES_PER_DAY
 
         val beforeFood = restingKcal + neatKcal + workoutKcal
-        val tefKcal = beforeFood * EnergyBalanceCalculator.TEF_FRACTION
+        val tefKcal = EnergyBalanceCalculator.withDigestion(beforeFood) - beforeFood
         val adaptiveFactor = if (estimate.adaptive != null && estimate.formulaMaintenanceKcal > 0) {
             estimate.maintenanceKcal / estimate.formulaMaintenanceKcal
         } else 1.0

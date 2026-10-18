@@ -5,7 +5,7 @@ import java.time.LocalDate
 /**
  * Maintenance calories estimated from the last 7 full days of real activity, counted the same
  * way as Daily Activity: resting burn for the minutes you weren't active, plus every step and
- * every workout in full, plus ~10% for digesting food (the thermic effect of food). Once there
+ * every workout in full, plus digesting food (the thermic effect of food, ~10% of what you eat). Once there
  * are enough food logs and weigh-ins, it's blended with what intake vs. weight change shows
  * (see [AdaptiveMaintenance]).
  */
@@ -61,8 +61,8 @@ data class EnergyBalanceEstimate(
 /**
  * One day's calorie target, worked out for that day rather than averaged over a week:
  *
- *   burn   = (resting + NEAT + workouts) × 1.10 digestion × what your logs have taught
- *   target = burn ± the daily deficit or surplus for your goal weight
+ *   burn   = (resting + NEAT + workouts) ÷ 0.9 digestion × what your logs have taught
+ *   target = burn ± the daily deficit or surplus ÷ 0.9 (eating less also saves its digestion)
  *
  * - Resting is BMR over the day's inactive minutes (active minutes carry their own resting burn).
  * - NEAT is the day's steps outside workouts, or your 7-day average if that's higher - so the

@@ -16,7 +16,8 @@ import kotlin.math.sqrt
  *
  * HRV is scored by how unusual last night is for *you* (standard deviations from your normal,
  * on a log scale as in the research): a reading at your normal scores 65, each SD moves it 15.
- * Resting heart rate loses 2 points per bpm above your monthly average.
+ * Resting heart rate loses 7 points per SD above your monthly normal, and a little when it's
+ * unusually far below it.
  */
 class HangryRecoveryCalculator : RecoveryCalculator {
 
@@ -57,15 +58,24 @@ class HangryRecoveryCalculator : RecoveryCalculator {
             zScore(z)
         }
 
-        // 2. Resting heart rate against your monthly average: at or below it is full marks, and
-        //    each bpm above it costs 2 points (1 bpm up = 98, 3 up = 94, 10 up = 80).
+        // 2. Resting heart rate against your monthly normal, in standard deviations so a heart
+        //    rate that naturally wanders needs a bigger rise to count. At or below normal is full
+        //    marks; each SD above costs 7 points. Far below normal (over 2 SD) costs a little too -
+        //    an unusually low reading can follow very hard training or be a sensor glitch (Oura
+        //    marks both directions down). "Far" is 2 SD and at least 8 bpm.
         val rhrHistory = usableHistory.mapNotNull { it.restingHeartRate }
         val rhrScore: Double? = currentDayMetrics.restingHeartRate?.takeIf { it > 0 && rhrHistory.isNotEmpty() }?.let { today ->
             val deviation = today - rhrHistory.average()
+            val spread = max(sd(rhrHistory), MIN_RHR_SD)
+            val z = deviation / spread
+            val lowZ = max(RHR_LOW_Z, RHR_LOW_MIN_BPM / spread)
             val bpm = deviation.roundToInt()
-            if (deviation <= -RHR_NOTABLE_BPM) positiveContributors.add("Resting heart rate is ${-bpm} bpm below your monthly average.")
-            else if (deviation >= RHR_NOTABLE_BPM) negativeContributors.add("Resting heart rate is $bpm bpm above your monthly average.")
-            clampScore(100.0 - RHR_POINTS_PER_BPM * max(0.0, deviation))
+            when {
+                z < -lowZ -> negativeContributors.add("Resting heart rate is ${-bpm} bpm below your monthly average - unusually low for you, which can follow very hard training.")
+                deviation <= -RHR_NOTABLE_BPM -> positiveContributors.add("Resting heart rate is ${-bpm} bpm below your monthly average.")
+                deviation >= RHR_NOTABLE_BPM -> negativeContributors.add("Resting heart rate is $bpm bpm above your monthly average.")
+            }
+            clampScore(100.0 - RHR_POINTS_PER_SD * (max(0.0, z) + max(0.0, -z - lowZ)))
         }
 
         // 3. Sleep: how much of what you needed you got, with a quarter for how well you slept.
@@ -242,7 +252,11 @@ class HangryRecoveryCalculator : RecoveryCalculator {
         const val NOTABLE_Z = 0.75
         /** Floors so a very steady (or short) history doesn't turn tiny changes into big swings. */
         const val MIN_LN_HRV_SD = 0.08
-        const val RHR_POINTS_PER_BPM = 2.0
+        const val MIN_RHR_SD = 1.5
+        const val RHR_POINTS_PER_SD = 7.0
+        /** Further below normal than this many SD starts to cost points too. */
+        const val RHR_LOW_Z = 2.0
+        const val RHR_LOW_MIN_BPM = 8.0
         const val RHR_NOTABLE_BPM = 3.0
         /** Points off per strain point over yesterday's target (3 over = 64). */
         const val STRAIN_OVERSHOOT_POINTS = 12.0

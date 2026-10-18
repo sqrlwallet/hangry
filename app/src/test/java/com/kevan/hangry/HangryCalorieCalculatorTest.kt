@@ -128,11 +128,11 @@ class HangryCalorieCalculatorTest {
     @Test
     fun testGoalRecommendation_gainIsCappedAtHalfPercentPerWeek() {
         val today = LocalDate.of(2026, 1, 1)
-        // 70 kg × 0.5% = 0.35 kg/week = 385 kcal/day.
+        // 70 kg × 0.5% = 0.35 kg/week = 385 kcal/day of energy, ~428 kcal of food (digestion takes 10%).
         val result = calculator.recommendDailyCalorieGoal(
             tdee = 2500.0, currentWeightKg = 70.0, weightGoalKg = 80.0, targetDate = today.plusDays(30), today = today
         )!!
-        assertEquals(2885, result.dailyCalorieTarget)
+        assertEquals(2928, result.dailyCalorieTarget)
         assertTrue(result.isPaceAdjustedForSafety)
     }
 
@@ -140,10 +140,10 @@ class HangryCalorieCalculatorTest {
     fun testGoalRecommendation_goalWeightAloneUsesDefaultPace() {
         val today = LocalDate.of(2026, 1, 1)
         val lose = calculator.recommendDailyCalorieGoal(tdee = 2500.0, currentWeightKg = 80.0, weightGoalKg = 75.0, targetDate = null, today = today)!!
-        assertEquals(1950, lose.dailyCalorieTarget) // 0.5 kg/week = 550 kcal/day
+        assertEquals(1889, lose.dailyCalorieTarget) // 0.5 kg/week = 550 kcal/day less energy = 611 less food
         assertFalse(lose.isPaceAdjustedForSafety)
         val gain = calculator.recommendDailyCalorieGoal(tdee = 2500.0, currentWeightKg = 70.0, weightGoalKg = 75.0, targetDate = null, today = today)!!
-        assertEquals(2775, gain.dailyCalorieTarget) // 0.25 kg/week = 275 kcal/day
+        assertEquals(2806, gain.dailyCalorieTarget) // 0.25 kg/week = 275 kcal/day more energy = 306 more food
     }
 
     @Test
@@ -157,12 +157,12 @@ class HangryCalorieCalculatorTest {
 
     @Test
     fun testGoalRecommendation_defaultPaceStillCappedForSmallerBodies() {
-        // 45 kg × 1% = 0.45 kg/week = 495 kcal/day, below the 550 default.
+        // 45 kg × 1% = 0.45 kg/week = 495 kcal/day, below the 550 default; 550 kcal less food.
         val result = calculator.recommendDailyCalorieGoal(
             tdee = 2000.0, currentWeightKg = 45.0, weightGoalKg = 42.0, targetDate = null, today = LocalDate.of(2026, 1, 1),
             bmr = 1100.0, sex = BiologicalSex.FEMALE
         )!!
-        assertEquals(1505, result.dailyCalorieTarget)
+        assertEquals(1450, result.dailyCalorieTarget)
         assertTrue(result.guidance.startsWith("Losing about"))
     }
 }

@@ -26,8 +26,9 @@ Baselines are the user's own **last 30 days** (at least 3 usable days before a s
 - **HRV RMSSD ($w_{\text{hrv}} = 0.35$)**: last night's HRV, the average of readings taken during the main sleep (±30 min), else the day's first reading. Compared on a log scale, as in HRV research:
   $$z_{\text{hrv}} = \frac{\ln \text{HRV}_{\text{today}} - \overline{\ln \text{HRV}}_{30d}}{\max(\text{SD}_{30d}, 0.08)}, \quad S_{\text{hrv}} = \text{clamp}(0, 100, 65 + 15 z_{\text{hrv}})$$
   When the device reports no HRV, the user's "how do you feel" answer stands in (Excellent = 90 by default).
-- **Resting Heart Rate ($w_{\text{rhr}} = 0.25$)**: the lowest 5-minute average heart rate during the main sleep. Without overnight heart rate: Health Connect's resting heart rate, else the lowest 5-minute awake average. Scored against the monthly (30-day) average: at or below it is 100, and each bpm above it costs 2 points (1 bpm → 98, 3 → 94, 10 → 80):
-  $$S_{\text{rhr}} = \text{clamp}(0, 100, 100 - 2 \times \max(0, \text{RHR}_{\text{today}} - \overline{\text{RHR}}_{30d}))$$
+- **Resting Heart Rate ($w_{\text{rhr}} = 0.25$)**: the lowest 5-minute average heart rate during the main sleep. Without overnight heart rate: Health Connect's resting heart rate, else the lowest 5-minute awake average. Scored in standard deviations from the 30-day normal, like HRV, so a heart rate that naturally wanders needs a bigger rise to count:
+  $$z_{\text{rhr}} = \frac{\text{RHR}_{\text{today}} - \overline{\text{RHR}}_{30d}}{\max(\text{SD}_{30d}, 1.5)}, \quad S_{\text{rhr}} = \text{clamp}(0, 100, 100 - 7\,[\max(0, z_{\text{rhr}}) + \max(0, -z_{\text{rhr}} - z_{\text{low}})])$$
+  At or below normal is 100 and each SD above costs 7 points. For a steady 1.5 bpm SD that's about 4.7 points per bpm; for a 3 bpm SD about 2.3. The score is two-sided, as Oura's is. A reading far *below* normal also costs 7 points per SD past $z_{\text{low}} = \max(2, 8 / \text{SD})$, i.e. 2 SD and at least 8 bpm, since an unusually low resting heart rate can follow very hard training or be a sensor glitch. A modest dip still scores 100 and is listed as a positive.
 - **Sleep ($w_{\text{sleep}} = 0.25$)**: time asleep against the night's **sleep need** (§7), with a quarter for sleep quality (§7.1) when known:
   $$S_{\text{need}} = \text{clamp}(0, 100, 85 + (\tfrac{\text{asleep}}{\text{need}} - 1) \times 150), \quad S_{\text{sleep}} = 0.75\,S_{\text{need}} + 0.25\,\text{Quality}$$
   Meeting your need scores 85, 110% or more scores 100, 80% scores 55.
@@ -59,7 +60,7 @@ Baselines are the user's own **last 30 days** (at least 3 usable days before a s
 - **Time in Bed**: from bedtime to final wake time. **Efficiency** = asleep ÷ in bed.
 - **Nights**: the longest session per wake-up day; naps and split sessions don't count as extra nights.
 - **Sleep Debt**: $\max(0, \text{SleepNeed} - \text{asleep})$ for the night.
-- **Sleep Consistency**: regularity of bed and wake times over the last 7 nights (including this one), from the circular standard deviation of each, so 23:50 and 00:10 are 20 minutes apart, not 23 hours:
+- **Sleep Consistency**: regularity of bed and wake times over the last 14 nights (including this one; Apple uses 13, and a single week is noisy), from the circular standard deviation of each, so 23:50 and 00:10 are 20 minutes apart, not 23 hours:
   $$\text{Consistency} = \text{clamp}(0, 100, 100 - 0.5 \times \tfrac{\text{SD}_{\text{bed}} + \text{SD}_{\text{wake}}}{2})$$
   A 30-minute spread scores 85, an hour 70, two hours 40. Needs 3 nights.
 
@@ -128,11 +129,12 @@ Rather than folding strain into the Hangry Recovery formula itself (which would 
 
 `HangrySleepCalculator` computes a day-specific sleep need starting from the user's **sleep goal** (Settings, 8 h default), not their recent average, which would make chronically short sleep look normal:
 
-$$\text{SleepNeed} = \text{Goal} + \text{DebtRepayment} + \text{StrainAdjustment}, \quad \le \text{Goal} + 1.5\text{ h}$$
+$$\text{SleepNeed} = \min(\text{Goal} + \text{DebtRepayment} + \text{StrainAdjustment},\ \text{Goal} + 1.5\text{ h}) - \min(\text{Naps}, 1.5\text{ h})$$
 
 - **Debt repayment**: sleep debt is paid back over up to two weeks, not in one night. The debt is the running shortfall against the goal over the last 14 nights (longer nights pay some back), and each night needs $\text{debt} / 14$ extra, at most 60 minutes. Three nights an hour short adds about 13 minutes.
 - **Strain adjustment**: if yesterday's strain exceeded the 7-day average, add `(ratio − 1) × 30` minutes, up to 30.
-- **Tonight's need** (Sleep screen) is the same with last night included in the debt.
+- **Naps**: a nap taken after the day's main sleep ended lowers the *next* night's need minute for minute, up to 90 minutes. That night's need can then fall below the goal. WHOOP and Garmin both do this, because a nap relieves sleep pressure. For debt, each day counts only its sleep up to and including the main night, so a nap counts once, against the next night. It still adds to that day's sleep total and Sleep Score (§4).
+- **Tonight's need** (Sleep screen) is the same with last night included in the debt, less any nap since you woke.
 - **Sleep Performance**: $\text{clamp}(0, 150, \text{round}(\text{asleep} / \text{SleepNeed} \times 100))$.
 - **Recommended bedtime**: the circular-mean wake time over the last 7 nights minus tonight's need.
 
@@ -172,25 +174,27 @@ Active calories already include the resting burn during active time, so BMR only
 
 `EnergyBalanceCalculator` averages the 7 full days before today (days with step data only), counting activity exactly as §8.2:
 
-$$\text{Maintenance} = (\overline{\text{Resting}} + \overline{\text{StepCalories}} + \overline{\text{WorkoutCalories}}) \times 1.10$$
+$$\text{Maintenance} = \frac{\overline{\text{Resting}} + \overline{\text{StepCalories}} + \overline{\text{WorkoutCalories}}}{0.9}$$
 
-where Resting is BMR over each day's inactive minutes (Katch–McArdle from lean mass when there's a measured body-fat scan, else Mifflin–St Jeor) and the extra 10% is the thermic effect of food. It needs weight, height, age, sex and at least 5 of the 7 days with step data; otherwise it lists what's missing instead of guessing.
+Resting is BMR over each day's inactive minutes: Katch–McArdle from lean mass when there's a measured body-fat scan, else Mifflin–St Jeor. The $\div 0.9$ is the thermic effect of food. Digesting costs about 10% of what you **eat** (Westerterp 2004), not 10% of what you burn. At maintenance you eat what you burn, so intake $I$ satisfies $I = \text{burn} + 0.1I$. It needs weight, height, age, sex and at least 5 of the 7 days with step data; otherwise it lists what's missing instead of guessing.
 
 ### 8.5 Daily Calorie Target
 
 `DailyCalorieTargetCalculator` works the target out for each day from that day's own burn, not a weekly average, so a workout or a big walking day earns more food and a quiet day less:
 
-$$\text{Burn}_{d} = \left(\text{BMR} \times \frac{1440 - \text{NEATMinutes} - \text{WorkoutMinutes}}{1440} + \text{NEAT}_{d} + \text{Workouts}_{d}\right) \times 1.10 \times \frac{\text{Maintenance}}{\text{FormulaMaintenance}}$$
+$$\text{Burn}_{d} = \frac{\text{BMR} \times \frac{1440 - \text{NEATMinutes} - \text{WorkoutMinutes}}{1440} + \text{NEAT}_{d} + \text{Workouts}_{d}}{0.9} \times \frac{\text{Maintenance}}{\text{FormulaMaintenance}}$$
 
 - **BMR** as in §8.4 (Katch–McArdle with a recent measured scan, else Mifflin–St Jeor), for the minutes that weren't active.
 - **NEAT** is the day's steps outside workouts, costed as §8.2 — or the 7-day average (§8.4) while that's higher. Steps keep adding up all day, so this keeps the morning target from starting at almost nothing; once the day's steps pass a usual day, they set it.
 - **Workouts** are the day's actual workouts, in full (§8.2), added as soon as they sync. Rest days add none.
-- **1.10** is the thermic effect of food.
+- **÷ 0.9** is the thermic effect of food (10% of what you eat, §8.4).
 - The last factor is what the logs have taught (§8.4's adaptive blend ÷ the activity formula); 1.0 until there are 14+ well-logged days and a weight trend.
 
 Then the goal, from a goal weight (Settings → Goals & Body Metrics):
 
-$$\text{Target}_{d} = \text{Burn}_{d} + \text{DailyAdjustment}$$
+$$\text{Target}_{d} = \text{Burn}_{d} + \frac{\text{DailyAdjustment}}{0.9}$$
+
+DailyAdjustment is the energy deficit or surplus. Eating less also saves the digestion of the food left out, so the food changes by a little more: a 550 kcal deficit is about 611 kcal less food. Pace caps apply to the energy deficit; floors apply to the food target.
 
 - **With a target date**: $\text{DailyAdjustment} = \frac{(\text{GoalWeight} - \text{CurrentWeight}) \times 7700}{\text{DaysRemaining}}$ (7700 kcal ≈ 1 kg).
 - **Without one**: a default pace of 0.5 kg/week to lose (−550 kcal/day) or 0.25 kg/week to gain (+275 kcal/day); within 0.5 kg of the goal it's maintenance.
@@ -219,25 +223,26 @@ Both use only what was measured and re-weight around anything missing (never sco
 
 ## 9. Autonomic Stress Calculation (0–100)
 
-Health Connect does not expose a native `StressRecord`. Commercial wearables calculate stress on-device using proprietary algorithms and do not export direct stress values into Health Connect. Hangry computes an objective physiological stress index based on autonomic biomarkers (`HeartRateVariabilityRmssdRecord` and `RestingHeartRateRecord`) compared to the user's rolling 7-day personal baseline:
+Health Connect does not expose a native `StressRecord`. Commercial wearables calculate stress on-device using proprietary algorithms and do not export direct stress values into Health Connect. Hangry computes an objective physiological stress index from overnight `HeartRateVariabilityRmssdRecord` and resting heart rate, against the user's own **last 30 days**, read the same way Hangry Recovery reads them (§2.2). A 30-day normal (WHOOP uses 30, Polar 28) doesn't absorb a stressful week the way a 7-day one would. Scoring in standard deviations means someone whose readings swing a lot needs a bigger move to register.
 
 ### 9.1 Biomarkers & Heuristics
-- **HRV RMSSD Suppression ($w = 0.60$)**:
-  $$Ratio_{hrv} = \frac{\text{HRV}_{\text{today}}}{\text{HRV}_{\text{7d\_baseline}}}$$
-  $$S_{hrv} = \text{clamp}(0, 100, 50.0 + (1.0 - Ratio_{hrv}) \times 150.0)$$
-  Suppressed HRV relative to baseline indicates sympathetic autonomic dominance and physical/mental stress.
-- **Resting Heart Rate Elevation ($w = 0.40$)**:
-  $$\Delta_{rhr} = \text{RHR}_{\text{today}} - \text{RHR}_{\text{7d\_baseline}}$$
-  $$S_{rhr} = \text{clamp}(0, 100, 35.0 + \Delta_{rhr} \times 7.0)$$
-  Elevated resting heart rate above baseline indicates cardiovascular strain or systemic fatigue.
+Each needs 3+ days of history. At normal each scores 42 (mid-`MODERATE`), and each SD in the stressed direction adds 20:
+- **HRV suppression ($w = 0.60$)**, on a log scale:
+  $$z_{hrv} = \frac{\ln \text{HRV}_{\text{today}} - \overline{\ln \text{HRV}}_{30d}}{\max(\text{SD}_{30d}, 0.08)}, \quad S_{hrv} = \text{clamp}(0, 100, 42 - 20\,z_{hrv})$$
+  Suppressed HRV relative to your normal indicates sympathetic autonomic dominance and physical/mental stress.
+- **Resting heart rate elevation ($w = 0.40$)**:
+  $$z_{rhr} = \frac{\text{RHR}_{\text{today}} - \overline{\text{RHR}}_{30d}}{\max(\text{SD}_{30d}, 1.5)}, \quad S_{rhr} = \text{clamp}(0, 100, 42 + 20\,z_{rhr})$$
+  Elevated resting heart rate above your normal indicates cardiovascular strain or systemic fatigue.
 - **Cardiovascular Strain Adjustment**: If day strain exceeds 14.0, up to +8 points are added to reflect heavy training fatigue.
+
+About 1.2 SD off normal is `ELEVATED`, and 2 SD is `HIGH`. The card shows HRV against the geometric mean of the 30 days, and resting heart rate against their average.
 
 ### 9.2 Stress States
 - `LOW` (0–34): Parasympathetic dominance, low systemic stress.
 - `MODERATE` (35–64): Normal everyday autonomic activity.
 - `ELEVATED` (65–79): Elevated physiological strain or fatigue.
 - `HIGH` (80–100): High autonomic stress; restorative recovery recommended.
-- `BUILDING_BASELINE`: Calibrating until at least 3 usable days of history exist.
+- `BUILDING_BASELINE`: no score (shown as calibrating) until at least 3 days of HRV or resting heart rate history exist.
 
 
 ---

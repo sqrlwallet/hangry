@@ -773,7 +773,9 @@ class DefaultHealthSyncManager(
                 recentSessions = sleepHistoryForCalc.sortedByDescending { it.startTime },
                 targetDurationMinutes = sleepGoal,
                 previousDayStrain = prevDaySummary?.dayStrain,
-                rollingAverageStrain = rollingAvgStrain
+                rollingAverageStrain = rollingAvgStrain,
+                currentDaySessions = sleepSessions,
+                date = date
             )
 
             val rhr = rhrByDate[date]

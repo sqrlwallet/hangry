@@ -86,7 +86,7 @@ class DailyCalorieTargetTest {
         assertEquals(6_000.0, target.neatSteps, 0.01)
         val resting = bmr * (1440 - 40) / 1440
         assertEquals(resting, target.restingKcal, 0.01)
-        assertEquals((resting + target.neatKcal) * 1.10, target.burnKcal, 0.01)
+        assertEquals((resting + target.neatKcal) / 0.9, target.burnKcal, 0.01)
         assertEquals(target.burnKcal.roundToInt(), target.targetKcal)
         assertNull(target.goal)
     }
@@ -121,7 +121,7 @@ class DailyCalorieTargetTest {
         assertEquals(1, target.workoutsCounted)
         assertEquals(0, target.workoutsWithoutCalories)
         assertEquals(bmr * (1440 - 40 - 60) / 1440, target.restingKcal, 0.01)
-        assertEquals((target.restingKcal + target.neatKcal + 600.0) * 1.10, target.burnKcal, 0.01)
+        assertEquals((target.restingKcal + target.neatKcal + 600.0) / 0.9, target.burnKcal, 0.01)
     }
 
     @Test

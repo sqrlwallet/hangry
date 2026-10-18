@@ -12,6 +12,7 @@ import com.kevan.hangry.domain.calculation.HangryTrainingLoadCalculator
 import com.kevan.hangry.domain.calculation.HeartRateZones
 import com.kevan.hangry.domain.calculation.NightlyVitals
 import com.kevan.hangry.domain.calculation.RecoveryConfig
+import com.kevan.hangry.domain.calculation.SleepSessions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -21,6 +22,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
+import kotlin.math.roundToInt
 
 /** The specific inaccuracies fixed in scoring v5 / summaries v3. */
 class ScoreAccuracyTest {
@@ -177,6 +179,48 @@ class ScoreAccuracyTest {
     }
 
     @Test
+    fun `a nap after waking lowers tonight's need minute for minute`() {
+        val rested = (18..24).map { night(it, "23:00", "07:00", asleep = 480) }.reversed()
+        val lastNight = night(25, "23:00", "07:00", asleep = 480)
+        val nap = night(25, "14:00", "14:45", asleep = 45, id = "nap25")
+        val day = listOf(lastNight, nap)
+        val a = sleep.analyzeSleep(SleepSessions.combine(day), rested, targetDurationMinutes = 480, currentDaySessions = day, date = LocalDate.of(2026, 9, 25))
+        // Last night's need is untouched; the nap counts toward tonight, not as last night's sleep.
+        assertEquals(480, a.sleepNeedMinutes)
+        assertEquals(435, a.tonightsNeedMinutes)
+    }
+
+    @Test
+    fun `yesterday afternoon's nap lowers last night's need`() {
+        val rested = (18..24).map { night(it, "23:00", "07:00", asleep = 480) }
+        val nap = night(24, "14:00", "15:00", asleep = 60, id = "nap24")
+        val history = (rested + nap).sortedByDescending { it.startTime }
+        val lastNight = night(25, "23:00", "06:00", asleep = 420)
+        val a = sleep.analyzeSleep(lastNight, history, targetDurationMinutes = 480, date = LocalDate.of(2026, 9, 25))
+        assertEquals(420, a.sleepNeedMinutes)
+        assertEquals(100, a.sleepPerformancePercentage)
+        // The nap paid for that night, so the shorter night didn't leave debt behind it either.
+        assertEquals(480 + (60 / 14.0).roundToInt(), a.tonightsNeedMinutes)
+    }
+
+    @Test
+    fun `a nap's credit is capped at 90 minutes`() {
+        val rested = (18..24).map { night(it, "23:00", "07:00", asleep = 480) }.reversed()
+        val day = listOf(night(25, "23:00", "07:00", asleep = 480), night(25, "13:00", "16:00", asleep = 180, id = "nap25"))
+        val a = sleep.analyzeSleep(SleepSessions.combine(day), rested, targetDurationMinutes = 480, currentDaySessions = day)
+        assertEquals(390, a.tonightsNeedMinutes)
+    }
+
+    @Test
+    fun `consistency looks back two weeks, not one`() {
+        // The last week is perfectly regular; the week before kept very different hours.
+        val lastWeek = (18..24).map { night(it, "23:00", "07:00", asleep = 480) }
+        val weekBefore = (11..17).map { night(it, "03:00", "11:00", asleep = 480) }
+        val a = sleep.analyzeSleep(null, (lastWeek + weekBefore).sortedByDescending { it.startTime }, targetDurationMinutes = 480)
+        assertTrue("consistency ${a.consistencyPercentage}", a.consistencyPercentage!! < 50)
+    }
+
+    @Test
     fun `wake times around midnight average to midnight, not noon`() {
         val lateNights = listOf(
             night(24, "16:00", "23:50", asleep = 470),
@@ -232,15 +276,40 @@ class ScoreAccuracyTest {
     }
 
     @Test
-    fun `resting heart rate loses 2 points per bpm above the monthly average`() {
+    fun `resting heart rate loses 7 points per SD above the monthly normal`() {
+        // A perfectly steady 55 bpm: the SD floor of 1.5 bpm applies.
         val base = history(30, { 60.0 }, rhr = { 55.0 })
         fun rhrScore(today: Double) =
             recovery.calculateRecovery(LocalDate.of(2026, 9, 20), DayMetrics(LocalDate.of(2026, 9, 20), 450, today, 60.0), base, RecoveryConfig()).rhrScore!!
         assertEquals(100.0, rhrScore(55.0), 0.01)
         assertEquals(100.0, rhrScore(52.0), 0.01)
-        assertEquals(98.0, rhrScore(56.0), 0.01)
-        assertEquals(96.0, rhrScore(57.0), 0.01)
-        assertEquals(94.0, rhrScore(58.0), 0.01)
+        assertEquals(100.0 - 7 / 1.5, rhrScore(56.0), 0.01)
+        assertEquals(100.0 - 14 / 1.5, rhrScore(57.0), 0.01)
+        assertEquals(86.0, rhrScore(58.0), 0.01)
+    }
+
+    @Test
+    fun `the same rise counts for less when your resting heart rate usually wanders`() {
+        fun rhrScore(history: List<DayMetrics>) = recovery.calculateRecovery(
+            LocalDate.of(2026, 9, 20), DayMetrics(LocalDate.of(2026, 9, 20), 450, 58.0, 60.0), history, RecoveryConfig()
+        ).rhrScore!!
+        val steady = rhrScore(history(30, { 60.0 }, rhr = { 55.0 }))
+        val wandering = rhrScore(history(30, { 60.0 }, rhr = { if (it % 2 == 0) 51.0 else 59.0 }))
+        assertTrue("steady $steady vs wandering $wandering", wandering > steady + 5)
+    }
+
+    @Test
+    fun `an unusually low resting heart rate costs a little, a modest dip doesn't`() {
+        val base = history(30, { 60.0 }, rhr = { 55.0 })
+        val result = { today: Double ->
+            recovery.calculateRecovery(LocalDate.of(2026, 9, 20), DayMetrics(LocalDate.of(2026, 9, 20), 450, today, 60.0), base, RecoveryConfig())
+        }
+        // 3 bpm down is good news; 10 bpm down (over 2 SD and 8 bpm) is flagged and costs a few points.
+        assertEquals(100.0, result(52.0).rhrScore!!, 0.01)
+        assertTrue(result(52.0).positiveContributors.any { it.startsWith("Resting heart rate is 3 bpm below") })
+        val veryLow = result(45.0)
+        assertEquals(100.0 - 7 * (10 / 1.5 - 8 / 1.5), veryLow.rhrScore!!, 0.01)
+        assertTrue(veryLow.negativeContributors.any { it.contains("unusually low") })
     }
 
     @Test

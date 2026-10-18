@@ -66,5 +66,6 @@ data class DailyHealthSummaryEntity(
  *    stage minutes, need and score, while bed/wake times stay the main night's.
  * 8: a nap after waking lowers the next night's need instead of counting as that night's sleep
  *    for debt; bed/wake consistency over 14 nights.
+ * 9: Sleep Score counts interruptions; deep and REM scored in minutes, not shares of the night.
  */
-const val SUMMARY_CALCULATION_VERSION = 8
+const val SUMMARY_CALCULATION_VERSION = 9

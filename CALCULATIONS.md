@@ -23,8 +23,10 @@ A day with **no sleep, resting heart rate or HRV** gets no score at all (shown a
 ### 2.2 Component Weights & Heuristics
 Baselines are the user's own **last 30 days** (at least 3 usable days before a score appears). HRV and resting heart rate are scored by how unusual today is *for this user*, in standard deviations ($z$) from their normal. Someone whose HRV naturally swings a lot needs a bigger drop to be flagged than someone whose HRV is steady. A reading right at normal scores 65; each SD moves it 15 points.
 
-- **HRV RMSSD ($w_{\text{hrv}} = 0.35$)**: last night's HRV, the average of readings taken during the main sleep (±30 min), else the day's first reading. Compared on a log scale, as in HRV research:
-  $$z_{\text{hrv}} = \frac{\ln \text{HRV}_{\text{today}} - \overline{\ln \text{HRV}}_{30d}}{\max(\text{SD}_{30d}, 0.08)}, \quad S_{\text{hrv}} = \text{clamp}(0, 100, 65 + 15 z_{\text{hrv}})$$
+- **HRV RMSSD ($w_{\text{hrv}} = 0.35$)**: each night's HRV is the average of readings taken during the main sleep (±30 min), else the day's first reading. HRV is compared on a log scale, as in HRV research. Single nights are noisy, so the score leans on the last 7 nights' average. Plews et al. 2013 found weekly averages track real changes in fitness; Garmin's HRV Status and Oura's HRV Balance work the same way. Last night still counts as a smaller part, so a sudden drop shows:
+  $$z_{\text{night}} = \frac{\ln \text{HRV}_{\text{today}} - \overline{\ln \text{HRV}}_{30d}}{\sigma}, \quad z_{\text{week}} = \frac{\overline{\ln \text{HRV}}_{7d} - \overline{\ln \text{HRV}}_{30d}}{0.5\,\sigma}, \quad \sigma = \max(\text{SD}_{30d}, 0.08)$$
+  $$S_{\text{hrv}} = 0.6\,(65 + 15 \min(z_{\text{week}}, 1.5)) + 0.4\,(65 + 15 z_{\text{night}}), \text{ each part clamped to } 0\text{–}100$$
+  The 7-night average includes last night and needs at least 3 nights; with fewer, last night is scored on its own. A week's average moves about half as much as single nights do, so its normal band is half as wide. One low night after a normal week is softened, and a whole low week counts fully. A week running more than 1.5 SD *above* normal earns no more points, and past 2.5 SD it is flagged as possible overreaching, since very high HRV can follow very hard training too (Buchheit 2014).
   When the device reports no HRV, the user's "how do you feel" answer stands in (Excellent = 90 by default).
 - **Resting Heart Rate ($w_{\text{rhr}} = 0.25$)**: the lowest 5-minute average heart rate during the main sleep. Without overnight heart rate: Health Connect's resting heart rate, else the lowest 5-minute awake average. Scored in standard deviations from the 30-day normal, like HRV, so a heart rate that naturally wanders needs a bigger rise to count:
   $$z_{\text{rhr}} = \frac{\text{RHR}_{\text{today}} - \overline{\text{RHR}}_{30d}}{\max(\text{SD}_{30d}, 1.5)}, \quad S_{\text{rhr}} = \text{clamp}(0, 100, 100 - 7\,[\max(0, z_{\text{rhr}}) + \max(0, -z_{\text{rhr}} - z_{\text{low}})])$$
@@ -212,10 +214,14 @@ Both use only what was measured and re-weight around anything missing (never sco
 
 | Component | Score | Sleep Score weight | Quality weight |
 |---|---|---|---|
-| Need met | Sleep Performance, capped at 100 | 0.50 | — |
-| Efficiency | 92%+ asleep in bed = 100, 65% or less = 0 | 0.15 | 0.40 |
-| Restorative | deep vs 15% and REM vs 20% of sleep, each capped, averaged | 0.20 | 0.35 |
-| Consistency | §4 | 0.15 | 0.25 |
+| Need met | Sleep Performance, capped at 100 | 0.45 | — |
+| Efficiency | 92%+ asleep in bed = 100, 65% or less = 0 | 0.10 | 0.25 |
+| Restorative | minutes of deep and REM against healthy amounts, each capped, averaged | 0.15 | 0.30 |
+| Interruptions | time awake after falling asleep, and how often you woke | 0.15 | 0.25 |
+| Consistency | §4 | 0.15 | 0.20 |
+
+- **Restorative** is scored in minutes, not as a share of the night, so a short night with a normal mix can't score full marks (Oura scores REM and deep in minutes too). REM's target is 90 minutes. Deep's target is 90 minutes up to age 30, then 0.75 minutes less a year, to at least 60, because deep sleep falls with age. It is 80 minutes when age isn't set.
+- **Interruptions** come from the main night's stage timeline, between first falling asleep and the final wake-up. Awake time before sleep and lying in afterwards don't count, and back-to-back awake segments are one spell. Up to 20 minutes awake scores 100, falling to 0 at 90 minutes. One awakening of 5+ minutes is free (Garmin counts them from 5 minutes), and each one after it costs 20. The two parts are averaged. Apple's Sleep Score gives interruptions 20 of its 100 points. Without a stage timeline this part is left out, never guessed from the awake total.
 
 **Sleep Score** is the headline night score (how much you got and how well); **Quality** is how well you slept regardless of length. Both are stored on the daily summary.
 

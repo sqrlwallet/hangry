@@ -13,6 +13,9 @@ import com.kevan.hangry.domain.calculation.HeartRateZones
 import com.kevan.hangry.domain.calculation.NightlyVitals
 import com.kevan.hangry.domain.calculation.RecoveryConfig
 import com.kevan.hangry.domain.calculation.SleepSessions
+import com.kevan.hangry.domain.model.SleepStage
+import com.kevan.hangry.domain.model.SleepStageCodec
+import com.kevan.hangry.domain.model.SleepStageSegment
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -243,6 +246,112 @@ class ScoreAccuracyTest {
         assertTrue("shifting ${b.consistencyPercentage}", b.consistencyPercentage!! < 40)
     }
 
+    private fun staged(wakeDay: Int, bed: String, wake: String, awake: List<Pair<String, String>>, deep: Int = 90, rem: Int = 100): SleepSessionEntity {
+        val base = night(wakeDay, bed, wake, asleep = 0)
+        fun at(t: String): Instant {
+            val time = LocalTime.parse(t)
+            val day = if (time.isAfter(LocalTime.parse(wake))) LocalDate.of(2026, 9, wakeDay - 1) else LocalDate.of(2026, 9, wakeDay)
+            return day.atTime(time).toInstant(zone)
+        }
+        // Light sleep throughout, with the given awake spells cut out of it.
+        val cuts = awake.map { at(it.first) to at(it.second) }
+        val segments = mutableListOf<SleepStageSegment>()
+        var cursor = base.startTime
+        cuts.forEach { (from, to) ->
+            segments += SleepStageSegment(SleepStage.LIGHT, cursor, from)
+            segments += SleepStageSegment(SleepStage.AWAKE, from, to)
+            cursor = to
+        }
+        segments += SleepStageSegment(SleepStage.LIGHT, cursor, base.endTime)
+        val awakeMin = cuts.sumOf { Duration.between(it.first, it.second).toMinutes() }.toInt()
+        val inBed = Duration.between(base.startTime, base.endTime).toMinutes().toInt()
+        return base.copy(
+            durationMinutes = inBed - awakeMin, timeInBedMinutes = inBed, awakeMinutes = awakeMin,
+            deepSleepMinutes = deep, remSleepMinutes = rem, lightSleepMinutes = inBed - awakeMin - deep - rem,
+            stageSegments = SleepStageCodec.encode(base.startTime, segments)
+        )
+    }
+
+    @Test
+    fun `an unbroken night scores full marks for interruptions`() {
+        val a = sleep.analyzeSleep(staged(25, "23:00", "07:00", awake = emptyList()), emptyList(), targetDurationMinutes = 480)
+        assertEquals(100, a.interruptionsScore)
+        assertEquals(0, a.awakenings)
+        assertEquals(0, a.wakeAfterSleepOnsetMinutes)
+    }
+
+    @Test
+    fun `waking up in the night costs interruption points`() {
+        val broken = staged(25, "23:00", "07:30", awake = listOf("01:00" to "01:10", "03:00" to "03:10", "05:00" to "05:10"))
+        val a = sleep.analyzeSleep(broken, emptyList(), targetDurationMinutes = 480)
+        // 30 min awake: (90 - 30) / 70 = 86; 3 awakenings: 100 - 2 x 20 = 60; averaged = 73.
+        assertEquals(30, a.wakeAfterSleepOnsetMinutes)
+        assertEquals(3, a.awakenings)
+        assertEquals(73, a.interruptionsScore)
+        val unbroken = sleep.analyzeSleep(staged(25, "23:00", "07:30", awake = emptyList()), emptyList(), targetDurationMinutes = 480)
+        assertTrue("broken ${a.sleepScore} vs unbroken ${unbroken.sleepScore}", a.sleepScore!! < unbroken.sleepScore!!)
+    }
+
+    @Test
+    fun `brief stirrings are awake time but not awakenings, and touching spells are one`() {
+        val night = staged(25, "23:00", "07:00", awake = listOf("01:00" to "01:03", "03:00" to "03:04"))
+        val a = sleep.analyzeSleep(night, emptyList(), targetDurationMinutes = 480)
+        assertEquals(7, a.wakeAfterSleepOnsetMinutes)
+        assertEquals(0, a.awakenings)
+        // Two awake segments a few seconds apart count as one 8-minute spell.
+        val segments = listOf(
+            SleepStageSegment(SleepStage.LIGHT, night.startTime, night.startTime.plusSeconds(3600)),
+            SleepStageSegment(SleepStage.AWAKE, night.startTime.plusSeconds(3600), night.startTime.plusSeconds(3600 + 240)),
+            SleepStageSegment(SleepStage.AWAKE, night.startTime.plusSeconds(3600 + 270), night.startTime.plusSeconds(3600 + 480)),
+            SleepStageSegment(SleepStage.LIGHT, night.startTime.plusSeconds(3600 + 480), night.endTime)
+        )
+        val b = sleep.analyzeSleep(night.copy(stageSegments = SleepStageCodec.encode(night.startTime, segments)), emptyList(), targetDurationMinutes = 480)
+        assertEquals(1, b.awakenings)
+    }
+
+    @Test
+    fun `awake time before falling asleep and after the last sleep isn't an interruption`() {
+        val base = staged(25, "23:00", "07:00", awake = emptyList())
+        val segments = listOf(
+            SleepStageSegment(SleepStage.AWAKE, base.startTime, base.startTime.plusSeconds(30 * 60)),
+            SleepStageSegment(SleepStage.LIGHT, base.startTime.plusSeconds(30 * 60), base.endTime.minusSeconds(20 * 60)),
+            SleepStageSegment(SleepStage.AWAKE, base.endTime.minusSeconds(20 * 60), base.endTime)
+        )
+        val a = sleep.analyzeSleep(base.copy(stageSegments = SleepStageCodec.encode(base.startTime, segments)), emptyList(), targetDurationMinutes = 480)
+        assertEquals(100, a.interruptionsScore)
+    }
+
+    @Test
+    fun `without a stage timeline interruptions are left out, not guessed`() {
+        val a = sleep.analyzeSleep(night(25, "23:00", "07:00", asleep = 450, inBed = 480).copy(awakeMinutes = 30), emptyList(), targetDurationMinutes = 480)
+        assertEquals(null, a.interruptionsScore)
+        assertNotNull(a.sleepScore)
+    }
+
+    @Test
+    fun `deep and REM are scored in minutes, so a short night can't max them`() {
+        // A 5-hour night with a textbook mix (15% deep, 20% REM) used to score 100 here.
+        val short = night(25, "02:00", "07:00", asleep = 300).copy(deepSleepMinutes = 45, remSleepMinutes = 60, lightSleepMinutes = 195)
+        val full = night(25, "23:00", "07:00", asleep = 480).copy(deepSleepMinutes = 90, remSleepMinutes = 96, lightSleepMinutes = 294)
+        val a = sleep.analyzeSleep(short, emptyList(), targetDurationMinutes = 480, age = 30)
+        val b = sleep.analyzeSleep(full, emptyList(), targetDurationMinutes = 480, age = 30)
+        // Deep 45/90 and REM 60/90, averaged.
+        assertEquals(58, a.restorativeScore)
+        assertEquals(100, b.restorativeScore)
+    }
+
+    @Test
+    fun `less deep sleep is expected with age`() {
+        assertEquals(90.0, HangrySleepCalculator.deepTargetMinutes(25), 0.0)
+        assertEquals(90.0, HangrySleepCalculator.deepTargetMinutes(30), 0.0)
+        assertEquals(75.0, HangrySleepCalculator.deepTargetMinutes(50), 0.0)
+        assertEquals(60.0, HangrySleepCalculator.deepTargetMinutes(80), 0.0)
+        assertEquals(80.0, HangrySleepCalculator.deepTargetMinutes(null), 0.0)
+        val night = night(25, "23:00", "07:00", asleep = 480).copy(deepSleepMinutes = 60, remSleepMinutes = 90, lightSleepMinutes = 330)
+        assertEquals(100, sleep.analyzeSleep(night, emptyList(), targetDurationMinutes = 480, age = 70).restorativeScore)
+        assertTrue(sleep.analyzeSleep(night, emptyList(), targetDurationMinutes = 480, age = 25).restorativeScore!! < 100)
+    }
+
     // endregion
 
     // region Recovery
@@ -357,6 +466,41 @@ class ScoreAccuracyTest {
         val warm = DayMetrics(LocalDate.of(2026, 9, 20), 450, 55.0, 60.0, skinTempDeltaCelsius = 1.5)
         val result = recovery.calculateRecovery(warm.date, warm, base, RecoveryConfig())
         assertTrue(result.negativeContributors.none { it.contains("Skin temperature") })
+    }
+
+    /** 30 days of HRV wobbling ±8% around 60 ms, with the last [recent] days set to [recentHrv]. */
+    private fun hrvHistory(recent: Int = 0, recentHrv: Double = 60.0, skipRecent: Boolean = false) =
+        (1..37).mapNotNull { d ->
+            if (skipRecent && d < 8) return@mapNotNull null
+            val hrv = if (d <= recent) recentHrv else 60.0 * if (d % 2 == 0) 1.08 else 0.92
+            DayMetrics(LocalDate.of(2026, 9, 20).minusDays(d.toLong()), 450, 55.0, hrv)
+        }.filter { it.date.isAfter(LocalDate.of(2026, 9, 20).minusDays(if (skipRecent) 38 else 31)) }
+
+    private fun hrvResult(today: Double, history: List<DayMetrics>) =
+        recovery.calculateRecovery(LocalDate.of(2026, 9, 20), DayMetrics(LocalDate.of(2026, 9, 20), 450, 55.0, today), history, RecoveryConfig())
+
+    @Test
+    fun `a week of low HRV counts for more than one low night`() {
+        val oneNight = hrvResult(48.0, hrvHistory())
+        val wholeWeek = hrvResult(48.0, hrvHistory(recent = 6, recentHrv = 48.0))
+        assertTrue("one night ${oneNight.hrvScore} vs week ${wholeWeek.hrvScore}", wholeWeek.hrvScore!! < oneNight.hrvScore!! - 10)
+        assertTrue(wholeWeek.negativeContributors.any { it.contains("this week") })
+    }
+
+    @Test
+    fun `one low night after a normal week is softened`() {
+        // Same night, but with no recent nights to average it with: scored on its own.
+        val alone = hrvResult(48.0, hrvHistory(skipRecent = true))
+        val withWeek = hrvResult(48.0, hrvHistory())
+        assertTrue("alone ${alone.hrvScore} vs with week ${withWeek.hrvScore}", withWeek.hrvScore!! > alone.hrvScore!!)
+    }
+
+    @Test
+    fun `HRV well above normal all week stops earning points and is flagged`() {
+        val high = hrvResult(90.0, hrvHistory(recent = 6, recentHrv = 90.0))
+        // Last night alone would be 100; the week's part is capped at 1.5 SD (87.5).
+        assertTrue("score ${high.hrvScore}", high.hrvScore!! < 95.0)
+        assertTrue(high.negativeContributors.any { it.contains("overreaching") })
     }
 
     // endregion

@@ -1,3 +1,19 @@
+## 🚀 What's New in Hangry v1.48.0 — Steadier Recovery, Truer Sleep Scores
+
+Recovery reads your HRV over the week instead of trusting a single night. The Sleep Score now notices a broken night, and deep and REM sleep are scored in real minutes.
+
+### 💓 Steadier Recovery
+- **A week of HRV, not one night**: recovery now leans on your last 7 nights of HRV, with last night as a smaller part. Garmin and Oura work the same way, and research shows weekly averages track real changes better.
+- **One rough night is softened**: a single low reading after a good week no longer tanks your score, while a whole low week counts in full.
+- **High isn't always better**: HRV running far above your usual all week stops earning extra points and gets a gentle note, since it can follow very hard training.
+
+### 😴 A Truer Sleep Score
+- **Unbroken sleep**: a new part of the Sleep Score counts time awake after you fall asleep and how often you woke for 5+ minutes. A broken night no longer scores like a solid one. Falling asleep and lying in don't count against you.
+- **Deep and REM in minutes**: these are now scored against healthy amounts (about 90 minutes of REM, and 60–90 minutes of deep depending on age) instead of as a share of the night, so a short night can't max them out.
+- **New balance**: hours vs need 45%, time asleep in bed 10%, deep & REM 15%, unbroken sleep 15%, regular times 15%. The Sleep screen shows each part.
+
+Your past days are recalculated automatically the first time you open the app.
+
 ## 🚀 What's New in Hangry v1.47.0 — Scores That Follow the Research
 
 Stress, recovery, sleep need and your calorie target now work the way published research and the major wearables do. The app also opens and scrolls faster.

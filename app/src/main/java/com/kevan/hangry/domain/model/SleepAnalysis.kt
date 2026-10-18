@@ -22,13 +22,19 @@ data class SleepAnalysis(
     /** What tonight needs, including anything this night fell short by. */
     val tonightsNeedMinutes: Int = sleepNeedMinutes,
     val sleepPerformancePercentage: Int? = null,
-    /** How well you slept (efficiency, deep + REM, regular timing), regardless of length. */
+    /** How well you slept (efficiency, deep + REM, unbroken sleep, regular timing), regardless of length. */
     val sleepQualityScore: Int? = null,
-    /** 0-100: how much of your need you got (half the score) plus how well you slept. */
+    /** 0-100: how much of your need you got (45% of the score) plus how well you slept. */
     val sleepScore: Int? = null,
     /** The Sleep Score's parts, each 0-100; null when not measured. */
     val efficiencyScore: Int? = null,
     val restorativeScore: Int? = null,
+    /** How unbroken the main night was: time awake after falling asleep and how often you woke. */
+    val interruptionsScore: Int? = null,
+    /** Awake spells of 5+ minutes between falling asleep and getting up; null without a stage timeline. */
+    val awakenings: Int? = null,
+    /** Minutes awake between falling asleep and the final wake-up; null without a stage timeline. */
+    val wakeAfterSleepOnsetMinutes: Int? = null,
     val recommendedBedtime: LocalTime? = null,
     /** How regular bed and wake times are. Needs at least 3 nights. */
     val consistencyPercentage: Int? = null,

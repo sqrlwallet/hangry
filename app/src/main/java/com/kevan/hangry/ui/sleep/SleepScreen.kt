@@ -43,6 +43,8 @@ import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import kotlinx.coroutines.launch
 import com.kevan.hangry.domain.model.SleepStageCodec
+import com.kevan.hangry.domain.calculation.HangrySleepCalculator
+import kotlin.math.roundToInt
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -237,10 +239,11 @@ fun SleepScreen(
 
                     Spacer(modifier = Modifier.height(HangryTokens.Spacing.m))
                     // How the score was built - only the parts that were measured.
-                    SleepScorePart(stringResource(R.string.metrics_sleep_part_hours_vs_need), analysis?.sleepPerformancePercentage?.coerceAtMost(100), "50%")
-                    SleepScorePart(stringResource(R.string.metrics_sleep_part_time_asleep_in_bed), analysis?.efficiencyScore, "15%")
-                    SleepScorePart(stringResource(R.string.metrics_sleep_part_deep_rem), analysis?.restorativeScore, "20%")
-                    SleepScorePart(stringResource(R.string.metrics_sleep_part_regular_times), analysis?.consistencyPercentage, "15%")
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_hours_vs_need), analysis?.sleepPerformancePercentage?.coerceAtMost(100), weightLabel(HangrySleepCalculator.SCORE_PERFORMANCE_WEIGHT))
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_time_asleep_in_bed), analysis?.efficiencyScore, weightLabel(HangrySleepCalculator.SCORE_EFFICIENCY_WEIGHT))
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_deep_rem), analysis?.restorativeScore, weightLabel(HangrySleepCalculator.SCORE_RESTORATIVE_WEIGHT))
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_unbroken), analysis?.interruptionsScore, weightLabel(HangrySleepCalculator.SCORE_INTERRUPTIONS_WEIGHT))
+                    SleepScorePart(stringResource(R.string.metrics_sleep_part_regular_times), analysis?.consistencyPercentage, weightLabel(HangrySleepCalculator.SCORE_CONSISTENCY_WEIGHT))
                 }
 
                 // Sleep Coach: tonight's need, how last night measured up, and a bedtime suggestion
@@ -481,6 +484,9 @@ private fun SleepInBedDebtLine(inBedMinutes: Int?, asleepPct: Int?, debtMinutes:
         color = tokens.textMuted
     )
 }
+
+/** A Sleep Score weight as shown next to its part, e.g. 0.15 -> "15%". */
+private fun weightLabel(weight: Double): String = "${(weight * 100).roundToInt()}%"
 
 /** One part of the Sleep Score as a labelled bar; skipped when it wasn't measured. */
 @Composable

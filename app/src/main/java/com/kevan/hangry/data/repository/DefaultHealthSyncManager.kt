@@ -775,7 +775,8 @@ class DefaultHealthSyncManager(
                 previousDayStrain = prevDaySummary?.dayStrain,
                 rollingAverageStrain = rollingAvgStrain,
                 currentDaySessions = sleepSessions,
-                date = date
+                date = date,
+                age = profile?.age
             )
 
             val rhr = rhrByDate[date]

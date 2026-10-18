@@ -45,7 +45,7 @@ data class RecoveryConfig(
     //    replaces sleep consistency; sleep debt repaid over two weeks.
     // 7: skin temperature well above your usual lowers the score, like breathing rate
     //    (with allowance for the warmer second half of a menstrual cycle).
-    val algorithmVersion: Int = 8,
+    val algorithmVersion: Int = 9,
     val minDaysForBaseline: Int = 3,
     val optimalBaselineDays: Int = 7,
     /** Days of history the baseline is built from. */

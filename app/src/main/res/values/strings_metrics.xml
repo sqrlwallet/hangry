@@ -149,9 +149,9 @@
     <string name="metrics_sleep_tonights_need">Tonight\'s Sleep Need</string>
     <string name="metrics_sleep_tonights_need_coach_body">Your sleep goal, plus a slice of any sleep debt so it\'s paid back over two weeks (debt from the last 14 nights ÷ 14, at most an hour), plus up to 30 minutes after a harder-than-usual day.</string>
     <string name="metrics_sleep_score_title">Sleep Score</string>
-    <string name="metrics_sleep_score_parts_body">Half is how much of your need you got. The rest is how well you slept: time asleep vs time in bed, deep and REM sleep against healthy ranges, and how regular your bed and wake times are.</string>
+    <string name="metrics_sleep_score_parts_body">Nearly half is how much of your need you got. The rest is how well you slept: time asleep vs time in bed, minutes of deep and REM sleep against healthy amounts, how unbroken the night was (time awake after falling asleep and how often you woke), and how regular your bed and wake times are.</string>
     <string name="metrics_sleep_quality_title">Quality</string>
-    <string name="metrics_sleep_quality_body">How well you slept regardless of length: efficiency, deep + REM, and regular timing.</string>
+    <string name="metrics_sleep_quality_body">How well you slept regardless of length: efficiency, deep + REM, unbroken sleep, and regular timing.</string>
     <string name="metrics_sleep_suggested_bedtime_title">Suggested Bedtime</string>
     <string name="metrics_sleep_suggested_bedtime_body">Your usual wake time minus tonight\'s need - adjust as your schedule needs.</string>
     <string name="metrics_sleep_deep_title">Deep Sleep</string>
@@ -180,6 +180,7 @@
     <string name="metrics_sleep_part_hours_vs_need">Hours vs need</string>
     <string name="metrics_sleep_part_time_asleep_in_bed">Time asleep in bed</string>
     <string name="metrics_sleep_part_deep_rem">Deep &amp; REM sleep</string>
+    <string name="metrics_sleep_part_unbroken">Unbroken sleep</string>
     <string name="metrics_sleep_part_regular_times">Regular bed &amp; wake times</string>
     <string name="metrics_sleep_in_bed_value">%1$s in bed</string>
     <string name="metrics_sleep_in_bed_pct_value">%1$s in bed (%2$d%% asleep)</string>

@@ -14,8 +14,9 @@ import kotlin.math.sqrt
  * Recovery from overnight HRV and resting heart rate against the user's own last 30 days, how
  * much of their sleep need they got, and whether yesterday's strain stayed within its target.
  *
- * HRV is scored by how unusual last night is for *you* (standard deviations from your normal,
- * on a log scale as in the research): a reading at your normal scores 65, each SD moves it 15.
+ * HRV is scored by how unusual the last week and last night are for *you* (standard deviations
+ * from your normal, on a log scale as in the research): a reading at your normal scores 65, each
+ * SD moves it 15. The week's average carries most of it, since single nights are noisy.
  * Resting heart rate loses 7 points per SD above your monthly normal, and a little when it's
  * unusually far below it.
  */
@@ -49,13 +50,33 @@ class HangryRecoveryCalculator : RecoveryCalculator {
         val positiveContributors = mutableListOf<String>()
         val negativeContributors = mutableListOf<String>()
 
-        // 1. HRV: higher than your normal is better. Log scale, because HRV is skewed.
+        // 1. HRV: higher than your normal is better. Log scale, because HRV is skewed. Single
+        //    nights are noisy, so the score leans on the last 7 nights' average (Plews et al.;
+        //    Garmin's HRV Status and Oura's HRV Balance work the same way), with last night
+        //    as a smaller part so a sudden drop still shows.
         val hrvHistory = usableHistory.mapNotNull { it.hrvRmssd?.takeIf { v -> v > 0 }?.let(::ln) }
         val hrvScore: Double? = currentDayMetrics.hrvRmssd?.takeIf { it > 0 && hrvHistory.isNotEmpty() }?.let { today ->
-            val z = (ln(today) - hrvHistory.average()) / max(sd(hrvHistory), MIN_LN_HRV_SD)
-            if (z >= NOTABLE_Z) positiveContributors.add("HRV is above your usual - your body is handling stress well.")
-            else if (z <= -NOTABLE_Z) negativeContributors.add("HRV is below your usual, a sign your body is still recovering.")
-            zScore(z)
+            val mean = hrvHistory.average()
+            val spread = max(sd(hrvHistory), MIN_LN_HRV_SD)
+            val nightZ = (ln(today) - mean) / spread
+            val week = listOf(ln(today)) + usableHistory
+                .filter { it.date.isBefore(date) && !it.date.isBefore(date.minusDays(HRV_WEEK_DAYS - 1L)) }
+                .mapNotNull { it.hrvRmssd?.takeIf { v -> v > 0 }?.let(::ln) }
+            // A week's average moves about half as much as single nights do, so its normal
+            // band is half as wide.
+            val weekZ = if (week.size >= MIN_HRV_WEEK_NIGHTS) (week.average() - mean) / (spread * WEEK_SPREAD_FRACTION) else null
+            when {
+                weekZ != null && weekZ >= HRV_WELL_ABOVE_Z ->
+                    negativeContributors.add("HRV has been well above your usual all week - usually a good sign, but after very hard training it can mean you're overreaching.")
+                weekZ != null && weekZ >= NOTABLE_WEEK_Z -> positiveContributors.add("HRV has been above your usual this week - your body is handling stress well.")
+                weekZ != null && weekZ <= -NOTABLE_WEEK_Z -> negativeContributors.add("HRV has been below your usual this week, a sign your body is still recovering.")
+                nightZ >= NOTABLE_Z -> positiveContributors.add("HRV is above your usual - your body is handling stress well.")
+                nightZ <= -NOTABLE_Z -> negativeContributors.add("HRV is below your usual, a sign your body is still recovering.")
+            }
+            // Well above normal all week isn't rewarded further - very high HRV can be a sign of
+            // overreaching too (Buchheit 2014).
+            weekZ?.let { WEEK_HRV_WEIGHT * zScore(min(it, HRV_WEEK_CAP_Z)) + (1 - WEEK_HRV_WEIGHT) * zScore(nightZ) }
+                ?: zScore(nightZ)
         }
 
         // 2. Resting heart rate against your monthly normal, in standard deviations so a heart
@@ -252,6 +273,16 @@ class HangryRecoveryCalculator : RecoveryCalculator {
         const val NOTABLE_Z = 0.75
         /** Floors so a very steady (or short) history doesn't turn tiny changes into big swings. */
         const val MIN_LN_HRV_SD = 0.08
+        /** HRV is read as a rolling week of nights, needing at least 3 of them. */
+        const val HRV_WEEK_DAYS = 7
+        const val MIN_HRV_WEEK_NIGHTS = 3
+        /** How much of the HRV score comes from the week's average; the rest is last night. */
+        const val WEEK_HRV_WEIGHT = 0.6
+        const val WEEK_SPREAD_FRACTION = 0.5
+        const val NOTABLE_WEEK_Z = 1.0
+        /** The week's average stops earning points here, and is flagged past [HRV_WELL_ABOVE_Z]. */
+        const val HRV_WEEK_CAP_Z = 1.5
+        const val HRV_WELL_ABOVE_Z = 2.5
         const val MIN_RHR_SD = 1.5
         const val RHR_POINTS_PER_SD = 7.0
         /** Further below normal than this many SD starts to cost points too. */

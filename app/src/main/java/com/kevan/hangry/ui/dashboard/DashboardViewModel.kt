@@ -259,7 +259,8 @@ class DashboardViewModel(
             previousDayStrain = previousDaySummary?.dayStrain,
             rollingAverageStrain = rollingAverageStrain,
             currentDaySessions = daySleep,
-            date = date
+            date = date,
+            age = profile?.age
         )
         val todaysWorkouts = allWorkouts.filter {
             it.startTime.atZone(zone).toLocalDate() == date

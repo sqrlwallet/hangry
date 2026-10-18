@@ -2,6 +2,10 @@ package com.kevan.hangry.domain.calculation
 
 import com.kevan.hangry.data.local.entity.SleepSessionEntity
 import com.kevan.hangry.domain.model.SleepAnalysis
+import com.kevan.hangry.domain.model.SleepStage
+import com.kevan.hangry.domain.model.SleepStageCodec
+import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -34,7 +38,8 @@ class HangrySleepCalculator(
         previousDayStrain: Double?,
         rollingAverageStrain: Double?,
         currentDaySessions: List<SleepSessionEntity>?,
-        date: LocalDate?
+        date: LocalDate?,
+        age: Int?
     ): SleepAnalysis {
         val zone = zoneProvider()
         // One entry per wake-up day, each day's sessions added together, so naps and split sleeps
@@ -109,17 +114,20 @@ class HangrySleepCalculator(
         } else null
 
         val efficiencyScore = timeInBed?.takeIf { it > 0 }?.let { efficiencyScore(duration.toDouble() / it * 100) }
-        val restorativeScore = if (deep != null && rem != null && duration > 0) restorativeScore(deep, rem, duration) else null
+        val restorativeScore = if (deep != null && rem != null && duration > 0) restorativeScore(deep, rem, age) else null
+        val interruptions = interruptions(currentSession)
 
         val qualityScore = weighted(
             efficiencyScore to QUALITY_EFFICIENCY_WEIGHT,
             restorativeScore to QUALITY_RESTORATIVE_WEIGHT,
+            interruptions?.score to QUALITY_INTERRUPTIONS_WEIGHT,
             consistency?.toDouble() to QUALITY_CONSISTENCY_WEIGHT
         )
         val sleepScore = weighted(
             sleepPerformance.coerceAtMost(100).toDouble() to SCORE_PERFORMANCE_WEIGHT,
             efficiencyScore to SCORE_EFFICIENCY_WEIGHT,
             restorativeScore to SCORE_RESTORATIVE_WEIGHT,
+            interruptions?.score to SCORE_INTERRUPTIONS_WEIGHT,
             consistency?.toDouble() to SCORE_CONSISTENCY_WEIGHT
         )
 
@@ -139,6 +147,9 @@ class HangrySleepCalculator(
             sleepScore = sleepScore,
             efficiencyScore = efficiencyScore?.roundToInt(),
             restorativeScore = restorativeScore?.roundToInt(),
+            interruptionsScore = interruptions?.score?.roundToInt(),
+            awakenings = interruptions?.awakenings,
+            wakeAfterSleepOnsetMinutes = interruptions?.awakeMinutes,
             recommendedBedtime = recommendedBedtime,
             consistencyPercentage = consistency,
             sevenDayAverageMinutes = sevenDayAvg,
@@ -222,11 +233,52 @@ class HangrySleepCalculator(
     private fun efficiencyScore(efficiencyPct: Double): Double =
         ((efficiencyPct - EFFICIENCY_FLOOR) / (EFFICIENCY_IDEAL - EFFICIENCY_FLOOR) * 100).coerceIn(0.0, 100.0)
 
-    /** Deep and REM each scored against a healthy adult share (about 15% and 20% of sleep). */
-    private fun restorativeScore(deep: Int, rem: Int, duration: Int): Double {
-        val deepPart = (deep * 100.0 / duration / IDEAL_DEEP_PERCENTAGE).coerceAtMost(1.0)
-        val remPart = (rem * 100.0 / duration / IDEAL_REM_PERCENTAGE).coerceAtMost(1.0)
+    /**
+     * Deep and REM each scored in minutes against what a healthy adult gets - not as a share of
+     * the night, so a short night with a normal mix can't score full marks. REM: 90 minutes.
+     * Deep: 90 minutes up to age 30, then less (deep sleep falls with age), down to 60 by 70;
+     * 80 when age isn't known. As in Oura's Sleep Score.
+     */
+    private fun restorativeScore(deep: Int, rem: Int, age: Int?): Double {
+        val deepPart = (deep / deepTargetMinutes(age)).coerceAtMost(1.0)
+        val remPart = (rem / IDEAL_REM_MINUTES).coerceAtMost(1.0)
         return (deepPart + remPart) / 2 * 100
+    }
+
+    private class Interruptions(val score: Double, val awakenings: Int, val awakeMinutes: Int)
+
+    /**
+     * How unbroken the main night was, from its stage timeline: minutes awake between first
+     * falling asleep and the final wake-up, and how many of those spells lasted 5+ minutes (as
+     * Garmin counts them; Apple's Sleep Score gives interruptions 20 of its 100 points). Up to
+     * 20 minutes awake scores full marks, falling to 0 at 90; one awakening is free, each more
+     * costs 20. Null without a timeline - never guessed from the awake total, which includes
+     * falling asleep and lying in.
+     */
+    private fun interruptions(session: SleepSessionEntity): Interruptions? {
+        val segments = SleepStageCodec.decode(session.startTime, session.stageSegments).sortedBy { it.start }
+        val asleep = segments.filter { it.stage != SleepStage.AWAKE }
+        if (asleep.isEmpty()) return null
+        val onset = asleep.first().start
+        val finalWake = asleep.maxOf { it.end }
+        // Awake spells inside the night; back-to-back awake segments are one spell.
+        val spells = mutableListOf<Pair<Instant, Instant>>()
+        segments.filter { it.stage == SleepStage.AWAKE && it.end.isAfter(onset) && it.start.isBefore(finalWake) }
+            .forEach { seg ->
+                val start = maxOf(seg.start, onset)
+                val end = minOf(seg.end, finalWake)
+                val last = spells.lastOrNull()
+                if (last != null && Duration.between(last.second, start).seconds <= MERGE_GAP_SECONDS) {
+                    spells[spells.lastIndex] = last.first to maxOf(last.second, end)
+                } else {
+                    spells.add(start to end)
+                }
+            }
+        val awakeMinutes = spells.sumOf { Duration.between(it.first, it.second).toMinutes() }.toInt()
+        val awakenings = spells.count { Duration.between(it.first, it.second).toMinutes() >= MIN_AWAKENING_MINUTES }
+        val awakeScore = ((WASO_ZERO_MINUTES - awakeMinutes) / (WASO_ZERO_MINUTES - WASO_FULL_MINUTES) * 100).coerceIn(0.0, 100.0)
+        val wakeScore = (100.0 - POINTS_PER_EXTRA_AWAKENING * max(0, awakenings - 1)).coerceIn(0.0, 100.0)
+        return Interruptions((awakeScore + wakeScore) / 2, awakenings, awakeMinutes)
     }
 
     /** Weighted mean of what was measured; missing parts are left out, never scored as zero. */
@@ -255,19 +307,29 @@ class HangrySleepCalculator(
         private const val CONSISTENCY_POINTS_PER_MINUTE = 0.5
         private const val EFFICIENCY_FLOOR = 65.0
         private const val EFFICIENCY_IDEAL = 92.0
-        private const val IDEAL_DEEP_PERCENTAGE = 15.0
-        private const val IDEAL_REM_PERCENTAGE = 20.0
+        private const val IDEAL_REM_MINUTES = 90.0
+        private const val MERGE_GAP_SECONDS = 60L
+        private const val MIN_AWAKENING_MINUTES = 5
+        private const val WASO_FULL_MINUTES = 20.0
+        private const val WASO_ZERO_MINUTES = 90.0
+        private const val POINTS_PER_EXTRA_AWAKENING = 20.0
+
+        /** Deep sleep to expect: 90 min to age 30, 0.75 min less a year after, at least 60. */
+        internal fun deepTargetMinutes(age: Int?): Double =
+            if (age == null) 80.0 else (90.0 - 0.75 * max(0, age - 30)).coerceIn(60.0, 90.0)
 
         // Quality: how well you slept, regardless of how long.
-        private const val QUALITY_EFFICIENCY_WEIGHT = 0.40
-        private const val QUALITY_RESTORATIVE_WEIGHT = 0.35
-        private const val QUALITY_CONSISTENCY_WEIGHT = 0.25
+        private const val QUALITY_EFFICIENCY_WEIGHT = 0.25
+        private const val QUALITY_RESTORATIVE_WEIGHT = 0.30
+        private const val QUALITY_INTERRUPTIONS_WEIGHT = 0.25
+        private const val QUALITY_CONSISTENCY_WEIGHT = 0.20
 
-        // Sleep Score: how much of your need you got, plus how well.
-        private const val SCORE_PERFORMANCE_WEIGHT = 0.50
-        private const val SCORE_EFFICIENCY_WEIGHT = 0.15
-        private const val SCORE_RESTORATIVE_WEIGHT = 0.20
-        private const val SCORE_CONSISTENCY_WEIGHT = 0.15
+        // Sleep Score: how much of your need you got, plus how well. Shown on the Sleep screen.
+        const val SCORE_PERFORMANCE_WEIGHT = 0.45
+        const val SCORE_EFFICIENCY_WEIGHT = 0.10
+        const val SCORE_RESTORATIVE_WEIGHT = 0.15
+        const val SCORE_INTERRUPTIONS_WEIGHT = 0.15
+        const val SCORE_CONSISTENCY_WEIGHT = 0.15
 
         internal fun circularMeanMinutes(minutes: List<Double>): Double {
             val angles = minutes.map { it / 1440.0 * 2 * PI }

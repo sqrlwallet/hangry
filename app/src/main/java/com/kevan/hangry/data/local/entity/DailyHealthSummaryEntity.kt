@@ -67,5 +67,6 @@ data class DailyHealthSummaryEntity(
  * 8: a nap after waking lowers the next night's need instead of counting as that night's sleep
  *    for debt; bed/wake consistency over 14 nights.
  * 9: Sleep Score counts interruptions; deep and REM scored in minutes, not shares of the night.
+ * 10: workouts without calorie data are estimated from heart rate or type and duration.
  */
-const val SUMMARY_CALCULATION_VERSION = 9
+const val SUMMARY_CALCULATION_VERSION = 10

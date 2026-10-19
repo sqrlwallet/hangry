@@ -1,3 +1,14 @@
+## 🚀 What's New in Hangry v1.49.0 — A Calorie Target That Follows Every Workout
+
+Your daily calorie target now rises with every workout, even ones your watch didn't send calories for. Your deficit stays the same; active days just get more food.
+
+### 🍽️ Every Workout Counts
+- **Fitbit calories counted in full**: Fitbit and some other apps send calories in short time slices. Slices that crossed a workout's start or end used to be dropped, so the workout could add little or nothing. Now the part that overlaps the workout counts.
+- **Workouts without calorie data are estimated**: if a workout comes with no calories, Hangry estimates them from your average heart rate during it, or from the workout type and how long it lasted. Calories your watch records always come first.
+- **See what was estimated**: Body Metrics → "Today's calorie target" shows how many workouts were estimated.
+
+Your saved workouts are re-read and past days recalculated automatically the first time you open the app.
+
 ## 🚀 What's New in Hangry v1.48.0 — Steadier Recovery, Truer Sleep Scores
 
 Recovery reads your HRV over the week instead of trusting a single night. The Sleep Score now notices a broken night, and deep and REM sleep are scored in real minutes.

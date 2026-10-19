@@ -52,5 +52,6 @@ data class ExerciseSessionEntity(
 /**
  * Bump when the workout import reads more from Health Connect, so saved workouts are re-read.
  * 1: every exercise type, plus distance, elevation, heart rate, power, sets/reps, laps and notes.
+ * 2: calorie records straddling a workout's start or end count for their overlapping share.
  */
-const val WORKOUT_DETAIL_VERSION = 1
+const val WORKOUT_DETAIL_VERSION = 2

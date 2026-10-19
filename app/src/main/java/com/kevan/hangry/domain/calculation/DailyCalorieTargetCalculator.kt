@@ -27,7 +27,8 @@ object DailyCalorieTargetCalculator {
         calorieCalculator: CalorieCalculator
     ): DailyCalorieTarget {
         val bmr = estimate.bmrKcal
-        val day = ActiveActivityCalculator.calculate(steps, workouts, estimate.weightKg, estimate.heightCm, bmr)
+        val person = WorkoutCalorieEstimator.Person(estimate.weightKg, estimate.age, estimate.sex)
+        val day = ActiveActivityCalculator.calculate(steps, workouts, estimate.weightKg, estimate.heightCm, bmr, person = person)
 
         // NEAT: the day's steps once they beat your usual day; until then, your usual day.
         val dayNeat = day.stepCalories ?: 0.0
@@ -37,7 +38,8 @@ object DailyCalorieTargetCalculator {
         val neatSteps = if (neatFromDay) dayNeat / estimate.kcalPerStep else estimate.avgCountedSteps
 
         val workoutKcal = day.workoutCalories
-        val withoutCalories = workouts.count { ActiveActivityCalculator.workoutCalories(it, bmr) == null }
+        val estimated = workouts.count { ActiveActivityCalculator.recordedCalories(it, bmr) == null }
+        val counted = workouts.count { ActiveActivityCalculator.workoutCalories(it, bmr, person) != null }
         val activeMinutes = neatMinutes + day.workoutMinutes
         val restingKcal = bmr * (MINUTES_PER_DAY - activeMinutes).coerceIn(0.0, MINUTES_PER_DAY) / MINUTES_PER_DAY
 
@@ -67,8 +69,8 @@ object DailyCalorieTargetCalculator {
             neatSteps = neatSteps,
             neatFromDay = neatFromDay,
             workoutKcal = workoutKcal,
-            workoutsCounted = workouts.size - withoutCalories,
-            workoutsWithoutCalories = withoutCalories,
+            workoutsCounted = counted,
+            workoutsEstimated = estimated,
             tefKcal = tefKcal,
             adaptiveFactor = adaptiveFactor,
             burnKcal = burnKcal,

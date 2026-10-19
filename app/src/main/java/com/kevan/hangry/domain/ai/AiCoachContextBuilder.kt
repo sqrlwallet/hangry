@@ -272,7 +272,7 @@ class AiCoachContextBuilder(
         sb.appendLine("• Resting: BMR (${e.bmrMethod}) ${f(e.bmrKcal)} kcal, counted for the ${f(1440 - e.avgActiveMinutes)} inactive minutes = ${f(e.restingKcal)} kcal")
         sb.appendLine("• Steps: avg ${f(e.avgTotalSteps)} steps/day, ${f(e.avgCountedSteps)} outside workouts × ${"%.3f".format(Locale.US, e.kcalPerStep)} kcal/step (walking + resting burn while walking) = ${f(e.stepKcal)} kcal")
         sb.appendLine("• Workouts (counted in full): ${e.workoutsCounted} sessions, avg ${f(e.avgWorkoutKcal)} kcal/day" +
-            if (e.workoutsWithoutCalories > 0) " (${e.workoutsWithoutCalories} had no calorie data)" else "")
+            if (e.workoutsEstimated > 0) " (${e.workoutsEstimated} estimated, no calorie data)" else "")
         sb.appendLine("• Thermic effect of food (10% of intake): ${f(e.tefKcal)} kcal")
         sb.appendLine("• Activity estimate: ${f(e.formulaMaintenanceKcal)} kcal/day")
         val adaptive = e.adaptive

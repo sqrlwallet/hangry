@@ -47,7 +47,7 @@ class DailyCalorieTargetTest {
         stepKcal = 6_000 * kcalPerStep,
         avgWorkoutKcal = 0.0,
         workoutsCounted = 0,
-        workoutsWithoutCalories = 0,
+        workoutsEstimated = 0,
         tefKcal = 0.0,
         formulaMaintenanceKcal = formulaMaintenanceKcal,
         adaptive = adaptive,
@@ -58,6 +58,7 @@ class DailyCalorieTargetTest {
         goal = null,
         weightKg = weightKg,
         heightCm = heightCm,
+        age = 35,
         sex = BiologicalSex.MALE,
         avgStepMinutes = 40.0
     )
@@ -119,18 +120,30 @@ class DailyCalorieTargetTest {
 
         assertEquals(600.0, target.workoutKcal, 0.01)
         assertEquals(1, target.workoutsCounted)
-        assertEquals(0, target.workoutsWithoutCalories)
+        assertEquals(0, target.workoutsEstimated)
         assertEquals(bmr * (1440 - 40 - 60) / 1440, target.restingKcal, 0.01)
         assertEquals((target.restingKcal + target.neatKcal + 600.0) / 0.9, target.burnKcal, 0.01)
     }
 
     @Test
-    fun `a workout without calorie data adds nothing but is counted as missing`() {
+    fun `a workout without calorie data is estimated from its type and duration`() {
         val target = calculate(workouts = listOf(workout(30, totalCalories = 400.0), workout(45)))
 
-        assertEquals(400.0, target.workoutKcal, 0.01)
-        assertEquals(1, target.workoutsCounted)
-        assertEquals(1, target.workoutsWithoutCalories)
+        // Running is 9 METs: 9 × your resting burn per minute × 45 minutes.
+        assertEquals(400.0 + 9.0 * bmr / 1440 * 45, target.workoutKcal, 0.01)
+        assertEquals(2, target.workoutsCounted)
+        assertEquals(1, target.workoutsEstimated)
+    }
+
+    @Test
+    fun `a goal target rises with a workout that has no calorie data`() {
+        val goal = estimate(goalWeightKg = 70.0)
+        val rest = calculate(estimate = goal)
+        val run = calculate(estimate = goal, workouts = listOf(workout(45)))
+
+        assertTrue(run.targetKcal > rest.targetKcal)
+        // The rest day is held at the resting-burn floor; the workout day gets the full deficit.
+        assertTrue(run.adjustmentKcal <= rest.adjustmentKcal)
     }
 
     @Test

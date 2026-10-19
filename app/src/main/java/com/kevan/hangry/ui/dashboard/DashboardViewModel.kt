@@ -16,6 +16,7 @@ import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.data.repository.BodyAgeLoader
 import com.kevan.hangry.data.repository.StreaksLoader
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
+import com.kevan.hangry.domain.calculation.WorkoutCalorieEstimator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.SleepCalculator
 import com.kevan.hangry.domain.calculation.SleepSessions
@@ -290,7 +291,8 @@ class DashboardViewModel(
         // Workouts count in full - every calorie burned during them, not just the extra.
         // The stored summary adds every step on top (see ActiveActivityCalculator); before
         // today's first sync lands, fall back to the workouts alone.
-        val exerciseCalories = todaysWorkouts.sumOf { ActiveActivityCalculator.workoutCalories(it, summary?.bmrCalories) ?: 0.0 }
+        val workoutPerson = energy?.let { WorkoutCalorieEstimator.Person(it.weightKg, it.age, it.sex) }
+        val exerciseCalories = todaysWorkouts.sumOf { ActiveActivityCalculator.workoutCalories(it, summary?.bmrCalories, workoutPerson) ?: 0.0 }
         val effectiveActiveCalories = summary?.activeCalories ?: if (exerciseCalories > 0.0) exerciseCalories else null
         val activeMinutes = summary?.activeMinutes
             ?: max(summary?.exerciseDurationMinutes ?: 0, todaysWorkouts.sumOf { it.durationMinutes })

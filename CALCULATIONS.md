@@ -188,7 +188,7 @@ $$\text{Burn}_{d} = \frac{\text{BMR} \times \frac{1440 - \text{NEATMinutes} - \t
 
 - **BMR** as in §8.4 (Katch–McArdle with a recent measured scan, else Mifflin–St Jeor), for the minutes that weren't active.
 - **NEAT** is the day's steps outside workouts, costed as §8.2 — or the 7-day average (§8.4) while that's higher. Steps keep adding up all day, so this keeps the morning target from starting at almost nothing; once the day's steps pass a usual day, they set it.
-- **Workouts** are the day's actual workouts, in full (§8.2), added as soon as they sync. Rest days add none.
+- **Workouts** are the day's actual workouts, in full (§8.2), added as soon as they sync. Rest days add none. A workout's calories are the calorie records inside it, plus the overlapping share of interval records that straddle its start or end; a workout with no calorie records is estimated instead (Body Metrics shows how many): from its average heart rate with Keytel et al. (2005) when that's 90 bpm or more and weight, age and sex are known, otherwise from its type's MET (Compendium of Physical Activities, 2024) × BMR ÷ 1440 × minutes (× 1 kcal/kg/h without BMR). Recorded calories always win over an estimate.
 - **÷ 0.9** is the thermic effect of food (10% of what you eat, §8.4).
 - The last factor is what the logs have taught (§8.4's adaptive blend ÷ the activity formula); 1.0 until there are 14+ well-logged days and a weight trend.
 

@@ -20,6 +20,7 @@ import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
+import com.kevan.hangry.domain.calculation.WorkoutCalorieEstimator
 import com.kevan.hangry.domain.calculation.CalorieCalculator
 import com.kevan.hangry.domain.calculation.DayMetrics
 import com.kevan.hangry.domain.calculation.HeartRateZones
@@ -656,6 +657,11 @@ class DefaultHealthSyncManager(
         } else {
             null
         }
+        val workoutPerson = WorkoutCalorieEstimator.Person(
+            weightKg = latestWeightKg ?: profile?.currentWeightKg,
+            age = profile?.age,
+            sex = profile?.biologicalSex?.let { runCatching { BiologicalSex.valueOf(it) }.getOrNull() }
+        )
 
         val vo2MaxMap = resultOf { dataSource.fetchVo2Max(effectiveStart.minusDays(30), end) }.getOrDefault(emptyMap())
         // Raw readings, each placed in its night's sleep - read a month at a time.
@@ -852,7 +858,8 @@ class DefaultHealthSyncManager(
                 weightKg = latestWeightKg ?: profile?.currentWeightKg,
                 heightCm = effectiveHeightCm,
                 bmr = dayBmr,
-                recordedActiveCalories = steps?.activeCalories
+                recordedActiveCalories = steps?.activeCalories,
+                person = workoutPerson
             )
 
             val computedSummary = DailyHealthSummaryEntity(

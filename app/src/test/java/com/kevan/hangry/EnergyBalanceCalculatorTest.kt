@@ -100,11 +100,12 @@ class EnergyBalanceCalculatorTest {
     }
 
     @Test
-    fun `workout without calories adds only its steps`() {
+    fun `workout without calories is estimated and its steps are not counted twice`() {
         val e = estimate(week, listOf(run(today.minusDays(2), 30, kcal = null, steps = 4_900))).estimate!!
-        assertEquals(0.0, e.avgWorkoutKcal, 0.01)
-        assertEquals(1, e.workoutsWithoutCalories)
-        assertEquals(10_000.0, e.avgCountedSteps, 0.5)
+        // Running is 9 METs × the resting burn per minute × 30 minutes.
+        assertEquals(9.0 * e.bmrKcal / 1440 * 30 / 7, e.avgWorkoutKcal, 0.01)
+        assertEquals(1, e.workoutsEstimated)
+        assertEquals((6 * 10_000 + 5_100) / 7.0, e.avgCountedSteps, 0.5)
     }
 
     @Test

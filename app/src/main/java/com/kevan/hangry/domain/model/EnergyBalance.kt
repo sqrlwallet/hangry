@@ -29,8 +29,8 @@ data class EnergyBalanceEstimate(
     val stepKcal: Double,
     val avgWorkoutKcal: Double,
     val workoutsCounted: Int,
-    /** Workouts with no calorie data at all - they add nothing to the estimate. */
-    val workoutsWithoutCalories: Int,
+    /** Workouts with no calorie data, counted from heart rate or type × duration instead. */
+    val workoutsEstimated: Int,
     /** Thermic effect of food: 10% of resting + steps + workouts. */
     val tefKcal: Double,
     /** Resting + steps + workouts + TEF, before any blending with [adaptive]. */
@@ -48,6 +48,7 @@ data class EnergyBalanceEstimate(
     /** The inputs behind [bmrKcal] and a step's cost, kept for working out a day's target. */
     val weightKg: Double,
     val heightCm: Double,
+    val age: Int,
     val sex: BiologicalSex,
     /** Active minutes from steps outside workouts, per day. */
     val avgStepMinutes: Double,
@@ -80,8 +81,8 @@ data class DailyCalorieTarget(
     val neatFromDay: Boolean,
     val workoutKcal: Double,
     val workoutsCounted: Int,
-    /** The day's workouts with no calorie data - they add nothing. */
-    val workoutsWithoutCalories: Int,
+    /** The day's workouts with no calorie data, counted from heart rate or type × duration. */
+    val workoutsEstimated: Int,
     val tefKcal: Double,
     /** Maintenance learnt from your logs ÷ the formula's; 1.0 until there's enough to learn from. */
     val adaptiveFactor: Double,

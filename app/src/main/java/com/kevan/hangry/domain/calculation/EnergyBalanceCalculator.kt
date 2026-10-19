@@ -88,13 +88,15 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
         var activeMinutesSum = 0
         var stepMinutesSum = 0
         var workoutsCounted = 0
-        var workoutsWithoutCalories = 0
+        var workoutsEstimated = 0
         val kcalPerStep = ActiveActivityCalculator.kcalPerStep(weightKg, heightCm, bmr)
+        val person = WorkoutCalorieEstimator.Person(weightKg, age, sex)
 
         stepsByDay.forEach { (day, daySteps) ->
             val dayWorkouts = workoutsByDay[day].orEmpty()
-            val active = ActiveActivityCalculator.calculate(daySteps, dayWorkouts, weightKg, heightCm, bmr)
-            dayWorkouts.forEach { if (ActiveActivityCalculator.workoutCalories(it, bmr) == null) workoutsWithoutCalories++ else workoutsCounted++ }
+            val active = ActiveActivityCalculator.calculate(daySteps, dayWorkouts, weightKg, heightCm, bmr, person = person)
+            workoutsCounted += dayWorkouts.count { ActiveActivityCalculator.workoutCalories(it, bmr, person) != null }
+            workoutsEstimated += dayWorkouts.count { ActiveActivityCalculator.recordedCalories(it, bmr) == null }
             val minutes = active.activeMinutes ?: 0
             totalSteps += daySteps
             countedSteps += ((active.stepCalories ?: 0.0) / kcalPerStep).roundToLong()
@@ -143,7 +145,7 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
             stepKcal = stepKcal,
             avgWorkoutKcal = avgWorkoutKcal,
             workoutsCounted = workoutsCounted,
-            workoutsWithoutCalories = workoutsWithoutCalories,
+            workoutsEstimated = workoutsEstimated,
             tefKcal = tefKcal,
             formulaMaintenanceKcal = formulaMaintenance,
             adaptive = adaptive,
@@ -154,6 +156,7 @@ class EnergyBalanceCalculator(private val calorieCalculator: CalorieCalculator) 
             goal = goal,
             weightKg = weightKg,
             heightCm = heightCm,
+            age = age,
             sex = sex,
             avgStepMinutes = stepMinutesSum / days
         )

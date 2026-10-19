@@ -38,16 +38,18 @@ object ActiveActivityCalculator {
         heightCm: Double?,
         bmr: Double?,
         /** Health Connect's own active-calorie total - only used when a step's cost is unknown. */
-        recordedActiveCalories: Double? = null
+        recordedActiveCalories: Double? = null,
+        /** When given, workouts without calorie data are estimated (see [WorkoutCalorieEstimator]). */
+        person: WorkoutCalorieEstimator.Person? = null
     ): ActiveDay {
         val workoutMinutes = workouts.sumOf { it.durationMinutes.coerceAtLeast(0) }
-        val workoutCalories = workouts.sumOf { workoutCalories(it, bmr) ?: 0.0 }
+        val workoutCalories = workouts.sumOf { workoutCalories(it, bmr, person) ?: 0.0 }
 
         val steps = totalSteps?.coerceAtLeast(0) ?: 0L
         // Time: steps in any workout are already inside that workout's minutes.
         val stepsOutsideWorkouts = max(0L, steps - workouts.sumOf { it.steps ?: 0L })
         // Calories: only skip steps whose workout brought its own calorie figure.
-        val stepsNotInCaloriedWorkouts = max(0L, steps - workouts.filter { workoutCalories(it, bmr) != null }.sumOf { it.steps ?: 0L })
+        val stepsNotInCaloriedWorkouts = max(0L, steps - workouts.filter { workoutCalories(it, bmr, person) != null }.sumOf { it.steps ?: 0L })
 
         val stepMinutes = (stepsOutsideWorkouts / STEPS_PER_ACTIVE_MINUTE).roundToInt()
         val stepCalories = if (weightKg != null && heightCm != null) {
@@ -75,9 +77,14 @@ object ActiveActivityCalculator {
 
     /**
      * Everything burned during the workout: the recorded total if there is one, otherwise the
-     * recorded active calories plus the resting burn over the workout's duration.
+     * recorded active calories plus the resting burn over the workout's duration, otherwise -
+     * when [person] is given - an estimate from heart rate or type and duration.
      */
-    fun workoutCalories(workout: ExerciseSessionEntity, bmr: Double?): Double? {
+    fun workoutCalories(workout: ExerciseSessionEntity, bmr: Double?, person: WorkoutCalorieEstimator.Person? = null): Double? =
+        recordedCalories(workout, bmr) ?: person?.let { WorkoutCalorieEstimator.estimate(workout, bmr, it) }
+
+    /** The workout's calories from its own data only; null when it came with none. */
+    fun recordedCalories(workout: ExerciseSessionEntity, bmr: Double?): Double? {
         workout.totalCalories?.takeIf { it > 0 }?.let { return it }
         val active = workout.activeCalories?.takeIf { it > 0 } ?: return null
         val restingShare = (bmr ?: 0.0) * workout.durationMinutes.coerceAtLeast(0) / MINUTES_PER_DAY

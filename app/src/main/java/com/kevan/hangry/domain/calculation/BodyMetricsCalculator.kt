@@ -626,8 +626,8 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
             info("Resting burn + every step + every workout, plus digesting food (10% of what you eat), over the last 7 full days."),
             result?.missing ?: listOf("Weight", "Height", "Age", "Sex", "Step data")
         )
-        val notes = if (e.workoutsWithoutCalories > 0) {
-            "${e.workoutsWithoutCalories} workout(s) had no calorie data and weren't counted."
+        val notes = if (e.workoutsEstimated > 0) {
+            "${e.workoutsEstimated} workout(s) had no calorie data and were estimated from heart rate or workout type and duration."
         } else ""
         val how = "Over ${e.daysWithData} day(s) with data (${e.windowStart} to ${e.windowEnd}):\n" +
             "• Resting (${e.bmrMethod} BMR ${f(e.bmrKcal, 0)} kcal, for the ${f(1440 - e.avgActiveMinutes, 0)} inactive minutes): ${f(e.restingKcal, 0)} kcal\n" +
@@ -677,9 +677,9 @@ class BodyMetricsCalculator(private val calorieCalculator: CalorieCalculator) {
             "your usual ${f(day.neatSteps, 0)} steps a day, until today's pass it"
         }
         val workoutHow = when {
-            day.workoutsCounted == 0 && day.workoutsWithoutCalories == 0 -> "none yet today"
+            day.workoutsCounted == 0 -> "none yet today"
             else -> "${day.workoutsCounted} today, counted in full" +
-                if (day.workoutsWithoutCalories > 0) " (${day.workoutsWithoutCalories} had no calorie data)" else ""
+                if (day.workoutsEstimated > 0) " (${day.workoutsEstimated} estimated from heart rate or type and duration)" else ""
         }
         val learnt = if (day.adaptiveFactor != 1.0) {
             "× ${f(day.adaptiveFactor, 2)} from what your food logs and weigh-ins have shown\n"

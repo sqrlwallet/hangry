@@ -321,19 +321,25 @@ class RealHealthConnectDataSource(
             fun <R : Record> oneSource(list: List<R>, amount: (R) -> Double) =
                 HealthDedup.fromOneSource(list, pkg, { it.metadata.dataOrigin.packageName }, amount)
 
-            val matchingActiveCals = oneSource(activeCalRecords.filter {
-                !it.startTime.isBefore(record.startTime) && !it.endTime.isAfter(record.endTime)
-            }) { it.energy.inKilocalories }
-            val activeCalories = if (matchingActiveCals.isNotEmpty()) {
-                matchingActiveCals.sumOf { it.energy.inKilocalories }
-            } else null
+            // Calorie records inside the workout count in full; interval records that straddle
+            // its start or end (Fitbit and others write calories in buckets) count for the part
+            // that overlaps. Records longer than the workout itself (a whole-day total) say
+            // nothing about it and are left out.
+            val sessionMs = java.time.Duration.between(record.startTime, record.endTime).toMillis()
+            fun belongsToSession(start: Instant, end: Instant) =
+                end.isAfter(record.startTime) && start.isBefore(record.endTime) &&
+                    (!start.isBefore(record.startTime) && !end.isAfter(record.endTime) ||
+                        java.time.Duration.between(start, end).toMillis() <= sessionMs)
 
-            val matchingTotalCals = oneSource(totalCalRecords.filter {
-                !it.startTime.isBefore(record.startTime) && !it.endTime.isAfter(record.endTime)
-            }) { it.energy.inKilocalories }
-            val totalCalories = if (matchingTotalCals.isNotEmpty()) {
-                matchingTotalCals.sumOf { it.energy.inKilocalories }
-            } else null
+            val matchingActiveCals = oneSource(activeCalRecords.filter { belongsToSession(it.startTime, it.endTime) }) { it.energy.inKilocalories }
+            val activeCalories = matchingActiveCals.sumOf {
+                it.energy.inKilocalories * overlapFraction(it.startTime, it.endTime, record.startTime, record.endTime)
+            }.takeIf { matchingActiveCals.isNotEmpty() && it > 0 }
+
+            val matchingTotalCals = oneSource(totalCalRecords.filter { belongsToSession(it.startTime, it.endTime) }) { it.energy.inKilocalories }
+            val totalCalories = matchingTotalCals.sumOf {
+                it.energy.inKilocalories * overlapFraction(it.startTime, it.endTime, record.startTime, record.endTime)
+            }.takeIf { matchingTotalCals.isNotEmpty() && it > 0 }
 
             // Same raw-record summing as the daily step total, pro-rated for records that only
             // partly overlap the session, so workout steps can be subtracted from it cleanly.

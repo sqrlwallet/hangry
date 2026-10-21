@@ -34,7 +34,6 @@ object HangryWidgetUpdater {
     private const val REQUEST_CODE_QUICK_LOG = 102
     private const val REQUEST_CODE_SLEEP = 103
     private const val REQUEST_CODE_RECOVERY = 104
-    private const val REQUEST_CODE_OVERVIEW = 105
     private const val REQUEST_CODE_SUPPLEMENTS = 106
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

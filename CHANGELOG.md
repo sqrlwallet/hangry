@@ -1,3 +1,14 @@
+## 🚀 What's New in Hangry v1.50.0 — A Report for Your Doctor
+
+Turn your health data into a clean, printable PDF your doctor can read in a couple of minutes. It's made on your phone, and nothing is uploaded.
+
+### 🩺 Doctor Report
+- **Find it in More → Doctor report**, or tap the report button at the top of Health Records.
+- **Choose what goes in**: pick 30 days, 3 months, 6 months or a year, switch sections on or off, and add your name and any questions for the visit. Your questions are printed on the first page.
+- **What your doctor sees**: your details (age, height, weight, BMI), vitals at a glance, conditions and allergies, supplements with how often you took them, your latest lab results with the range each falls in, vitals compared with the period before, trend charts, sleep, activity, nutrition and your cycle, plus a full log of your readings.
+- **Honest about missing data**: anything you didn't record says so instead of showing a zero, and the last page explains where the numbers came from.
+- **Preview, then share, save or print**: see every page before you send it. Letter paper in the US, A4 elsewhere, in the units you use in the app.
+
 ## 🚀 What's New in Hangry v1.49.0 — A Calorie Target That Follows Every Workout
 
 Your daily calorie target now rises with every workout, even ones your watch didn't send calories for. Your deficit stays the same; active days just get more food.

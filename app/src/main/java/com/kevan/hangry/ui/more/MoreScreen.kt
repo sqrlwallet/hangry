@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.DashboardCustomize
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.MonitorWeight
@@ -49,6 +50,7 @@ fun MoreScreen(
     onOpenBodyFat: () -> Unit,
     onOpenBodyMetrics: () -> Unit,
     onOpenHealthRecords: () -> Unit,
+    onOpenDoctorReport: () -> Unit,
     onOpenSupplements: () -> Unit,
     onOpenFasting: () -> Unit,
     onOpenPrograms: () -> Unit,
@@ -68,6 +70,7 @@ fun MoreScreen(
         ),
         stringResource(R.string.settings_more_section_health) to listOf(
             MoreItem(Icons.Default.MonitorHeart, stringResource(R.string.settings_more_health_records), stringResource(R.string.settings_more_health_records_subtitle), onOpenHealthRecords),
+            MoreItem(Icons.Default.Description, stringResource(R.string.settings_more_doctor_report), stringResource(R.string.settings_more_doctor_report_subtitle), onOpenDoctorReport),
             MoreItem(Icons.Default.Medication, stringResource(R.string.settings_more_supplements), stringResource(R.string.settings_more_supplements_subtitle), onOpenSupplements),
             MoreItem(Icons.Default.Timer, stringResource(R.string.settings_more_fasting), "", onOpenFasting),
             MoreItem(Icons.AutoMirrored.Filled.DirectionsWalk, stringResource(R.string.settings_more_programs), stringResource(R.string.settings_more_programs_subtitle), onOpenPrograms),

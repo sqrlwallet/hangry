@@ -1,7 +1,5 @@
 package com.kevan.hangry.ui.settings
 
-import android.content.Context
-import android.content.pm.PackageManager
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.datasource.DataSourceInfo
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
+import com.kevan.hangry.data.datasource.healthAppName
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 import java.time.Duration
@@ -64,7 +63,7 @@ internal fun DataSourcesByApp() {
                         if (source.packages.isEmpty()) stringResource(R.string.settings_data_sources_none)
                         else stringResource(
                             R.string.settings_data_sources_updated,
-                            source.packages.joinToString(", ") { appName(context, it) },
+                            source.packages.joinToString(", ") { healthAppName(context, it) },
                             source.latest?.let { relative(it) } ?: "—"
                         ),
                         style = MaterialTheme.typography.bodySmall,
@@ -93,33 +92,6 @@ private fun DataSourceInfo.DataType.label(): Int = when (this) {
     DataSourceInfo.DataType.CALORIES -> R.string.settings_data_type_calories
     DataSourceInfo.DataType.WEIGHT -> R.string.settings_data_type_weight
     DataSourceInfo.DataType.NUTRITION -> R.string.settings_data_type_nutrition
-}
-
-/**
- * Friendlier names for apps whose label isn't what people call them (the Fitbit app is now
- * Google Health); any other app shows its installed label - visible through the manifest's
- * Health Connect <queries> - else its package name.
- */
-private val KNOWN_APPS = mapOf(
-    "com.fitbit.FitbitMobile" to "Fitbit / Google Health",
-    "com.google.android.apps.fitness" to "Google Fit",
-    "com.sec.android.app.shealth" to "Samsung Health",
-    "com.garmin.android.apps.connectmobile" to "Garmin Connect",
-    "com.ouraring.oura" to "Oura",
-    "com.whoop.android" to "WHOOP",
-    "com.xiaomi.wearable" to "Mi Fitness",
-    "com.huami.watch.hmwatchmanager" to "Zepp",
-    "com.myfitnesspal.android" to "MyFitnessPal",
-    "com.withings.wiscale2" to "Withings",
-    "com.strava" to "Strava",
-    "fi.polar.polarflow" to "Polar Flow"
-)
-
-private fun appName(context: Context, pkg: String): String = KNOWN_APPS[pkg] ?: try {
-    val pm = context.packageManager
-    pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
-} catch (_: PackageManager.NameNotFoundException) {
-    pkg
 }
 
 private fun relative(time: Instant): String =

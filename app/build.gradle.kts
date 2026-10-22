@@ -73,6 +73,10 @@ android {
     buildFeatures {
         compose = true
     }
+    // Robolectric tests read the app's strings (DoctorReportRenderTest).
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     // Exported Room schemas, so MigrationTestHelper can build each old version on the device.
     sourceSets {
         getByName("androidTest") {
@@ -126,6 +130,8 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.androidx.room.testing)
+    // Renders doctor report pages to images on the JVM (DoctorReportRenderTest).
+    testImplementation(libs.robolectric)
 
     // Android Instrumentation Testing
     androidTestImplementation(platform(libs.androidx.compose.bom))

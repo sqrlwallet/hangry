@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Sync
@@ -89,6 +90,7 @@ fun HealthRecordsScreen(
     viewModel: HealthRecordsViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAiSettings: () -> Unit = {},
+    onCreateReport: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val records by viewModel.records.collectAsStateWithLifecycle()
@@ -175,7 +177,10 @@ fun HealthRecordsScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.body_back)) }
                 },
-                actions = { HangryInfoIconButton(title = stringResource(R.string.body_records_about), sections = healthRecordsInfo()) },
+                actions = {
+                    IconButton(onClick = onCreateReport) { Icon(Icons.Default.Description, contentDescription = stringResource(R.string.report_open)) }
+                    HangryInfoIconButton(title = stringResource(R.string.body_records_about), sections = healthRecordsInfo())
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },

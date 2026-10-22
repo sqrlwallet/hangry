@@ -74,6 +74,8 @@ import com.kevan.hangry.ui.settings.SettingsScreen
 import com.kevan.hangry.ui.settings.SettingsViewModel
 import com.kevan.hangry.ui.sleep.SleepScreen
 import com.kevan.hangry.ui.privacy.PrivacyPolicyScreen
+import com.kevan.hangry.ui.report.DoctorReportScreen
+import com.kevan.hangry.ui.report.DoctorReportViewModel
 import com.kevan.hangry.ui.sync.HistoricalSyncSetupScreen
 import com.kevan.hangry.ui.sync.SyncProgressScreen
 import com.kevan.hangry.ui.training.TrainingScreen
@@ -123,6 +125,7 @@ sealed class Screen(val route: String) {
     data object BodyFatCalculator : Screen("body_fat_calculator")
     data object BodyMetrics : Screen("body_metrics")
     data object HealthRecords : Screen("health_records")
+    data object DoctorReport : Screen("doctor_report")
     data object Supplements : Screen("supplements")
     data object Fasting : Screen("fasting")
     data object Programs : Screen("programs")
@@ -692,6 +695,7 @@ fun HangryNavGraph(
                 onOpenBodyFat = { navController.navigate(Screen.BodyFatCalculator.route) },
                 onOpenBodyMetrics = { navController.navigate(Screen.BodyMetrics.route) },
                 onOpenHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
+                onOpenDoctorReport = { navController.navigate(Screen.DoctorReport.route) },
                 onOpenSupplements = { navController.navigate(Screen.Supplements.route) },
                 onOpenFasting = { navController.navigate(Screen.Fasting.route) },
                 onOpenPrograms = { navController.navigate(Screen.Programs.route) },
@@ -853,7 +857,22 @@ fun HangryNavGraph(
             HealthRecordsScreen(
                 viewModel = healthRecordsViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAiSettings = { navController.openAiSettings() }
+                onNavigateToAiSettings = { navController.openAiSettings() },
+                onCreateReport = { navController.navigate(Screen.DoctorReport.route) }
+            )
+        }
+
+        composable(Screen.DoctorReport.route) {
+            val doctorReportViewModel: DoctorReportViewModel = viewModel(
+                factory = DoctorReportViewModel.provideFactory(
+                    context = appContext,
+                    generator = appContainer.doctorReportGenerator,
+                    healthRecordsRepository = appContainer.healthRecordsRepository
+                )
+            )
+            DoctorReportScreen(
+                viewModel = doctorReportViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

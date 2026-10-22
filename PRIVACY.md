@@ -35,6 +35,7 @@ Hangry is designed on the principle that your body's physiological metrics belon
 Hangry puts full data management in the user's hands:
 1. **Back Up & Restore**: Settings → Backup & restore saves everything (database, photos and app settings) as one `.zip` file to a location the user picks, and restores it on the same or a new phone. The backup is unencrypted, so it should be stored somewhere the user trusts. The OpenRouter API key is never included.
 2. **Export Daily Summaries**: Export daily summaries and recovery scores as plain JSON or CSV for use in a spreadsheet or another tool.
+   - **Doctor report**: More → Doctor report (or the report button on Health Records) builds a PDF summary for a clinician entirely on the phone, with Android's own PDF engine. Nothing is uploaded; the PDF goes only where the user shares, saves or prints it. Only the latest report is kept, in the app's private cache, and making a new one deletes the old.
 3. **Delete Selected Records**: Remove specific dates, workouts, or sleep sessions.
 4. **Delete All Health Data**: Execute a complete local purge of all imported records and derived metrics.
 5. **App Reset**: Clears database tables, SharedPreferences, and resets onboarding state.

@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Doctor report screen -->
+    <string name="report_title">Doctor report</string>
+    <string name="report_open">Create a doctor report</string>
+    <string name="report_intro_title">A summary for your doctor</string>
+    <string name="report_intro_body">Turn your vitals, lab results, sleep and activity into a clean PDF your doctor can read in a couple of minutes. It\'s made on your phone - nothing is uploaded.</string>
+    <string name="report_period_label">Time period</string>
+    <string name="report_period_30">30 days</string>
+    <string name="report_period_90">3 months</string>
+    <string name="report_period_182">6 months</string>
+    <string name="report_period_365">1 year</string>
+    <string name="report_name_label">Name on the report (optional)</string>
+    <string name="report_notes_label">Questions or notes for your visit (optional)</string>
+    <string name="report_notes_placeholder">e.g. I\'ve been waking up tired since August</string>
+    <string name="report_sections_label">Include</string>
+    <string name="report_section_vitals">Vitals and trends</string>
+    <string name="report_section_labs">Lab results and blood pressure</string>
+    <string name="report_section_conditions">Conditions and allergies</string>
+    <string name="report_section_supplements">Supplements</string>
+    <string name="report_section_sleep">Sleep</string>
+    <string name="report_section_activity">Activity and workouts</string>
+    <string name="report_section_nutrition">Nutrition</string>
+    <string name="report_section_cycle">Menstrual cycle</string>
+    <string name="report_create">Create PDF</string>
+    <string name="report_recreate">Update PDF</string>
+    <string name="report_creating">Creating your report…</string>
+    <plurals name="report_ready">
+        <item quantity="one">Your report is ready · %1$d page</item>
+        <item quantity="other">Your report is ready · %1$d pages</item>
+    </plurals>
+    <string name="report_share">Share</string>
+    <string name="report_save">Save</string>
+    <string name="report_print">Print</string>
+    <string name="report_saved">Report saved</string>
+    <string name="report_error">We couldn\'t create the report yet - please try again</string>
+    <string name="report_save_error">We couldn\'t save the report - please try another location</string>
+    <string name="report_privacy">This PDF holds your health information. Share it only with people you trust.</string>
+    <string name="report_share_subject">Health summary</string>
+    <string name="report_preview_page">Report page %1$d of %2$d</string>
+    <string name="report_stale">Options changed - update the PDF to include them.</string>
+
+    <!-- The PDF itself -->
+    <string name="report_pdf_brand">Hangry</string>
+    <string name="report_pdf_kicker">Shared by the patient</string>
+    <string name="report_pdf_title">Health summary</string>
+    <string name="report_pdf_prepared">Prepared %1$s</string>
+    <string name="report_pdf_period">%1$s · last %2$d days</string>
+    <string name="report_pdf_page">Page %1$d of %2$d</string>
+    <string name="report_pdf_footer">Generated with Hangry from wearable and self-entered data · not a medical device</string>
+
+    <string name="report_pdf_dob">Date of birth</string>
+    <string name="report_pdf_age">Age</string>
+    <string name="report_pdf_sex">Sex</string>
+    <string name="report_pdf_sex_male">Male</string>
+    <string name="report_pdf_sex_female">Female</string>
+    <string name="report_pdf_sex_other">Other</string>
+    <string name="report_pdf_height">Height</string>
+    <string name="report_pdf_weight">Weight</string>
+    <string name="report_pdf_bmi">BMI</string>
+    <string name="report_pdf_waist">Waist</string>
+    <string name="report_pdf_body_fat">Body fat</string>
+    <string name="report_pdf_pregnancy">Pregnancy</string>
+    <string name="report_pdf_pregnant">Pregnant</string>
+    <string name="report_pdf_due">Due %1$s</string>
+    <string name="report_pdf_profile_label">Profile</string>
+    <string name="report_pdf_profile_empty">Not filled in</string>
+    <string name="report_pdf_notes">Notes for this visit</string>
+
+    <string name="report_pdf_glance">At a glance</string>
+    <string name="report_pdf_glance_note">Averages over the last %1$d days, from days with a reading.</string>
+    <string name="report_pdf_no_vitals">No vitals were recorded in this period.</string>
+    <string name="report_pdf_tile_average">Average · range %1$s</string>
+    <string name="report_pdf_tile_latest">Latest · range %1$s</string>
+    <string name="report_pdf_tile_average_days">Average of %1$d days</string>
+    <string name="report_pdf_tile_latest_days">Latest of %1$d days</string>
+
+    <string name="report_pdf_profile">Conditions and allergies</string>
+    <string name="report_pdf_conditions">Conditions</string>
+    <string name="report_pdf_allergies">Allergies</string>
+    <string name="report_pdf_none_recorded">None recorded</string>
+
+    <string name="report_pdf_supplements">Supplements</string>
+    <string name="report_pdf_supplements_note">As listed in the app. \"Taken\" counts doses checked off over the last 7 days, for supplements the user tracks.</string>
+    <string name="report_pdf_no_supplements">No supplements recorded.</string>
+    <string name="report_pdf_as_needed">As needed</string>
+
+    <string name="report_pdf_vitals">Vitals in detail</string>
+    <string name="report_pdf_vitals_note">\"Previous\" is the average of the %1$d days up to %2$s, for comparison. Heart rate variability is RMSSD measured overnight.</string>
+    <string name="report_pdf_vital_rhr">Resting heart rate</string>
+    <string name="report_pdf_vital_hrv">Heart rate variability</string>
+    <string name="report_pdf_vital_sleeping_hr">Sleeping heart rate</string>
+    <string name="report_pdf_vital_bp">Blood pressure</string>
+    <string name="report_pdf_vital_spo2">Blood oxygen (SpO₂)</string>
+    <string name="report_pdf_vital_breathing">Breathing rate</string>
+    <string name="report_pdf_vital_vo2">VO₂ max (estimated)</string>
+    <string name="report_pdf_vital_weight">Weight</string>
+    <string name="report_pdf_vital_sleep">Sleep per night</string>
+    <string name="report_pdf_vital_steps">Daily steps</string>
+
+    <string name="report_pdf_trends">Trends</string>
+    <string name="report_pdf_trends_daily">Daily values; the dashed line is the period average.</string>
+    <string name="report_pdf_trends_weekly">Weekly averages; the dashed line is the period average. Blood pressure shows 120/80 for reference.</string>
+    <string name="report_pdf_systolic">Systolic</string>
+    <string name="report_pdf_diastolic">Diastolic</string>
+
+    <string name="report_pdf_labs">Lab results and readings</string>
+    <string name="report_pdf_labs_note">Latest result for each test, which may be older than this period, with the range it falls in.</string>
+    <string name="report_pdf_no_labs">No lab results or blood pressure readings recorded.</string>
+    <string name="report_pdf_readings">Readings log</string>
+    <string name="report_pdf_readings_note">Every lab result and reading recorded in this period (%1$d), newest first.</string>
+    <string name="report_pdf_readings_truncated">Showing the %1$d most recent of %2$d readings.</string>
+    <string name="report_pdf_in_period_average">%1$d · avg %2$s</string>
+    <string name="report_pdf_in_period_range">%1$d · %2$s–%3$s</string>
+
+    <string name="report_pdf_sleep">Sleep</string>
+    <string name="report_pdf_no_sleep">No sleep was recorded in this period.</string>
+    <string name="report_pdf_sleep_average">Average</string>
+    <string name="report_pdf_sleep_median">Median</string>
+    <string name="report_pdf_sleep_range">Shortest – longest</string>
+    <string name="report_pdf_sleep_nights">Nights recorded</string>
+    <string name="report_pdf_sleep_bedtime">Typical bedtime</string>
+    <string name="report_pdf_sleep_wake">Typical wake time</string>
+    <string name="report_pdf_sleep_variability">Bedtime varies by</string>
+    <string name="report_pdf_sleep_short">Nights under 6 h</string>
+    <string name="report_pdf_sleep_long">Nights over 9 h</string>
+    <string name="report_pdf_sleep_goal">Sleep goal</string>
+
+    <string name="report_pdf_activity">Activity</string>
+    <string name="report_pdf_activity_note">Daily figures leave out today, which isn\'t over yet.</string>
+    <string name="report_pdf_no_activity">No activity was recorded in this period.</string>
+    <string name="report_pdf_activity_steps">Steps per day</string>
+    <string name="report_pdf_activity_active">Active time per day</string>
+    <string name="report_pdf_activity_goal">Days at %1$s+ steps</string>
+    <string name="report_pdf_activity_workouts">Workouts</string>
+    <string name="report_pdf_activity_per_week">Workouts per week</string>
+    <string name="report_pdf_activity_minutes_week">Exercise per week</string>
+    <string name="report_pdf_activity_types">Main activities</string>
+
+    <string name="report_pdf_nutrition">Nutrition</string>
+    <string name="report_pdf_nutrition_note">Daily averages over the %1$d days with meals logged.</string>
+    <string name="report_pdf_no_nutrition">No meals were logged in this period.</string>
+    <string name="report_pdf_nutrition_calories">Energy</string>
+    <string name="report_pdf_nutrition_protein">Protein</string>
+    <string name="report_pdf_nutrition_carbs">Carbohydrate</string>
+    <string name="report_pdf_nutrition_fat">Fat</string>
+    <string name="report_pdf_nutrition_fiber">Fiber</string>
+    <string name="report_pdf_nutrition_sugar">Sugars</string>
+    <string name="report_pdf_nutrition_sodium">Sodium</string>
+
+    <string name="report_pdf_cycle">Menstrual cycle</string>
+    <string name="report_pdf_cycle_last">Last period started</string>
+    <string name="report_pdf_cycle_length">Average cycle</string>
+    <string name="report_pdf_cycle_period">Average period</string>
+    <string name="report_pdf_cycle_logged">Periods logged</string>
+    <string name="report_pdf_cycle_next">Next expected</string>
+    <string name="report_pdf_cycle_starts">Periods started in this report\'s window: %1$s</string>
+
+    <string name="report_pdf_about">About this report</string>
+    <string name="report_pdf_about_generated">Generated by the Hangry app on %1$s at %2$s from data stored on the user\'s phone.</string>
+    <string name="report_pdf_about_sources">Vitals, sleep and activity were recorded by %1$s through Android Health Connect; lab results and readings were entered by the user, imported from Health Connect or medical records, or read from a scanned report and confirmed by the user.</string>
+    <string name="report_pdf_about_sources_unknown">Vitals, sleep and activity come from apps and devices connected through Android Health Connect; lab results and readings were entered by the user, imported from Health Connect or medical records, or read from a scanned report and confirmed by the user.</string>
+    <string name="report_pdf_about_method">Averages use only days with data over the last %1$d days, and nights belong to the day they end. Overnight vitals (resting heart rate, heart rate variability, blood oxygen, breathing rate) come from the main sleep where the device measured it.</string>
+    <string name="report_pdf_about_ranges">Ranges: blood pressure per ACC/AHA 2017; glucose and HbA1c per ADA; cholesterol and triglycerides per NCEP ATP III.</string>
+    <string name="report_pdf_about_disclaimer">Wearable measurements are estimates from consumer devices and are not diagnostic. This summary supports a conversation with a clinician; it is not a medical record.</string>
+
+    <string name="report_pdf_col_measure">Measure</string>
+    <string name="report_pdf_col_average">Average</string>
+    <string name="report_pdf_col_range">Range</string>
+    <string name="report_pdf_col_latest">Latest</string>
+    <string name="report_pdf_col_previous">Previous %1$d days</string>
+    <string name="report_pdf_col_days">Days</string>
+    <string name="report_pdf_col_test">Test</string>
+    <string name="report_pdf_col_latest_result">Latest result</string>
+    <string name="report_pdf_col_date">Date</string>
+    <string name="report_pdf_col_range_label">Range</string>
+    <string name="report_pdf_col_in_period">In period</string>
+    <string name="report_pdf_col_result">Result</string>
+    <string name="report_pdf_col_context">Context / note</string>
+    <string name="report_pdf_col_source">Source</string>
+    <string name="report_pdf_col_supplement">Supplement</string>
+    <string name="report_pdf_col_dose">Dose</string>
+    <string name="report_pdf_col_when">When</string>
+    <string name="report_pdf_col_taken">Taken</string>
+    <string name="report_pdf_col_contents">Contents</string>
+    <string name="report_pdf_col_activity">Activity</string>
+    <string name="report_pdf_col_sessions">Sessions</string>
+    <string name="report_pdf_col_total_time">Total time</string>
+    <string name="report_pdf_col_per_week">Per week</string>
+
+    <string name="report_pdf_source_manual">Entered by user</string>
+    <string name="report_pdf_source_health_connect">Health Connect</string>
+    <string name="report_pdf_source_medical">Medical record</string>
+    <string name="report_pdf_source_scan">Scanned report</string>
+
+    <string name="report_pdf_unit_bpm">bpm</string>
+    <string name="report_pdf_unit_ms">ms</string>
+    <string name="report_pdf_unit_mmhg">mmHg</string>
+    <string name="report_pdf_unit_breaths">breaths/min</string>
+    <string name="report_pdf_unit_vo2">mL/kg/min</string>
+    <string name="report_pdf_unit_kg">kg</string>
+    <string name="report_pdf_unit_lb">lb</string>
+    <string name="report_pdf_unit_steps">steps</string>
+    <string name="report_pdf_unit_hours">hours</string>
+    <string name="report_pdf_hours_minutes">%1$d h %2$d min</string>
+    <string name="report_pdf_minutes">%1$s min</string>
+    <string name="report_pdf_days">%1$s days</string>
+    <string name="report_pdf_of_days">%1$d of %2$d</string>
+    <string name="report_pdf_nights_percent">%1$d (%2$d%%)</string>
+    <string name="report_pdf_plus_minus_minutes">± %1$d min</string>
+    <string name="report_pdf_kcal">%1$s kcal</string>
+    <string name="report_pdf_grams">%1$s g</string>
+    <string name="report_pdf_mg">%1$s mg</string>
+    <string name="report_pdf_cm">%1$s cm</string>
+    <string name="report_pdf_inches">%1$s in</string>
+    <string name="report_pdf_feet_inches">%1$d ft %2$d in</string>
+    <string name="report_pdf_thousands">%1$sk</string>
+</resources>

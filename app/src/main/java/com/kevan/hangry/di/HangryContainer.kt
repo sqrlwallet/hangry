@@ -78,6 +78,7 @@ interface AppContainer {
     val postureScanRepository: PostureScanRepository
     val aiCoachService: AiCoachService
     val coachRepository: CoachRepository
+    val doctorReportGenerator: com.kevan.hangry.data.report.DoctorReportGenerator
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -309,6 +310,21 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val postureScanRepository: PostureScanRepository by lazy {
         DefaultPostureScanRepository(database.postureScanDao())
+    }
+
+    override val doctorReportGenerator: com.kevan.hangry.data.report.DoctorReportGenerator by lazy {
+        com.kevan.hangry.data.report.DoctorReportGenerator(
+            context = context,
+            userProfileRepository = userProfileRepository,
+            dailySummaryRepository = dailySummaryRepository,
+            weightRepository = weightRepository,
+            healthRecordsRepository = healthRecordsRepository,
+            supplementRepository = supplementRepository,
+            workoutRepository = workoutRepository,
+            foodLogRepository = foodLogRepository,
+            bodyFatRepository = bodyFatRepository,
+            healthConnect = healthConnectDataSource
+        )
     }
 
     private val aiCoachContextBuilder: AiCoachContextBuilder by lazy {

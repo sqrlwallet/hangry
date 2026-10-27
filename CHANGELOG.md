@@ -1,3 +1,15 @@
+## 🚀 What's New in Hangry v1.51.0 — Share Your Progress
+
+Show off your day, your streaks and your trends with one tap. Each card is a ready-made image, drawn on your phone, that you can post anywhere.
+
+### 📣 Share Your Progress
+- **Find it in More → Share your progress**: every card you have data for, each previewed exactly as it will be posted, with its own Share button.
+- **Post anywhere**: Share opens your phone's share sheet, so cards go straight to Instagram, WhatsApp, X, Messages or anywhere else.
+- **Your day**: recovery, sleep, strain and steps, with Dash matching how recovered you are.
+- **Streaks and Body Age**: your longest running streak, and how much younger your body is acting, plus the change since last month.
+- **Trend charts**: recovery, sleep, steps, strain and calories over the last 7 or 30 days, with your goal line where you have one, plus your protein, carbs and fat split.
+- **Private by design**: images are made on your phone and nothing is uploaded. Only what's on the card is shared, and your weight and health records never appear on one.
+
 ## 🚀 What's New in Hangry v1.50.0 — A Report for Your Doctor
 
 Turn your health data into a clean, printable PDF your doctor can read in a couple of minutes. It's made on your phone, and nothing is uploaded.

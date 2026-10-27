@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Close
@@ -51,6 +52,7 @@ fun MoreScreen(
     onOpenBodyMetrics: () -> Unit,
     onOpenHealthRecords: () -> Unit,
     onOpenDoctorReport: () -> Unit,
+    onOpenShare: () -> Unit,
     onOpenSupplements: () -> Unit,
     onOpenFasting: () -> Unit,
     onOpenPrograms: () -> Unit,
@@ -62,6 +64,7 @@ fun MoreScreen(
 ) {
     val sections = listOf(
         stringResource(R.string.settings_more_section_progress) to listOf(
+            MoreItem(Icons.Default.Share, stringResource(R.string.settings_more_share), stringResource(R.string.settings_more_share_subtitle), onOpenShare),
             MoreItem(Icons.Default.Cake, stringResource(R.string.settings_more_body_age), stringResource(R.string.settings_more_body_age_subtitle), onOpenBodyAge),
             MoreItem(Icons.AutoMirrored.Filled.TrendingUp, stringResource(R.string.settings_more_trends), stringResource(R.string.settings_more_trends_subtitle), onOpenTrends),
             MoreItem(Icons.Default.AccessibilityNew, stringResource(R.string.settings_more_posture), "", onOpenPosture),

@@ -214,6 +214,8 @@
     <string name="settings_more_health_records_subtitle">Blood pressure, labs, goals and cycle</string>
     <string name="settings_more_doctor_report">Doctor report</string>
     <string name="settings_more_doctor_report_subtitle">A PDF summary to share with your doctor</string>
+    <string name="settings_more_share">Share your progress</string>
+    <string name="settings_more_share_subtitle">Post your day, streaks and trends</string>
     <string name="settings_more_supplements">Supplements</string>
     <string name="settings_more_supplements_subtitle">What you take, with optional reminders</string>
     <string name="settings_more_fasting">Fasting</string>

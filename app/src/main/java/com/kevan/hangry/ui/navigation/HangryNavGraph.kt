@@ -76,6 +76,8 @@ import com.kevan.hangry.ui.sleep.SleepScreen
 import com.kevan.hangry.ui.privacy.PrivacyPolicyScreen
 import com.kevan.hangry.ui.report.DoctorReportScreen
 import com.kevan.hangry.ui.report.DoctorReportViewModel
+import com.kevan.hangry.ui.share.ShareScreen
+import com.kevan.hangry.ui.share.ShareViewModel
 import com.kevan.hangry.ui.sync.HistoricalSyncSetupScreen
 import com.kevan.hangry.ui.sync.SyncProgressScreen
 import com.kevan.hangry.ui.training.TrainingScreen
@@ -126,6 +128,7 @@ sealed class Screen(val route: String) {
     data object BodyMetrics : Screen("body_metrics")
     data object HealthRecords : Screen("health_records")
     data object DoctorReport : Screen("doctor_report")
+    data object Share : Screen("share")
     data object Supplements : Screen("supplements")
     data object Fasting : Screen("fasting")
     data object Programs : Screen("programs")
@@ -696,6 +699,7 @@ fun HangryNavGraph(
                 onOpenBodyMetrics = { navController.navigate(Screen.BodyMetrics.route) },
                 onOpenHealthRecords = { navController.navigate(Screen.HealthRecords.route) },
                 onOpenDoctorReport = { navController.navigate(Screen.DoctorReport.route) },
+                onOpenShare = { navController.navigate(Screen.Share.route) },
                 onOpenSupplements = { navController.navigate(Screen.Supplements.route) },
                 onOpenFasting = { navController.navigate(Screen.Fasting.route) },
                 onOpenPrograms = { navController.navigate(Screen.Programs.route) },
@@ -872,6 +876,24 @@ fun HangryNavGraph(
             )
             DoctorReportScreen(
                 viewModel = doctorReportViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Cards of the day, streaks, Body Age and trends to post on social media
+        composable(Screen.Share.route) {
+            val shareViewModel: ShareViewModel = viewModel(
+                factory = ShareViewModel.provideFactory(
+                    dailySummaryRepository = appContainer.dailySummaryRepository,
+                    foodLogRepository = appContainer.foodLogRepository
+                )
+            )
+            val dashboardState by dashboardViewModel.uiState.collectAsStateWithLifecycle()
+            // Streaks and Body Age are only loaded on demand.
+            LaunchedEffect(Unit) { dashboardViewModel.refreshHabits() }
+            ShareScreen(
+                viewModel = shareViewModel,
+                dashboardState = dashboardState,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

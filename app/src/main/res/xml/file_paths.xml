@@ -5,4 +5,6 @@
     <cache-path name="captured_images" path="captured_images/" />
     <!-- The latest doctor report PDF, shared or printed from the Doctor report screen. -->
     <cache-path name="reports" path="reports/" />
+    <!-- The latest share card image, from the Share your progress screen. -->
+    <cache-path name="share_cards" path="share_cards/" />
 </paths>

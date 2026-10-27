@@ -45,6 +45,7 @@
 ## Phase 5: Privacy Hardening & Production Release
 - [x] Export local data as JSON or CSV to a file of the user's choosing (Settings, via the system file picker).
 - [x] Doctor report: a designed PDF of vitals, trends, labs, conditions, supplements, sleep, activity and nutrition to share, save or print.
+- [x] Share your progress: image cards of today, streaks, Body Age and 7- or 30-day trend charts to post to Instagram, WhatsApp, X and more.
 - [x] One-tap "Delete All Health Data" with confirmation in Settings; individual meals, scans and records can be deleted where they're shown.
 - [ ] Room migration tests.
 - [ ] Google Play Console Health Apps declaration review.

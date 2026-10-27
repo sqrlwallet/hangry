@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Share screen: images of a day, streaks, Body Age and trends to post on social media -->
+    <string name="share_screen_title">Share your progress</string>
+    <string name="share_screen_intro">Post a card anywhere - Instagram, WhatsApp, X and more. Images are made on your phone, and only what you see on the card is shared.</string>
+    <string name="share_period_7">7 days</string>
+    <string name="share_period_30">30 days</string>
+    <string name="share_action">Share</string>
+    <string name="share_cd_card">Share the %1$s card</string>
+    <string name="share_chooser_title">Share with friends</string>
+    <string name="share_failed">Couldn\'t make the image - try again</string>
+    <string name="share_more_trends">Log a few more days to unlock trend cards for sleep, steps, strain and meals.</string>
+
+    <string name="share_title_today">Today</string>
+    <string name="share_title_day">Your day</string>
+    <string name="share_title_streaks">Streaks</string>
+    <string name="share_title_body_age">Body Age</string>
+    <string name="share_title_recovery">Recovery trend</string>
+    <string name="share_title_sleep">Sleep trend</string>
+    <string name="share_title_steps">Steps trend</string>
+    <string name="share_title_strain">Strain trend</string>
+    <string name="share_title_calories">Nutrition trend</string>
+    <string name="share_title_macros">Macro split</string>
+
+    <string name="share_today_headline">My day so far</string>
+    <string name="share_day_headline">My day</string>
+    <string name="share_streak_headline">%1$d-day %2$s streak</string>
+    <string name="share_streak_best">Best ever: %1$d days</string>
+    <plurals name="share_streak_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="share_body_age_younger">My body is %1$s years younger than me</string>
+    <string name="share_body_age_headline">My Body Age: %1$s</string>
+    <string name="share_body_age_even">My body acts my age</string>
+    <string name="share_recovery_headline">Averaging %1$d%% recovery</string>
+    <string name="share_sleep_headline">Sleeping %1$s a night</string>
+    <string name="share_steps_headline">%1$s steps a day</string>
+    <string name="share_strain_headline">Averaging %1$s strain</string>
+    <string name="share_calories_headline">Eating %1$s kcal a day</string>
+    <string name="share_macros_headline">My macro split</string>
+
+    <string name="share_stat_recovery">Recovery</string>
+    <string name="share_stat_sleep">Sleep</string>
+    <string name="share_stat_strain">Strain</string>
+    <string name="share_stat_strain_so_far">Strain so far</string>
+    <string name="share_stat_steps">Steps</string>
+    <string name="share_stat_active_kcal">Active kcal</string>
+    <string name="share_stat_active_time">Active time</string>
+    <string name="share_stat_body_age">Body Age</string>
+    <string name="share_stat_vs_last_month">vs last month</string>
+    <string name="share_stat_average">Average</string>
+    <string name="share_stat_daily_average">Daily average</string>
+    <string name="share_stat_total">Total</string>
+    <string name="share_stat_best_day">Best day</string>
+    <string name="share_stat_best_night">Best night</string>
+    <string name="share_stat_nights_at_goal">Nights at goal</string>
+    <string name="share_stat_primed_days">Primed days</string>
+    <string name="share_stat_peak">Peak</string>
+    <string name="share_stat_workouts">Workouts</string>
+    <string name="share_stat_avg_kcal">Avg kcal</string>
+    <string name="share_stat_avg_protein">Avg protein</string>
+    <string name="share_stat_days_logged">Days logged</string>
+    <string name="share_stat_protein">Protein</string>
+    <string name="share_stat_carbs">Carbs</string>
+    <string name="share_stat_fat">Fat</string>
+    <string name="share_years">%1$s yrs</string>
+    <string name="share_grams">%1$d g</string>
+    <string name="share_range">%1$s – %2$s</string>
+
+    <string name="share_card_brand">Hangry</string>
+    <string name="share_card_footer">Free and private, no account · %1$s</string>
+    <string name="share_caption_recovery">%1$d%% recovered today</string>
+    <string name="share_caption_period">%1$s over the last %2$d days</string>
+    <string name="share_caption">%1$s - tracking it with Hangry, a free and private health app: %2$s</string>
+</resources>

@@ -15,23 +15,33 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.kevan.hangry.MainActivity
 
-/** Shared plumbing for the morning brief and bedtime reminder. */
+/** Shared plumbing for the morning brief, bedtime reminder and cardio fitness alerts. */
 internal object NudgeNotifications {
     const val CHANNEL_ID = "daily_nudges"
+    const val FITNESS_CHANNEL_ID = "fitness_alerts"
     const val MORNING_ID = 41_001
     const val BEDTIME_ID = 41_002
+    const val CARDIO_FITNESS_ID = 41_003
 
     fun canNotify(context: Context) = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
-        manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Daily briefings & bedtime", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Your morning recovery briefing and a nudge before bedtime"
-            }
-        )
+        if (manager.getNotificationChannel(CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(CHANNEL_ID, "Daily briefings & bedtime", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "Your morning recovery briefing and a nudge before bedtime"
+                }
+            )
+        }
+        if (manager.getNotificationChannel(FITNESS_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(FITNESS_CHANNEL_ID, "Cardio fitness alerts", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "When your VO2 max stays low for your age or falls over a few months"
+                }
+            )
+        }
     }
 
     /** Dash in the right mood as the notification's picture, scaled to notification size. */

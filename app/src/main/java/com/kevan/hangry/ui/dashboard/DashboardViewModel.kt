@@ -59,6 +59,8 @@ class DashboardViewModel(
     private val bodyMetricsRepository: BodyMetricsRepository? = null,
     private val streaksLoader: StreaksLoader? = null,
     private val bodyAgeLoader: BodyAgeLoader? = null,
+    /** Rest mode; null in tests that don't need it. */
+    private val restModeRepository: RestModeRepository? = null,
     private val dispatchers: com.kevan.hangry.util.AppDispatchers = com.kevan.hangry.util.DefaultAppDispatchers()
 ) : ViewModel() {
 
@@ -107,6 +109,27 @@ class DashboardViewModel(
     init {
         loadDashboardData()
         observeHrvFeeling()
+        observeRestMode()
+    }
+
+    private fun observeRestMode() {
+        val repository = restModeRepository ?: return
+        viewModelScope.launch {
+            // The first value is already in place when Today opens; later ones are the user's
+            // changes, and paused (or resumed) streaks follow them.
+            repository.state.drop(1).collect { refreshHabits() }
+        }
+    }
+
+    /** Turns rest mode on from today (or just changes why). */
+    fun startRest(reason: com.kevan.hangry.domain.model.RestReason) {
+        val repository = restModeRepository ?: return
+        viewModelScope.launch { repository.start(reason, LocalDate.now(zone)) }
+    }
+
+    fun endRest() {
+        val repository = restModeRepository ?: return
+        viewModelScope.launch { repository.end(LocalDate.now(zone)) }
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -176,12 +199,13 @@ class DashboardViewModel(
                     DashboardSources(date, summary, score, sleepSessions, allWorkouts, recentSummaries)
                 }
             }
-            combine(coreFlow, secondaryFlow) { core, secondary ->
-                Pair(core, secondary)
+            val restFlow = restModeRepository?.state ?: flowOf(com.kevan.hangry.domain.model.RestModeState())
+            combine(coreFlow, secondaryFlow, restFlow) { core, secondary, rest ->
+                Triple(core, secondary, rest)
             }
                 // The day's numbers are worked out off the main thread; a burst of writes during a
                 // sync only recomputes the latest state.
-                .map { (core, secondary) -> DashboardFrame(core, secondary, compute(core, secondary)) }
+                .map { (core, secondary, rest) -> DashboardFrame(core, secondary, compute(core, secondary, rest)) }
                 .flowOn(dispatchers.default)
                 .conflate()
                 .collect { frame ->
@@ -225,7 +249,7 @@ class DashboardViewModel(
     )
 
     /** Everything Today shows for one day, worked out from its sources - pure, so it runs off the main thread. */
-    private fun compute(core: DashboardSources, secondary: SecondarySources): DayResult {
+    private fun compute(core: DashboardSources, secondary: SecondarySources, rest: com.kevan.hangry.domain.model.RestModeState): DayResult {
         val (date, summary, score, sleepSessions, allWorkouts, recentSummaries) = core
         val (profile, latestWeight, widgets, latestBodyFatScan, energy) = secondary
 
@@ -285,7 +309,7 @@ class DashboardViewModel(
         // The week before, like the sync uses to judge yesterday's strain against its band.
         val recentStrain = recentSummaries.filter { !it.date.isBefore(date.minusDays(7)) }.mapNotNull { it.dayStrain }
         val strainRecommendation = recentStrain.takeIf { it.isNotEmpty() }?.let {
-            strainCalculator.recommendStrainTarget(recoveryState = recoveryState, recentDailyStrain = it)
+            strainCalculator.recommendStrainTarget(recoveryState = recoveryState, recentDailyStrain = it, resting = rest.isRestDay(date))
         }
 
         // Workouts count in full - every calorie burned during them, not just the extra.
@@ -338,6 +362,7 @@ class DashboardViewModel(
             current.copy(
                 isLoading = false,
                 selectedDate = date,
+                restMode = rest,
                 dailySummary = summary,
                 recentSummaries7d = trailing7SummariesChronological,
                 // Values from the comparison; which ones are "off" from the stored day,
@@ -546,7 +571,8 @@ class DashboardViewModel(
             bodyFatRepository: BodyFatRepository,
             bodyMetricsRepository: BodyMetricsRepository? = null,
             streaksLoader: StreaksLoader? = null,
-            bodyAgeLoader: BodyAgeLoader? = null
+            bodyAgeLoader: BodyAgeLoader? = null,
+            restModeRepository: RestModeRepository? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -566,7 +592,8 @@ class DashboardViewModel(
                     bodyFatRepository = bodyFatRepository,
                     bodyMetricsRepository = bodyMetricsRepository,
                     streaksLoader = streaksLoader,
-                    bodyAgeLoader = bodyAgeLoader
+                    bodyAgeLoader = bodyAgeLoader,
+                    restModeRepository = restModeRepository
                 ) as T
             }
         }

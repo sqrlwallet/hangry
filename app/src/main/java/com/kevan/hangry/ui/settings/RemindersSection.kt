@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
@@ -29,13 +30,14 @@ import com.kevan.hangry.data.nudges.NudgePrefs
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
 
-/** Switches for the morning readiness brief and the bedtime reminder. */
+/** Switches for the morning readiness brief, the bedtime reminder and cardio fitness alerts. */
 @Composable
 internal fun RemindersSection() {
     val context = LocalContext.current
     val tokens = LocalHangryTokens.current
     var morning by remember { mutableStateOf(NudgePrefs.morningEnabled(context)) }
     var bedtime by remember { mutableStateOf(NudgePrefs.bedtimeEnabled(context)) }
+    var cardio by remember { mutableStateOf(NudgePrefs.cardioAlertsEnabled(context)) }
     var allowed by remember { mutableStateOf(NudgeNotifications.canNotify(context)) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { allowed = it }
     fun askIfNeeded() {
@@ -50,6 +52,7 @@ internal fun RemindersSection() {
             morning && bedtime -> stringResource(R.string.settings_reminders_summary_both)
             morning -> stringResource(R.string.settings_reminders_summary_morning)
             bedtime -> stringResource(R.string.settings_reminders_summary_bedtime)
+            cardio -> stringResource(R.string.settings_reminders_cardio_title)
             else -> stringResource(R.string.settings_off)
         },
         icon = Icons.Default.NotificationsActive
@@ -77,7 +80,19 @@ internal fun RemindersSection() {
                 if (it) askIfNeeded()
             }
         )
-        if (!allowed && (morning || bedtime)) {
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = tokens.cardBorder)
+        ReminderSwitch(
+            icon = Icons.Default.Favorite,
+            title = stringResource(R.string.settings_reminders_cardio_title),
+            subtitle = stringResource(R.string.settings_reminders_cardio_subtitle),
+            checked = cardio,
+            onChange = {
+                cardio = it
+                NudgePrefs.setCardioAlertsEnabled(context, it)
+                if (it) askIfNeeded()
+            }
+        )
+        if (!allowed && (morning || bedtime || cardio)) {
             Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
             Text(
                 stringResource(R.string.settings_reminders_notifications_off),

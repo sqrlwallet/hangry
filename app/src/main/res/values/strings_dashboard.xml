@@ -35,6 +35,8 @@
     <string name="dashboard_streak_done_today">done today</string>
     <string name="dashboard_streak_keep_going">not done yet today</string>
     <string name="dashboard_streak_start_today">start today</string>
+    <string name="dashboard_streak_paused">paused while you rest</string>
+    <string name="dashboard_streaks_paused">Paused while you rest</string>
     <string name="dashboard_streak_description">%1$s: %2$d day streak, %3$s, best %4$d</string>
     <string name="dashboard_streak_days_short">d</string>
     <string name="dashboard_streak_best">best %1$d</string>
@@ -117,6 +119,17 @@
     <string name="dashboard_cycle_temp_confirmed">Temp %1$s</string>
     <string name="dashboard_body_signals_title">Your body may be fighting something</string>
     <string name="dashboard_body_signals_message">Last night, compared with your normal: %1$s. Several readings moving together often comes before a cold, or follows a hard night out or heavy training. Take it easy, drink plenty and get to bed early. If you feel unwell, check in with a doctor.</string>
+    <string name="dashboard_rest_title">Rest mode · day %1$d · %2$s</string>
+    <string name="dashboard_rest_message">Your streaks are paused and today\'s strain target is gentle. Rest, drink plenty and get to bed early - Hangry will be here when you\'re ready.</string>
+    <string name="dashboard_rest_back_to_normal">Your overnight readings are back to your normal. Feeling better? End rest mode to pick your goals back up.</string>
+    <string name="dashboard_rest_end">End rest mode</string>
+    <string name="dashboard_rest_start">Turn on rest mode</string>
+    <string name="dashboard_rest_dialog_title">Turn on rest mode</string>
+    <string name="dashboard_rest_dialog_body">Your streaks pause and strain targets stay gentle until you end it. Dash will know you\'re resting too.</string>
+    <string name="dashboard_rest_dialog_confirm">Start resting</string>
+    <string name="dashboard_rest_reason_unwell">Feeling unwell</string>
+    <string name="dashboard_rest_reason_injury">Injury</string>
+    <string name="dashboard_rest_reason_recovery">Just need rest</string>
     <string name="dashboard_signal_rhr">resting heart rate +%1$.0f bpm</string>
     <string name="dashboard_signal_hrv">HRV %1$.0f%%</string>
     <string name="dashboard_signal_breathing">breathing rate +%1$.1f/min</string>

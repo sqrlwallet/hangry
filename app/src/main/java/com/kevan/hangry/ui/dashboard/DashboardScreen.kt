@@ -313,6 +313,17 @@ fun DashboardScreen(
                 }
             }
 
+            // Rest mode is on: streaks paused, strain kept gentle.
+            val rest = uiState.restMode.active
+            if (rest != null && uiState.isViewingToday) item(key = "rest_mode", contentType = "alert") {
+                RestModeCard(
+                    rest = rest,
+                    today = uiState.selectedDate,
+                    readingsBackToNormal = signals.size < BodySignals.MIN_SIGNALS && uiState.bodyCheck.any { it.today != null },
+                    onEnd = { viewModel.endRest() }
+                )
+            }
+
             // Several overnight readings off your normal together - an early sign of illness.
             if (signals.size >= BodySignals.MIN_SIGNALS) item(key = "body_signals", contentType = "alert") {
                 val described = signals.map { s ->
@@ -326,7 +337,11 @@ fun DashboardScreen(
                 DashAlertCard(
                     mood = DashMood.CONCERNED,
                     title = stringResource(R.string.dashboard_body_signals_title),
-                    message = stringResource(R.string.dashboard_body_signals_message, described.joinToString(", "))
+                    message = stringResource(R.string.dashboard_body_signals_message, described.joinToString(", ")),
+                    // Offer rest mode, like Oura does when Symptom Radar flags something.
+                    action = if (rest == null && uiState.isViewingToday) {
+                        { StartRestButton(onStart = viewModel::startRest) }
+                    } else null
                 )
             }
 

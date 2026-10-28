@@ -42,6 +42,8 @@ data class DashboardUiState(
     val sleepGoalMinutes: Int = 480,
     /** Habits with data, e.g. step goal and meals logged; empty until loaded. */
     val streaks: List<Streak> = emptyList(),
+    /** Rest periods; [com.kevan.hangry.domain.model.RestModeState.active] is set while rest mode is on. */
+    val restMode: com.kevan.hangry.domain.model.RestModeState = com.kevan.hangry.domain.model.RestModeState(),
     /** Null until loaded. */
     val bodyAge: BodyAgeSnapshot? = null,
     val dailyActiveCaloriesGoal: Int = 500,

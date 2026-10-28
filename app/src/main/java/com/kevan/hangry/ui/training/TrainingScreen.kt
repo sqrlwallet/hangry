@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.data.local.entity.ExerciseSessionEntity
 import com.kevan.hangry.domain.calculation.ActiveActivityCalculator
+import com.kevan.hangry.domain.calculation.HeartRateRecovery
 import com.kevan.hangry.domain.model.HeartRateZoneDistribution
 import com.kevan.hangry.domain.model.WorkoutText
 import com.kevan.hangry.domain.repository.HeartRateRepository
@@ -227,8 +228,12 @@ fun TrainingScreen(
                     )
                 }
                 items(workouts, key = { it.id }) { workout ->
+                    val recovery by produceState<HeartRateRecovery.Result?>(null, workout.endTime, zones) {
+                        value = runCatching { heartRateRepository.heartRateRecovery(workout.endTime, zones) }.getOrNull()
+                    }
                     WorkoutItemCard(
                         workout = workout,
+                        recovery = recovery,
                         modifier = Modifier.animateItem()
                     )
                 }
@@ -487,6 +492,7 @@ private fun ZoneDetailRow(
 @Composable
 private fun WorkoutItemCard(
     workout: ExerciseSessionEntity,
+    recovery: HeartRateRecovery.Result?,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
@@ -562,6 +568,7 @@ private fun WorkoutItemCard(
                 modifier = Modifier.padding(start = 56.dp, top = 2.dp)
             )
         }
+        recovery?.let { HeartRateRecoveryRow(it) }
         workout.notes?.let {
             Text(
                 text = it,
@@ -573,5 +580,38 @@ private fun WorkoutItemCard(
             )
         }
         WorkoutRouteSection(workout)
+    }
+}
+
+/** How far heart rate fell after the workout, rated against the exercise-test research. */
+@Composable
+private fun HeartRateRecoveryRow(recovery: HeartRateRecovery.Result) {
+    val tokens = LocalHangryTokens.current
+    val drops = listOfNotNull(
+        recovery.oneMinuteDrop?.let { stringResource(R.string.metrics_training_hrr_one_minute, it) },
+        recovery.twoMinuteDrop?.let { stringResource(R.string.metrics_training_hrr_two_minutes, it) }
+    ).joinToString(", ")
+    val (rating, color) = when (recovery.rating) {
+        HeartRateRecovery.Rating.STRONG -> stringResource(R.string.metrics_training_hrr_strong) to tokens.scoreColors.primed
+        HeartRateRecovery.Rating.TYPICAL -> stringResource(R.string.metrics_training_hrr_typical) to tokens.scoreColors.balanced
+        HeartRateRecovery.Rating.LOW -> stringResource(R.string.metrics_training_hrr_low) to tokens.scoreColors.rebuild
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 56.dp)) {
+        Text(
+            text = stringResource(R.string.metrics_training_hrr_line, drops),
+            style = MaterialTheme.typography.bodySmall,
+            color = tokens.textSecondary,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        Text(
+            text = " · $rating",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = color
+        )
+        HangryInfoTip(
+            title = stringResource(R.string.metrics_training_hrr_info_title),
+            body = stringResource(R.string.metrics_training_hrr_info_body, recovery.endBpm)
+        )
     }
 }

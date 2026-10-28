@@ -64,7 +64,9 @@ class AiCoachContextBuilder(
     private val programsRepository: com.kevan.hangry.data.repository.ProgramsRepository? = null,
     private val bodyAgeLoader: BodyAgeLoader? = null,
     private val streaksLoader: StreaksLoader? = null,
-    private val strainCalculator: StrainCalculator? = null
+    private val strainCalculator: StrainCalculator? = null,
+    /** Rest mode, so Dash doesn't push training while the user is unwell. Optional for tests. */
+    private val restModeRepository: com.kevan.hangry.domain.repository.RestModeRepository? = null
 ) {
 
     suspend fun build7DayContext(): String {
@@ -131,6 +133,16 @@ class AiCoachContextBuilder(
             }
         }
 
+        restModeRepository?.state?.value?.active?.let { rest ->
+            sb.appendLine("=== REST MODE ON ===")
+            sb.appendLine(
+                "Since ${rest.start} (day ${rest.dayNumber(today)}), reason: ${rest.reason.label}. Streaks are paused and the strain " +
+                    "target is gentle. Don't suggest hard training; focus on rest, fluids, sleep and gentle movement. If they say " +
+                    "they feel better, they can end rest mode on Today."
+            )
+            sb.appendLine()
+        }
+
         healthRecordsRepository?.current()?.let { appendHealthRecords(sb, it, today) }
         supplementRepository?.current()?.let { appendSupplements(sb, it) }
         fastingRepository?.current()?.takeIf { it.enabled }?.let { appendFasting(sb, it) }
@@ -163,7 +175,7 @@ class AiCoachContextBuilder(
 
         val latestScore = recoveryScores[today] ?: recoveryScores.values.maxByOrNull { it.date }
         val recentStrains = dailySummaries.mapNotNull { it.dayStrain }
-        appendRecoveryGuidance(sb, latestScore, recentStrains, strainCalculator)
+        appendRecoveryGuidance(sb, latestScore, recentStrains, strainCalculator, restModeRepository?.state?.value?.isRestDay(today) == true)
 
         appendSleepArchitecture(sb, sleepSessions, zone)
 
@@ -455,7 +467,11 @@ class AiCoachContextBuilder(
             sb.appendLine("No active streaks recorded yet.")
         } else {
             streaks.forEach { s ->
-                val status = if (s.doneToday) "done today" else "pending today"
+                val status = when {
+                    s.doneToday -> "done today"
+                    s.paused -> "paused for rest mode"
+                    else -> "pending today"
+                }
                 sb.appendLine("• ${s.type.label}: ${s.current} day(s) ($status | all-time best: ${s.best} days)")
             }
         }
@@ -466,7 +482,8 @@ class AiCoachContextBuilder(
         sb: StringBuilder,
         latestScore: RecoveryScoreEntity?,
         recentStrains: List<Double>,
-        strainCalculator: StrainCalculator?
+        strainCalculator: StrainCalculator?,
+        resting: Boolean
     ) {
         sb.appendLine("=== TODAY'S RECOVERY & RECOMMENDED STRAIN ===")
         if (latestScore == null) {
@@ -488,7 +505,7 @@ class AiCoachContextBuilder(
                 sb.appendLine("Score Drivers: " + components.joinToString(" | "))
             }
             if (recState != null && strainCalculator != null) {
-                val recommendation = strainCalculator.recommendStrainTarget(recState, recentStrains)
+                val recommendation = strainCalculator.recommendStrainTarget(recState, recentStrains, resting)
                 sb.appendLine("Recommended Day Strain Target: %.1f - %.1f / 21".format(Locale.US, recommendation.targetLow, recommendation.targetHigh))
                 sb.appendLine("Strain Guidance: ${recommendation.guidance}")
             }

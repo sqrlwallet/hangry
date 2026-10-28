@@ -83,11 +83,15 @@ class HangryStrainCalculator(
 
     override fun recommendStrainTarget(
         recoveryState: RecoveryState,
-        recentDailyStrain: List<Double>
+        recentDailyStrain: List<Double>,
+        resting: Boolean
     ): StrainRecommendation {
         val rollingAverage = if (recentDailyStrain.isNotEmpty()) recentDailyStrain.average() else DEFAULT_ROLLING_AVERAGE
 
-        val (lowFraction, highFraction, guidance) = when (recoveryState) {
+        val (lowFraction, highFraction, guidance) = if (resting) Triple(
+            0.0, REST_MODE_FRACTION,
+            "Rest mode is on - keep to gentle movement like an easy walk or stretching, and let your body put its energy into getting better."
+        ) else when (recoveryState) {
             RecoveryState.PRIMED -> Triple(
                 1.0, 1.3,
                 "Your markers are elevated today - a good day to push toward the top of your recent range."
@@ -134,6 +138,8 @@ class HangryStrainCalculator(
         /** Workout load (see TrainingLoadCalculator) to zone points: a 45-min run is ~200 points. */
         private const val WORKOUT_LOAD_TO_POINTS = 2.4
         private const val DEFAULT_ROLLING_AVERAGE = 10.0
+        /** Rest mode's ceiling: the bottom of a Rebuild day's band, as a share of recent strain. */
+        private const val REST_MODE_FRACTION = 0.3
 
         /** Edwards TRIMP: points per minute in zones 1-5. */
         val ZONE_STRAIN_WEIGHTS = doubleArrayOf(1.0, 2.0, 3.0, 4.0, 5.0)

@@ -13,7 +13,8 @@ enum class StreakType(val label: String) {
 
 /**
  * A run of consecutive days a habit was met. Today can only extend a streak, never break it:
- * until today is done, the streak still counts through yesterday ([doneToday] is false).
+ * until today is done, the streak still counts through yesterday ([doneToday] is false). Rest
+ * days (rest mode) are skipped: they can't break a run, and a goal met on one still counts.
  */
 data class Streak(
     val type: StreakType,
@@ -21,7 +22,9 @@ data class Streak(
     val doneToday: Boolean,
     /** First day of the current run; null when there's no run. Identifies the run for milestones. */
     val startedOn: LocalDate?,
-    val best: Int
+    val best: Int,
+    /** Today is a rest day: the streak is on hold, not at risk. */
+    val paused: Boolean = false
 )
 
 object StreakCalculator {
@@ -29,30 +32,44 @@ object StreakCalculator {
     /** Streak lengths Dash celebrates. */
     val MILESTONES = listOf(7, 14, 30, 60, 100, 180, 365)
 
-    fun streak(type: StreakType, achievedDays: Set<LocalDate>, today: LocalDate): Streak {
+    fun streak(type: StreakType, achievedDays: Set<LocalDate>, today: LocalDate, restDays: Set<LocalDate> = emptySet()): Streak {
         val doneToday = today in achievedDays
         var day = if (doneToday) today else today.minusDays(1)
         var count = 0
-        while (day in achievedDays) {
-            count++
+        var startedOn: LocalDate? = null
+        while (true) {
+            if (day in achievedDays) {
+                count++
+                startedOn = day
+            } else if (day !in restDays) {
+                break
+            }
             day = day.minusDays(1)
         }
         return Streak(
             type = type,
             current = count,
             doneToday = doneToday,
-            startedOn = if (count > 0) day.plusDays(1) else null,
-            best = maxOf(count, longestRun(achievedDays))
+            startedOn = startedOn,
+            best = maxOf(count, longestRun(achievedDays, restDays)),
+            paused = !doneToday && today in restDays
         )
     }
 
-    /** The longest run of consecutive days anywhere in [days]. */
-    fun longestRun(days: Set<LocalDate>): Int {
+    /** The longest run of consecutive days anywhere in [days], carried over any [restDays]. */
+    fun longestRun(days: Set<LocalDate>, restDays: Set<LocalDate> = emptySet()): Int {
         var best = 0
         for (day in days) {
-            if (day.minusDays(1) in days) continue // only count from the start of each run
-            var length = 1
-            while (day.plusDays(length.toLong()) in days) length++
+            // Only count from the start of each run.
+            var before = day.minusDays(1)
+            while (before in restDays && before !in days) before = before.minusDays(1)
+            if (before in days) continue
+            var length = 0
+            var next = day
+            while (next in days || next in restDays) {
+                if (next in days) length++
+                next = next.plusDays(1)
+            }
             best = maxOf(best, length)
         }
         return best

@@ -34,6 +34,8 @@
     <string name="settings_reminders_morning_subtitle">Your recovery and today\'s strain target, once last night\'s sleep syncs</string>
     <string name="settings_reminders_bedtime_title">Bedtime reminder</string>
     <string name="settings_reminders_bedtime_subtitle">A nudge 30 minutes before your suggested bedtime</string>
+    <string name="settings_reminders_cardio_title">Cardio fitness alerts</string>
+    <string name="settings_reminders_cardio_subtitle">If your VO₂ max stays low for your age or drops over a few months</string>
     <string name="settings_reminders_notifications_off">Notifications are off for Hangry, so these can\'t show.</string>
     <string name="settings_reminders_allow_notifications">Allow notifications</string>
     <!-- AI features -->

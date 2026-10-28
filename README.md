@@ -34,6 +34,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 ### Today
 - **Hangry Recovery (0–100)** from HRV, resting heart rate and sleep against your own 30-day baseline. No HRV from your device? It counts as excellent by default, and you can set how you actually feel.
 - **Sleep & Strain** - sleep score, debt and consistency, plus a 0–21 day strain and training load.
+- **Rest mode** - unwell, injured or worn out? Pause your streaks and keep your strain target gentle until you're ready. Hangry offers it when your overnight readings suggest you're fighting something.
 - **Daily Activity rings** for steps and active calories with editable goals.
 - **Customizable dashboard** - reorder, hide or add metric cards, plus home-screen widgets (activity, sleep, recovery, overview, heart, weight, goals, calories, nutrition, fasting, breathing, quick meal log, supplements and more).
 
@@ -50,6 +51,8 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 ### Training
 - Today's workouts from your watch or fitness apps, with duration, distance, pace and calories.
 - 5-zone heart-rate breakdown set from your own heart-rate reserve.
+- **Heart-rate recovery** after hard workouts: how far your heart rate drops in the first one and two minutes.
+- **Cardio fitness** - your VO2 max level for your age and sex, its 3-month trend, and an alert if it stays low or falls.
 - **Guided programs** with levels you move up through.
 
 ### Body Metrics

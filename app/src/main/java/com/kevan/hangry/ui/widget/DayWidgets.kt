@@ -130,7 +130,8 @@ internal object DayWidgets {
         // The same target as Today and the morning brief: today's recovery against the past week.
         val state = recoveryState?.let { runCatching { RecoveryState.valueOf(it.uppercase()) }.getOrNull() }
         val recent = week.mapNotNull { it.dayStrain }
-        val target = if (state != null && recent.isNotEmpty()) container.strainCalculator.recommendStrainTarget(state, recent) else null
+        val resting = container.restModeRepository.state.value.isRestDay(today)
+        val target = if (state != null && recent.isNotEmpty()) container.strainCalculator.recommendStrainTarget(state, recent, resting) else null
 
         val subtitle = when {
             hide -> WidgetText.HIDDEN_SUBTITLE

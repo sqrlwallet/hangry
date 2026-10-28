@@ -292,7 +292,8 @@ class AiCoachContextBuilderTest {
 
             override fun recommendStrainTarget(
                 recoveryState: com.kevan.hangry.domain.model.RecoveryState,
-                recentDailyStrain: List<Double>
+                recentDailyStrain: List<Double>,
+                resting: Boolean
             ) = com.kevan.hangry.domain.model.StrainRecommendation(11.0, 14.5, "Push toward upper limits.")
         }
 

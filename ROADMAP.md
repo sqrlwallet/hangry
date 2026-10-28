@@ -46,6 +46,8 @@
 - [x] Export local data as JSON or CSV to a file of the user's choosing (Settings, via the system file picker).
 - [x] Doctor report: a designed PDF of vitals, trends, labs, conditions, supplements, sleep, activity and nutrition to share, save or print.
 - [x] Share your progress: image cards of today, streaks, Body Age and 7- or 30-day trend charts to post to Instagram, WhatsApp, X and more.
+- [x] Rest mode: pauses streaks and keeps the strain target gentle while unwell, injured or resting; offered when body signals flag something.
+- [x] Cardio fitness: VO2 max level for age and sex with its 3-month trend, heart-rate recovery after hard workouts, and alerts when VO2 max stays low or falls.
 - [x] One-tap "Delete All Health Data" with confirmation in Settings; individual meals, scans and records can be deleted where they're shown.
 - [ ] Room migration tests.
 - [ ] Google Play Console Health Apps declaration review.

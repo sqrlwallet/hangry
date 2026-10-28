@@ -124,6 +124,8 @@ Rather than folding strain into the Hangry Recovery formula itself (which would 
 | `REBUILD` | 0.3× – 0.65× |
 | `BUILDING_BASELINE` | 0.5× – 1.0× |
 
+In **rest mode** the band is 0 – 0.3× whatever the state (the bottom of a Rebuild day), with guidance to keep to gentle movement.
+
 
 ---
 
@@ -311,3 +313,40 @@ Each threshold is the larger of the minimum above and $1.5\sigma$ of your own la
 ### 12.3 Cycle phase (women tracking periods)
 Phase comes from the last period start and the average cycle length $L$ (default 28): menstrual while the period lasts; fertile window from day $(L - P) - 5$ to $(L - P) + 1$; follicular before it; luteal after. $P$ is your luteal length - 14 days until it's learned: for each finished cycle where temperature showed the shift, the days from ovulation (the night before the first warm night) to the next period, averaged (8-18 days only). Once this cycle's shift is seen, the next period is predicted as ovulation + $P$. Skin temperature confirms ovulation with the "three over six" rule: from cycle day 8, the first three nights that are all warmer than each of the previous six, by 0.2 °C+ on average, start the luteal phase. Once temperature is tracked in a cycle, the calendar alone never declares the luteal phase - a late ovulation stays follicular until the rise shows. Used to allow for the post-ovulation warmth in §2.2 and §12.2, and shown on Health Records → Cycle. Never a contraception or fertility tool.
 
+## 13. Rest mode
+Like Oura's Rest Mode: the user turns it on (from Recovery, or from the body signals card on Today) with a reason - feeling unwell, injury or just needing rest - and off when ready. Periods are kept in settings (`hangry_rest_mode`, so backups carry them) as start and end dates; a period switched on and off the same day is dropped as a slip. While it's on:
+- **Streaks** skip rest days: a rest day without the goal met neither counts nor breaks the run, and a goal met on one still counts. `longestRun` bridges rest days the same way.
+- **Strain target**: 0 – 0.3× the rolling average (§6.3), on Today, the strain widget, the morning brief and Dash.
+- **Morning brief** says which day of rest it is instead of a strain target; Dash is told not to push training.
+- After 2+ days, once the night's readings are back within normal (§12.2), the Today card suggests ending it.
+
+## 14. Cardio fitness
+
+### 14.1 VO2 max level
+VO2 max is the latest reading carried forward (§12, daily summaries). The typical value for your age and sex is `BodyAgeCalculator.vo2Norm` (§10, roughly the 50th percentile). In the FRIEND registry (Kaminsky et al., *Mayo Clin Proc* 2015) the 25th and 75th percentiles sit about 17% either side of the median at every age for both sexes, so the levels are quartiles:
+
+| Level | VO2 max |
+|---|---|
+| Low | below 0.83 × typical |
+| Below average | 0.83 – 1.0 × typical |
+| Above average | 1.0 – 1.17 × typical |
+| High | 1.17 × typical or more |
+
+The trend compares VO2 max now with 90 days ago (each the value on the day or the nearest in the week before).
+
+### 14.2 Alerts
+Checked once a day between 10:00 and 20:00 by the hourly nudge worker (`CardioFitnessAlerts`), on by default and switchable in Settings → Reminders:
+- **Low**: Low now and 14 days ago, so one off estimate doesn't trigger it. Needs a date of birth or age.
+- **Falling**: down 3.5 ml/kg/min (1 MET) or more against 90 days earlier, both now and 14 days ago. Each MET is about 13% lower all-cause mortality (Kodama et al., *JAMA* 2009).
+
+Each kind is sent at most once every 90 days.
+
+### 14.3 Heart-rate recovery
+After each workout (`HeartRateRecovery`): the end heart rate is the highest sample in the workout's last 30 seconds; the 1- and 2-minute drops use the sample closest to 60 and 120 seconds after the end (within ±15 s). It's only measured when the end heart rate is 70%+ of heart-rate reserve (zone 3, §6.1) - after an easy effort the drop says little - and when the watch kept recording after the workout.
+
+| | Low | Typical | Strong |
+|---|---|---|---|
+| 1-minute drop | ≤ 12 bpm (Cole et al., *NEJM* 1999) | 13 – 24 | ≥ 25 |
+| 2-minute drop | ≤ 22 bpm (Shetler et al., *JACC* 2001) | 23 – 44 | ≥ 45 |
+
+The rating uses the 1-minute drop when there is one. Those cut-offs come from treadmill tests, so they're a guide: a cool-down before stopping makes the drop smaller. Shown on each workout in Training, and as a 90-day average and sparkline on Heart.

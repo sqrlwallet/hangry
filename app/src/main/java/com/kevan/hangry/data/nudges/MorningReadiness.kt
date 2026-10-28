@@ -47,12 +47,13 @@ object MorningReadiness {
             .firstOrNull()
             .orEmpty()
             .mapNotNull { it.dayStrain }
-        val target = recentStrain.takeIf { it.isNotEmpty() }?.let { container.strainCalculator.recommendStrainTarget(state, it) }
+        val rest = container.restModeRepository.state.value.periodOn(today)
+        val target = recentStrain.takeIf { it.isNotEmpty() }?.let { container.strainCalculator.recommendStrainTarget(state, it, rest != null) }
         val fahrenheit = UnitPrefs.fahrenheit(context)
         val signals = BodySignals.decode(summary.bodySignals).map { BodySignals.describe(it, fahrenheit) }
-        val message = NudgeText.morning(score, state, summary.sleepDurationMinutes, target?.targetLow, target?.targetHigh, signals)
+        val message = NudgeText.morning(score, state, summary.sleepDurationMinutes, target?.targetLow, target?.targetHigh, signals, rest?.dayNumber(today))
 
-        val mood = when (state) {
+        val mood = if (rest != null) DashMood.REST else when (state) {
             RecoveryState.PRIMED -> DashMood.PUSH
             RecoveryState.BALANCED -> DashMood.CHEER
             RecoveryState.REBUILD -> DashMood.REST

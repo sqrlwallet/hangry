@@ -28,6 +28,9 @@ class DefaultHeartRateRepository(
     override fun getSamplesBetween(start: Instant, end: Instant): Flow<List<HeartRateSampleEntity>> =
         hrDao.getSamplesBetween(start, end)
 
+    override suspend fun getSamplesBetweenSync(start: Instant, end: Instant): List<HeartRateSampleEntity> =
+        hrDao.getSamplesBetweenList(start, end)
+
     override fun getZoneDistribution(start: Instant, end: Instant, zones: com.kevan.hangry.domain.calculation.HeartRateZones): Flow<com.kevan.hangry.domain.model.HeartRateZoneDistribution> =
         zones.lowerBounds.let { b -> hrDao.getZoneDistribution(start, end, b[0], b[1], b[2], b[3], b[4]) }
 

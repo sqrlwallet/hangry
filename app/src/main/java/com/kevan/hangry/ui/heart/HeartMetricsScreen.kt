@@ -82,6 +82,7 @@ fun HeartMetricsScreen(
     viewModel: DashboardViewModel,
     heartRateRepository: HeartRateRepository,
     hrvRepository: HRVRepository,
+    cardioFitnessLoader: com.kevan.hangry.data.repository.CardioFitnessLoader,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -92,6 +93,13 @@ fun HeartMetricsScreen(
     val rhrList by remember(today) { heartRateRepository.getRestingHeartRates(today.minusDays(28), today) }.collectAsStateWithLifecycle(initialValue = emptyList())
     val hrvList by remember(today) { hrvRepository.getHrvBetween(today.minusDays(28), today) }.collectAsStateWithLifecycle(initialValue = emptyList())
     val hrvByDate = remember(hrvList) { hrvList.associateBy { it.recordDate } }
+
+    // Reloads when a sync brings a new VO2 max or workout.
+    val cardio by produceState<com.kevan.hangry.data.repository.CardioFitnessSnapshot?>(null, today, uiState.dailySummary) {
+        value = runCatching {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { cardioFitnessLoader.load(today) }
+        }.getOrNull()
+    }
 
     val currentRhr = uiState.dailySummary?.restingHeartRate
     val currentHrv = uiState.dailySummary?.hrvRmssd
@@ -406,6 +414,10 @@ fun HeartMetricsScreen(
                         color = tokens.textSecondary
                     )
                 }
+            }
+
+            cardio?.takeIf { it.vo2Max != null || it.recoveries.isNotEmpty() }?.let { snapshot ->
+                item { CardioFitnessCard(snapshot) }
             }
 
             // Recent daily readings: one compact row per day in a single card.

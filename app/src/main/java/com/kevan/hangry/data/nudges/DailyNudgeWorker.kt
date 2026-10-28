@@ -14,7 +14,8 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Hourly: in the morning, sync so last night's sleep lands and send the readiness brief once;
- * any time, keep tonight's bedtime reminder planned. Cheap outside the morning window.
+ * once in the daytime, check cardio fitness; any time, keep tonight's bedtime reminder planned.
+ * Cheap outside those windows.
  */
 class DailyNudgeWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
@@ -30,6 +31,7 @@ class DailyNudgeWorker(appContext: Context, params: WorkerParameters) : Coroutin
                 }
                 MorningReadiness.maybeNotify(context)
             }
+            CardioFitnessAlerts.maybeNotify(context)
             BedtimeReminder.rescheduleNow(context)
             // A birthday may have passed since the app last ran.
             app.container.userProfileRepository.refreshAgeFromBirthday()

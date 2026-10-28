@@ -189,8 +189,9 @@ fun HangryNavGraph(
             dashboardWidgetRepository = appContainer.dashboardWidgetRepository,
             bodyFatRepository = appContainer.bodyFatRepository,
             bodyMetricsRepository = appContainer.bodyMetricsRepository,
-            streaksLoader = StreaksLoader(appContainer.database, appContainer.fastingRepository),
-            bodyAgeLoader = BodyAgeLoader(appContainer.database)
+            streaksLoader = StreaksLoader(appContainer.database, appContainer.fastingRepository, appContainer.restModeRepository),
+            bodyAgeLoader = BodyAgeLoader(appContainer.database),
+            restModeRepository = appContainer.restModeRepository
         )
     )
 
@@ -557,6 +558,7 @@ fun HangryNavGraph(
                 viewModel = dashboardViewModel,
                 heartRateRepository = appContainer.heartRateRepository,
                 hrvRepository = appContainer.hrvRepository,
+                cardioFitnessLoader = com.kevan.hangry.data.repository.CardioFitnessLoader(appContainer.database),
                 onNavigateBack = {
                     navController.popBackStack()
                 }

@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
 import com.kevan.hangry.domain.model.HrvFeeling
 import com.kevan.hangry.ui.components.HangryCard
+import com.kevan.hangry.ui.dashboard.RestModeCard
+import com.kevan.hangry.ui.dashboard.StartRestButton
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
 import com.kevan.hangry.ui.components.HangryInfoTip
@@ -106,6 +108,29 @@ fun RecoveryDetailsScreen(
             PastDayNote(date = uiState.selectedDate)
             // Hero Score
             HangryScoreHero(scoreEntity = scoreEntity, isPending = isPending)
+
+            // Rest mode lives with recovery: on or off, even before last night's sleep is in.
+            if (uiState.isViewingToday) {
+                val rest = uiState.restMode.active
+                if (rest != null) {
+                    RestModeCard(rest = rest, today = uiState.selectedDate, readingsBackToNormal = false, onEnd = viewModel::endRest)
+                } else {
+                    HangryCard {
+                        Text(
+                            text = stringResource(R.string.metrics_recovery_rest_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = tokens.textPrimary
+                        )
+                        Text(
+                            text = stringResource(R.string.metrics_recovery_rest_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textSecondary
+                        )
+                        StartRestButton(onStart = viewModel::startRest)
+                    }
+                }
+            }
 
             if (isPending) {
                 HangryPendingNotice(

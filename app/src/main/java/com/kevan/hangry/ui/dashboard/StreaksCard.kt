@@ -48,7 +48,13 @@ fun StreaksCard(streaks: List<Streak>, modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.width(HangryTokens.Spacing.xs))
             Text(stringResource(R.string.dashboard_streaks_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = tokens.textPrimary)
             Spacer(modifier = Modifier.weight(1f))
-            if (streaks.isNotEmpty()) {
+            if (streaks.any { it.paused }) {
+                Text(
+                    stringResource(R.string.dashboard_streaks_paused),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = tokens.textMuted
+                )
+            } else if (streaks.isNotEmpty()) {
                 val done = streaks.count { it.doneToday }
                 Text(
                     stringResource(R.string.dashboard_streaks_done_count, done, streaks.size),
@@ -80,6 +86,7 @@ private fun StreakItem(streak: Streak, modifier: Modifier = Modifier) {
     val (icon, color) = streak.type.look()
     val status = when {
         streak.doneToday -> stringResource(R.string.dashboard_streak_done_today)
+        streak.paused -> stringResource(R.string.dashboard_streak_paused)
         streak.current > 0 -> stringResource(R.string.dashboard_streak_keep_going)
         else -> stringResource(R.string.dashboard_streak_start_today)
     }

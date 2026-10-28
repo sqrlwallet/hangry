@@ -22,10 +22,12 @@ interface StrainCalculator {
 
     /**
      * Suggests a target strain band for today, scaled off the user's own recent strain
-     * history rather than a fixed population target.
+     * history rather than a fixed population target. [resting] (rest mode) keeps it gentle
+     * whatever the recovery.
      */
     fun recommendStrainTarget(
         recoveryState: RecoveryState,
-        recentDailyStrain: List<Double>
+        recentDailyStrain: List<Double>,
+        resting: Boolean = false
     ): StrainRecommendation
 }

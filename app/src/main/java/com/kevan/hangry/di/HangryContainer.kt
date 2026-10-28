@@ -42,6 +42,7 @@ interface AppContainer {
     val supplementAnalyzer: SupplementAnalyzer
     val supplementRepository: SupplementRepository
     val fastingRepository: com.kevan.hangry.domain.repository.FastingRepository
+    val restModeRepository: com.kevan.hangry.domain.repository.RestModeRepository
     val programsRepository: com.kevan.hangry.data.repository.ProgramsRepository
     val stressCalculator: StressCalculator
     val dashboardWidgetRepository: DashboardWidgetRepository
@@ -171,6 +172,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             dao = database.fastDao(),
             prefs = com.kevan.hangry.data.fasting.FastingPrefs(context),
             scheduler = com.kevan.hangry.data.fasting.FastingReminderScheduler(context)
+        )
+    }
+
+    override val restModeRepository: com.kevan.hangry.domain.repository.RestModeRepository by lazy {
+        com.kevan.hangry.data.repository.DefaultRestModeRepository(
+            prefs = com.kevan.hangry.data.prefs.RestModePrefs(context),
+            // The strain widget shows the gentle rest-mode target.
+            onChanged = { com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(context) }
         )
     }
 
@@ -344,8 +353,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             fastingRepository = fastingRepository,
             programsRepository = programsRepository,
             bodyAgeLoader = BodyAgeLoader(database),
-            streaksLoader = StreaksLoader(database, fastingRepository),
-            strainCalculator = strainCalculator
+            streaksLoader = StreaksLoader(database, fastingRepository, restModeRepository),
+            strainCalculator = strainCalculator,
+            restModeRepository = restModeRepository
         )
     }
 

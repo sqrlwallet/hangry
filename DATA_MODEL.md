@@ -202,3 +202,15 @@ To guarantee 60fps UI performance and sub-100ms calculation queries, Room indexe
 3. `(timestamp)` on `HeartRateSampleEntity` and `WeightMeasurementEntity`.
 4. `(recordFingerprint)` UNIQUE on all imported entities for instant collision detection and deduplication.
 5. `(sourceRecordId, sourcePackageName)` on all imported records for source tracing.
+
+### Query indexes (migration 35 → 36)
+Each serves a DAO query that scanned the whole table or looked up every matching row:
+
+| Index | Query it serves | Why |
+|---|---|---|
+| `heart_rate_samples (timestamp, bpm)`, replacing `(timestamp)` | `HeartRateDao.getAverageBpmBetween`, `getMaxBpmBetween`, `getMinBpmBetween`, `getZoneDistribution(Sync)` | Covering index: averages, peaks and zone counts read `bpm` from the index instead of looking up each sample row. The Training screen's 7-day zone count re-runs on every sync write. It replaces the one-column index, so bulk inserts still maintain the same number of indexes; the time-range `SELECT *` reads use it as before. |
+| `sleep_sessions (endTime)` | `SleepSessionDao.getSessionsEndingBetween` (strain/recovery recompute) | The existing `(startTime, endTime)` index can't serve a filter on `endTime` alone. |
+| `food_log (source, timestamp)`, replacing `(source)` | `FoodLogDao.getImportedIdsBetween` (sync clean-up of Health Connect meals) | Equality on `source`, then the time range. `deleteBySource` uses the same prefix. |
+| `resting_heart_rate (timestamp)` | `RestingHeartRateDao.getImportedFingerprintsBetween` (sync clean-up) | Same time-range read that migration 34 → 35 indexed for HRV; without it every sync scanned the table. |
+
+Not indexed on purpose: small tables (journal, markers, water, breathing, programs), `exercise_sessions.detailVersion` (one tiny scan per sync, and the column is rewritten by the refresh), and `LIKE '%…%'` searches, which no index can serve.

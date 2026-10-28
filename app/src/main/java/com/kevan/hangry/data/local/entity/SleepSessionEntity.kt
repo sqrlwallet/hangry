@@ -10,6 +10,7 @@ import java.time.Instant
     indices = [
         Index(value = ["recordFingerprint"], unique = true),
         Index(value = ["startTime", "endTime"]),
+        Index(value = ["endTime"]),
         Index(value = ["sourceRecordId"]),
         Index(value = ["sourcePackageName"])
     ]

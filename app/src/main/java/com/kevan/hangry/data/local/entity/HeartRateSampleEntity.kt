@@ -9,7 +9,7 @@ import java.time.Instant
     tableName = "heart_rate_samples",
     indices = [
         Index(value = ["recordFingerprint"], unique = true),
-        Index(value = ["timestamp"]),
+        Index(value = ["timestamp", "bpm"]),
         Index(value = ["sourceRecordId"]),
         Index(value = ["sourcePackageName"])
     ]

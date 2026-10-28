@@ -19,7 +19,7 @@ object FoodLogSource {
     indices = [
         Index(value = ["date"]),
         Index(value = ["date", "timestamp"]),
-        Index(value = ["source"]),
+        Index(value = ["source", "timestamp"]),
         Index(value = ["sourceRecordId"], unique = true)
     ]
 )

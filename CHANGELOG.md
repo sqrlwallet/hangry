@@ -1,3 +1,25 @@
+## 🚀 What's New in Hangry v1.52.0 — Rest Mode & Cardio Fitness
+
+Take a proper break when you're unwell without losing your streaks, and see how fit your heart really is from how fast it recovers after a workout.
+
+### 🛌 Rest Mode
+- **Turn it on when you need it**: from the Recovery screen, or straight from Today's "your body may be fighting something" card. Choose why: feeling unwell, an injury, or just needing rest.
+- **Streaks are paused, not broken**: rest days never end a streak, and a goal you still meet while resting counts.
+- **Gentle strain target**: while you rest, today's strain target stays low on Today, the strain widget, your morning brief and with Dash, whatever your recovery says.
+- **Knows when you're better**: Today shows which day of rest you're on, and once your overnight readings are back to normal it suggests getting going again.
+- **Dash knows too**: it won't push you to train while you're resting.
+
+### ❤️ Heart-Rate Recovery
+- **After every hard workout**: see how far your heart rate dropped in the first one and two minutes after you stopped, rated Low, Typical or Strong against exercise research.
+- **Watch it improve**: the Heart screen shows your average over recent hard workouts, with a trend line.
+
+### 🏃 Cardio Fitness
+- **Your VO₂ max in context**: a new card on the Heart screen shows whether it's low, below average, above average or high for your age and sex, and how it has moved over the last 3 months.
+- **Alerts when it matters**: Hangry lets you know if your VO₂ max stays low for two weeks, or drops noticeably over three months, with tips to raise it. Turn this off in Settings → Reminders.
+
+### ⚡ Faster
+- **Quicker heart-rate, sleep and sync queries**: new database indexes speed up heart-rate averages and zones, sleep loading and Health Connect clean-up.
+
 ## 🚀 What's New in Hangry v1.51.0 — Share Your Progress
 
 Show off your day, your streaks and your trends with one tap. Each card is a ready-made image, drawn on your phone, that you can post anywhere.

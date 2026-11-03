@@ -1,3 +1,15 @@
+## 🚀 What's New in Hangry v1.53.0 — Custom Portions
+
+Log exactly how much you ate, not just half or double, and workouts are steadier without GPS routes.
+
+### 🍽️ Custom Portions
+- **Type in any portion**: alongside ½×, 1×, 1½× and 2×, enter your own amount like 0.75, 1/3 or 1 1/2 (from 0.1 to 20).
+- **In Saved meals**: tap the new **Custom** chip; once you use it, the chip shows your amount so you can tweak it again.
+- **In Quick add**: hold a food and choose **Custom portion…**; you'll see the calories for your amount before it's logged.
+
+### 🏃 Workouts
+- **GPS routes removed**: the "Show route" map, splits and elevation profile are gone, and Hangry no longer asks for access to workout routes. This fixes workouts with route data causing problems in the app.
+
 ## 🚀 What's New in Hangry v1.52.0 — Rest Mode & Cardio Fitness
 
 Take a proper break when you're unwell without losing your streaks, and see how fit your heart really is from how fast it recovers after a workout.

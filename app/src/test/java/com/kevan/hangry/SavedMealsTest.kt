@@ -4,6 +4,7 @@ import com.kevan.hangry.data.local.dao.MealPlanDao
 import com.kevan.hangry.data.local.entity.FoodLogEntity
 import com.kevan.hangry.data.local.entity.FoodLogSource
 import com.kevan.hangry.data.local.entity.MealPlanEntity
+import com.kevan.hangry.data.local.entity.parsePortionInput
 import com.kevan.hangry.data.local.entity.parsePortionedName
 import com.kevan.hangry.data.local.entity.portionedName
 import com.kevan.hangry.data.local.entity.savedMealKey
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -122,6 +124,19 @@ class SavedMealsTest {
             assertEquals("Chicken (x) bowl" to p, parsePortionedName(portionedName("Chicken (x) bowl", p)))
         }
         assertEquals("Pad thai (large)" to 1.0, parsePortionedName("Pad thai (large)"))
+    }
+
+    @Test
+    fun `typed-in portions parse and round-trip`() {
+        assertEquals(0.75, parsePortionInput("0.75")!!, 0.0)
+        assertEquals(1.25, parsePortionInput(" 1,25 ")!!, 0.0)
+        assertEquals(0.33, parsePortionInput("1/3")!!, 0.0)
+        assertEquals(1.5, parsePortionInput("1 1/2")!!, 0.0)
+        listOf("", "abc", "0", "0.05", "25", "1/0", "-1").forEach { assertNull(it, parsePortionInput(it)) }
+        assertEquals("Rice (×0.75)", portionedName("Rice", 0.75))
+        listOf(0.33, 0.75, 1.25, 3.0, 2.5).forEach { p ->
+            assertEquals("Rice" to p, parsePortionedName(portionedName("Rice", p)))
+        }
     }
 
     @Test

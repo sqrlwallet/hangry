@@ -644,13 +644,14 @@ private fun QuickAddRow(
 
 private const val QUICK_ADD_COUNT = 10
 
-/** Tap logs one portion; a long press offers the other portion sizes. */
+/** Tap logs one portion; a long press offers the other portion sizes, or any typed-in amount. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -> Unit) {
     val tokens = LocalHangryTokens.current
     val haptic = rememberHangryHaptics()
     var menuOpen by remember { mutableStateOf(false) }
+    var customOpen by remember { mutableStateOf(false) }
     Box {
         Surface(
             shape = RoundedCornerShape(8.dp),
@@ -695,7 +696,25 @@ private fun QuickAddChip(name: String, calories: Int, onLog: (portion: Double) -
                     }
                 )
             }
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.nutrition_portion_custom_menu)) },
+                onClick = {
+                    menuOpen = false
+                    customOpen = true
+                }
+            )
         }
+    }
+    if (customOpen) {
+        CustomPortionDialog(
+            initial = 1.0,
+            calories = calories,
+            onDismiss = { customOpen = false },
+            onConfirm = {
+                customOpen = false
+                onLog(it)
+            }
+        )
     }
 }
 

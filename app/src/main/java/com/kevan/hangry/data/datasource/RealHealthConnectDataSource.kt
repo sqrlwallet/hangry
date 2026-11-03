@@ -13,7 +13,6 @@ import androidx.health.connect.client.records.*
 import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
-import androidx.health.connect.client.records.ExerciseRouteResult
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.kevan.hangry.data.healthrecords.FhirHealthRecordParser
 import com.kevan.hangry.data.local.entity.*
@@ -1219,31 +1218,10 @@ class RealHealthConnectDataSource(
         }
     }
 
-    override suspend fun readExerciseRoute(recordId: String): RouteResult {
-        val activeClient = client ?: return RouteResult.None
-        return try {
-            when (val result = activeClient.readRecord(ExerciseSessionRecord::class, recordId).record.exerciseRouteResult) {
-                is ExerciseRouteResult.Data -> RouteResult.Points(result.exerciseRoute.toRoutePoints())
-                is ExerciseRouteResult.ConsentRequired -> RouteResult.ConsentRequired
-                else -> RouteResult.None
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w("HangryHealthConnect", "Failed reading exercise route: ${e.message}")
-            RouteResult.None
-        }
-    }
-
     private fun sha256(input: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
     }
-}
-
-/** Health Connect's route as plain points - also used for routes the user just consented to share. */
-fun ExerciseRoute.toRoutePoints(): List<RoutePoint> = route.map {
-    RoutePoint(it.time, it.latitude, it.longitude, it.altitude?.inMeters)
 }
 
 /**

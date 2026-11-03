@@ -1,13 +1,11 @@
 package com.kevan.hangry
 
-import com.kevan.hangry.data.datasource.RoutePoint
 import com.kevan.hangry.data.local.entity.DailyHealthSummaryEntity
 import com.kevan.hangry.data.repository.ReadingsByMonth
 import com.kevan.hangry.domain.calculation.BodySignals
 import com.kevan.hangry.domain.calculation.CycleTemperature
 import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
 import com.kevan.hangry.domain.calculation.NightlyVitals
-import com.kevan.hangry.domain.calculation.RouteStats
 import com.kevan.hangry.domain.model.DashboardWidget
 import com.kevan.hangry.domain.model.TemperatureText
 import com.kevan.hangry.domain.model.WidgetType
@@ -22,7 +20,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-/** One source per night, month-sized reads, personal thresholds, cycle learning, routes, units. */
+/** One source per night, month-sized reads, personal thresholds, cycle learning, units. */
 class WearableFollowUpsTest {
 
     private val sleepStart = Instant.parse("2026-10-11T22:30:00Z")
@@ -121,36 +119,6 @@ class WearableFollowUpsTest {
         val insight = CycleTemperature.insight(HealthMarkerCalculator.cycleStats(periods, asOf), all, asOf, starts)!!
         assertEquals(12, insight.personalLutealDays)
         assertEquals(starts.last().plusDays(17).minusDays(1).plusDays(12), insight.predictedNextStart)
-    }
-
-    // endregion
-
-    // region Routes
-
-    /** Points heading north at ~1 m per 0.000009° latitude, 1 point per 10 m, 5 min/km. */
-    private fun northRun(meters: Int, altitude: (Int) -> Double? = { null }): List<RoutePoint> {
-        val start = Instant.parse("2026-10-12T07:00:00Z")
-        return (0..meters / 10).map { i ->
-            RoutePoint(start.plusSeconds(i * 3L), 51.5 + i * 10 / 111_195.0, -0.12, altitude(i))
-        }
-    }
-
-    @Test
-    fun `kilometre splits come out at the right pace`() {
-        val splits = RouteStats.splits(northRun(2500))
-        assertEquals(3, splits.size)
-        assertEquals(300.0, splits[0].paceSecondsPerKm, 3.0)
-        assertEquals(1000.0, splits[1].meters, 0.001)
-        assertEquals(500.0, splits[2].meters, 5.0)
-    }
-
-    @Test
-    fun `climb ignores GPS wobble`() {
-        val wobbly = RouteStats.elevationProfile(northRun(1000) { i -> 10.0 + (i % 2) * 1.0 })
-        assertEquals(0.0, RouteStats.climbMeters(wobbly), 0.001)
-        val hill = RouteStats.elevationProfile(northRun(1000) { i -> 10.0 + i * 0.5 })
-        assertEquals(50.0, RouteStats.climbMeters(hill), 1.0)
-        assertTrue(RouteStats.elevationProfile(northRun(1000)).isEmpty())
     }
 
     // endregion

@@ -242,15 +242,23 @@ private fun macroLine(calories: Int, protein: Double, carbs: Double, fat: Double
         (fat * portion).roundToInt()
     )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PortionPicker(portion: Double, onPortionChange: (Double) -> Unit) {
     val tokens = LocalHangryTokens.current
-    Row(
+    var customOpen by remember { mutableStateOf(false) }
+    val custom = portion !in PORTIONS
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.Center,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = stringResource(R.string.nutrition_saved_portion), style = MaterialTheme.typography.labelLarge, color = tokens.textSecondary)
+        Text(
+            text = stringResource(R.string.nutrition_saved_portion),
+            style = MaterialTheme.typography.labelLarge,
+            color = tokens.textSecondary,
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
         PORTIONS.forEach { p ->
             val portionDescription = stringResource(R.string.nutrition_saved_portion_cd, portionLabel(p))
             FilterChip(
@@ -260,6 +268,26 @@ private fun PortionPicker(portion: Double, onPortionChange: (Double) -> Unit) {
                 modifier = Modifier.semantics { contentDescription = portionDescription }
             )
         }
+        // Shows the typed value once one is in use; tapping again lets it be changed.
+        val customDescription = if (custom) stringResource(R.string.nutrition_saved_portion_cd, portionLabel(portion)) else stringResource(R.string.nutrition_portion_custom_cd)
+        FilterChip(
+            selected = custom,
+            onClick = { customOpen = true },
+            label = { Text(if (custom) stringResource(R.string.nutrition_portion_times, portionLabel(portion)) else stringResource(R.string.nutrition_portion_custom)) },
+            leadingIcon = if (custom) null else { { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) } },
+            modifier = Modifier.semantics { contentDescription = customDescription }
+        )
+    }
+    if (customOpen) {
+        CustomPortionDialog(
+            initial = portion,
+            calories = null,
+            onDismiss = { customOpen = false },
+            onConfirm = {
+                customOpen = false
+                onPortionChange(it)
+            }
+        )
     }
 }
 

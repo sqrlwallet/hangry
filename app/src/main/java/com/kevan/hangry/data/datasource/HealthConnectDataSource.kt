@@ -85,12 +85,6 @@ interface HealthConnectDataSource {
 
     /** Which apps wrote each kind of data since [since], for the Data sources screen. Never throws. */
     suspend fun fetchDataSources(since: Instant): List<DataSourceInfo> = emptyList()
-
-    /**
-     * A workout's GPS route, read while the user is looking at it. Routes from other apps need
-     * the user's say-so per workout unless they chose "always allow" - see [RouteResult.ConsentRequired].
-     */
-    suspend fun readExerciseRoute(recordId: String): RouteResult = RouteResult.None
 }
 
 /** One kind of Health Connect data and the apps that wrote it, newest first. */
@@ -101,14 +95,6 @@ data class DataSourceInfo(
 ) {
     enum class DataType { SLEEP, STEPS, HEART_RATE, RESTING_HEART_RATE, HRV, SPO2, BREATHING, SKIN_TEMP, VO2_MAX, WORKOUTS, CALORIES, WEIGHT, NUTRITION }
 }
-
-sealed interface RouteResult {
-    data class Points(val points: List<RoutePoint>) : RouteResult
-    data object ConsentRequired : RouteResult
-    data object None : RouteResult
-}
-
-data class RoutePoint(val time: Instant, val latitude: Double, val longitude: Double, val altitudeMeters: Double?)
 
 data class ImportedHealthRecords(
     val markers: List<HealthMarkerEntity> = emptyList(),

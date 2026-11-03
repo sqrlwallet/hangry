@@ -579,7 +579,6 @@ private fun WorkoutItemCard(
                 modifier = Modifier.padding(start = 56.dp, top = 2.dp)
             )
         }
-        WorkoutRouteSection(workout)
     }
 }
 

@@ -33,7 +33,6 @@ Hangry requests read-only permissions for the following Health Connect records:
 | `SkinTemperatureRecord` | Overnight change from the device's baseline. Requested only where Health Connect supports it (`FEATURE_SKIN_TEMPERATURE`) | `DailyHealthSummaryEntity.skinTempDeltaCelsius` (morning the night ends) | Omit if absent |
 | `Vo2MaxRecord` | Cardio fitness | `DailyHealthSummaryEntity.vo2Max` (carried 30 days) | Omit if absent |
 | `ElevationGainedRecord`, `PowerRecord` | Workout detail | `ExerciseSessionEntity` | Omit if absent |
-| Exercise routes (`READ_EXERCISE_ROUTES`) | GPS route of a workout, read only when the user taps "Show route"; another app's route goes through Health Connect's per-workout consent screen | Not stored - drawn in memory | "No GPS route" |
 | `BasalMetabolicRateRecord`, `HydrationRecord`, `BodyFatRecord`, `BloodPressureRecord`, `NutritionRecord` | Body, intake and vitals | `DailyHealthSummaryEntity` / `FoodLogEntity` | Omit if absent |
 
 Readiness, sleep score, Cardio Load and stress from Fitbit / Google Health are not Health Connect types, so no app can read them; Hangry calculates its own.

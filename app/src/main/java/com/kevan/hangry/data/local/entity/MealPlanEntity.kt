@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.Instant
+import java.util.Locale
 
 /**
  * A saved meal the user can log again in one tap, without the AI or retyping. Rows are added by
@@ -50,8 +51,29 @@ fun portionLabel(portion: Double): String {
         half && whole == 0 -> "½"
         half -> "$whole½"
         portion == whole.toDouble() -> whole.toString()
-        else -> portion.toString()
+        else -> String.format(Locale.US, "%.2f", portion).trimEnd('0').trimEnd('.')
     }
+}
+
+/** The range a typed-in portion has to fall in. */
+const val MIN_PORTION = 0.1
+const val MAX_PORTION = 20.0
+
+private val FRACTION = Regex("""^(?:(\d+)\s+)?(\d+)\s*/\s*(\d+)$""")
+
+/**
+ * A portion typed by hand: "0.75", "1,25", "3/4" or "1 1/2". Rounded to 2 decimals;
+ * null when it isn't a number or falls outside [MIN_PORTION]..[MAX_PORTION].
+ */
+fun parsePortionInput(text: String): Double? {
+    val input = text.trim().replace(',', '.')
+    val value = FRACTION.matchEntire(input)?.let { match ->
+        val (whole, numerator, denominator) = match.destructured
+        val den = denominator.toDouble()
+        if (den == 0.0) null else (whole.toIntOrNull() ?: 0) + numerator.toDouble() / den
+    } ?: input.toDoubleOrNull()
+    val rounded = value?.let { Math.round(it * 100) / 100.0 } ?: return null
+    return rounded.takeIf { it in MIN_PORTION..MAX_PORTION }
 }
 
 /** "Banana" logged at 2 portions is "Banana (×2)"; one portion keeps the plain name. */

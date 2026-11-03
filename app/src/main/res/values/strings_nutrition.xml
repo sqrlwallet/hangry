@@ -63,7 +63,7 @@
     <string name="nutrition_great_fueling">Great fueling! %1$d kcal tracked across %2$s. Keep up the mindful nourishment.</string>
     <string name="nutrition_see_all">See all</string>
     <string name="nutrition_quick_add">Quick add</string>
-    <string name="nutrition_quick_add_hint">Hold for ½× or 2×</string>
+    <string name="nutrition_quick_add_hint">Hold for ½×, 2× or a custom portion</string>
     <string name="nutrition_log_item_label">Log %1$s</string>
     <string name="nutrition_choose_portion">Choose portion</string>
     <string name="nutrition_name_dot_value">%1$s · %2$d</string>
@@ -122,6 +122,14 @@
     <string name="nutrition_saved_portion_cd">%1$s portion</string>
     <string name="nutrition_portion_times">%1$s×</string>
     <string name="nutrition_portion_prefix">"%1$s× "</string>
+    <string name="nutrition_portion_custom">Custom</string>
+    <string name="nutrition_portion_custom_menu">Custom portion…</string>
+    <string name="nutrition_portion_custom_cd">Enter a custom portion</string>
+    <string name="nutrition_portion_custom_title">Custom portion</string>
+    <string name="nutrition_portion_custom_label">Portions</string>
+    <string name="nutrition_portion_custom_hint">e.g. 0.75, 1/3 or 2.5</string>
+    <string name="nutrition_portion_custom_invalid">Enter a portion between 0.1 and 20</string>
+    <string name="nutrition_portion_custom_confirm">Use</string>
     <string name="nutrition_saved_section_most_logged">Most logged</string>
     <string name="nutrition_saved_section_recent">Recent</string>
     <string name="nutrition_saved_logged_once">" · logged once"</string>

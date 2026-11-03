@@ -98,15 +98,6 @@
     <string name="metrics_components_breathing_rate">Breathing Rate</string>
     <string name="metrics_components_breathing_rate_value">%1$.1f /min</string>
     <string name="metrics_sleep_overnight_vitals">Overnight vitals</string>
-    <string name="metrics_training_show_route">Show route</string>
-    <string name="metrics_training_hide_route">Hide route</string>
-    <string name="metrics_training_splits">Splits</string>
-    <string name="metrics_training_split_km">Km %1$d</string>
-    <string name="metrics_training_split_partial">Last %1$.2f km</string>
-    <string name="metrics_training_pace_value">%1$d:%2$02d /km</string>
-    <string name="metrics_training_elevation">Climb %1$d m · %2$d–%3$d m altitude</string>
-    <string name="metrics_training_no_route">No GPS route was recorded for this workout.</string>
-    <string name="metrics_training_route_description">Map outline of this workout\'s route</string>
     <string name="metrics_sleep_avg_sleeping_hr">Avg sleeping HR</string>
     <string name="metrics_sleep_lowest_hr">Lowest HR</string>
     <string name="metrics_sleep_hrv">HRV</string>

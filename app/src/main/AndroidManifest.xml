@@ -79,7 +79,6 @@
     <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
     <uses-permission android:name="android.permission.health.READ_RESPIRATORY_RATE" />
     <uses-permission android:name="android.permission.health.READ_SKIN_TEMPERATURE" />
-    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTES" />
     <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />
 
     <!-- Health records (read-only): home glucose readings, period tracking (shown only when sex

@@ -1,3 +1,8 @@
+## 🚀 What's New in Hangry v1.53.1 — Workouts Fix
+
+### 🐛 Fixed
+- **Workouts tab no longer crashes after a hard workout**: on days with a hard run or other tough session, especially back to back with another workout, opening Workouts could close the app as soon as the heart-rate recovery line appeared.
+
 ## 🚀 What's New in Hangry v1.53.0 — Custom Portions
 
 Log exactly how much you ate, not just half or double, and workouts are steadier without GPS routes.

@@ -1,3 +1,13 @@
+## 🚀 What's New in Hangry v1.54.0 — A Fresh New Look
+
+Hangry has a new typeface: Allo, a warm, friendly font that gets rounder and bolder the bigger it gets.
+
+### 🎨 New Look
+- **Allo everywhere**: every screen now uses Allo in place of Nunito.
+- **Bubbly big numbers**: recovery and sleep scores, calorie totals, heart and body stats and timers use Allo's roundest, boldest style, with friendlier open 4s, 6s and 9s.
+- **Softer titles, crisp text**: card and sheet titles are a touch rounder, body text stays clean and easy to read, and the smallest labels are spaced out so they stay legible.
+- **Welcome screen and share cards**: the HANGRY wordmark, the welcome headline and the big numbers on share cards get the new round style too.
+
 ## 🚀 What's New in Hangry v1.53.1 — Workouts Fix
 
 ### 🐛 Fixed

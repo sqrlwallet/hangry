@@ -1,6 +1,7 @@
 package com.kevan.hangry.ui.coach
 
 import android.content.Intent
+import com.kevan.hangry.ui.theme.HangryType
 import android.net.Uri
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -1307,8 +1308,7 @@ private fun JournalEntryCard(
                     Text(
                         text = entry.category.uppercase(),
                         color = categoryColor,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = HangryType.eyebrow,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }

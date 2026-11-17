@@ -35,7 +35,7 @@ fun DashCelebration(title: String, message: String, onDismiss: () -> Unit, mood:
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 DashExpression(mood = mood, size = 150.dp)
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = tokens.textPrimary, textAlign = TextAlign.Center)
+                Text(title, style = MaterialTheme.typography.headlineSmall, color = tokens.textPrimary, textAlign = TextAlign.Center)
                 Text(message, style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary, textAlign = TextAlign.Center)
             }
         },

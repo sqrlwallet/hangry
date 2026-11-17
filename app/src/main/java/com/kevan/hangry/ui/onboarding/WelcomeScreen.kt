@@ -1,6 +1,7 @@
 package com.kevan.hangry.ui.onboarding
 
 import androidx.compose.foundation.BorderStroke
+import com.kevan.hangry.ui.theme.HangryType
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -112,10 +113,7 @@ fun WelcomeScreen(
                     )
                     Text(
                         text = stringResource(R.string.app_name).uppercase(),
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 3.sp
-                        ),
+                        style = HangryType.wordmark,
                         color = Color.White
                     )
                 }
@@ -123,7 +121,7 @@ fun WelcomeScreen(
                 // Welcome Headline
                 Text(
                     text = stringResource(R.string.welcome_headline),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.headlineMedium,
                     color = Color.White.copy(alpha = 0.95f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 8.dp)
@@ -164,10 +162,7 @@ fun WelcomeScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.settings_onboarding_local_first_badge),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.2.sp
-                            ),
+                            style = HangryType.eyebrow,
                             color = tokens.scoreColors.primed
                         )
                     }

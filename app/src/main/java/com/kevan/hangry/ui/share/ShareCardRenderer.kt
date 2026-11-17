@@ -36,19 +36,22 @@ import kotlin.math.ceil
  */
 class ShareCardRenderer(private val context: Context) {
 
-    private val nunito: Typeface = runCatching { ResourcesCompat.getFont(context, R.font.nunito) }.getOrNull() ?: Typeface.SANS_SERIF
+    private val allo: Typeface = runCatching { ResourcesCompat.getFont(context, R.font.allo) }.getOrNull() ?: Typeface.SANS_SERIF
 
     private fun paint(size: Float, weight: Int, color: Int, align: Paint.Align = Paint.Align.LEFT) =
         TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = nunito
-            // Nunito is a variable font: pick the weight on its axis.
-            fontVariationSettings = "'wght' $weight"
+            typeface = allo
+            // Allo is a variable font: pick the weight on its axis. The big numbers and headlines
+            // get the round, Display cut and open figures, like the app's headline styles.
+            val display = size >= 50f
+            fontVariationSettings = if (display) "'wght' $weight, 'opsz' 32, 'ROND' 100" else "'wght' $weight, 'opsz' 14, 'ROND' 50"
+            fontFeatureSettings = if (display) "tnum, ss03" else "tnum"
             textSize = size
             this.color = color
             textAlign = align
         }
 
-    private val brandText = paint(50f, 800, Cream.toArgb())
+    private val brandText = paint(50f, 900, Cream.toArgb())
     private val dateText = paint(34f, 600, TextSecondaryDark.toArgb(), Paint.Align.RIGHT)
     private val headlineText = paint(76f, 800, Cream.toArgb())
     private val messageText = paint(38f, 600, TextSecondaryDark.toArgb())

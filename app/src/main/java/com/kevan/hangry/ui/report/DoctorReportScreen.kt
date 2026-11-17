@@ -1,6 +1,7 @@
 package com.kevan.hangry.ui.report
 
 import android.content.ClipData
+import com.kevan.hangry.ui.theme.HangryType
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -285,7 +286,7 @@ fun DoctorReportScreen(
 private fun SectionLabel(text: String) {
     Text(
         text.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
+        style = HangryType.eyebrow,
         color = LocalHangryTokens.current.textMuted,
         modifier = Modifier.padding(bottom = HangryTokens.Spacing.s)
     )

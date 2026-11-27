@@ -22,7 +22,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import com.kevan.hangry.data.breathing.BreathingSessionState
 import com.kevan.hangry.ui.more.MoreScreen
 import com.kevan.hangry.util.OnboardingFlag
 import androidx.compose.ui.Modifier
@@ -41,18 +40,15 @@ import com.kevan.hangry.data.local.entity.UserProfileEntity
 import com.kevan.hangry.di.AppContainer
 import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorScreen
 import com.kevan.hangry.ui.bodyfat.BodyFatCalculatorViewModel
-import com.kevan.hangry.domain.model.BreathingPattern
-import com.kevan.hangry.domain.model.BreathingStats
 import com.kevan.hangry.ui.bodymetrics.BodyMetricsScreen
 import com.kevan.hangry.ui.bodymetrics.BodyMetricsViewModel
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.SupplementsSnapshot
 import com.kevan.hangry.ui.supplements.SupplementsScreen
 import com.kevan.hangry.ui.supplements.SupplementsViewModel
-import com.kevan.hangry.ui.breathing.BreathingScreen
+import com.kevan.hangry.ui.breathing.BreathingVideosScreen
 import com.kevan.hangry.ui.healthrecords.HealthRecordsScreen
 import com.kevan.hangry.ui.healthrecords.HealthRecordsViewModel
-import com.kevan.hangry.ui.breathing.BreathingViewModel
 import com.kevan.hangry.domain.ai.DashInsights
 import com.kevan.hangry.ui.coach.AiCoachScreen
 import com.kevan.hangry.ui.coach.AiCoachViewModel
@@ -137,16 +133,10 @@ sealed class Screen(val route: String) {
     }
     data object More : Screen("more")
     data object BodyAge : Screen("body_age")
-    data object Breathing : Screen("breathing?pattern={pattern}&start={start}") {
-        /**
-         * A null pattern opens the screen as-is, e.g. to return to a running session.
-         * [start] begins a session straight away (used by the home screen widget).
-         */
-        fun createRoute(patternId: String? = null, start: Boolean = false) = when {
-            patternId == null -> "breathing"
-            start -> "breathing?pattern=$patternId&start=true"
-            else -> "breathing?pattern=$patternId"
-        }
+    data object Breathing : Screen("breathing?video={video}") {
+        /** [videoKey] picks the breathing video to play first (a BreathingVideo key). */
+        fun createRoute(videoKey: String? = null) =
+            if (videoKey == null) "breathing" else "breathing?video=$videoKey"
     }
 }
 
@@ -451,17 +441,6 @@ fun HangryNavGraph(
         // Main Dashboard
         composable(Screen.Dashboard.route) {
             // Remembered: a new flow on every recomposition would restart each query.
-            val breathingStats by remember { appContainer.breathingRepository.observeStats() }
-                .collectAsStateWithLifecycle(initialValue = BreathingStats())
-            // The session ticks every 50 ms; Today's card only shows the phase and whole seconds
-            // left, so only those changes reach it - not 20 recompositions of Today a second.
-            val breathingSession by remember {
-                appContainer.breathingSessionController.state.distinctUntilChanged { a, b ->
-                    a is BreathingSessionState.Active && b is BreathingSessionState.Active &&
-                        a.pattern == b.pattern && a.isPaused == b.isPaused &&
-                        a.position.phase.type == b.position.phase.type && a.remainingSeconds == b.remainingSeconds
-                }
-            }.collectAsStateWithLifecycle(initialValue = appContainer.breathingSessionController.state.value)
             val healthRecords by remember { appContainer.healthRecordsRepository.observe() }
                 .collectAsStateWithLifecycle(initialValue = HealthRecordsSnapshot())
             val supplements by remember { appContainer.supplementRepository.observe() }
@@ -501,8 +480,6 @@ fun HangryNavGraph(
                 onNavigateToBodyMetrics = {
                     navController.navigate(Screen.BodyMetrics.route)
                 },
-                breathingStats = breathingStats,
-                breathingSession = breathingSession,
                 healthRecords = healthRecords,
                 supplements = supplements,
                 onToggleSupplementDose = { id, time, taken ->
@@ -515,7 +492,7 @@ fun HangryNavGraph(
                 onEndFast = { coroutineScope.launch { appContainer.fastingRepository.endFast() } },
                 onNavigateToFasting = { navController.navigate(Screen.Fasting.route) },
                 onNavigateToBreathing = { pattern ->
-                    navController.navigate(Screen.Breathing.createRoute(pattern?.id)) {
+                    navController.navigate(Screen.Breathing.createRoute(pattern)) {
                         launchSingleTop = true
                     }
                 },
@@ -900,43 +877,19 @@ fun HangryNavGraph(
             )
         }
 
-        // Guided breathing exercises
+        // Guided breathing videos
         composable(
             route = Screen.Breathing.route,
             arguments = listOf(
-                navArgument("pattern") {
+                navArgument("video") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
-                },
-                navArgument("start") {
-                    type = NavType.BoolType
-                    defaultValue = false
                 }
             )
         ) { backStackEntry ->
-            val patternId = backStackEntry.arguments?.getString("pattern")
-            val autoStart = backStackEntry.arguments?.getBoolean("start") == true
-            val breathingViewModel: BreathingViewModel = viewModel(
-                factory = BreathingViewModel.provideFactory(
-                    initialPattern = BreathingPattern.fromId(patternId),
-                    controller = appContainer.breathingSessionController,
-                    repository = appContainer.breathingRepository,
-                    healthConnectDataSource = appContainer.healthConnectDataSource
-                )
-            )
-            // Started from the widget: begin once, and never over a session that's already running.
-            var autoStartHandled by rememberSaveable { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (autoStart && !autoStartHandled) {
-                    autoStartHandled = true
-                    if (appContainer.breathingSessionController.state.value is BreathingSessionState.Idle) {
-                        breathingViewModel.start()
-                    }
-                }
-            }
-            BreathingScreen(
-                viewModel = breathingViewModel,
+            BreathingVideosScreen(
+                initialKey = backStackEntry.arguments?.getString("video"),
                 onNavigateBack = { navController.popBackStack() }
             )
         }

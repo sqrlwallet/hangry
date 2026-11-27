@@ -30,7 +30,7 @@ data class AiCoachUiState(
     val draftToRestore: String? = null,
     /** Chips tailored to the user's current data; empty until loaded. */
     val suggestions: List<String> = emptyList(),
-    /** OPEN_SCREEN action the user just tapped: (screen, breathing pattern). Consumed by the screen. */
+    /** OPEN_SCREEN action the user just tapped: (screen, breathing video key). Consumed by the screen. */
     val openScreen: Pair<String, String?>? = null,
     /** Dash's reply as it streams in; null when nothing is streaming. */
     val streamingReply: String? = null

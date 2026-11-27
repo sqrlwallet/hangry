@@ -19,7 +19,6 @@ import com.kevan.hangry.data.prefs.UnitPrefs
 import com.kevan.hangry.data.local.entity.WeightMeasurementEntity
 import com.kevan.hangry.di.AppContainer
 import com.kevan.hangry.domain.calculation.HealthMarkerCalculator
-import com.kevan.hangry.domain.model.BreathingPattern
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
 import com.kevan.hangry.domain.model.MarkerType
 import com.kevan.hangry.domain.model.MetricTone
@@ -35,14 +34,11 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * Health widgets: Breathe, Heart, Health Markers, Goals, Weight, Posture
+ * Health widgets: Heart, Health Markers, Goals, Weight, Posture
  * and Cycle. Data is only loaded for widgets that are actually on the home screen.
  */
 internal object HealthWidgets {
 
-    private const val RC_BREATHE = 201
-    private const val RC_BREATHE_A = 202
-    private const val RC_BREATHE_B = 203
     private const val RC_HEART = 204
     private const val RC_MARKERS = 205
     private const val RC_MARKERS_ADD = 206
@@ -63,7 +59,6 @@ internal object HealthWidgets {
         var weights: List<WeightMeasurementEntity>? = null
         suspend fun weights() = weights ?: container.database.weightDao().getAllWeights().first().also { weights = it }
 
-        ids(BreatheWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateBreathe(context, manager, it, container) }
         ids(HeartWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateHeart(context, manager, it, container, today, hide) }
         ids(HealthMarkersWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let { updateMarkers(context, manager, it, records(), hide) }
         ids(GoalsWidgetProvider::class.java).takeIf { it.isNotEmpty() }?.let {
@@ -92,36 +87,6 @@ internal object HealthWidgets {
         MetricTone.RISK -> R.color.widget_red
         MetricTone.NEUTRAL -> R.color.widget_text_secondary
     }
-
-    // region Breathe
-
-    private suspend fun updateBreathe(context: Context, manager: AppWidgetManager, ids: IntArray, container: AppContainer) {
-        val stats = container.breathingRepository.observeStats().first()
-        val usual = BreathingPattern.fromId(container.breathingRepository.getRecentSessions(1).first().firstOrNull()?.patternId)
-        val others = BreathingPattern.entries.filter { it != usual }.take(2)
-        val subtitle = if (stats.sessionsToday == 0) {
-            context.getString(R.string.dashboard_widget_breathe_tap_to_start, usual.shortLabel)
-        } else {
-            context.getString(
-                if (stats.sessionsToday == 1) R.string.dashboard_widget_breathe_today_session else R.string.dashboard_widget_breathe_today_sessions,
-                stats.sessionsToday
-            )
-        }
-        for (id in ids) {
-            val views = RemoteViews(context.packageName, R.layout.widget_breathe)
-            views.setTextViewText(R.id.tv_breathe_today, context.getString(R.string.dashboard_widget_minutes_value, stats.minutesToday))
-            views.setTextViewText(R.id.tv_breathe_subtitle, subtitle)
-            views.setTextViewText(R.id.tv_breathe_week, context.getString(R.string.dashboard_widget_breathe_week_minutes, stats.minutesThisWeek))
-            views.setTextViewText(R.id.btn_breathe_a, others[0].shortLabel)
-            views.setTextViewText(R.id.btn_breathe_b, others[1].shortLabel)
-            views.setOnClickPendingIntent(R.id.widget_breathe_root, open(context, Screen.Breathing.createRoute(usual.id, start = true), RC_BREATHE))
-            views.setOnClickPendingIntent(R.id.btn_breathe_a, open(context, Screen.Breathing.createRoute(others[0].id, start = true), RC_BREATHE_A))
-            views.setOnClickPendingIntent(R.id.btn_breathe_b, open(context, Screen.Breathing.createRoute(others[1].id, start = true), RC_BREATHE_B))
-            manager.updateAppWidget(id, views)
-        }
-    }
-
-    // endregion
 
     // region Heart
 

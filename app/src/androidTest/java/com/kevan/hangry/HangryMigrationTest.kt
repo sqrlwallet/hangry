@@ -36,7 +36,7 @@ class HangryMigrationTest {
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
             MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
             MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36
+            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37
         )
     }
 
@@ -144,6 +144,18 @@ class HangryMigrationTest {
             ).forEach { assertEquals(it, 1, db.count("sqlite_master WHERE type = 'index' AND name = '$it'")) }
             listOf("index_heart_rate_samples_timestamp", "index_food_log_source")
                 .forEach { assertEquals(it, 0, db.count("sqlite_master WHERE type = 'index' AND name = '$it'")) }
+        }
+    }
+
+    @Test
+    fun migrate36To37_dropsBreathingSessions_keepsFoodLog() {
+        helper.createDatabase(DB, 36).apply {
+            insertFood()
+            close()
+        }
+        helper.runMigrationsAndValidate(DB, 37, true, HangryDatabase.MIGRATION_36_37).use { db ->
+            assertEquals(1, db.count("food_log"))
+            assertEquals(0, db.count("sqlite_master WHERE type = 'table' AND name = 'breathing_sessions'"))
         }
     }
 

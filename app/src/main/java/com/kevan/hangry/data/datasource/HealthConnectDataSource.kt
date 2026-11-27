@@ -50,18 +50,6 @@ interface HealthConnectDataSource {
     /** Removes the HydrationRecord Hangry wrote for [entry]. Returns false on any failure. */
     suspend fun deleteHydrationRecord(entry: WaterLogEntity): Boolean = false
 
-    /**
-     * Write permissions needed to log breathing sessions on this device: a Mindfulness session
-     * where Health Connect supports it, otherwise a Guided Breathing exercise session.
-     */
-    suspend fun breathingWritePermissions(): Set<String>
-
-    /** True when every permission from [breathingWritePermissions] is granted. */
-    suspend fun hasBreathingWritePermissions(): Boolean
-
-    /** Writes one completed breathing session to Health Connect. Returns false on any failure. */
-    suspend fun writeBreathingSession(session: BreathingSessionEntity, title: String): Boolean
-
     /** Every permission Hangry has been granted. */
     suspend fun grantedPermissions(): Set<String>
 

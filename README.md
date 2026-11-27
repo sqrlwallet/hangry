@@ -36,7 +36,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - **Sleep & Strain** - sleep score, debt and consistency, plus a 0–21 day strain and training load.
 - **Rest mode** - unwell, injured or worn out? Pause your streaks and keep your strain target gentle until you're ready. Hangry offers it when your overnight readings suggest you're fighting something.
 - **Daily Activity rings** for steps and active calories with editable goals.
-- **Customizable dashboard** - reorder, hide or add metric cards, plus home-screen widgets (activity, sleep, recovery, overview, heart, weight, goals, calories, nutrition, fasting, breathing, quick meal log, supplements and more).
+- **Customizable dashboard** - reorder, hide or add metric cards, plus home-screen widgets (activity, sleep, recovery, overview, heart, weight, goals, calories, nutrition, fasting, quick meal log, supplements and more).
 
 ### Nutrition
 - **Snap to log** - Log Meal opens the camera; AI (Gemini 3.8 Flash by default) weighs each part of the plate, estimates calories, macros and fiber and logs it straight away, with an Edit shortcut. Something off? Tell Dash in a comment ("half portion, cooked in butter") and it re-estimates from the photo. Tap the photo to see it full screen, zoom in or save it to your phone. Manual entry is still there in the menu.
@@ -77,7 +77,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - **Separate chats with history**: start a new chat any time, and reopen, search, rename or delete past ones. Each chat keeps its own context; what Dash should always remember lives in your journal.
 
 ### More
-- **Guided breathing** - box breathing and 6, 5 and 3 breaths-per-minute sessions with audio beeps that keep going with the screen locked, logged to Health Connect.
+- **Guided breathing** - six embedded breathing videos: box breathing, 4-7-8 for sleep, and 3, 4, 5 and 6 breaths-per-minute sessions (several with a dark screen for bedtime).
 - **Posture analysis** from photos with corrective exercises.
 
 ---
@@ -116,7 +116,7 @@ Release notes for every version are on the [Releases page](https://github.com/sq
 - **UI**: Jetpack Compose with Material 3
 - **Local persistence**: Room 2.7.2 with KSP (`2.2.10-2.0.2`)
 - **Navigation**: Navigation Compose 2.8.8
-- **Background work**: WorkManager 2.10.0, AlarmManager (supplement reminders), a foreground service (breathing sessions)
+- **Background work**: WorkManager 2.10.0, AlarmManager (supplement reminders)
 - **Health data**: Health Connect Client 1.1.0, including medical records (FHIR)
 - **AI (optional)**: OpenRouter via OkHttp, with streaming; API key encrypted with Android Keystore
 - **Architecture**: Clean Architecture / MVVM with unidirectional data flow

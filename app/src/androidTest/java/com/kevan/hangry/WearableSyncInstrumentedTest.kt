@@ -92,9 +92,6 @@ class WearableSyncInstrumentedTest {
         override suspend fun findEarliestDataDate(): LocalDate? = days.last()
         override suspend fun writeNutritionRecord(entry: FoodLogEntity) = false
         override suspend fun deleteNutritionRecord(entry: FoodLogEntity) = false
-        override suspend fun breathingWritePermissions() = emptySet<String>()
-        override suspend fun hasBreathingWritePermissions() = false
-        override suspend fun writeBreathingSession(session: BreathingSessionEntity, title: String) = false
         override suspend fun grantedPermissions() = emptySet<String>()
         override suspend fun healthRecordPermissions(includeCycle: Boolean) = emptySet<String>()
         override suspend fun supportsMedicalRecords() = false

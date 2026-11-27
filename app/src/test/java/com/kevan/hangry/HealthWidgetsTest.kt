@@ -112,9 +112,8 @@ class HealthWidgetsTest {
     }
 
     @Test
-    fun breathingRoute_widgetStartFlag() {
+    fun breathingRoute_picksVideo() {
         assertEquals("breathing", Screen.Breathing.createRoute())
-        assertEquals("breathing?pattern=bpm_6", Screen.Breathing.createRoute("bpm_6"))
-        assertEquals("breathing?pattern=box_4&start=true", Screen.Breathing.createRoute("box_4", start = true))
+        assertEquals("breathing?video=bpm_6", Screen.Breathing.createRoute("bpm_6"))
     }
 }

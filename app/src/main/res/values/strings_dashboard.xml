@@ -166,11 +166,7 @@
     <string name="dashboard_widget_fasting_goal_reached">Goal reached ✓ · %1$dh</string>
     <string name="dashboard_widget_fasting_time_left">%1$s left · %2$s</string>
     <string name="dashboard_widget_fasting_end">End fast</string>
-    <string name="dashboard_widget_breathe_tap_to_start">Tap to start %1$s</string>
-    <string name="dashboard_widget_breathe_today_session">today · %1$d session</string>
-    <string name="dashboard_widget_breathe_today_sessions">today · %1$d sessions</string>
     <string name="dashboard_widget_minutes_value">%1$d min</string>
-    <string name="dashboard_widget_breathe_week_minutes">%1$d min / 7d</string>
     <string name="dashboard_widget_heart_no_data">No heart data synced yet</string>
     <string name="dashboard_widget_heart_building_baseline">Building your 4-week normal</string>
     <string name="dashboard_widget_heart_vs_baseline">vs your 4-week normal</string>
@@ -240,7 +236,7 @@
     <string name="dashboard_widget_back">Back</string>
     <string name="dashboard_widget_screen_title">Home Screen Widgets</string>
     <string name="dashboard_widget_intro_title">Glanceable Health on Your Phone</string>
-    <string name="dashboard_widget_intro_body">Add widgets to your Android home screen for activity, strain, calories, nutrition, water, sleep, bedtime, recovery, heart, health markers, goals, weight, posture, cycle, breathing, supplements, fasting and one-tap meal logging. They follow your phone\'s dark mode.</string>
+    <string name="dashboard_widget_intro_body">Add widgets to your Android home screen for activity, strain, calories, nutrition, water, sleep, bedtime, recovery, heart, health markers, goals, weight, posture, cycle, supplements, fasting and one-tap meal logging. They follow your phone\'s dark mode.</string>
     <string name="dashboard_widget_activity_title">Daily Activity</string>
     <string name="dashboard_widget_activity_desc">Today\'s steps against your step goal, active calories and active minutes.</string>
     <string name="dashboard_widget_quick_log_title">Quick Log Meal</string>
@@ -259,8 +255,6 @@
     <string name="dashboard_widget_overview_desc">All-in-one glance: Recovery, Activity, Sleep, and Quick Log.</string>
     <string name="dashboard_widget_fasting_title">Fasting</string>
     <string name="dashboard_widget_fasting_desc">A live fasting timer with your stage and streak, and a button to start or end a fast. Turn fasting on in More › Fasting first.</string>
-    <string name="dashboard_widget_breathe_title">Breathe</string>
-    <string name="dashboard_widget_breathe_desc">Minutes breathed today and this week. Tap to start your usual pattern with Dash, or pick another.</string>
     <string name="dashboard_widget_heart_title">Heart</string>
     <string name="dashboard_widget_heart_desc">Resting heart rate and HRV, each compared with your 4-week normal.</string>
     <string name="dashboard_widget_markers_title">Health Markers</string>
@@ -325,9 +319,6 @@
     <string name="dashboard_widget_mock_recovery_advice">Physiological markers elevated above baseline</string>
     <string name="dashboard_widget_mock_overview_steps">6,420 steps</string>
     <string name="dashboard_widget_mock_overview_sleep">Sleep: 7h 30m</string>
-    <string name="dashboard_widget_mock_breathe">BREATHE</string>
-    <string name="dashboard_widget_mock_breathe_today">today · 2 sessions</string>
-    <string name="dashboard_widget_mock_breathe_box">4s Box</string>
     <string name="dashboard_widget_mock_heart">HEART</string>
     <string name="dashboard_widget_mock_heart_vs_normal">vs your 4-week normal</string>
     <string name="dashboard_widget_mock_markers">HEALTH MARKERS</string>

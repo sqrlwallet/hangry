@@ -2,7 +2,7 @@ package com.kevan.hangry
 
 import com.kevan.hangry.domain.calculation.HeartRateZones
 import com.kevan.hangry.domain.calculation.LongevityCalculator
-import com.kevan.hangry.domain.model.BreathingPattern
+import com.kevan.hangry.domain.model.BreathingVideos
 import com.kevan.hangry.domain.model.LongevityPillar
 import com.kevan.hangry.domain.model.ProgramAdvice
 import com.kevan.hangry.domain.model.ProgramCatalog
@@ -44,8 +44,8 @@ class ProgramsTest {
     }
 
     @Test
-    fun `breathing steps point at real breathing patterns`() {
-        val patterns = BreathingPattern.entries.map { it.id }.toSet()
+    fun `breathing steps point at real breathing videos`() {
+        val patterns = BreathingVideos.all.map { it.key }.toSet()
         ProgramCatalog.ALL.flatMap { p -> p.levels.flatMap { it.exercises } }.mapNotNull { it.breathingPattern }
             .forEach { assertTrue(it, it in patterns) }
     }

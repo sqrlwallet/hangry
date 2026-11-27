@@ -7,7 +7,6 @@ import android.content.Context
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
-import androidx.health.connect.client.feature.ExperimentalMindfulnessSessionApi
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.*
 import androidx.health.connect.client.aggregate.AggregateMetric
@@ -50,9 +49,6 @@ class RealHealthConnectDataSource(
         const val PERMISSION_READ_HEALTH_DATA_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY"
         const val PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND = "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
 
-        // Write-only - used solely to log breathing sessions the user completed in the app.
-        const val PERMISSION_WRITE_MINDFULNESS = "android.permission.health.WRITE_MINDFULNESS"
-        val PERMISSION_WRITE_EXERCISE = HealthPermission.getWritePermission(ExerciseSessionRecord::class)
         /** Water logged in Hangry, copied to Health Connect. Asked for in context the first time water is logged. */
         val PERMISSION_WRITE_HYDRATION = HealthPermission.getWritePermission(HydrationRecord::class)
 
@@ -299,7 +295,7 @@ class RealHealthConnectDataSource(
     override suspend fun fetchExerciseSessions(start: Instant, end: Instant): List<ExerciseSessionEntity> {
         val filter = TimeRangeFilter.between(start, end)
         val records = readAllRecords(ExerciseSessionRecord::class, filter).filterNot {
-            // Breathing sessions this app logged via the Guided Breathing fallback aren't training.
+            // Breathing sessions older versions of this app logged as Guided Breathing aren't training.
             it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_GUIDED_BREATHING &&
                 it.metadata.dataOrigin.packageName == context.packageName
         }
@@ -902,73 +898,6 @@ class RealHealthConnectDataSource(
             throw e
         } catch (e: Exception) {
             Log.w("HangryHealthConnect", "Failed deleting nutrition record: ${e.message}")
-            false
-        }
-    }
-
-    @OptIn(ExperimentalMindfulnessSessionApi::class)
-    private fun supportsMindfulness(activeClient: HealthConnectClient): Boolean = try {
-        activeClient.features.getFeatureStatus(HealthConnectFeatures.FEATURE_MINDFULNESS_SESSION) ==
-            HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
-    } catch (_: Exception) {
-        false
-    }
-
-    override suspend fun breathingWritePermissions(): Set<String> {
-        val activeClient = client ?: return emptySet()
-        return if (supportsMindfulness(activeClient)) {
-            setOf(PERMISSION_WRITE_MINDFULNESS)
-        } else {
-            setOf(PERMISSION_WRITE_EXERCISE)
-        }
-    }
-
-    override suspend fun hasBreathingWritePermissions(): Boolean {
-        val required = breathingWritePermissions()
-        return required.isNotEmpty() && getGrantedPermissions().containsAll(required)
-    }
-
-    @OptIn(ExperimentalMindfulnessSessionApi::class)
-    override suspend fun writeBreathingSession(session: BreathingSessionEntity, title: String): Boolean {
-        val activeClient = client ?: return false
-        return try {
-            val zone = ZoneId.systemDefault().rules
-            val startOffset = zone.getOffset(session.startTime)
-            val endOffset = zone.getOffset(session.endTime)
-            // Stable client id makes a retry of the same session an upsert, not a duplicate.
-            val metadata = androidx.health.connect.client.records.metadata.Metadata.manualEntry(
-                clientRecordId = "hangry-breathing-${session.id}"
-            )
-            val granted = getGrantedPermissions()
-            val record: Record = when {
-                supportsMindfulness(activeClient) && PERMISSION_WRITE_MINDFULNESS in granted ->
-                    MindfulnessSessionRecord(
-                        startTime = session.startTime,
-                        startZoneOffset = startOffset,
-                        endTime = session.endTime,
-                        endZoneOffset = endOffset,
-                        metadata = metadata,
-                        mindfulnessSessionType = MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_BREATHING,
-                        title = title
-                    )
-                PERMISSION_WRITE_EXERCISE in granted ->
-                    ExerciseSessionRecord(
-                        startTime = session.startTime,
-                        startZoneOffset = startOffset,
-                        endTime = session.endTime,
-                        endZoneOffset = endOffset,
-                        metadata = metadata,
-                        exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_GUIDED_BREATHING,
-                        title = title
-                    )
-                else -> return false
-            }
-            activeClient.insertRecords(listOf(record))
-            true
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w("HangryHealthConnect", "Failed writing breathing session: ${e.message}")
             false
         }
     }

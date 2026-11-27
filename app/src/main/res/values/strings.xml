@@ -51,7 +51,6 @@
     <string name="widget_recovery_description">Today\'s recovery score and what it means for training.</string>
     <string name="widget_supplements_description">Your next supplement dose and how many you\'ve taken today.</string>
     <string name="widget_overview_description">Comprehensive daily overview with recovery, activity, sleep, and quick-log.</string>
-    <string name="widget_breathe_description">Minutes breathed today and this week. Tap to start a session with Dash.</string>
     <string name="widget_heart_description">Resting heart rate and HRV against your 4-week normal.</string>
     <string name="widget_markers_description">Your latest blood pressure and blood sugar with their status.</string>
     <string name="widget_goals_description">Progress toward your weight and health marker goals.</string>

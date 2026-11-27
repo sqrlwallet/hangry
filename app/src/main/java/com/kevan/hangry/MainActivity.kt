@@ -144,7 +144,7 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         // Leaving the app is when home screen widgets come into view, so bring them up to date
-        // with anything logged in this visit (breathing, readings, weigh-ins, posture checks).
+        // with anything logged in this visit (readings, weigh-ins, posture checks).
         com.kevan.hangry.ui.widget.HangryWidgetUpdater.updateAllWidgets(this)
         // A sync in this visit may have moved tonight's suggested bedtime.
         com.kevan.hangry.data.nudges.BedtimeReminder.reschedule(this)

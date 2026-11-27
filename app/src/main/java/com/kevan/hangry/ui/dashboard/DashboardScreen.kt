@@ -27,10 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kevan.hangry.R
-import com.kevan.hangry.data.breathing.BreathingSessionState
 import com.kevan.hangry.domain.calculation.StreakCalculator
-import com.kevan.hangry.domain.model.BreathingPattern
-import com.kevan.hangry.domain.model.BreathingStats
 import com.kevan.hangry.ui.bodyage.BodyAgeCard
 import com.kevan.hangry.ui.breathing.BreathingExercisesCard
 import com.kevan.hangry.domain.model.HealthRecordsSnapshot
@@ -73,9 +70,7 @@ fun DashboardScreen(
     onNavigateToNutrition: () -> Unit,
     onNavigateToBodyFatCalculator: () -> Unit = {},
     onNavigateToBodyMetrics: () -> Unit = onNavigateToBodyFatCalculator,
-    breathingStats: BreathingStats = BreathingStats(),
-    breathingSession: BreathingSessionState = BreathingSessionState.Idle,
-    onNavigateToBreathing: (BreathingPattern?) -> Unit = {},
+    onNavigateToBreathing: (String?) -> Unit = {},
     healthRecords: HealthRecordsSnapshot = HealthRecordsSnapshot(),
     supplements: SupplementsSnapshot = SupplementsSnapshot(),
     onToggleSupplementDose: (Long, java.time.LocalTime, Boolean) -> Unit = { _, _, _ -> },
@@ -422,12 +417,7 @@ fun DashboardScreen(
                     }
 
                     WidgetType.BREATHING -> {
-                        BreathingExercisesCard(
-                            stats = breathingStats,
-                            session = breathingSession,
-                            onOpenPattern = { pattern -> onNavigateToBreathing(pattern) },
-                            onOpenSession = { onNavigateToBreathing(null) }
-                        )
+                        BreathingExercisesCard(onOpenVideo = onNavigateToBreathing)
                     }
 
                     WidgetType.CALORIE_BURN -> {

@@ -1,11 +1,9 @@
 package com.kevan.hangry.ui.breathing
 
-import com.kevan.hangry.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
@@ -16,30 +14,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.kevan.hangry.data.breathing.BreathingSessionState
-import com.kevan.hangry.domain.model.BreathingPattern
-import com.kevan.hangry.domain.model.BreathingStats
+import com.kevan.hangry.R
+import com.kevan.hangry.domain.model.BreathingVideos
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.theme.HangryTokens
 import com.kevan.hangry.ui.theme.LocalHangryTokens
-import java.util.Locale
 
-/** Compact home-page entry point: one tap on a pattern opens the session screen with it selected. */
+/** Compact home-page entry point: tapping a session opens the breathing videos with it playing. */
 @Composable
 fun BreathingExercisesCard(
-    stats: BreathingStats,
-    session: BreathingSessionState,
-    onOpenPattern: (BreathingPattern) -> Unit,
-    onOpenSession: () -> Unit,
+    onOpenVideo: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalHangryTokens.current
     val accent = tokens.chartColors.sleep
 
-    HangryCard(modifier = modifier.fillMaxWidth()) {
+    HangryCard(modifier = modifier.fillMaxWidth(), onClick = { onOpenVideo(null) }) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -61,7 +55,7 @@ fun BreathingExercisesCard(
                 )
             }
             Text(
-                text = if (stats.minutesToday > 0) stringResource(R.string.coach_breathing_min_today_count, stats.minutesToday) else stringResource(R.string.coach_breathing_guided_audio),
+                text = stringResource(R.string.coach_breathing_videos_count, BreathingVideos.all.size),
                 style = MaterialTheme.typography.labelSmall,
                 color = tokens.textMuted
             )
@@ -69,73 +63,34 @@ fun BreathingExercisesCard(
 
         Spacer(modifier = Modifier.height(HangryTokens.Spacing.s))
 
-        if (session is BreathingSessionState.Active) {
-            Surface(
-                onClick = onOpenSession,
-                shape = RoundedCornerShape(12.dp),
-                color = accent.copy(alpha = 0.12f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
+        ) {
+            BreathingVideos.all.forEach { video ->
+                Surface(
+                    onClick = { onOpenVideo(video.key) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = accent.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.25f))
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(accent, CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = stringResource(
-                            R.string.coach_breathing_in_progress,
-                            session.pattern.shortLabel,
-                            if (session.isPaused) stringResource(R.string.coach_breathing_paused) else session.position.phase.type.label
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tokens.textPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = String.format(
-                            Locale.US, "%d:%02d", session.remainingSeconds / 60, session.remainingSeconds % 60
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = accent
-                    )
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(HangryTokens.Spacing.s)
-            ) {
-                BreathingPattern.entries.forEach { pattern ->
-                    Surface(
-                        onClick = { onOpenPattern(pattern) },
-                        shape = RoundedCornerShape(12.dp),
-                        color = accent.copy(alpha = 0.08f),
-                        border = BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
-                        modifier = Modifier.weight(1f)
+                    Column(
+                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = pattern.shortLabel,
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                                color = tokens.textPrimary,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = pattern.phases.joinToString("·") { "${it.seconds}" },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = tokens.textMuted,
-                                maxLines = 1
-                            )
-                        }
+                        Text(
+                            text = video.shortLabel,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = tokens.textPrimary,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = stringResource(R.string.coach_breathing_video_minutes, video.minutes),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.textMuted,
+                            maxLines = 1
+                        )
                     }
                 }
             }

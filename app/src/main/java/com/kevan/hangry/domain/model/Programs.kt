@@ -15,7 +15,7 @@ data class ProgramExercise(
     val howTo: String,
     /** A simpler way to do it if it's too much today. */
     val easier: String,
-    /** A BreathingPattern id: the session can open that guided breathing with Dash. */
+    /** A BreathingVideo key: the step can open that guided breathing video. */
     val breathingPattern: String? = null
 )
 

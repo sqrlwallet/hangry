@@ -51,7 +51,7 @@ data class CoachAction(
     val reminders: RemindersActionPayload? = null,
     /** OPEN_SCREEN target - see [Screens]. */
     val screen: String? = null,
-    /** OPEN_SCREEN with screen = "breathing": a BreathingPattern id. */
+    /** OPEN_SCREEN with screen = "breathing": a BreathingVideo key. */
     val breathingPattern: String? = null,
     val status: String = CoachActionStatus.PENDING,
     val resultMessage: String? = null

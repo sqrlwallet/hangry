@@ -37,15 +37,7 @@
     <uses-permission android:name="android.permission.health.WRITE_NUTRITION" />
     <uses-permission android:name="android.permission.health.WRITE_HYDRATION" />
 
-    <!-- Breathing exercises: log completed sessions to Health Connect (Mindfulness where
-         supported, otherwise a Guided Breathing exercise session), and keep the session's
-         audio cues running with the screen off via a media-playback foreground service. -->
-    <uses-permission android:name="android.permission.health.WRITE_MINDFULNESS" />
-    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- Shows the ongoing breathing-session notification (with its End button) on Android 13+. -->
+    <!-- Reminder notifications (supplements, fasting) on Android 13+. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- "Let Hangry always run in background?" - asked in onboarding and Settings, never assumed. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -144,11 +136,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-
-        <service
-            android:name=".data.breathing.BreathingSessionService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
 
         <receiver
             android:name=".data.supplements.SupplementReminderReceiver"
@@ -268,18 +255,6 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_provider_fasting" />
-        </receiver>
-
-        <receiver
-            android:name=".ui.widget.BreatheWidgetProvider"
-            android:exported="true"
-            android:label="Hangry Breathe">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_provider_breathe" />
         </receiver>
 
         <receiver

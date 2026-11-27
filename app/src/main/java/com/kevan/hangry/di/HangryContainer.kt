@@ -11,7 +11,6 @@ import com.kevan.hangry.data.ai.OpenRouterSupplementAnalyzer
 import com.kevan.hangry.data.coach.CoachActionExecutor
 import com.kevan.hangry.data.supplements.SupplementReminderScheduler
 import com.kevan.hangry.domain.ai.SupplementAnalyzer
-import com.kevan.hangry.data.breathing.BreathingSessionController
 import com.kevan.hangry.data.datasource.HealthConnectDataSource
 import com.kevan.hangry.data.datasource.RealHealthConnectDataSource
 import com.kevan.hangry.data.local.HangryDatabase
@@ -62,9 +61,7 @@ interface AppContainer {
     val weightRepository: WeightRepository
     val heightRepository: HeightRepository
     val dispatchers: com.kevan.hangry.util.AppDispatchers
-    val breathingRepository: BreathingRepository
     val waterLogRepository: com.kevan.hangry.data.repository.WaterLogRepository
-    val breathingSessionController: BreathingSessionController
 
     // AI features (opt-in): OpenRouter-backed calorie & posture analysis + AI Coach
     val secureKeyStore: SecureKeyStore
@@ -269,16 +266,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         com.kevan.hangry.util.DefaultAppDispatchers()
     }
 
-    override val breathingRepository: BreathingRepository by lazy {
-        DefaultBreathingRepository(database.breathingSessionDao(), healthConnectDataSource)
-    }
-
     override val waterLogRepository: com.kevan.hangry.data.repository.WaterLogRepository by lazy {
         com.kevan.hangry.data.repository.WaterLogRepository(context, database.waterLogDao(), healthConnectDataSource)
-    }
-
-    override val breathingSessionController: BreathingSessionController by lazy {
-        BreathingSessionController(context, breathingRepository)
     }
 
     override val secureKeyStore: SecureKeyStore by lazy {

@@ -205,15 +205,6 @@ fun HomeScreenWidgetsScreen(
                 PostureWidgetMockup()
             }
 
-            WidgetPreviewCard(
-                title = stringResource(R.string.dashboard_widget_breathe_title),
-                sizeLabel = "2 × 2",
-                description = stringResource(R.string.dashboard_widget_breathe_desc),
-                onPinWidget = { pinWidget(context, BreatheWidgetProvider::class.java) }
-            ) {
-                BreatheWidgetMockup()
-            }
-
             WidgetSection(stringResource(R.string.dashboard_widget_section_sleep))
 
             WidgetPreviewCard(
@@ -829,31 +820,6 @@ private fun MockButton(text: String, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(text, color = MockOnBlue, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun BreatheWidgetMockup() {
-    Column {
-        MockHeader(Icons.Default.Air, Color(0xFF6FC3DF), stringResource(R.string.dashboard_widget_mock_breathe), "45 min / 7d")
-        Spacer(modifier = Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(R.drawable.dash_breathe_in),
-                contentDescription = null,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text("12 min", color = mock.text, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.dashboard_widget_mock_breathe_today), color = mock.muted, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            MockButton(stringResource(R.string.dashboard_widget_mock_breathe_box), Modifier.weight(1f))
-            MockButton("5 BPM", Modifier.weight(1f))
-        }
     }
 }
 

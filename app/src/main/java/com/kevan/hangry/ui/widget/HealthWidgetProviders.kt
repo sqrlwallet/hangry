@@ -17,7 +17,6 @@ abstract class HangryWidgetProvider : AppWidgetProvider() {
     }
 }
 
-class BreatheWidgetProvider : HangryWidgetProvider()
 class HeartWidgetProvider : HangryWidgetProvider()
 class HealthMarkersWidgetProvider : HangryWidgetProvider()
 class GoalsWidgetProvider : HangryWidgetProvider()

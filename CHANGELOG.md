@@ -1,3 +1,22 @@
+## 🚀 What's New in Hangry v1.55.0 — Breathe Along & Truer Heart Numbers
+
+Breathing exercises are now guided videos, your resting heart rate matches your watch, and Body Age judges HRV fairly for your age.
+
+### 🌬️ Breathing Videos
+- **Six guided videos, right in the app**: Box Breathing 4-4-4-4, 4-7-8 Breathing for Sleep, and 3, 4, 5 and 6 breaths-per-minute sessions, from 10 to 15 minutes.
+- **Made for bedtime**: the 4-7-8, 3 BPM and 4 BPM videos have a dark screen; tap full screen and the display stays on while you breathe.
+- **Start from Today**: the Breathing Exercises card lists every video; Dash and your programs open the right one for you.
+- **Breathing timer retired**: the old beep-guided timer, its notification and the Breathe home-screen widget are gone, and Hangry no longer asks to write breathing sessions to Health Connect.
+
+### ❤️ Heart & Body Age
+- **Resting heart rate matches your watch**: Hangry now uses your watch's own daily resting heart rate, so the number at the top of Heart matches Recent Daily Readings. Recovery, Body Age and heart-rate zones use it too.
+- **Trend lines fixed**: the resting HR and HRV trend lines now show your latest 14 days, oldest to newest.
+- **One reading per day**: Recent Daily Readings, the 28-day averages and your HRV normal range all use last night's HRV instead of mixing in daytime readings.
+- **Fairer HRV in Body Age**: your HRV is compared with what's typical for your age on a wrist wearable (about 33 ms at 40), so normal HRV no longer adds years.
+
+### 🍽️ Nutrition
+- **Top 10 favourites**: your 10 most-logged foods are now pinned at the top of Saved meals, up from 5.
+
 ## 🚀 What's New in Hangry v1.54.0 — A Fresh New Look
 
 Hangry has a new typeface: Allo, a warm, friendly font that gets rounder and bolder the bigger it gets.

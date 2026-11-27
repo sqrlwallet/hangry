@@ -10,7 +10,7 @@ import java.time.Instant
  */
 internal object SavedMealOrder {
 
-    const val PINNED_COUNT = 5
+    const val PINNED_COUNT = 10
     const val MIN_USES = 2
 
     data class Sections(val mostLogged: List<MealPlanEntity>, val rest: List<MealPlanEntity>)

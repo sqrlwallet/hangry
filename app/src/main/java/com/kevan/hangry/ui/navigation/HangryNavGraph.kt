@@ -533,8 +533,7 @@ fun HangryNavGraph(
         composable(Screen.HeartMetrics.route) {
             HeartMetricsScreen(
                 viewModel = dashboardViewModel,
-                heartRateRepository = appContainer.heartRateRepository,
-                hrvRepository = appContainer.hrvRepository,
+                dailySummaryRepository = appContainer.dailySummaryRepository,
                 cardioFitnessLoader = com.kevan.hangry.data.repository.CardioFitnessLoader(appContainer.database),
                 onNavigateBack = {
                     navController.popBackStack()

@@ -2,6 +2,8 @@ package com.kevan.hangry.domain.calculation
 
 import com.kevan.hangry.domain.model.BiologicalSex
 import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.ln
 import kotlin.math.roundToInt
 
 /** A 30-day picture of the habits and markers Body Age is built from. Null = no data. */
@@ -81,9 +83,11 @@ object BodyAgeCalculator {
                 "Regular cardio, good sleep and less alcohol all bring resting heart rate down.")
         }
         // HRV against a typical value that falls with age; small weight, since devices differ.
+        // Compared on a log scale (HRV is log-normal): half the typical value is +1.5 years,
+        // double it is -1.5, so a few ms matter more at low HRV than at high.
         add("Heart rate variability", i.hrvRmssd) {
-            val norm = (62.0 - 0.6 * (i.age - 20)).coerceAtLeast(20.0)
-            val years = cap(-(i.hrvRmssd!! - norm) / norm * 3.0, 1.5)
+            val norm = hrvNorm(i.age)
+            val years = cap(-ln(i.hrvRmssd!! / norm) / ln(2.0) * 1.5, 1.5)
             BodyAgeFactor("Heart rate variability", "${i.hrvRmssd.roundToInt()} ms (typical ${norm.roundToInt()})", years,
                 "Consistent sleep, recovery days and managing stress lift HRV over time.")
         }
@@ -184,6 +188,13 @@ object BodyAgeCalculator {
         }
         return (at20 - 0.4 * (age - 20).coerceAtLeast(0.0)).coerceAtLeast(20.0)
     }
+
+    /**
+     * Typical overnight HRV (RMSSD, ms) by age, as wrist wearables measure it during sleep:
+     * about 50 ms at 20, falling roughly 2% a year (about 33 at 40, 22 at 60), in line with
+     * large wearable studies such as Natarajan et al., Lancet Digital Health 2020.
+     */
+    fun hrvNorm(age: Double): Double = (50.0 * exp(-0.02 * (age - 20).coerceAtLeast(0.0))).coerceAtLeast(15.0)
 
     private fun cap(value: Double, limit: Double) = value.coerceIn(-limit, limit)
     private fun fmt(value: Double, decimals: Int) =

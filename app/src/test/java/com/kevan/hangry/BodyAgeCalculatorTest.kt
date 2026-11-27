@@ -83,4 +83,28 @@ class BodyAgeCalculatorTest {
         assertEquals(34.7, r.chronologicalAge, 0.001)
         assertEquals(33.7, r.bodyAge, 0.001)
     }
+
+    private fun hrvYears(age: Int, hrv: Double): Double =
+        BodyAgeCalculator.calculate(inputs(age = age, hrv = hrv, rhr = 60.0, steps = 6_000.0, consistency = 75.0))!!
+            .factors.first { it.name == "Heart rate variability" }.years
+
+    @Test
+    fun hrvNorm_fallsWithAgeLikeWearableNorms() {
+        assertEquals(50.0, BodyAgeCalculator.hrvNorm(20.0), 0.1)
+        assertEquals(33.5, BodyAgeCalculator.hrvNorm(40.0), 0.5)
+        assertEquals(22.5, BodyAgeCalculator.hrvNorm(60.0), 0.5)
+        assertEquals(50.0, BodyAgeCalculator.hrvNorm(16.0), 0.1)
+    }
+
+    @Test
+    fun hrv_typicalForAgeIsNeutral_andScaledOnLogScale() {
+        // A 40-year-old with 34 ms overnight is typical, not "low" (the old norm expected 50).
+        assertEquals(0.0, hrvYears(40, BodyAgeCalculator.hrvNorm(40.0)), 0.01)
+        // Half the typical value ages you 1.5 years, double takes 1.5 off - symmetric.
+        assertEquals(1.5, hrvYears(40, BodyAgeCalculator.hrvNorm(40.0) / 2), 0.01)
+        assertEquals(-1.5, hrvYears(40, BodyAgeCalculator.hrvNorm(40.0) * 2), 0.01)
+        // Capped either way.
+        assertEquals(1.5, hrvYears(40, 5.0), 0.01)
+        assertEquals(-1.5, hrvYears(40, 200.0), 0.01)
+    }
 }

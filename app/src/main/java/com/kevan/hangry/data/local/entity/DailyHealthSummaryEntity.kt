@@ -68,5 +68,7 @@ data class DailyHealthSummaryEntity(
  *    for debt; bed/wake consistency over 14 nights.
  * 9: Sleep Score counts interruptions; deep and REM scored in minutes, not shares of the night.
  * 10: workouts without calorie data are estimated from heart rate or type and duration.
+ * 11: resting heart rate is the watch's own daily reading when Health Connect has one, and only
+ *    estimated from overnight heart rate without it.
  */
-const val SUMMARY_CALCULATION_VERSION = 10
+const val SUMMARY_CALCULATION_VERSION = 11

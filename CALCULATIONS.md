@@ -28,7 +28,7 @@ Baselines are the user's own **last 30 days** (at least 3 usable days before a s
   $$S_{\text{hrv}} = 0.6\,(65 + 15 \min(z_{\text{week}}, 1.5)) + 0.4\,(65 + 15 z_{\text{night}}), \text{ each part clamped to } 0\text{–}100$$
   The 7-night average includes last night and needs at least 3 nights; with fewer, last night is scored on its own. A week's average moves about half as much as single nights do, so its normal band is half as wide. One low night after a normal week is softened, and a whole low week counts fully. A week running more than 1.5 SD *above* normal earns no more points, and past 2.5 SD it is flagged as possible overreaching, since very high HRV can follow very hard training too (Buchheit 2014).
   When the device reports no HRV, the user's "how do you feel" answer stands in (Excellent = 90 by default).
-- **Resting Heart Rate ($w_{\text{rhr}} = 0.25$)**: the lowest 5-minute average heart rate during the main sleep. Without overnight heart rate: Health Connect's resting heart rate, else the lowest 5-minute awake average. Scored in standard deviations from the 30-day normal, like HRV, so a heart rate that naturally wanders needs a bigger rise to count:
+- **Resting Heart Rate ($w_{\text{rhr}} = 0.25$)**: the watch's own daily resting heart rate from Health Connect (the most recently imported one if several apps write it). Without one: the lowest 5-minute average heart rate during the main sleep, else the lowest 5-minute awake average. Scored in standard deviations from the 30-day normal, like HRV, so a heart rate that naturally wanders needs a bigger rise to count:
   $$z_{\text{rhr}} = \frac{\text{RHR}_{\text{today}} - \overline{\text{RHR}}_{30d}}{\max(\text{SD}_{30d}, 1.5)}, \quad S_{\text{rhr}} = \text{clamp}(0, 100, 100 - 7\,[\max(0, z_{\text{rhr}}) + \max(0, -z_{\text{rhr}} - z_{\text{low}})])$$
   At or below normal is 100 and each SD above costs 7 points. For a steady 1.5 bpm SD that's about 4.7 points per bpm; for a 3 bpm SD about 2.3. The score is two-sided, as Oura's is. A reading far *below* normal also costs 7 points per SD past $z_{\text{low}} = \max(2, 8 / \text{SD})$, i.e. 2 SD and at least 8 bpm, since an unusually low resting heart rate can follow very hard training or be a sensor glitch. A modest dip still scores 100 and is listed as a positive.
 - **Sleep ($w_{\text{sleep}} = 0.25$)**: time asleep against the night's **sleep need** (§7), with a quarter for sleep quality (§7.1) when known:
@@ -263,7 +263,7 @@ About 1.2 SD off normal is `ELEVATED`, and 2 SD is `HIGH`. The card shows HRV ag
 |---|---|---|
 | Cardio fitness (VO₂ max) | Typical for age/sex: 47 (men) / 40 (women) at 20, −0.4 ml/kg/min per year | 2 years per 3.5 ml/kg/min (1 MET) from typical (±5) |
 | Resting heart rate | 60 bpm | 1 year per 5 bpm (±3) |
-| HRV (RMSSD) | 62 − 0.6 × (age − 20) ms, min 20 | ± up to 1.5 years, scaled by % from typical |
+| HRV (RMSSD, overnight) | 50 × e^(−0.02 × (age − 20)) ms, min 15 (≈50 at 20, 33 at 40, 22 at 60; wrist-wearable norms, e.g. Natarajan et al. 2020) | log scale: half typical +1.5 years, double −1.5 (±1.5) |
 | Daily steps | 5,000–7,499 | ≥12k −2, ≥10k −1.5, ≥7.5k −1, <5k +1, <3k +2 |
 | Weekly exercise (non mind-body workouts) | 75–149 min | ≥300 −2, ≥150 −1, <75 +1, <30 +2 |
 | Strength sessions a week | — | ≥2 −1.5, ≥1 −0.5, 0 +1 |

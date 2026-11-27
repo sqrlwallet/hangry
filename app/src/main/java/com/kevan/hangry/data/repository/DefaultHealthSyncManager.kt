@@ -801,19 +801,21 @@ class DefaultHealthSyncManager(
 
             val nightSamples = mainSleep?.let { database.heartRateDao().getSamplesBetweenList(it.startTime, it.endTime) }
 
-            // Resting heart rate is measured overnight, like recovery wearables do: the lowest
-            // 5-minute average during last night's sleep. It's final once the night is over.
+            // Resting heart rate: the watch's own daily reading from Health Connect when there is
+            // one - that's the number the user sees in their watch app and in Recent Daily
+            // Readings. Only without it do we estimate one, overnight first: the lowest 5-minute
+            // average during last night's sleep, final once the night is over.
             val sleepingRhr = mainSleep?.let { night ->
                 NightlyVitals.lowestSustainedBpm(
                     nightSamples.orEmpty(),
                     night.startTime, night.endTime
                 )
             }
-            val effectiveRhr = sleepingRhr
+            val effectiveRhr = rhr?.restingBpm
+                ?: sleepingRhr
                 // Without overnight heart rate, a daytime estimate - locked once shown, so later
                 // syncs the same day don't change a number the user already saw.
                 ?: currentExistingSummary?.takeIf { it.calculationVersion >= SUMMARY_CALCULATION_VERSION }?.restingHeartRate
-                ?: rhr?.restingBpm
                 ?: run {
                     val rhrWindowEnd = if (date == LocalDate.now(zone)) Instant.now() else dayEnd
                     val rhrWindowStart = rhrWindowEnd.minus(24, ChronoUnit.HOURS)

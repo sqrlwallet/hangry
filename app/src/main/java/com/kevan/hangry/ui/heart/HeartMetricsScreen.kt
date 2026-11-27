@@ -31,8 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kevan.hangry.R
-import com.kevan.hangry.domain.repository.HeartRateRepository
-import com.kevan.hangry.domain.repository.HRVRepository
+import com.kevan.hangry.domain.repository.DailySummaryRepository
 import com.kevan.hangry.ui.components.HangryCard
 import com.kevan.hangry.ui.components.HangryInfoIconButton
 import com.kevan.hangry.ui.components.HangryInfoSection
@@ -49,6 +48,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
+import kotlin.math.roundToInt
 import com.kevan.hangry.ui.components.rememberToday
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -80,8 +80,7 @@ private fun heartInfoSections(): List<HangryInfoSection> = listOf(
 @Composable
 fun HeartMetricsScreen(
     viewModel: DashboardViewModel,
-    heartRateRepository: HeartRateRepository,
-    hrvRepository: HRVRepository,
+    dailySummaryRepository: DailySummaryRepository,
     cardioFitnessLoader: com.kevan.hangry.data.repository.CardioFitnessLoader,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -90,9 +89,11 @@ fun HeartMetricsScreen(
     val tokens = LocalHangryTokens.current
     val today = rememberToday()
 
-    val rhrList by remember(today) { heartRateRepository.getRestingHeartRates(today.minusDays(28), today) }.collectAsStateWithLifecycle(initialValue = emptyList())
-    val hrvList by remember(today) { hrvRepository.getHrvBetween(today.minusDays(28), today) }.collectAsStateWithLifecycle(initialValue = emptyList())
-    val hrvByDate = remember(hrvList) { hrvList.associateBy { it.recordDate } }
+    // One value per day - the same daily resting HR and overnight HRV shown at the top, used by
+    // Recovery and Body Age - so the headline, trend lines, averages and the list all agree.
+    val summaries by remember(today) { dailySummaryRepository.getSummariesBetween(today.minusDays(27), today) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val days = remember(summaries) { HeartDailyReadings.from(summaries) }
 
     // Reloads when a sync brings a new VO2 max or workout.
     val cardio by produceState<com.kevan.hangry.data.repository.CardioFitnessSnapshot?>(null, today, uiState.dailySummary) {
@@ -107,7 +108,7 @@ fun HeartMetricsScreen(
     // HRV Baseline Normal Range Band Calculation (mean ± 1 std dev).
     // Only computed when there's at least one real reading - never fabricated from a
     // hardcoded default, since a band built on an assumed number would look like real data.
-    val hrvValues = hrvList.map { it.rmssd }
+    val hrvValues = days.mapNotNull { it.hrv }
     val hasHrvBaseline = hrvValues.size >= 3
     val hasAnyHrvData = hrvValues.isNotEmpty() || currentHrv != null
     val hrvMean = if (hasHrvBaseline) hrvValues.average() else (currentHrv ?: 0.0)
@@ -117,13 +118,14 @@ fun HeartMetricsScreen(
     val hrvUpperBand = hrvMean + hrvStdDev
 
     // RHR Baseline Calculation
-    val rhrValues = rhrList.map { it.restingBpm }
+    val rhrValues = days.mapNotNull { it.restingHr }
     val hasRhrBaseline = rhrValues.size >= 3
     val rhrMean = if (hasRhrBaseline) rhrValues.average() else (currentRhr ?: 60.0)
 
     val isDark = tokens.cardBackground == SurfaceDark
-    val rhrSparkline = remember(rhrList) { rhrList.takeLast(14).map { it.restingBpm } }
-    val hrvSparkline = remember(hrvList) { hrvList.takeLast(14).map { it.rmssd } }
+    // Oldest to newest, the last 14 days.
+    val rhrSparkline = remember(days) { days.mapNotNull { it.restingHr }.takeLast(14) }
+    val hrvSparkline = remember(days) { days.mapNotNull { it.hrv }.takeLast(14) }
 
     Scaffold(
         topBar = {
@@ -438,7 +440,7 @@ fun HeartMetricsScreen(
                             color = tokens.textPrimary
                         )
                     }
-                    if (rhrList.isEmpty()) {
+                    if (days.isEmpty()) {
                         DashEmptyState(
                             scene = DashEmptyScene.HRV,
                             title = stringResource(R.string.metrics_heart_no_rhr_title),
@@ -454,12 +456,12 @@ fun HeartMetricsScreen(
                             isHeader = true
                         )
                         val dateFormat = remember { DateTimeFormatter.ofPattern("EEE d MMM") }
-                        rhrList.forEach { reading ->
+                        days.asReversed().forEach { day ->
                             HorizontalDivider(color = tokens.cardBorder)
                             ReadingRow(
-                                date = reading.recordDate.format(dateFormat),
-                                rhr = stringResource(R.string.metrics_components_bpm_value, reading.restingBpm.toInt()),
-                                hrv = hrvByDate[reading.recordDate]?.let { stringResource(R.string.metrics_components_ms_value, it.rmssd.toInt()) } ?: "—"
+                                date = day.date.format(dateFormat),
+                                rhr = day.restingHr?.let { stringResource(R.string.metrics_components_bpm_value, it.roundToInt()) } ?: "—",
+                                hrv = day.hrv?.let { stringResource(R.string.metrics_components_ms_value, it.roundToInt()) } ?: "—"
                             )
                         }
                     }

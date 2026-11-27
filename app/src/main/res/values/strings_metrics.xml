@@ -247,7 +247,7 @@
     <string name="metrics_recovery_info_hrv_title" formatted="false">Heart Rate Variability — 35% weight</string>
     <string name="metrics_recovery_info_hrv_body">Reflects parasympathetic autonomic tone, from readings taken while you slept. Scored by how far last night is from your own 30-day normal, allowing for how much your HRV usually varies. If your device doesn\'t report HRV, we count it as excellent - and you can change that to how you actually feel.</string>
     <string name="metrics_recovery_info_rhr_title" formatted="false">Resting Heart Rate — 25% weight</string>
-    <string name="metrics_recovery_info_rhr_body">Your lowest 5-minute average heart rate during last night\'s sleep (a daytime estimate if your device doesn\'t record heart rate overnight), against your monthly average. At or below it scores 100; each bpm above it takes off 2 points.</string>
+    <string name="metrics_recovery_info_rhr_body">Your watch\'s resting heart rate for the day, from Health Connect. If your watch doesn\'t record one, your lowest 5-minute average heart rate during last night\'s sleep (or a daytime estimate). Compared against your monthly average. At or below it scores 100; each bpm above it takes off 2 points.</string>
     <string name="metrics_recovery_info_sleep_title" formatted="false">Sleep — 25% weight</string>
     <string name="metrics_recovery_info_sleep_body">How much of your sleep need you got (your sleep goal, plus recent sleep debt and extra after a hard day), with a quarter for how well you slept.</string>
     <string name="metrics_recovery_info_strain_title" formatted="false">Strain Balance — 15% weight</string>
